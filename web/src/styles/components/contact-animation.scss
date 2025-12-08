@@ -1,0 +1,201 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.contact-animation {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    width: 160px;
+    height: 160px;
+  }
+
+  @media (max-width: 480px) {
+    width: 140px;
+    height: 140px;
+  }
+
+  dotlottie-wc {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.contact-animation-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 9999px;
+  background: $bg-white;
+  @include shadow-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+
+  @media (max-width: 768px) {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+.contact-animation-core {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  background: $bg-light-purple;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $purple-main;
+  z-index: 2;
+  animation: contact-core-pulse 2200ms ease-in-out infinite;
+
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+
+    @media (max-width: 768px) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.contact-animation-orbit {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1px solid rgba(109, 93, 252, 0.3);
+  opacity: 0.7;
+  animation: contact-orbit-rotate 8000ms linear infinite;
+}
+
+.contact-animation-orbit-1 {
+  inset: 12px;
+  border-color: rgba(109, 93, 252, 0.3);
+
+  @media (max-width: 768px) {
+    inset: 8px;
+  }
+}
+
+.contact-animation-orbit-2 {
+  inset: 4px;
+  opacity: 0.4;
+  animation-duration: 10000ms;
+  animation-direction: reverse;
+  border-color: rgba(109, 93, 252, 0.2);
+
+  @media (max-width: 768px) {
+    inset: 2px;
+  }
+}
+
+.contact-animation-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: $purple-main;
+  z-index: 1;
+
+  @media (max-width: 768px) {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+.contact-animation-dot-1 {
+  top: 12px;
+  right: 26px;
+  animation: contact-dot-orbit-1 5200ms linear infinite;
+
+  @media (max-width: 768px) {
+    top: 8px;
+    right: 20px;
+  }
+}
+
+.contact-animation-dot-2 {
+  bottom: 18px;
+  left: 24px;
+  animation: contact-dot-orbit-2 6400ms linear infinite;
+
+  @media (max-width: 768px) {
+    bottom: 14px;
+    left: 18px;
+  }
+}
+
+@keyframes contact-core-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(109, 93, 252, 0.3);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 10px rgba(109, 93, 252, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(109, 93, 252, 0);
+  }
+}
+
+@keyframes contact-orbit-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes contact-dot-orbit-1 {
+  0% {
+    transform: translate(0px, 0px);
+  }
+  25% {
+    transform: translate(-6px, 4px);
+  }
+  50% {
+    transform: translate(0px, 10px);
+  }
+  75% {
+    transform: translate(8px, 4px);
+  }
+  100% {
+    transform: translate(0px, 0px);
+  }
+}
+
+@keyframes contact-dot-orbit-2 {
+  0% {
+    transform: translate(0px, 0px);
+  }
+  25% {
+    transform: translate(6px, -4px);
+  }
+  50% {
+    transform: translate(0px, -10px);
+  }
+  75% {
+    transform: translate(-8px, -4px);
+  }
+  100% {
+    transform: translate(0px, 0px);
+  }
+}
+

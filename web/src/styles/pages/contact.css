@@ -1,0 +1,62 @@
+@keyframes gradient-text {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+.page-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 48px 30px;
+}
+
+.page-title {
+  margin-bottom: 32px;
+}
+
+.page-text {
+  font-size: 16px;
+  line-height: 1.625;
+  color: #52525b;
+}
+.page-text p {
+  margin-bottom: 24px;
+}
+.page-text p:last-child {
+  margin-bottom: 0;
+}
+
+.contact-info {
+  margin-bottom: 24px;
+}
+.contact-info:last-child {
+  margin-bottom: 0;
+}
+
+.contact-info-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #18181b;
+}/*# sourceMappingURL=contact.css.map */

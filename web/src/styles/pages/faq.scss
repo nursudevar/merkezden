@@ -1,0 +1,307 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.faq-page {
+  background-color: $bg-zinc-50;
+  min-height: 100vh;
+  width: 100%;
+
+  &__container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 80px 30px;
+    box-sizing: border-box;
+
+    @media (max-width: 768px) {
+      padding: 60px 20px;
+    }
+  }
+}
+
+.faq-header {
+  text-align: center;
+  margin-bottom: 40px;
+
+  &__title {
+    font-size: $text-3xl;
+    font-weight: $font-bold;
+    color: $text-zinc-900;
+    margin-bottom: 8px;
+    line-height: $leading-tight;
+
+    @media (min-width: 640px) {
+      font-size: 36px;
+    }
+
+    @media (min-width: 1024px) {
+      font-size: 42px;
+    }
+  }
+
+  &__subtitle {
+    font-size: $text-sm;
+    color: $text-zinc-600;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: $leading-normal;
+
+    @media (min-width: 640px) {
+      font-size: $text-base;
+    }
+  }
+}
+
+.faq-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  border-bottom: 1px solid $border-light;
+  margin: 0 auto 32px;
+  padding-bottom: 4px;
+  width: 100%;
+  max-width: 520px;
+
+  &__item {
+    position: relative;
+    border: none;
+    background: transparent;
+    padding: 10px 0;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    color: $text-zinc-600;
+    cursor: pointer;
+    @include transition;
+    transition-property: color;
+
+    &:hover {
+      color: $text-zinc-900;
+    }
+
+    &--active {
+      color: $text-zinc-900;
+      font-weight: $font-semibold;
+
+      &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -5px;
+        height: 3px;
+        border-radius: 999px;
+        @include gradient-purple-top;
+      }
+    }
+  }
+}
+
+.faq-section {
+  margin-bottom: 48px;
+
+  &__title {
+    font-size: $text-lg;
+    font-weight: $font-bold;
+    color: $text-zinc-900;
+    margin-bottom: 12px;
+
+    @media (min-width: 640px) {
+      font-size: $text-xl;
+    }
+  }
+}
+
+.faq-card {
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-md;
+  overflow: hidden;
+  border: 1px solid $border-light;
+}
+
+.faq-item {
+  border-bottom: 1px solid $border-light;
+  background-color: $bg-white;
+  @include transition;
+  transition-property: background-color;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__header {
+    width: 100%;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    cursor: pointer;
+    text-align: left;
+    @include transition;
+    transition-property: background-color;
+
+    &:hover {
+      background-color: $bg-zinc-50;
+    }
+  }
+
+  &__question {
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    color: $text-zinc-900;
+    line-height: $leading-normal;
+    flex: 1;
+    padding-right: 16px;
+
+    @media (min-width: 640px) {
+      font-size: $text-base;
+    }
+  }
+
+  &__icon {
+    font-size: 20px;
+    line-height: 1;
+    color: $purple-main;
+    font-weight: $font-bold;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    @include flex-center;
+  }
+
+  &__body {
+    padding: 0 24px 16px;
+    animation: faq-item-open 0.2s ease-out;
+  }
+
+  &__answer {
+    font-size: $text-sm;
+    line-height: $leading-relaxed;
+    color: $text-zinc-600;
+  }
+
+  &--open {
+    background-color: rgba(109, 93, 252, 0.05);
+
+    .faq-item__header {
+      background-color: rgba(109, 93, 252, 0.05);
+    }
+  }
+}
+
+@keyframes faq-item-open {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.faq-cta {
+  margin-top: 40px;
+  margin-bottom: 40px;
+
+  &__card {
+    background-color: rgba(109, 93, 252, 0.06);
+    @include rounded-2xl;
+    padding: 32px 24px;
+    text-align: center;
+
+    @media (min-width: 640px) {
+      padding: 40px 32px;
+    }
+  }
+
+  &__title {
+    font-size: $text-lg;
+    font-weight: $font-bold;
+    color: $text-zinc-900;
+    margin-bottom: 8px;
+
+    @media (min-width: 640px) {
+      font-size: $text-xl;
+    }
+  }
+
+  &__subtitle {
+    font-size: $text-sm;
+    color: $text-zinc-600;
+    max-width: 420px;
+    margin: 0 auto 20px;
+    line-height: $leading-normal;
+
+    @media (min-width: 640px) {
+      font-size: $text-base;
+      margin-bottom: 24px;
+    }
+  }
+
+  &__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+    padding: 12px 24px;
+    @include rounded-xl;
+    @include gradient-purple-top;
+    color: $bg-white;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    text-decoration: none;
+    @include transition;
+    transition-property: transform, box-shadow;
+
+    &:hover {
+      transform: translateY(-2px);
+      @include shadow-md;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    @media (min-width: 640px) {
+      font-size: $text-base;
+      padding: 14px 28px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .faq-page {
+    &__container {
+      padding: 60px 20px;
+    }
+  }
+
+  .faq-card {
+    @include rounded-xl;
+  }
+
+  .faq-item {
+    &__header {
+      padding: 14px 16px;
+    }
+
+    &__body {
+      padding: 0 16px 14px;
+    }
+  }
+
+  .faq-tabs {
+    gap: 16px;
+    max-width: 100%;
+
+    &__item {
+      font-size: $text-xs;
+      padding: 8px 0;
+    }
+  }
+}
+

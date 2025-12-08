@@ -1,0 +1,156 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  border-radius: 6px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  height: 36px;
+  padding: 0 16px;
+  background-color: $blue-main;
+  color: $bg-white;
+  @include transition;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  flex-shrink: 0;
+
+  &:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  &:hover {
+    background-color: $blue-hover;
+  }
+
+  svg {
+    pointer-events: none;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
+
+  &:has(> svg) {
+    padding-left: 12px;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($blue-main, 0.2);
+  }
+}
+
+.button-destructive {
+  height: 36px;
+  padding: 0 16px;
+  background-color: $red-error;
+  color: $bg-white;
+
+  &:hover {
+    background-color: $red-error-hover;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba($red-error, 0.2);
+  }
+}
+
+.button-outline {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid $border-light;
+  background-color: $bg-white;
+  @include shadow-sm;
+  color: $default-text-color;
+
+  &:hover {
+    background-color: $bg-card;
+    color: $default-text-color;
+  }
+}
+
+.button-secondary {
+  height: 36px;
+  padding: 0 16px;
+  background-color: $bg-card;
+  color: $default-text-color;
+
+  &:hover {
+    background-color: $bg-card-hover;
+  }
+}
+
+.button-ghost {
+  height: 36px;
+  padding: 0 16px;
+  background-color: transparent;
+  color: $default-text-color;
+
+  &:hover {
+    background-color: $bg-card;
+    color: $default-text-color;
+  }
+}
+
+.button-link {
+  height: auto;
+  padding: 0;
+  background-color: transparent;
+  color: $blue-main;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.button-sm {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  gap: 6px;
+  font-size: $text-sm;
+
+  &:has(> svg) {
+    padding-left: 10px;
+  }
+}
+
+.button-lg {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 6px;
+  font-size: $text-base;
+
+  &:has(> svg) {
+    padding-left: 16px;
+  }
+}
+
+.button-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.button-icon-sm {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.button-icon-lg {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+

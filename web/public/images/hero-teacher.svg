@@ -1,0 +1,24 @@
+<svg width="120" height="160" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="48" fill="#E9F8F5"></circle>
+
+  <!-- Head -->
+  <circle cx="60" cy="54" r="18" fill="#FFE0B2"></circle>
+  <!-- Hair (side part) -->
+  <path d="M44 54 C44 40 76 40 76 54 C72 48 66 46 60 46 C54 46 48 48 44 54 Z" fill="#263238"></path>
+
+  <!-- Glasses -->
+  <circle cx="52" cy="54" r="6" fill="none" stroke="#263238" stroke-width="2"></circle>
+  <circle cx="68" cy="54" r="6" fill="none" stroke="#263238" stroke-width="2"></circle>
+  <line x1="58" y1="54" x2="62" y2="54" stroke="#263238" stroke-width="2"></line>
+
+  <!-- Body (blazer) -->
+  <path d="M36 102 C38 82 46 74 60 74 C74 74 82 82 84 102 Z" fill="#1B4B66"></path>
+  <!-- Shirt -->
+  <path d="M48 74 L60 92 L72 74 Z" fill="#FFFFFF" opacity="0.95"></path>
+  <!-- Tie -->
+  <polygon points="60,78 56,92 60,100 64,92" fill="#FF7043"></polygon>
+
+  <!-- Ground shadow -->
+  <ellipse cx="60" cy="140" rx="30" ry="6" fill="#BFE1D7" opacity="0.7"></ellipse>
+</svg>

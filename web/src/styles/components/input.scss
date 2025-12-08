@@ -1,0 +1,58 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid $border-light;
+  background-color: transparent;
+  font-size: $text-base;
+  color: $default-text-color;
+  @include shadow-sm;
+  @include transition;
+  outline: none;
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+
+  &:focus-visible {
+    border-color: $blue-main;
+    box-shadow: 0 0 0 3px rgba($blue-main, 0.2);
+  }
+
+  &:disabled {
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &[aria-invalid="true"] {
+    border-color: $red-error;
+    
+    &:focus-visible {
+      box-shadow: 0 0 0 3px rgba($red-error, 0.2);
+    }
+  }
+
+  &::selection {
+    background-color: $blue-main;
+    color: $bg-white;
+  }
+
+  &::file-selector-button {
+    height: 28px;
+    padding: 0;
+    margin-right: 12px;
+    border: 0;
+    background-color: transparent;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    color: $default-text-color;
+  }
+}
+

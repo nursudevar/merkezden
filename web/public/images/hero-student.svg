@@ -1,0 +1,22 @@
+<svg width="120" height="160" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="48" fill="#F5E9FF"></circle>
+
+  <!-- Head -->
+  <circle cx="60" cy="54" r="18" fill="#FFE0B2"></circle>
+
+  <!-- Graduation cap -->
+  <polygon points="40,44 60,34 80,44 60,54" fill="#4F3BAE"></polygon>
+  <rect x="56" y="54" width="8" height="6" fill="#4F3BAE"></rect>
+  <line x1="76" y1="44" x2="88" y2="54" stroke="#FFB74D" stroke-width="2" stroke-linecap="round"></line>
+  <circle cx="88" cy="54" r="3" fill="#FFB74D"></circle>
+
+  <!-- Body -->
+  <path d="M38 102 C40 84 48 74 60 74 C72 74 80 84 82 102 Z" fill="#8E56E8"></path>
+  <!-- Badge -->
+  <circle cx="60" cy="88" r="6" fill="#FFFFFF" opacity="0.9"></circle>
+  <circle cx="60" cy="88" r="3" fill="#FFB74D"></circle>
+
+  <!-- Ground shadow -->
+  <ellipse cx="60" cy="140" rx="30" ry="6" fill="#D2C3F6" opacity="0.6"></ellipse>
+</svg>

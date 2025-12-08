@@ -1,0 +1,100 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.top-bar {
+  height: 16px;
+  width: 100%;
+  @include gradient-purple-top;
+}
+
+.header {
+  background-color: $bg-white;
+  @include shadow-sm;
+}
+
+.header-container {
+  max-width: 1280px;
+    margin: 0 auto;
+  padding: 24px 30px;
+    @include flex-col;
+  gap: 16px;
+
+    @media (min-width: 768px) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    gap: 24px;
+    }
+  }
+
+.header-brand {
+    @include flex-col;
+  flex-shrink: 0;
+  }
+
+.header-title-link {
+  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.header-title {
+    display: block;
+    font-size: $text-3xl;
+    font-weight: $font-extrabold;
+    letter-spacing: $tracking-tight;
+    color: $default-text-color;
+  }
+
+.header-subtitle {
+    display: block;
+    font-size: $text-xl;
+    font-weight: $font-semibold;
+    @include gradient-text;
+  }
+
+.header-search {
+  flex: 1;
+  display: none;
+  min-width: 0;
+  order: 3;
+
+  @media (min-width: 768px) {
+    display: flex;
+    justify-content: center;
+    max-width: 700px;
+    margin: 0 auto;
+    order: 2;
+  }
+
+  @media (min-width: 1024px) {
+    max-width: 600px;
+  }
+}
+
+.header-container {
+  @media (max-width: 767px) {
+    .header-search {
+      display: flex;
+      width: 100%;
+      margin-top: 8px;
+    }
+  }
+}
+
+.header-actions {
+    @include flex-center;
+  gap: 12px;
+  flex-shrink: 0;
+  order: 2;
+
+  @media (min-width: 768px) {
+    order: 3;
+  }
+}

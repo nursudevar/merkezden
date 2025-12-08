@@ -1,0 +1,247 @@
+@import 'colors';
+@import 'mixins';
+@import 'typography';
+
+// Layout
+@import 'layout/header';
+@import 'layout/footer';
+
+// Components
+@import 'components/button';
+@import 'components/input';
+@import 'components/card';
+@import 'components/label';
+
+
+
+// ----- Global reset for default margins/paddings -----
+html,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+figure,
+main,
+section,
+header,
+footer {
+  margin: 0;
+  padding: 0;
+}
+
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: $bg-zinc-50;
+  color: $default-text-color;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Utility classes
+.gradient-text {
+  @include gradient-text;
+}
+
+// Icon size utilities
+.icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-md {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-lg {
+  width: 24px;
+  height: 24px;
+}
+
+// Full width/height utilities
+.full-width {
+  width: 100%;
+}
+
+.full-height {
+  height: 100%;
+}
+
+.full-size {
+  width: 100%;
+  height: 100%;
+}
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+// Utility Classes
+.page-container {
+  min-height: 100vh;
+  width: 100%;
+  background-color: $bg-zinc-50;
+}
+
+.main-layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 40px 30px;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section-header {
+  text-align: center;
+}
+
+.section-title {
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  letter-spacing: $tracking-tight;
+  color: $text-zinc-900;
+}
+
+.section-subtitle {
+  margin-top: 8px;
+  font-size: $text-base;
+  color: $text-zinc-500;
+}
+
+.section-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.button-primary {
+  height: 44px;
+  @include rounded-xl;
+  background-color: $blue-main;
+  padding: 0 24px;
+  color: $bg-white;
+  @include transition-colors;
+  cursor: pointer;
+  border: none;
+
+  &:hover {
+    background-color: $blue-hover;
+  }
+}
+
+.button-success {
+  height: 44px;
+  @include rounded-xl;
+  background-color: $green-button;
+  padding: 0 24px;
+  color: $bg-white;
+  @include transition-colors;
+  cursor: pointer;
+  border: none;
+
+  &:hover {
+    background-color: $green-button-hover;
+  }
+}
+
+// Filter option background colors
+.filter-option-child {
+  background-color: $bg-light-blue;
+}
+
+.filter-option-adult {
+  background-color: $bg-light-purple;
+}
+
+.filter-option-online {
+  background-color: $bg-light-green;
+}
+
+.filter-option-face {
+  background-color: $bg-light-yellow;
+}
+
+.filter-option-group {
+  background-color: $bg-light-pink;
+}
+
+.filter-option-personal {
+  background-color: $bg-light-blue-alt;
+}
+
+// Category header backgrounds
+.category-header-school {
+  background-color: $bg-light-blue;
+}
+
+.category-header-exam {
+  background-color: $bg-light-purple;
+}
+
+.category-header-sport {
+  background-color: $bg-light-green;
+}
+
+.category-header-art {
+  background-color: $bg-light-pink;
+}
+
+.category-header-language {
+  background-color: $bg-light-blue-filter;
+}
+
+.category-header-personal-dev {
+  background-color: $bg-light-yellow-alt;
+}
+
+.category-header-professional {
+  background-color: $bg-light-blue-box;
+}
+
+.category-header-special {
+  background-color: $bg-light-green;
+}
+
+.category-header-pets {
+  background-color: $bg-light-yellow-alt;
+}
+
