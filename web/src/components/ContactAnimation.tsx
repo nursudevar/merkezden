@@ -2,7 +2,8 @@
 import React, { useEffect } from "react";
 import "@/styles/components/contact-animation.scss";
 
-declare global {
+// Type declaration for dotlottie-wc web component
+declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "dotlottie-wc": React.DetailedHTMLProps<
@@ -10,6 +11,7 @@ declare global {
           src?: string;
           autoplay?: boolean;
           loop?: boolean;
+          style?: React.CSSProperties;
         },
         HTMLElement
       >;

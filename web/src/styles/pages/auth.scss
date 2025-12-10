@@ -783,3 +783,141 @@
   }
 }
 
+// Auth Modal Styles
+.auth-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.auth-modal-content {
+  background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-lg;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  animation: auth-modal-fade-in 0.2s ease-out;
+
+  @media (max-width: 640px) {
+    max-width: 100%;
+    @include rounded-xl;
+  }
+}
+
+@keyframes auth-modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.auth-modal-header {
+  padding: 32px 32px 0;
+  border-bottom: none;
+
+  @media (max-width: 640px) {
+    padding: 24px 24px 0;
+  }
+}
+
+.auth-modal-title {
+  font-size: 24px;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+  line-height: $leading-tight;
+
+  @media (max-width: 640px) {
+    font-size: 20px;
+  }
+}
+
+.auth-modal-body {
+  padding: 24px 32px;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    padding: 20px 24px;
+  }
+}
+
+.auth-modal-message {
+  font-size: $text-base;
+  color: $text-zinc-600;
+  line-height: $leading-normal;
+  margin: 0;
+}
+
+.auth-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 0 32px 32px;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    padding: 0 24px 24px;
+    gap: 10px;
+  }
+}
+
+.auth-modal-button {
+  flex: 1;
+  padding: 12px 24px;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  border: none;
+  @include rounded-xl;
+  cursor: pointer;
+  @include transition;
+  transition-property: transform, box-shadow;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    padding: 10px 20px;
+    font-size: $text-sm;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.auth-modal-button-primary {
+  color: $bg-white;
+  @include gradient-purple-top;
+
+  &:hover {
+    transform: translateY(-2px);
+    @include shadow-md;
+  }
+}
+
+.auth-modal-button-secondary {
+  background-color: $bg-white;
+  color: $text-zinc-900;
+  border: 1px solid $border-light;
+
+  &:hover {
+    background-color: $bg-zinc-50;
+    border-color: $purple-main;
+  }
+}
+
+

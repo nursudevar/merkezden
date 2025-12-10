@@ -3,15 +3,25 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import Footer from "@/components/layout/Footer";
+import AuthModal from "@/components/AuthModal";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+
 
 export default function SignupPage() {
+
+  const router = useRouter(); 
+
+
   const [activeTab, setActiveTab] = useState<"bireysel" | "kurumsal">("bireysel");
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     // Bireysel fields
     fullName: "",
+    birthDate: "",
     // Kurumsal fields
     companyName: "",
     reference: "",
@@ -21,9 +31,134 @@ export default function SignupPage() {
     acceptTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [loading, setLoading] = useState(false);
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "success" | "error" | "email-exists";
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Signup logic will be added later
+
+    // Checkbox Control
+    if (!formData.acceptTerms) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Kayıt başarısız",
+        message: "Devam etmek için koşulları kabul etmelisiniz.",
+      });
+      return;
+    }
+
+    // Password length validation (before Supabase call)
+    const MIN_PASSWORD_LENGTH = 8;
+    if (formData.password.length < MIN_PASSWORD_LENGTH) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Eksik şifre",
+        message: `Şifreniz en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`,
+      });
+      return;
+    }
+
+    // Birth date validation (only for individual users)
+    if (activeTab === "bireysel" && !formData.birthDate) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Eksik bilgi",
+        message: "Doğum tarihinizi girmeden devam edemezsiniz.",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const { email, password, fullName, companyName, reference, birthDate } = formData;
+    const userType = activeTab === "bireysel" ? "individual" : "institution";
+
+    const metadata: Record<string, any> = {
+      full_name: activeTab === "bireysel" ? fullName : companyName,
+      user_type: userType,
+      company_name: companyName || null,
+      reference: reference || null,
+    };
+    
+    // Sadece bireysel kullanıcı için doğum tarihini ekle
+    if (activeTab === "bireysel") {
+      metadata.birth_date = birthDate; // "YYYY-MM-DD" formatında gidiyor
+    }
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: metadata,
+      },
+    });
+    
+
+    console.log("SIGNUP DATA:", data);
+    console.log("SIGNUP ERROR:", JSON.stringify(error, null, 2));
+
+    setLoading(false);
+
+    // If there is NO error from Supabase - treat as successful signup
+    if (!error) {
+      setModalState({
+        isOpen: true,
+        type: "success",
+        title: "Kayıt başarılı",
+        message: "Hesap onay maili mail adresinize iletilmiştir. Lütfen mail kutunuzu kontrol edin.",
+      });
+      return;
+    }
+
+    // If there IS an error - check if it's "email already exists"
+    const errorMessage = error.message?.toLowerCase() || "";
+    const errorCode = error.code?.toLowerCase() || "";
+    
+    // Check for email already exists indicators
+    const isEmailAlreadyExists =
+      errorMessage.includes("already registered") ||
+      errorMessage.includes("user already exists") ||
+      errorMessage.includes("email already") ||
+      errorMessage.includes("already exists") ||
+      errorMessage.includes("user already registered") ||
+      errorMessage.includes("email address is already registered") ||
+      errorCode === "signup_disabled" ||
+      (error.status === 400 && errorMessage.includes("already"));
+
+    if (isEmailAlreadyExists) {
+      setModalState({
+        isOpen: true,
+        type: "email-exists",
+        title: "Hesabınız zaten mevcut",
+        message: "Bu email adresiyle zaten bir hesabınız var. Lütfen giriş yapın.",
+      });
+      return;
+    }
+
+    // For any other error - show generic error modal
+    setModalState({
+      isOpen: true,
+      type: "error",
+      title: "Kayıt başarısız",
+      message: error.message || "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+    });
+
+
+    
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +168,27 @@ export default function SignupPage() {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+
+  // Google Signup
+  const handleGoogleSignup = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+    });
+
+    if (error) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Kayıt başarısız",
+        message: error.message || "Google ile giriş sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+      });
+      return;
+    }
+
+    console.log("Google OAuth start:", data);
+  };
+
 
   return (
     <div className="page-container">
@@ -109,6 +265,21 @@ export default function SignupPage() {
                     className="signup-input"
                     placeholder="eposta@adresiniz.com"
                     value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="signup-field">
+                  <label htmlFor="signup-birthdate" className="signup-label">
+                    Doğum Tarihi
+                  </label>
+                  <input
+                    type="date"
+                    id="signup-birthdate"
+                    name="birthDate"
+                    className="signup-input"
+                    value={formData.birthDate}
                     onChange={handleChange}
                     required
                   />
@@ -218,8 +389,8 @@ export default function SignupPage() {
               </span>
             </label>
 
-            <button type="submit" className="signup-primary-button">
-              Hesap Oluştur
+            <button type="submit" className="signup-primary-button" disabled={loading}>
+              {loading ? "Hesabınız oluşturuluyor..." : "Hesap Oluştur"}
             </button>
           </form>
 
@@ -228,7 +399,7 @@ export default function SignupPage() {
           </div>
 
           <div className="signup-social-buttons">
-            <button type="button" className="signup-social-button signup-social-google">
+            <button type="button" className="signup-social-button signup-social-google" onClick={handleGoogleSignup}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -236,7 +407,7 @@ export default function SignupPage() {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
             </button>
-            <button type="button" className="signup-social-button signup-social-apple">
+            <button type="button" className="signup-social-button signup-social-apple" onClick={() => alert("Apple ile giriş yakında eklenecek 😊")}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                 <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
               </svg>
@@ -252,6 +423,31 @@ export default function SignupPage() {
         </div>
       </div>
 
+      <AuthModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+        type={modalState.type}
+        title={modalState.title}
+        message={modalState.message}
+        primaryButtonText={
+          modalState.type === "success"
+            ? "Giriş yap"
+            : modalState.type === "email-exists"
+            ? "Giriş yap"
+            : "Tamam"
+        }
+        primaryButtonAction={() => {
+          if (modalState.type === "success" || modalState.type === "email-exists") {
+            router.push("/login");
+          }
+        }}
+        secondaryButtonText={
+          modalState.type === "success" || modalState.type === "email-exists"
+            ? "Kapat"
+            : undefined
+        }
+        secondaryButtonAction={undefined}
+      />
     </div>
   );
 }
