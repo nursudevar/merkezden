@@ -284,7 +284,7 @@
   flex-shrink: 0;
 
   @media (min-width: 1024px) {
-    width: 360px;
+    width: 320px;
   }
 }
 
@@ -1217,20 +1217,20 @@
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  width: 220px;
-  min-width: 220px;
+  width: 280px;
+  min-width: 280px;
   height: 100%;
   @include transition;
   transition-property: transform, box-shadow;
 
   @media (min-width: 640px) {
-    width: 220px;
-    min-width: 220px;
+    width: 300px;
+    min-width: 300px;
   }
 
   @media (min-width: 1024px) {
-    width: 220px;
-    min-width: 220px;
+    width: 320px;
+    min-width: 320px;
   }
 
   &:hover {
@@ -1667,190 +1667,371 @@
   }
 }
 
-// Featured Section
-.featured-section-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+// Featured Institutions Section
+.featured-institutions-section {
+  margin: 20px 0;
+
+  @media (max-width: 1023px) {
+    margin: 20px 0;
+  }
+
+  @media (max-width: 640px) {
+    margin: 20px 0;
+  }
+}
+
+.featured-institutions-header {
+  text-align: center;
+  margin-bottom: 40px;
+
+  @media (max-width: 1023px) {
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 640px) {
+    margin-bottom: 24px;
+  }
+}
+
+.featured-institutions-header-left {
+  margin-bottom: 0;
+}
+
+.featured-institutions-title {
+  font-size: 36px;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0 0 12px 0;
+  line-height: 1.2;
+
+  @media (max-width: 1023px) {
+    font-size: 32px;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 28px;
+  }
+}
+
+.featured-institutions-subtitle {
+  font-size: $text-lg;
+  color: $text-zinc-600;
+  margin: 0;
+  line-height: 1.5;
+
+  @media (max-width: 640px) {
+    font-size: $text-base;
+  }
+}
+
+.featured-institutions-view-all-wrapper {
+  text-align: center;
+  margin-top: 40px;
+
+  @media (max-width: 1023px) {
+    margin-top: 32px;
+  }
+
+  @media (max-width: 640px) {
+    margin-top: 24px;
+  }
+}
+
+.featured-institutions-view-all {
+  font-size: $text-base;
+  font-weight: $font-medium;
+  color: $purple-main;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    color: $purple-dark;
+    text-decoration: underline;
+  }
+}
+
+.featured-institutions-slider {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  margin-bottom: 32px;
+}
+
+.featured-institutions-scroller {
+  display: flex;
+  flex-wrap: nowrap;
   gap: 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(109, 93, 252, 0.6) rgba(109, 93, 252, 0.2);
+  width: 100%;
+  padding: 8px 20px 8px 20px;
+  scroll-padding-left: 20px;
+  scroll-padding-right: 20px;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  padding-bottom: 28px;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    display: block !important;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: rgba(109, 93, 252, 0.2);
+    border-radius: 3px;
+    margin: 0 20px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(109, 93, 252, 0.6);
+    border-radius: 3px;
+  }
+
+  &:hover {
+    scrollbar-color: rgba(109, 93, 252, 0.6) rgba(109, 93, 252, 0.2);
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(109, 93, 252, 0.6);
+    }
+  }
 
   @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 8px 30px 24px 30px;
+    scroll-padding-left: 30px;
+    scroll-padding-right: 30px;
+
+    &::-webkit-scrollbar-track {
+      margin: 0 30px;
+    }
   }
 
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    padding: 8px 40px 24px 40px;
+    scroll-padding-left: 40px;
+    scroll-padding-right: 40px;
+
+    &::-webkit-scrollbar-track {
+      margin: 0 40px;
+    }
   }
 }
 
-// Featured Service Card
-.featured-service-card {
-  overflow: hidden;
-  border: 0;
-  @include shadow-md;
-  @include rounded-2xl;
+.featured-institution-card {
   background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-md;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  gap: 0;
-  height: 380px;
-}
+  @include transition;
+  transition-property: transform, box-shadow;
+  border: 1px solid $border-light;
+  flex: 0 0 auto;
+  width: 280px;
+  min-width: 280px;
+  scroll-snap-align: start;
 
-.featured-service-card-icon-section {
-  height: 144px;
-  @include flex-center;
+  @media (min-width: 640px) {
+    width: 300px;
+    min-width: 300px;
+  }
 
-  span {
-    font-size: 50px;
+  @media (min-width: 1024px) {
+    width: 320px;
+    min-width: 320px;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    @include shadow-lg;
   }
 }
 
-.featured-section-grid .featured-service-card:nth-child(1) .featured-service-card-icon-section {
-  background-color: $blue-button;
+.featured-institution-image-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 60%;
+  overflow: hidden;
+  background-color: $bg-zinc-50;
 }
 
-.featured-section-grid .featured-service-card:nth-child(2) .featured-service-card-icon-section {
-  background-color: $purple-violet;
+.featured-institution-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
-.featured-section-grid .featured-service-card:nth-child(3) .featured-service-card-icon-section {
-  background-color: $green-success;
+.featured-institution-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%);
+  pointer-events: none;
 }
 
-.featured-section-grid .featured-service-card:nth-child(4) .featured-service-card-icon-section {
-  background-color: $pink-main;
+.featured-institution-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  @include rounded-full;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  color: $bg-white;
+  z-index: 2;
+  backdrop-filter: blur(4px);
 }
 
-.featured-section-grid .featured-service-card:nth-child(5) .featured-service-card-icon-section {
-  background-color: $red-error;
+.featured-institution-badge--purple {
+  background-color: rgba(109, 93, 252, 0.9);
 }
 
-.featured-section-grid .featured-service-card:nth-child(6) .featured-service-card-icon-section {
-  background-color: $yellow-main;
+.featured-institution-badge--blue {
+  background-color: rgba(59, 130, 246, 0.9);
 }
 
-.featured-section-grid .featured-service-card:nth-child(7) .featured-service-card-icon-section {
-  background-color: $blue-button;
+.featured-institution-badge--green {
+  background-color: rgba(16, 185, 129, 0.9);
 }
 
-.featured-section-grid .featured-service-card:nth-child(8) .featured-service-card-icon-section {
-  background-color: $green-teal;
+.featured-institution-badge-icon {
+  font-size: 14px;
+  line-height: 1;
 }
 
-.featured-service-card-content {
-  padding: 30px 20px 20px;
+.featured-institution-badge-label {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.featured-institution-favorite {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  @include rounded-full;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: none;
+  @include flex-center;
+  cursor: pointer;
+  z-index: 2;
+  color: $text-zinc-600;
+  @include transition;
+  backdrop-filter: blur(4px);
+
+  &:hover {
+    background-color: $bg-white;
+    color: $red-error;
+    transform: scale(1.1);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.featured-institution-content {
+  padding: 20px;
   @include flex-col;
+  flex: 1;
+  gap: 12px;
+}
+
+.featured-institution-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: $font-medium;
+  color: $text-zinc-600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  svg {
+    width: 12px;
+    height: 12px;
+    color: $text-zinc-500;
+    flex-shrink: 0;
+  }
+}
+
+.featured-institution-name {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.featured-institution-description {
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   flex: 1;
 }
 
-.featured-service-card-title {
-  font-size: $text-lg;
-  font-weight: $font-bold;
-  color: $text-zinc-900;
-  margin-bottom: auto;
+.featured-institution-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
-.featured-service-card-location {
-  @include flex-center;
+.featured-institution-rating {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  font-size: $text-sm;
-  color: $text-zinc-600;
-  margin-bottom: 12px;
-
-  span:first-child {
-    color: $red-error;
-  }
-}
-
-.featured-service-card-rating {
-  @include flex-center;
-  gap: 6px;
-  font-size: $text-sm;
-  margin-bottom: 12px;
-
-  span:first-child {
-    color: $yellow-rating;
-  }
-
-  span:last-child {
-    font-weight: $font-semibold;
-    color: $blue-rating;
-  }
-}
-
-.featured-service-card-button {
-  width: 100%;
-  color: $bg-white;
-  @include rounded-xl;
+  font-size: $text-base;
   font-weight: $font-semibold;
-  @include transition-colors;
-  cursor: pointer;
-  border: none;
-}
+  color: $yellow-rating;
 
-.featured-section-grid .featured-service-card:nth-child(1) .featured-service-card-button {
-  background-color: $blue-button;
-
-  &:hover {
-    background-color: $blue-button-hover;
+  svg {
+    width: 16px;
+    height: 16px;
+    color: $yellow-rating;
+    flex-shrink: 0;
   }
 }
 
-.featured-section-grid .featured-service-card:nth-child(2) .featured-service-card-button {
-  background-color: $purple-violet;
+.featured-institution-link {
+  font-size: $text-base;
+  font-weight: $font-medium;
+  color: $purple-main;
+  text-decoration: none;
+  @include transition;
 
   &:hover {
-    background-color: $purple-violet-dark;
+    color: $purple-dark;
+    text-decoration: underline;
   }
 }
 
-.featured-section-grid .featured-service-card:nth-child(3) .featured-service-card-button {
-  background-color: $green-success;
-
-  &:hover {
-    background-color: $green-success-hover;
-  }
-}
-
-.featured-section-grid .featured-service-card:nth-child(4) .featured-service-card-button {
-  background-color: $pink-main;
-
-  &:hover {
-    background-color: $pink-hover;
-  }
-}
-
-.featured-section-grid .featured-service-card:nth-child(5) .featured-service-card-button {
-  background-color: $red-error;
-
-  &:hover {
-    background-color: $red-error-hover;
-  }
-}
-
-.featured-section-grid .featured-service-card:nth-child(6) .featured-service-card-button {
-  background-color: $yellow-main;
-
-  &:hover {
-    background-color: $yellow-hover;
-  }
-}
-
-.featured-section-grid .featured-service-card:nth-child(7) .featured-service-card-button {
-  background-color: $blue-button;
-
-  &:hover {
-    background-color: $blue-button-dark;
-  }
-}
-
-.featured-section-grid .featured-service-card:nth-child(8) .featured-service-card-button {
-  background-color: $green-teal;
-
-  &:hover {
-    background-color: $green-teal-hover;
-  }
-}
 
 // CTA Section
 .cta-section {
