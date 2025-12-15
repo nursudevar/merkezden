@@ -9,6 +9,7 @@ import L from "leaflet";
 import SearchBar from "@/components/SearchBar";
 import HeroAnimation from "@/components/HeroAnimation";
 import HeroSearchAnimation from "@/components/HeroSearchAnimation";
+import BlogCard from "@/components/BlogCard";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 
@@ -52,6 +53,145 @@ function MapComponent() {
     </MapContainer>
   );
 }
+
+// Main categories for pills
+const mainCategories = [
+  "Tümü",
+  "Okul",
+  "Spor",
+  "Teknoloji",
+  "Sanat",
+  "Dil",
+  "Müzik",
+  "Dans",
+  "Yazılım",
+  "Kişisel Gelişim",
+  "Sağlık",
+];
+
+// Service cards data
+const serviceCards = [
+  {
+    id: 1,
+    title: "Gelecek Spor Akademisi",
+    category: "Spor",
+    subCategories: ["Futbol", "Basketbol"],
+    imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=400&h=300&fit=crop",
+    rating: 4.8,
+    reviewCount: 125,
+    price: 1200,
+  },
+  {
+    id: 2,
+    title: "Aqua Yüzme Kulübü",
+    category: "Spor",
+    subCategories: ["Yüzme"],
+    imageUrl: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=400&h=300&fit=crop",
+    rating: 4.9,
+    reviewCount: 210,
+    price: 950,
+  },
+  {
+    id: 3,
+    title: "Raket Tenis Okulu",
+    category: "Spor",
+    subCategories: ["Tenis"],
+    imageUrl: "https://images.unsplash.com/photo-1534158914592-062992fbe900?w=400&h=300&fit=crop",
+    rating: 4.7,
+    reviewCount: 88,
+    price: 1500,
+  },
+  {
+    id: 4,
+    title: "Modern Sanat Atölyesi",
+    category: "Sanat",
+    subCategories: ["Resim", "Heykel"],
+    imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
+    rating: 4.6,
+    reviewCount: 92,
+    price: 800,
+  },
+  {
+    id: 5,
+    title: "Dil Akademisi",
+    category: "Dil",
+    subCategories: ["İngilizce", "Almanca"],
+    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&h=300&fit=crop",
+    rating: 4.9,
+    reviewCount: 156,
+    price: 1100,
+  },
+  {
+    id: 6,
+    title: "Müzik Okulu",
+    category: "Müzik",
+    subCategories: ["Piyano", "Gitar"],
+    imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
+    rating: 4.8,
+    reviewCount: 203,
+    price: 1300,
+  },
+  {
+    id: 7,
+    title: "Bale ve Dans Stüdyosu",
+    category: "Dans",
+    subCategories: ["Bale", "Modern Dans"],
+    imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop",
+    rating: 4.7,
+    reviewCount: 145,
+    price: 900,
+  },
+  {
+    id: 8,
+    title: "Kodlama Akademisi",
+    category: "Yazılım",
+    subCategories: ["Web Geliştirme", "Mobil Uygulama"],
+    imageUrl: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop",
+    rating: 4.9,
+    reviewCount: 312,
+    price: 1800,
+  },
+  {
+    id: 9,
+    title: "Kişisel Gelişim Merkezi",
+    category: "Kişisel Gelişim",
+    subCategories: ["Koçluk", "Liderlik"],
+    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop",
+    rating: 4.8,
+    reviewCount: 178,
+    price: 1400,
+  },
+  {
+    id: 10,
+    title: "Özel Okul",
+    category: "Okul",
+    subCategories: ["İlkokul", "Ortaokul"],
+    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop",
+    rating: 4.9,
+    reviewCount: 267,
+    price: 2500,
+  },
+  {
+    id: 11,
+    title: "Teknoloji Kursu",
+    category: "Teknoloji",
+    subCategories: ["Robotik", "Yapay Zeka"],
+    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop",
+    rating: 4.7,
+    reviewCount: 189,
+    price: 1600,
+  },
+  {
+    id: 12,
+    title: "Sağlık ve Wellness",
+    category: "Sağlık",
+    subCategories: ["Yoga", "Pilates"],
+    imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=300&fit=crop",
+    rating: 4.8,
+    reviewCount: 134,
+    price: 1000,
+  },
+];
 
 const categories = [
   { name: "OKUL", icon: "🏫", items: ["Anaokul", "Kreş", "İlkokul", "Ortaokul", "Lise", "Yaz Okulu"], className: "category-card" },
@@ -100,15 +240,42 @@ const categoryGroups = [
 ];
 
 const blogPosts = [
-  { icon: "🏫", title: "Çocuğunuz İçin Doğru Okul Nasıl Seçilir?", description: "Okul seçimi yaparken dikkat edilmesi gereken kriterler, eğitim kalitesi ve çocuğunuzun gelişimi için önemli faktörler...", date: "15 Aralık 2024", views: "1.2K", className: "blog-card" },
-  { icon: "📚", title: "LGS'ye Hazırlık: Başarı İçin 10 Altın Kural", description: "LGS sınavına etkili hazırlık stratejileri, zaman yönetimi ve motivasyon teknikleri ile başarıya giden yol...", date: "12 Aralık 2024", views: "2.8K", className: "blog-card" },
-  { icon: "⚽", title: "Çocuklarda Spor Alışkanlığı Nasıl Kazandırılır?", description: "Çocuğunuzun yaşına uygun spor dalları, fiziksel gelişim ve sosyal beceriler için sporun önemi...", date: "10 Aralık 2024", views: "1.5K", className: "blog-card" },
-  { icon: "🎨", title: "Sanatın Çocuk Gelişimine Etkisi", description: "Resim, müzik ve dans gibi sanat dallarının çocukların yaratıcılık, motor beceri ve duygusal gelişimine katkıları...", date: "8 Aralık 2024", views: "980", className: "blog-card" },
-  { icon: "🌍", title: "Yabancı Dil Öğrenmenin En Etkili Yolları", description: "Dil öğrenme sürecini hızlandıran teknikler, pratik yapma yöntemleri ve motivasyonu yüksek tutma stratejileri...", date: "5 Aralık 2024", views: "2.1K", className: "blog-card" },
-  { icon: "✨", title: "Etkili İletişim Becerileri Geliştirme", description: "Günlük hayatta ve iş yaşamında başarılı iletişim kurma teknikleri, empati ve aktif dinleme becerileri...", date: "3 Aralık 2024", views: "1.7K", className: "blog-card" },
-  { icon: "🎯", title: "Dijital Çağda Mesleki Beceriler", description: "Teknoloji ile birlikte değişen iş dünyasında öne çıkan mesleki beceriler ve kariyer planlama stratejileri...", date: "1 Aralık 2024", views: "1.4K", className: "blog-card" },
-  { icon: "🧩", title: "Özel Gereksinimli Çocuklar İçin Eğitim", description: "Özel eğitim sürecinde aile desteği, terapi yöntemleri ve çocuğunuzun potansiyelini ortaya çıkarma teknikleri...", date: "28 Kasım 2024", views: "890", className: "blog-card" },
-  { icon: "🐾", title: "Evcil Hayvan Bakımında Dikkat Edilecekler", description: "Köpek ve kedi bakımında temel kurallar, beslenme, sağlık kontrolü ve eğitim süreçleri hakkında bilgiler...", date: "25 Kasım 2024", views: "1.1K", className: "blog-card" },
+  {
+    title: "Etkili Zaman Yönetimi İçin 5 İpucu",
+    excerpt: "Günlük verimliliğinizi artırmak ve hedeflerinize daha hızlı ulaşmak için bu teknikleri uygulayın.",
+    imageUrl: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&h=450&fit=crop",
+    slug: "etkili-zaman-yonetimi-ipuclari",
+  },
+  {
+    title: "Liderlik Becerilerinizi Nasıl Geliştirirsiniz?",
+    excerpt: "İyi bir lider olmak doğuştan gelen bir yetenek değil, öğrenilebilen bir beceridir. İşte başlangıç noktaları.",
+    imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=450&fit=crop",
+    slug: "liderlik-becerileri-gelistirme",
+  },
+  {
+    title: "Çocuğunuz İçin Doğru Okul Nasıl Seçilir?",
+    excerpt: "Okul seçimi yaparken dikkat edilmesi gereken kriterler, eğitim kalitesi ve çocuğunuzun gelişimi için önemli faktörler...",
+    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=450&fit=crop",
+    slug: "dogru-okul-secimi",
+  },
+  {
+    title: "LGS'ye Hazırlık: Başarı İçin 10 Altın Kural",
+    excerpt: "LGS sınavına etkili hazırlık stratejileri, zaman yönetimi ve motivasyon teknikleri ile başarıya giden yol...",
+    imageUrl: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=450&fit=crop",
+    slug: "lgs-hazirlik-altin-kurallar",
+  },
+  {
+    title: "Çocuklarda Spor Alışkanlığı Nasıl Kazandırılır?",
+    excerpt: "Çocuğunuzun yaşına uygun spor dalları, fiziksel gelişim ve sosyal beceriler için sporun önemi...",
+    imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop",
+    slug: "cocuklarda-spor-aliskanligi",
+  },
+  {
+    title: "Sanatın Çocuk Gelişimine Etkisi",
+    excerpt: "Resim, müzik ve dans gibi sanat dallarının çocukların yaratıcılık, motor beceri ve duygusal gelişimine katkıları...",
+    imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=450&fit=crop",
+    slug: "sanatin-cocuk-gelisimine-etkisi",
+  },
 ];
 
 function FilterIndicator() {
@@ -125,11 +292,8 @@ export default function Home() {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
-  const [categoriesScrollProgress, setCategoriesScrollProgress] = useState(0);
-  const [trackWidth, setTrackWidth] = useState(0);
-  const [indicatorWidth, setIndicatorWidth] = useState(250);
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
-  const progressTrackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {""
     fetch("/api/locations")
@@ -156,57 +320,6 @@ export default function Home() {
       .catch(() => {});
   }, [selectedDistrict]);
 
-  useEffect(() => {
-    const scroller = categoriesScrollerRef.current;
-    if (!scroller) return;
-
-    const updateScrollProgress = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = scroller;
-      const maxScroll = scrollWidth - clientWidth;
-      // If there's no scroll (single page), show 100% or hide the bar
-      const progress = maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 100;
-      setCategoriesScrollProgress(progress);
-    };
-
-    updateScrollProgress();
-    scroller.addEventListener("scroll", updateScrollProgress);
-    window.addEventListener("resize", updateScrollProgress);
-
-    return () => {
-      scroller.removeEventListener("scroll", updateScrollProgress);
-      window.removeEventListener("resize", updateScrollProgress);
-    };
-  }, []);
-
-  useEffect(() => {
-    const track = progressTrackRef.current;
-    if (!track) return;
-
-    const updateTrackWidth = () => {
-      setTrackWidth(track.offsetWidth);
-      
-      // Calculate indicator width based on screen size
-      const screenWidth = window.innerWidth;
-      if (screenWidth <= 480) {
-        setIndicatorWidth(100);
-      } else if (screenWidth <= 640) {
-        setIndicatorWidth(120);
-      } else if (screenWidth <= 768) {
-        setIndicatorWidth(160);
-      } else if (screenWidth <= 1024) {
-        setIndicatorWidth(200);
-      } else {
-        setIndicatorWidth(250);
-      }
-    };
-
-    updateTrackWidth();
-    window.addEventListener("resize", updateTrackWidth);
-
-    return () => {
-      window.removeEventListener("resize", updateTrackWidth);
-    };
-  }, []);
 
   const handlePriceInput = (index: number, value: string) => {
     const numeric = Math.max(0, Math.min(10000, Number(value) || 0));
@@ -508,87 +621,74 @@ export default function Home() {
         <main className="main-content">
           <section className="home-main-categories">
             <header className="home-main-categories-header">
-              <h2 className="home-main-categories-title">🏠 Ana Kategoriler</h2>
-              <p className="home-main-categories-subtitle">İhtiyacınız olan hizmeti seçin</p>
+              <h2 className="home-main-categories-title">Ana Kategoriler</h2>
             </header>
+            
+            <div className="main-categories-pills">
+              {mainCategories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`main-category-pill ${selectedMainCategory === category ? "main-category-pill--active" : ""}`}
+                  onClick={() => setSelectedMainCategory(category)}
+                  aria-pressed={selectedMainCategory === category}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
             <div className="home-main-categories-slider">
               <button
                 type="button"
                 className="categories-nav-btn categories-nav-btn--left"
-                aria-label="Önceki kategoriler"
+                aria-label="Önceki kartlar"
                 onClick={() => scrollCategoriesByDelta(-1)}
               >
                 ‹
               </button>
               <div className="categories-scroller" ref={categoriesScrollerRef}>
-                {categories.slice(0, 8).map((category) => {
-                  const isExpanded = expandedCategoryCards[category.name] || false;
-                  const visibleItems = isExpanded ? category.items : category.items.slice(0, 3);
-                  const hasMoreItems = category.items.length > 3;
-
-                  const toggleExpanded = () => {
-                    setExpandedCategoryCards((prev) => ({
-                      ...prev,
-                      [category.name]: !prev[category.name],
-                    }));
-                  };
-
-                  return (
-                    <Card key={category.name} className={category.className}>
-                      <CardContent className="category-card-content">
-                        <div className="category-card-icon">
-                          <span>{category.icon}</span>
+                {serviceCards
+                  .filter((card) => selectedMainCategory === "Tümü" || card.category === selectedMainCategory)
+                  .map((card) => (
+                    <div key={card.id} className="service-card">
+                      <div className="service-card-image-wrapper">
+                        <img
+                          src={card.imageUrl}
+                          alt={card.title}
+                          className="service-card-image"
+                        />
+                      </div>
+                      <div className="service-card-content">
+                        <h3 className="service-card-title">{card.title}</h3>
+                        <p className="service-card-categories">{card.subCategories.join(", ")}</p>
+                        <div className="service-card-rating">
+                          <span className="service-card-star">⭐</span>
+                          <span className="service-card-rating-text">
+                            {card.rating} ({card.reviewCount} Değerlendirme)
+                          </span>
                         </div>
-                        <CardTitle className="category-card-title">{category.name}</CardTitle>
-                        <div className="category-card-items">
-                          <div className="category-card-items-list">
-                            {visibleItems.map((item) => (
-                              <div key={item} className="category-card-item">
-                                {item}
-                              </div>
-                            ))}
-                          </div>
-                          {hasMoreItems && (
-                            <button
-                              type="button"
-                              className="category-card-more"
-                              onClick={toggleExpanded}
-                              aria-label={isExpanded ? "Daha az göster" : "Daha fazla göster"}
-                            >
-                              {isExpanded ? "Daha az göster" : "Daha fazla göster"}
-                            </button>
-                          )}
+                        <div className="service-card-price">
+                          {card.price.toLocaleString("tr-TR")}₺ / Ay
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                      </div>
+                    </div>
+                  ))}
               </div>
               <button
                 type="button"
                 className="categories-nav-btn categories-nav-btn--right"
-                aria-label="Sonraki kategoriler"
+                aria-label="Sonraki kartlar"
                 onClick={() => scrollCategoriesByDelta(1)}
               >
                 ›
               </button>
             </div>
-            <div className="categories-progress-bar">
-              <div className="categories-progress-track" ref={progressTrackRef}>
-                <div
-                  className="categories-progress-indicator"
-                  style={{
-                    width: `${indicatorWidth}px`,
-                    transform: `translateX(${trackWidth > indicatorWidth ? (categoriesScrollProgress / 100) * (trackWidth - indicatorWidth) : 0}px)`,
-                  }}
-                />
-              </div>
-            </div>
           </section>
 
           <section className="section">
             <div className="section-header">
-              <h2 className="section-title">⭐ Öne Çıkanlar</h2>
+              <h2 className="section-title">Öne Çıkanlar</h2>
               <p className="section-subtitle">Her kategoriden seçkin hizmetler</p>
             </div>
             <div className="featured-section-grid">
@@ -637,33 +737,23 @@ export default function Home() {
               <p className="blog-section-subtitle">Uzmanlardan öneriler ve faydalı bilgiler</p>
             </div>
             <div className="blog-section-grid">
-              {blogPosts.map((post, index) => (
-                <Card key={index} className={post.className}>
-                  <CardContent className="blog-card-content">
-                    <div className="blog-card-icon">
-                      <span>{post.icon}</span>
-                    </div>
-                    <h3 className="blog-card-title">{post.title}</h3>
-                    <p className="blog-card-description">{post.description}</p>
-                    <div className="blog-card-footer">
-                      <span className="blog-card-meta">
-                        <span>🗓️</span>
-                        <span>{post.date}</span>
-                      </span>
-                      <span className="blog-card-meta">
-                        <span>👁️</span>
-                        <span>{post.views} görüntülenme</span>
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+              {blogPosts.slice(0, 6).map((post, index) => (
+                <BlogCard
+                  key={index}
+                  title={post.title}
+                  excerpt={post.excerpt}
+                  imageUrl={post.imageUrl}
+                  slug={post.slug}
+                />
               ))}
             </div>
             <div className="blog-section-button-wrapper">
-              <button className="blog-section-button">
-                Tüm Blog Yazılarını Gör
-              </button>
-            </div>
+              <Link href="/blog">
+                <button className="blog-section-button">
+                  Daha fazlasını gör
+                </button>
+              </Link>
+        </div>
           </section>
       </main>
       </div>

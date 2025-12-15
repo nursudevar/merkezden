@@ -1,0 +1,65 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+// Blog Listing Page
+.blog-listing-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 60px 0px;
+  box-sizing: border-box;
+
+  @media (max-width: 900px) {
+    padding: 40px 30px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 30px 20px;
+  }
+}
+
+.blog-listing-header {
+  text-align: center;
+  margin-bottom: 48px;
+
+  @media (max-width: 640px) {
+    margin-bottom: 32px;
+  }
+}
+
+.blog-listing-title {
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  letter-spacing: $tracking-tight;
+  color: $text-zinc-900;
+  margin-bottom: 8px;
+
+  @media (min-width: 640px) {
+    font-size: 36px;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: 40px;
+  }
+}
+
+.blog-listing-subtitle {
+  font-size: $text-base;
+  color: $text-zinc-500;
+  margin: 0;
+}
+
+.blog-listing-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+

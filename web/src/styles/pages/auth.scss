@@ -600,6 +600,16 @@
   margin-bottom: 24px;
 }
 
+.signup-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
 .signup-field {
   @include flex-col;
   width: 100%;

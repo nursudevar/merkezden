@@ -20,7 +20,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     // Bireysel fields
-    fullName: "",
+    firstName: "",
+    lastName: "",
     birthDate: "",
     // Kurumsal fields
     companyName: "",
@@ -47,8 +48,8 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Checkbox Control
+  
+    // 1) Checkbox Control
     if (!formData.acceptTerms) {
       setModalState({
         isOpen: true,
@@ -58,8 +59,8 @@ export default function SignupPage() {
       });
       return;
     }
-
-    // Password length validation (before Supabase call)
+  
+    // 2) Password length validation
     const MIN_PASSWORD_LENGTH = 8;
     if (formData.password.length < MIN_PASSWORD_LENGTH) {
       setModalState({
@@ -70,8 +71,8 @@ export default function SignupPage() {
       });
       return;
     }
-
-    // Birth date validation (only for individual users)
+  
+    // 3) Birth date validation (only for individual users)
     if (activeTab === "bireysel" && !formData.birthDate) {
       setModalState({
         isOpen: true,
@@ -81,85 +82,98 @@ export default function SignupPage() {
       });
       return;
     }
-
+  
     setLoading(true);
-
-    const { email, password, fullName, companyName, reference, birthDate } = formData;
+  
+    const { email, password, firstName, lastName, companyName, reference, birthDate } = formData;
     const userType = activeTab === "bireysel" ? "individual" : "institution";
-
-    const metadata: Record<string, any> = {
-      full_name: activeTab === "bireysel" ? fullName : companyName,
-      user_type: userType,
-      company_name: companyName || null,
-      reference: reference || null,
-    };
-    
-    // Sadece bireysel kullanıcı için doğum tarihini ekle
-    if (activeTab === "bireysel") {
-      metadata.birth_date = birthDate; // "YYYY-MM-DD" formatında gidiyor
-    }
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: metadata,
-      },
-    });
-    
-
-    console.log("SIGNUP DATA:", data);
-    console.log("SIGNUP ERROR:", JSON.stringify(error, null, 2));
-
-    setLoading(false);
-
-    // If there is NO error from Supabase - treat as successful signup
-    if (!error) {
+  
+    try {
+      // 4) ÖNCE AUTH.USERS ÜZERİNDEN EMAIL VAR MI DİYE RPC İLE KONTROL ET
+      const { data: emailExists, error: emailCheckError } = await supabase.rpc(
+        "check_email_exists",
+        { p_email: email.trim().toLowerCase() }
+      );
+  
+      if (emailCheckError) {
+        console.error("EMAIL CHECK ERROR:", emailCheckError);
+        // Burada "Hata oluştu" modali gösterebiliriz, ama email-exists dememeliyiz
+      }
+  
+      if (emailExists === true) {
+        // Bu email zaten auth.users içinde var → signup çağırma, direkt uyar
+        setModalState({
+          isOpen: true,
+          type: "email-exists",
+          title: "Hesabınız zaten mevcut",
+          message: "Bu e-posta adresiyle zaten bir hesabınız var. Lütfen giriş yapın.",
+        });
+        setLoading(false);
+        return;
+      }
+  
+      // 5) Email sistemde yoksa, normal signup akışına devam et
+      const metadata: Record<string, any> = {
+        user_type: userType,
+        company_name: companyName || null,
+        reference: reference || null,
+      };
+  
+      if (activeTab === "bireysel") {
+        metadata.first_name = firstName;
+        metadata.last_name = lastName;
+        metadata.full_name = `${firstName} ${lastName}`.trim();
+        metadata.birth_date = birthDate;
+      } else {
+        metadata.full_name = companyName;
+      }
+  
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata,
+        },
+      });
+  
+      console.log("SIGNUP DATA:", data);
+      console.log("SIGNUP ERROR:", JSON.stringify(error, null, 2));
+  
+      // 6) signUp SONRASI HATA VARSA → GENEL HATA MODALİ
+      if (error) {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Kayıt başarısız",
+          message: error.message || "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+        });
+        setLoading(false);
+        return;
+      }
+  
+      // 7) HİÇ HATA YOKSA: BAŞARILI KAYIT
       setModalState({
         isOpen: true,
         type: "success",
         title: "Kayıt başarılı",
-        message: "Hesap onay maili mail adresinize iletilmiştir. Lütfen mail kutunuzu kontrol edin.",
+        message:
+          "Hesap onay maili e-posta adresinize iletilmiştir. Lütfen mail kutunuzu kontrol edin.",
       });
-      return;
-    }
-
-    // If there IS an error - check if it's "email already exists"
-    const errorMessage = error.message?.toLowerCase() || "";
-    const errorCode = error.code?.toLowerCase() || "";
-    
-    // Check for email already exists indicators
-    const isEmailAlreadyExists =
-      errorMessage.includes("already registered") ||
-      errorMessage.includes("user already exists") ||
-      errorMessage.includes("email already") ||
-      errorMessage.includes("already exists") ||
-      errorMessage.includes("user already registered") ||
-      errorMessage.includes("email address is already registered") ||
-      errorCode === "signup_disabled" ||
-      (error.status === 400 && errorMessage.includes("already"));
-
-    if (isEmailAlreadyExists) {
+      setLoading(false);
+    } catch (err) {
+      console.error("UNEXPECTED SIGNUP ERROR:", err);
       setModalState({
         isOpen: true,
-        type: "email-exists",
-        title: "Hesabınız zaten mevcut",
-        message: "Bu email adresiyle zaten bir hesabınız var. Lütfen giriş yapın.",
+        type: "error",
+        title: "Kayıt başarısız",
+        message: "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
       });
-      return;
+      setLoading(false);
     }
-
-    // For any other error - show generic error modal
-    setModalState({
-      isOpen: true,
-      type: "error",
-      title: "Kayıt başarısız",
-      message: error.message || "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
-    });
-
-
-    
   };
+  
+  
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -239,16 +253,32 @@ export default function SignupPage() {
             {activeTab === "bireysel" ? (
               <>
                 <div className="signup-field">
-                  <label htmlFor="signup-fullname" className="signup-label">
-                    Ad Soyad
+                  <label htmlFor="signup-firstname" className="signup-label">
+                    Ad
                   </label>
                   <input
                     type="text"
-                    id="signup-fullname"
-                    name="fullName"
+                    id="signup-firstname"
+                    name="firstName"
                     className="signup-input"
-                    placeholder="Adınızı ve soyadınızı girin"
-                    value={formData.fullName}
+                    placeholder="Adınızı girin"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="signup-field">
+                  <label htmlFor="signup-lastname" className="signup-label">
+                    Soyad
+                  </label>
+                  <input
+                    type="text"
+                    id="signup-lastname"
+                    name="lastName"
+                    className="signup-input"
+                    placeholder="Soyadınızı girin"
+                    value={formData.lastName}
                     onChange={handleChange}
                     required
                   />

@@ -30,6 +30,7 @@
 
 @mixin gradient-hero {
   background: linear-gradient(to bottom right, $purple-hero-start, $purple-hero-mid, $purple-hero-end);
+  //background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
 }
 
 @mixin gradient-cta {
