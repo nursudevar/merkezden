@@ -7,11 +7,10 @@
   max-width: 1000px;
   margin: 48px auto 30px;
   @include rounded-48;
-  @include gradient-hero;
-  padding: 10px 30px;
+  padding: 0;
   text-align: center;
-  color: $bg-white;
   box-sizing: border-box;
+  overflow: hidden;
 
   @media (max-width: 1023px) {
     margin-left: 20px;
@@ -21,13 +20,22 @@
   @media (max-width: 640px) {
     margin-left: 16px;
     margin-right: 16px;
-    padding: 10px 20px;
   }
 }
 
 .hero-search-container {
-  max-width: 768px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.hero-search-banner {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
 }
 
 .hero-search-title {
@@ -306,12 +314,10 @@
 }
 
 .filter-sidebar-header-icon {
-  @include rounded-full;
-  background-color: $blue-box;
-  padding: 8px 12px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $blue-text;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .filter-sidebar-header-title {
@@ -1317,7 +1323,9 @@
 .home-main-categories-slider {
   position: relative;
   width: 100%;
-  overflow: visible;
+  display: flex;
+  align-items: center;
+  gap: 15px;
   margin-bottom: 32px;
 }
 
@@ -1328,14 +1336,13 @@
   overflow-y: hidden;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: rgba(109, 93, 252, 0.6) rgba(109, 93, 252, 0.2);
-  width: 100%;
-  padding: 8px 60px 8px 60px;
-  scroll-padding-left: 60px;
-  scroll-padding-right: 60px;
+  scrollbar-color: rgba(109, 93, 252, 0.6) rgba(191, 184, 250, 0.2);
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0 28px 0;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
-  padding-bottom: 28px;
+  order: 2;
 
   &::-webkit-scrollbar {
     height: 6px;
@@ -1346,7 +1353,6 @@
   &::-webkit-scrollbar-track {
     background-color: rgba(109, 93, 252, 0.2);
     border-radius: 3px;
-    margin: 0 60px;
   }
 
   &::-webkit-scrollbar-thumb {
@@ -1360,77 +1366,52 @@
 
   @media (min-width: 640px) {
     gap: 24px;
-    padding: 8px 70px 24px 70px;
-    scroll-padding-left: 70px;
-    scroll-padding-right: 70px;
-
-    &::-webkit-scrollbar-track {
-      margin: 0 70px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    gap: 24px;
-    padding: 8px 80px 24px 80px;
-    scroll-padding-left: 80px;
-    scroll-padding-right: 80px;
-
-    &::-webkit-scrollbar-track {
-      margin: 0 80px;
-    }
   }
 }
 
 .categories-nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid $border-light;
-  background-color: $bg-white;
+  position: relative;
+  width: auto;
+  height: auto;
+  border: none;
+  background: none;
   color: $text-zinc-700;
-  font-size: 20px;
-  font-weight: $font-bold;
   @include flex-center;
   cursor: pointer;
   @include transition;
   z-index: 2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  flex-shrink: 0;
 
   &:hover {
-    background-color: $purple-main;
-    border-color: $purple-main;
-    color: $bg-white;
-    @include shadow-md;
+    .categories-nav-btn-icon {
+      opacity: 0.7;
+    }
   }
 
   &:active {
-    transform: translateY(-50%) scale(0.95);
+    transform: scale(0.95);
   }
+}
+
+.categories-nav-btn-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  transition: filter 0.2s ease;
 
   @media (min-width: 640px) {
-    width: 40px;
-    height: 40px;
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
   }
 }
 
 .categories-nav-btn--left {
-  left: 8px;
-
-  @media (min-width: 640px) {
-    left: 12px;
-  }
+  order: 1;
 }
 
 .categories-nav-btn--right {
-  right: 8px;
-
-  @media (min-width: 640px) {
-    right: 12px;
-  }
+  order: 3;
 }
 
 
@@ -1769,8 +1750,8 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(109, 93, 252, 0.6) rgba(109, 93, 252, 0.2);
   width: 100%;
-  padding: 8px 20px 8px 20px;
-  scroll-padding-left: 20px;
+  padding: 8px 20px 8px 0;
+  scroll-padding-left: 0;
   scroll-padding-right: 20px;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
@@ -1804,8 +1785,8 @@
 
   @media (min-width: 640px) {
     gap: 24px;
-    padding: 8px 30px 24px 30px;
-    scroll-padding-left: 30px;
+    padding: 8px 30px 24px 0;
+    scroll-padding-left: 0;
     scroll-padding-right: 30px;
 
     &::-webkit-scrollbar-track {
@@ -1815,8 +1796,8 @@
 
   @media (min-width: 1024px) {
     gap: 24px;
-    padding: 8px 40px 24px 40px;
-    scroll-padding-left: 40px;
+    padding: 8px 40px 24px 0;
+    scroll-padding-left: 0;
     scroll-padding-right: 40px;
 
     &::-webkit-scrollbar-track {
@@ -2036,7 +2017,7 @@
 // CTA Section
 .cta-section {
   @include rounded-2xl;
-  @include gradient-cta;
+  background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
   padding: 48px 32px;
   text-align: center;
   @include shadow-lg;
@@ -2077,18 +2058,22 @@
   font-weight: $font-semibold;
   line-height: $leading-normal;
   white-space: nowrap;
-  @include transition-colors;
+  @include transition;
+  transition-property: transform, box-shadow, background-color, color, border-color;
   cursor: pointer;
   border: none;
 }
 
 .cta-section-button-primary {
   background-color: $bg-white;
-  color: $blue-main;
-  border: 1px solid $blue-main;
+  color: $purple-main;
+  border: 1px solid $purple-main;
 
   &:hover {
-    background-color: rgba($blue-main, 0.1);
+    background-color: rgba(255, 255, 255, 0.95);
+    color: $purple-dark;
+    border-color: $purple-dark;
+    box-shadow: 0 4px 12px rgba(109, 93, 252, 0.25);
   }
 }
 
@@ -2098,14 +2083,15 @@
   border: 1px solid $bg-white;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.9);
   }
 }
 
 // Blog Section
 .blog-section {
   @include rounded-2xl;
-  padding: 32px;
+  padding: 32px 0;
   display: flex;
   flex-direction: column;
   gap: 24px;

@@ -6,10 +6,11 @@ import { Map, Search as SearchIcon, MapPin } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { gsap } from "gsap";
 import SearchBar from "@/components/SearchBar";
 import HeroAnimation from "@/components/HeroAnimation";
-import HeroSearchAnimation from "@/components/HeroSearchAnimation";
 import BlogCard from "@/components/BlogCard";
+import AnimatedLogo from "@/components/AnimatedLogo/AnimatedLogo";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 
@@ -390,6 +391,9 @@ export default function Home() {
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
+  const categoriesTitleRef = useRef<HTMLHeadingElement>(null);
+  const featuredTitleRef = useRef<HTMLHeadingElement>(null);
+  const blogTitleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {""
     fetch("/api/locations")
@@ -415,6 +419,110 @@ export default function Home() {
       })
       .catch(() => {});
   }, [selectedDistrict]);
+
+  // Animation function for featured and blog titles
+  const animateTitle = (element: HTMLElement) => {
+    const text = element.textContent || "";
+    
+    // Create spans for each character
+    element.innerHTML = text
+      .split("")
+      .map((char, i) => {
+        if (char === " ") return " ";
+        return `<span class="char-${i}" style="display: inline-block;">${char}</span>`;
+      })
+      .join("");
+
+    const charElements = element.querySelectorAll("[class^='char-']");
+    
+    gsap.from(Array.from(charElements), {
+      yPercent: () => gsap.utils.random(-100, 100),
+      rotation: () => gsap.utils.random(-30, 30),
+      ease: "back.out",
+      autoAlpha: 0,
+      duration: 0.8,
+      stagger: {
+        amount: 0.5,
+        from: "random",
+      }
+    });
+  };
+
+  // Slide left animation for categories title
+  const animateCategoriesTitle = (element: HTMLElement) => {
+    const text = element.textContent || "";
+    
+    // Create spans for each character
+    element.innerHTML = text
+      .split("")
+      .map((char, i) => {
+        if (char === " ") return " ";
+        return `<span class="char-${i}" style="display: inline-block;">${char}</span>`;
+      })
+      .join("");
+
+    const charElements = element.querySelectorAll("[class^='char-']");
+    
+    gsap.from(Array.from(charElements), {
+      x: -100,
+      autoAlpha: 0,
+      ease: "power2.out",
+      duration: 0.6,
+      stagger: {
+        amount: 0.5,
+        from: "start",
+      }
+    });
+  };
+
+  // Intersection Observer for animations
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.3,
+      rootMargin: "0px"
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.target) {
+          const element = entry.target as HTMLElement;
+          if (!element.dataset.animated) {
+            // Use slideLeft animation for categories title
+            if (element === categoriesTitleRef.current) {
+              animateCategoriesTitle(element);
+            } else {
+              animateTitle(element);
+            }
+            element.dataset.animated = "true";
+          }
+        } else {
+          // Reset animation when element leaves viewport
+          const element = entry.target as HTMLElement;
+          if (element.dataset.animated) {
+            delete element.dataset.animated;
+            const text = element.textContent || "";
+            element.innerHTML = text;
+          }
+        }
+      });
+    }, observerOptions);
+
+    const elements = [
+      categoriesTitleRef.current,
+      featuredTitleRef.current,
+      blogTitleRef.current
+    ].filter(Boolean) as HTMLElement[];
+
+    elements.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      elements.forEach((el) => {
+        if (el) observer.unobserve(el);
+      });
+    };
+  }, []);
 
 
   const handlePriceInput = (index: number, value: string) => {
@@ -454,9 +562,7 @@ export default function Home() {
       <header className="header">
         <div className="header-container">
           <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
+            <AnimatedLogo />
             <span className="header-subtitle">HAYATIN MERKEZİ</span>
           </div>
           <div className="header-search">
@@ -479,7 +585,11 @@ export default function Home() {
 
       <section className="hero-search">
         <div className="hero-search-container">
-          <HeroSearchAnimation />
+          <img 
+            src="/images/hero-car-banner.png" 
+            alt="Hero Banner" 
+            className="hero-search-banner"
+          />
         </div>
       </section>
 
@@ -488,7 +598,7 @@ export default function Home() {
           <Card className="filter-sidebar-card">
             <CardHeader className="filter-sidebar-header">
               <div className="filter-sidebar-header-content">
-                <span className="filter-sidebar-header-icon">🔎</span>
+                <img src="/images/filter.svg" alt="Filtre" className="filter-sidebar-header-icon" />
                 <CardTitle className="filter-sidebar-header-title">Filtreler</CardTitle>
               </div>
             </CardHeader>
@@ -641,7 +751,7 @@ export default function Home() {
                   <span>📁</span>
                   <span>Kategori</span>
                 </div>
-                <Accordion type="multiple" defaultValue={categoryGroups.map((group) => group.id)}>
+                <Accordion type="multiple" defaultValue={categoryGroups.slice(0, 2).map((group) => group.id)}>
                   {categoryGroups.map((group) => {
                     const isExpanded = expandedCategories.includes(group.id);
                     const hasMore = group.items.length > 4;
@@ -717,7 +827,7 @@ export default function Home() {
         <main className="main-content">
           <section className="home-main-categories">
             <header className="home-main-categories-header">
-              <h2 className="home-main-categories-title">Ana Kategoriler</h2>
+              <h2 ref={categoriesTitleRef} className="home-main-categories-title text">Ana Kategoriler</h2>
             </header>
             
             <div className="main-categories-pills">
@@ -741,7 +851,7 @@ export default function Home() {
                 aria-label="Önceki kartlar"
                 onClick={() => scrollCategoriesByDelta(-1)}
               >
-                ‹
+                <img src="/images/left.svg" alt="Önceki" className="categories-nav-btn-icon" />
               </button>
               <div className="categories-scroller" ref={categoriesScrollerRef}>
                 {serviceCards
@@ -777,7 +887,7 @@ export default function Home() {
                 aria-label="Sonraki kartlar"
                 onClick={() => scrollCategoriesByDelta(1)}
               >
-                ›
+                <img src="/images/right.svg" alt="Sonraki" className="categories-nav-btn-icon" />
               </button>
             </div>
           </section>
@@ -785,7 +895,7 @@ export default function Home() {
           <section className="featured-institutions-section">
             <div className="featured-institutions-header">
               <div className="featured-institutions-header-left">
-                <h2 className="featured-institutions-title">Öne Çıkanlar</h2>
+                <h2 ref={featuredTitleRef} className="featured-institutions-title text">Öne Çıkanlar</h2>
                 <p className="featured-institutions-subtitle">Eğitim hayatınızı şekillendirecek en prestijli kurumları keşfedin.</p>
               </div>
             </div>
@@ -863,7 +973,7 @@ export default function Home() {
 
           <section className="blog-section">
             <div className="blog-section-header">
-              <h2 className="blog-section-title">📝 Blog Yazıları</h2>
+              <h2 ref={blogTitleRef} className="blog-section-title text">Blog Yazıları</h2>
               <p className="blog-section-subtitle">Uzmanlardan öneriler ve faydalı bilgiler</p>
             </div>
             <div className="blog-section-grid">
