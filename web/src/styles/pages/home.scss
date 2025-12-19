@@ -327,96 +327,9 @@
 }
 
 .filter-sidebar-content {
-  padding-top: 24px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.map-section {
-  position: relative;
-  overflow: hidden;
-  border-radius: 24px;
-  border: 1px solid $border-light;
-  @include transition;
-  background-color: $bg-white;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-}
-
-.map-section-overlay {
-  pointer-events: none;
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  @include flex-center;
-  gap: 8px;
-  @include rounded-full;
-  background-color: rgba(255, 255, 255, 0.85);
-  padding: 8px 16px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $default-text-color;
-  @include shadow-sm;
-
-  svg {
-    width: 16px;
-    height: 16px;
-    color: $blue-main;
-  }
-}
-
-.map-section-overlay .icon-sm,
-.map-section-overlay .icon-md {
-  color: $blue-main;
-}
-
-.map-section-container {
-  height: 220px;
-}
-
-.map-section-loading {
-  height: 176px;
-  width: 100%;
-  background-color: #f4f4f5;
-  text-align: center;
-  font-size: $text-sm;
-  color: $text-zinc-500;
-  @include flex-center;
-}
-
-.map-section-button {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  @include flex-center;
-  gap: 8px;
-  @include rounded-full;
-  background-color: $green-main;
-  padding: 12px 24px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $bg-white;
-  @include transition-colors;
-  cursor: pointer;
-  border: none;
-
-  &:hover {
-    background-color: $green-hover;
-  }
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .icon-sm {
-    width: 16px;
-    height: 16px;
-  }
 }
 
 .filter-section {
@@ -452,36 +365,27 @@
   gap: 12px;
 }
 
-.search-input-wrapper {
+.search-container {
   @include flex-center;
   overflow: hidden;
-  border-radius: 9999px;
-  border: 1px solid $border-light;
-  background-color: #f9fafb;
-  @include shadow-sm;
-  @include transition;
-
-  &:hover {
-    border-color: $purple-main;
-    box-shadow: 0 2px 8px rgba($purple-main, 0.1);
-  }
-
-  &:focus-within {
-    border-color: $purple-main;
-    box-shadow: 0 0 0 3px rgba($purple-main, 0.1);
-  }
 }
 
-.search-input-wrapper-input {
+.search-field {
   flex: 1;
   height: 48px;
-  border-radius: 9999px;
-  border: 0;
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border: 1px solid $border-light;
+  border-right: 0;
+  background-color: #f9fafb;
   padding: 0 20px;
   font-size: $text-sm;
   font-weight: $font-medium;
   color: $default-text-color;
-  background-color: transparent;
+  @include shadow-sm;
+  @include transition;
 
   &::placeholder {
     color: $text-placeholder;
@@ -489,10 +393,16 @@
 
   &:focus {
     outline: none;
+    border-color: $purple-main;
+  }
+
+  &:hover {
+    border-color: $purple-main;
+    box-shadow: 0 2px 8px rgba($purple-main, 0.1);
   }
 }
 
-.search-input-wrapper-button {
+.search-button {
   height: 48px;
   width: 20%;
   border-radius: 0;
@@ -516,11 +426,11 @@
     width: 20px;
     height: 20px;
   }
-}
 
-.search-input-wrapper-button .icon-md {
-  width: 20px;
-  height: 20px;
+  .icon-md {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .location-input {
@@ -1705,7 +1615,7 @@
   }
 }
 
-.featured-institutions-view-all-wrapper {
+.featured-institutions-view-all {
   text-align: center;
   margin-top: 40px;
 
@@ -1716,20 +1626,20 @@
   @media (max-width: 640px) {
     margin-top: 24px;
   }
-}
 
-.featured-institutions-view-all {
-  font-size: $text-base;
-  font-weight: $font-medium;
-  color: $purple-main;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  a {
+    font-size: $text-base;
+    font-weight: $font-medium;
+    color: $purple-main;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 
-  &:hover {
-    color: $purple-dark;
-    text-decoration: underline;
+    &:hover {
+      color: $purple-dark;
+      text-decoration: underline;
+    }
   }
 }
 

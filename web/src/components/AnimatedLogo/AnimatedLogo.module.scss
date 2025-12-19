@@ -1,0 +1,226 @@
+@import '../../styles/colors';
+
+$logo-color: $text-zinc-900;
+$duration: 5s;
+
+.link {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  overflow: visible;
+  line-height: 1;
+  letter-spacing: -0.64px;
+  font-weight: 900;
+  color: $logo-color;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  overflow: visible;
+  min-width: 162px;
+  font-size: clamp(28px, 2.2vw, 34px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.64px;
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 0;
+}
+
+.letterM {
+  position: relative;
+  display: inline-block;
+  overflow: visible;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  font-kerning: inherit;
+  font-feature-settings: inherit;
+}
+
+.wordRest {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.wordMask {
+  display: inline-block;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  font-kerning: inherit;
+  font-feature-settings: inherit;
+  text-rendering: optimizeLegibility;
+  -webkit-font-feature-settings: "kern" 1;
+  font-feature-settings: "kern" 1, "liga" 0;
+  clip-path: inset(0 100% 0 0);
+  animation: wordReveal $duration cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dotWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin: 0 1.6px;
+  animation: dotWrapFlow $duration cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dot {
+  display: block;
+  width: 3.52px;
+  height: 3.52px;
+  border-radius: 999px;
+  background: $logo-color;
+}
+
+.suffix {
+  display: inline-block;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  font-kerning: inherit;
+  font-feature-settings: inherit;
+  animation: suffixFlow $duration cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sparkle {
+  position: absolute;
+  left: 0;
+  top: -5px;
+  width: 14px;
+  height: 14px;
+  z-index: 5;
+  overflow: visible;
+  transform-origin: center;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: sparkleFlow $duration ease-in-out infinite;
+}
+
+.wrap[data-loop="false"] {
+  .wordMask,
+  .dotWrap,
+  .suffix,
+  .sparkle {
+    animation-iteration-count: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordMask,
+  .dotWrap,
+  .suffix,
+  .sparkle {
+    animation: none !important;
+  }
+
+  .wordMask {
+    clip-path: inset(0 0% 0 0) !important;
+  }
+
+  .sparkle {
+    opacity: 0 !important;
+  }
+}
+
+@keyframes wordReveal {
+  0% {
+    clip-path: inset(0 0% 0 0);
+  }
+  12% {
+    clip-path: inset(0 0% 0 0);
+  }
+  18% {
+    clip-path: inset(0 100% 0 0);
+  }
+  50% {
+    clip-path: inset(0 0% 0 0);
+  }
+  68% {
+    clip-path: inset(0 0% 0 0);
+  }
+  100% {
+    clip-path: inset(0 0% 0 0);
+  }
+}
+
+@keyframes dotWrapFlow {
+  0% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  68% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes suffixFlow {
+  0% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  68% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes sparkleFlow {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(0.8) rotate(0deg);
+  }
+  18% {
+    opacity: 0;
+    transform: translateX(0) scale(0.8) rotate(0deg);
+  }
+  22% {
+    opacity: 1;
+    transform: translateX(0) scale(1.1) rotate(0deg);
+  }
+  32% {
+    opacity: 0.9;
+    transform: translateX(31px) scale(1.2) rotate(220deg);
+  }
+  38% {
+    opacity: 0;
+    transform: translateX(31px) scale(0.9) rotate(300deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(31px) scale(0.9) rotate(300deg);
+  }
+}

@@ -2,58 +2,14 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { Map, Search as SearchIcon, MapPin } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import { Search as SearchIcon } from "lucide-react";
 import { gsap } from "gsap";
 import SearchBar from "@/components/SearchBar";
-import HeroAnimation from "@/components/HeroAnimation";
 import BlogCard from "@/components/BlogCard";
 import AnimatedLogo from "@/components/AnimatedLogo/AnimatedLogo";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 
-// Fix default icon paths for Leaflet in Next.js
-const icon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-// Map component - client-side only (react-leaflet requires browser APIs)
-function MapComponent() {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return (
-      <div className="map-section-loading">
-        Harita yükleniyor...
-      </div>
-    );
-  }
-
-  // Center to Ankara
-  const center: [number, number] = [39.925533, 32.866287];
-
-  return (
-    <MapContainer center={center} zoom={10} className="full-size">
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker position={center} icon={icon}>
-        <Popup>Ankara</Popup>
-      </Marker>
-    </MapContainer>
-  );
-}
 
 // Main categories for pills
 const mainCategories = [
@@ -448,32 +404,6 @@ export default function Home() {
     });
   };
 
-  // Slide left animation for categories title
-  const animateCategoriesTitle = (element: HTMLElement) => {
-    const text = element.textContent || "";
-    
-    // Create spans for each character
-    element.innerHTML = text
-      .split("")
-      .map((char, i) => {
-        if (char === " ") return " ";
-        return `<span class="char-${i}" style="display: inline-block;">${char}</span>`;
-      })
-      .join("");
-
-    const charElements = element.querySelectorAll("[class^='char-']");
-    
-    gsap.from(Array.from(charElements), {
-      x: -100,
-      autoAlpha: 0,
-      ease: "power2.out",
-      duration: 0.6,
-      stagger: {
-        amount: 0.5,
-        from: "start",
-      }
-    });
-  };
 
   // Intersection Observer for animations
   useEffect(() => {
@@ -487,12 +417,7 @@ export default function Home() {
         if (entry.isIntersecting && entry.target) {
           const element = entry.target as HTMLElement;
           if (!element.dataset.animated) {
-            // Use slideLeft animation for categories title
-            if (element === categoriesTitleRef.current) {
-              animateCategoriesTitle(element);
-            } else {
-              animateTitle(element);
-            }
+            animateTitle(element);
             element.dataset.animated = "true";
           }
         } else {
@@ -603,33 +528,19 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="filter-sidebar-content">
-              <div className="map-section">
-                <div className="map-section-overlay">
-                  <Map className="icon-sm" />
-                  Haritada Ara
-                </div>
-                <div className="map-section-container">
-                  <MapComponent />
-                </div>
-                <Button className="map-section-button">
-                  <MapPin className="icon-sm" />
-                  Haritada Göster
-                </Button>
-              </div>
-
               <div className="filter-section">
                 <div className="filter-section-title">
                   <span>🔍</span>
                   <span>Aranacak Kelime</span>
                 </div>
-                <div className="search-input-wrapper">
+                <div className="search-container">
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Hizmet adı, kategori..."
-                    className="search-input-wrapper-input"
+                    className="search-field"
                   />
-                  <Button className="search-input-wrapper-button">
+                  <Button className="search-button">
                     <SearchIcon className="icon-md" />
                   </Button>
                 </div>
@@ -949,8 +860,8 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            <div className="featured-institutions-view-all-wrapper">
-              <Link href="#" className="featured-institutions-view-all">
+            <div className="featured-institutions-view-all">
+              <Link href="#">
                 Tüm Kurumları Görüntüle →
               </Link>
             </div>
