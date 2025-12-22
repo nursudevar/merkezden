@@ -667,25 +667,11 @@ export default function Home() {
                     const isExpanded = expandedCategories.includes(group.id);
                     const hasMore = group.items.length > 4;
                     const itemsToShow = isExpanded ? group.items : group.items.slice(0, hasMore ? 4 : group.items.length);
-                    const categoryClassMap: Record<string, string> = {
-                      school: "school",
-                      exam: "course",
-                      sport: "sport",
-                      art: "art",
-                      language: "language",
-                      "personal-dev": "personal",
-                      professional: "vocational",
-                      special: "special",
-                      pets: "pet",
-                    };
-                    const categoryClass = categoryClassMap[group.id] || "";
 
                     return (
                       <AccordionItem key={group.id} value={group.id} className="category-accordion-item">
-                        <div className={`category-accordion-header-wrapper ${categoryClass}`}>
+                        <div className="category-accordion-header-wrapper">
                           <AccordionTrigger className="category-accordion-trigger">
-                            <FilterIndicator />
-                            <span>{group.icon}</span>
                             <span>{group.title}</span>
                           </AccordionTrigger>
                         </div>

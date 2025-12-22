@@ -858,43 +858,7 @@
   padding: 12px 14.4px;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
-  background-color: $bg-white;
-}
-
-.category-accordion-header-wrapper.school {
-  background-color: #eef2ff;
-}
-
-.category-accordion-header-wrapper.course {
-  background-color: #fdf2ff;
-}
-
-.category-accordion-header-wrapper.sport {
-  background-color: #ecfdf5;
-}
-
-.category-accordion-header-wrapper.art {
-  background-color: #fff1f2;
-}
-
-.category-accordion-header-wrapper.language {
-  background-color: #eff6ff;
-}
-
-.category-accordion-header-wrapper.personal {
-  background-color: #fffbeb;
-}
-
-.category-accordion-header-wrapper.vocational {
-  background-color: #f5f3ff;
-}
-
-.category-accordion-header-wrapper.special {
-  background-color: #ecfeff;
-}
-
-.category-accordion-header-wrapper.pet {
-  background-color: #fefce8;
+  background-color: rgba(124, 58, 237, 0.04);
 }
 
 .category-accordion {
