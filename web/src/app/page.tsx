@@ -3,10 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { Search as SearchIcon } from "lucide-react";
-import { gsap } from "gsap";
 import SearchBar from "@/components/SearchBar";
 import BlogCard from "@/components/BlogCard";
-import AnimatedLogo from "@/components/AnimatedLogo/AnimatedLogo";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 
@@ -347,9 +345,16 @@ export default function Home() {
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
-  const categoriesTitleRef = useRef<HTMLHeadingElement>(null);
-  const featuredTitleRef = useRef<HTMLHeadingElement>(null);
-  const blogTitleRef = useRef<HTMLHeadingElement>(null);
+
+  // Shuffle featured institutions on page load
+  const [shuffledFeaturedInstitutions] = useState(() => {
+    const shuffled = [...featuredInstitutions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  });
 
   useEffect(() => {""
     fetch("/api/locations")
@@ -376,78 +381,6 @@ export default function Home() {
       .catch(() => {});
   }, [selectedDistrict]);
 
-  // Animation function for featured and blog titles
-  const animateTitle = (element: HTMLElement) => {
-    const text = element.textContent || "";
-    
-    // Create spans for each character
-    element.innerHTML = text
-      .split("")
-      .map((char, i) => {
-        if (char === " ") return " ";
-        return `<span class="char-${i}" style="display: inline-block;">${char}</span>`;
-      })
-      .join("");
-
-    const charElements = element.querySelectorAll("[class^='char-']");
-    
-    gsap.from(Array.from(charElements), {
-      yPercent: () => gsap.utils.random(-100, 100),
-      rotation: () => gsap.utils.random(-30, 30),
-      ease: "back.out",
-      autoAlpha: 0,
-      duration: 0.8,
-      stagger: {
-        amount: 0.5,
-        from: "random",
-      }
-    });
-  };
-
-
-  // Intersection Observer for animations
-  useEffect(() => {
-    const observerOptions = {
-      threshold: 0.3,
-      rootMargin: "0px"
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.target) {
-          const element = entry.target as HTMLElement;
-          if (!element.dataset.animated) {
-            animateTitle(element);
-            element.dataset.animated = "true";
-          }
-        } else {
-          // Reset animation when element leaves viewport
-          const element = entry.target as HTMLElement;
-          if (element.dataset.animated) {
-            delete element.dataset.animated;
-            const text = element.textContent || "";
-            element.innerHTML = text;
-          }
-        }
-      });
-    }, observerOptions);
-
-    const elements = [
-      categoriesTitleRef.current,
-      featuredTitleRef.current,
-      blogTitleRef.current
-    ].filter(Boolean) as HTMLElement[];
-
-    elements.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-
-    return () => {
-      elements.forEach((el) => {
-        if (el) observer.unobserve(el);
-      });
-    };
-  }, []);
 
 
   const handlePriceInput = (index: number, value: string) => {
@@ -487,7 +420,9 @@ export default function Home() {
       <header className="header">
         <div className="header-container">
           <div className="header-brand">
-            <AnimatedLogo />
+            <Link href="/" className="header-title-link">
+              <span className="header-title">MERKEZDEN.COM</span>
+            </Link>
             <span className="header-subtitle">HAYATIN MERKEZİ</span>
           </div>
           <div className="header-search">
@@ -670,11 +605,9 @@ export default function Home() {
 
                     return (
                       <AccordionItem key={group.id} value={group.id} className="category-accordion-item">
-                        <div className="category-accordion-header-wrapper">
-                          <AccordionTrigger className="category-accordion-trigger">
-                            <span>{group.title}</span>
-                          </AccordionTrigger>
-                        </div>
+                        <AccordionTrigger className="category-accordion-trigger">
+                          <span>{group.title}</span>
+                        </AccordionTrigger>
                         <AccordionContent className="category-accordion-content">
                           <div className="category-accordion-options">
                             {itemsToShow.map((item) => {
@@ -724,7 +657,8 @@ export default function Home() {
         <main className="main-content">
           <section className="home-main-categories">
             <header className="home-main-categories-header">
-              <h2 ref={categoriesTitleRef} className="home-main-categories-title text">Ana Kategoriler</h2>
+              <h2 className="home-main-categories-title">Ana Kategoriler</h2>
+              <p className="home-main-categories-subtitle">İhtiyacınıza uygun hizmetleri kolayca bulun</p>
             </header>
             
             <div className="main-categories-pills">
@@ -792,13 +726,13 @@ export default function Home() {
           <section className="featured-institutions-section">
             <div className="featured-institutions-header">
               <div className="featured-institutions-header-left">
-                <h2 ref={featuredTitleRef} className="featured-institutions-title text">Öne Çıkanlar</h2>
+                <h2 className="featured-institutions-title">Öne Çıkanlar</h2>
                 <p className="featured-institutions-subtitle">Eğitim hayatınızı şekillendirecek en prestijli kurumları keşfedin.</p>
               </div>
             </div>
             <div className="featured-institutions-slider">
               <div className="featured-institutions-scroller">
-                {featuredInstitutions.map((institution) => (
+                {shuffledFeaturedInstitutions.map((institution) => (
                   <div key={institution.id} className="featured-institution-card">
                     <div className="featured-institution-image-wrapper">
                       <img 
@@ -870,11 +804,11 @@ export default function Home() {
 
           <section className="blog-section">
             <div className="blog-section-header">
-              <h2 ref={blogTitleRef} className="blog-section-title text">Blog Yazıları</h2>
+              <h2 className="blog-section-title">Blog Yazıları</h2>
               <p className="blog-section-subtitle">Uzmanlardan öneriler ve faydalı bilgiler</p>
             </div>
             <div className="blog-section-grid">
-              {blogPosts.slice(0, 6).map((post, index) => (
+              {blogPosts.slice(0, 3).map((post, index) => (
                 <BlogCard
                   key={index}
                   title={post.title}
