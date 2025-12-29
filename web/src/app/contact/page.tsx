@@ -1,15 +1,12 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui";
-import SearchBar from "@/components/SearchBar";
+import HeaderClient from "@/components/layout/HeaderClient";
 import { ContactAnimation } from "@/components/ContactAnimation";
 import "@/styles/main.scss";
 import "@/styles/pages/contact.scss";
 
 export default function ContactPage() {
-  const [query, setQuery] = useState("");
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Form submit logic will be added later
@@ -17,24 +14,7 @@ export default function ContactPage() {
 
   return (
     <div className="contact-page">
-      <div className="top-bar" />
-      <header className="header">
-        <div className="header-container">
-          <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
-            <span className="header-subtitle">HAYATIN MERKEZİ</span>
-          </div>
-          <div className="header-actions">
-            <Link href="/login">
-              <Button className="button-primary" variant="default">
-                GİRİŞ YAP
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <HeaderClient />
 
       <main className="contact-page-main">
         <section className="contact-hero">

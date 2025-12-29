@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
@@ -110,7 +110,7 @@ const allBlogPosts: BlogPost[] = [
 
 const allCategories = ["Hepsi", ...Array.from(new Set(allBlogPosts.map((post) => post.category)))];
 
-export default function BlogPage() {
+function BlogPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>("Hepsi");
@@ -245,5 +245,35 @@ export default function BlogPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function BlogPage() {
+  return (
+    <Suspense fallback={
+      <div className="page-container">
+        <div className="top-bar" />
+        <header className="header">
+          <div className="header-container">
+            <div className="header-brand">
+              <Link href="/" className="header-title-link">
+                <span className="header-title">MERKEZDEN.COM</span>
+              </Link>
+              <span className="header-subtitle">HAYATIN MERKEZİ</span>
+            </div>
+          </div>
+        </header>
+        <main className="main-content">
+          <div className="blog-listing-page">
+            <div className="blog-listing-header">
+              <h1 className="blog-listing-title">Blog Yazıları</h1>
+              <p className="blog-listing-subtitle">Yükleniyor...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    }>
+      <BlogPageContent />
+    </Suspense>
   );
 }

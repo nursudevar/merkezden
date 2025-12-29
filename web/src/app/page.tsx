@@ -1,12 +1,21 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { Search as SearchIcon } from "lucide-react";
-import SearchBar from "@/components/SearchBar";
 import BlogCard from "@/components/BlogCard";
+import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import FeaturedInstitutionsSkeleton from "@/components/FeaturedInstitutionsSkeleton";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
+
+const FeaturedInstitutions = dynamic(() => import("@/components/FeaturedInstitutions"), {
+  ssr: false,
+  loading: () => <FeaturedInstitutionsSkeleton />
+});
 
 
 // Main categories for pills
@@ -159,113 +168,6 @@ const categories = [
   { name: "ÖZEL EĞİTİM", icon: "🧩", items: ["Oyun Terapisi", "Disleksi", "Duyu Bütünleme"], className: "category-card" },
 ];
 
-const featuredInstitutions = [
-  {
-    id: 1,
-    name: "Boğaziçi Koleji",
-    location: "İSTANBUL, BEŞİKTAŞ",
-    description: "Global vizyonu ve modern eğitim kampüsü ile geleceğin liderlerini yetiştiren prestijli bir kurum.",
-    rating: 4.9,
-    imageUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop",
-    badge: {
-      icon: "✓",
-      label: "%25 Burs",
-      color: "purple"
-    }
-  },
-  {
-    id: 2,
-    name: "Ankara Bilim Lisesi",
-    location: "ANKARA, ÇANKAYA",
-    description: "Teknoloji ve bilim odaklı müfredatıyla fark yaratan bir eğitim kurumu.",
-    rating: 4.7,
-    imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🎓",
-      label: "Fen Lisesi",
-      color: "blue"
-    }
-  },
-  {
-    id: 3,
-    name: "Ege Çağdaş Koleji",
-    location: "İZMİR, KONAK",
-    description: "Sanat ve spor aktiviteleriyle zenginleştirilmiş, bütünsel gelişim odaklı eğitim anlayışı.",
-    rating: 4.8,
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🌿",
-      label: "Yeşil Kampüs",
-      color: "green"
-    }
-  },
-  {
-    id: 4,
-    name: "Nilüfer Akademi",
-    location: "BURSA, NİLÜFER",
-    description: "Uluslararası standartlarda yabancı dil eğitimi ve yurt dışı eğitim fırsatları sunan kurum.",
-    rating: 5.0,
-    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🌍",
-      label: "Çift Dil",
-      color: "purple"
-    }
-  },
-  {
-    id: 5,
-    name: "İstanbul Teknik Koleji",
-    location: "İSTANBUL, KADIKÖY",
-    description: "Mühendislik ve teknoloji alanında uzmanlaşmış, çağdaş eğitim yaklaşımıyla öne çıkan kurum.",
-    rating: 4.6,
-    imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🔧",
-      label: "Teknik Eğitim",
-      color: "blue"
-    }
-  },
-  {
-    id: 6,
-    name: "Marmara Sanat Akademisi",
-    location: "İSTANBUL, ŞİŞLİ",
-    description: "Güzel sanatlar ve performans sanatları alanında profesyonel eğitim veren prestijli akademi.",
-    rating: 4.9,
-    imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🎭",
-      label: "Sanat Akademisi",
-      color: "purple"
-    }
-  },
-  {
-    id: 7,
-    name: "Antalya Doğa Koleji",
-    location: "ANTALYA, MURATPAŞA",
-    description: "Doğa ile iç içe eğitim anlayışı ve çevre bilinci odaklı müfredatıyla fark yaratan kurum.",
-    rating: 4.8,
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🌳",
-      label: "Doğa Odaklı",
-      color: "green"
-    }
-  },
-  {
-    id: 8,
-    name: "Ankara Yabancı Dil Koleji",
-    location: "ANKARA, ÇANKAYA",
-    description: "Çok dilli eğitim programı ve uluslararası değişim fırsatlarıyla öğrencilerine global vizyon kazandıran kurum.",
-    rating: 4.7,
-    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop",
-    badge: {
-      icon: "🗣️",
-      label: "Çok Dilli",
-      color: "blue"
-    }
-  },
-];
-
 const ageOptions = [
   { value: "child", label: "👶 Çocuk (0-17 yaş)", className: "filter-option filter-option-child" },
   { value: "adult", label: "🧑‍🎓 Yetişkin (18+ yaş)", className: "filter-option filter-option-adult" },
@@ -335,6 +237,7 @@ function FilterIndicator() {
 
 export default function Home() {
   const [query, setQuery] = useState("");
+  const [user, setUser] = useState<User | null>(null);
   const [districts, setDistricts] = useState<string[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
@@ -346,17 +249,14 @@ export default function Home() {
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
 
-  // Shuffle featured institutions on page load
-  const [shuffledFeaturedInstitutions] = useState(() => {
-    const shuffled = [...featuredInstitutions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  });
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
 
-  useEffect(() => {""
+  useEffect(() => {
     fetch("/api/locations")
       .then((response) => response.json())
       .then((data) => {
@@ -416,32 +316,11 @@ export default function Home() {
 
   return (
     <div className="page-container">
-      <div className="top-bar" />
-      <header className="header">
-        <div className="header-container">
-          <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
-            <span className="header-subtitle">HAYATIN MERKEZİ</span>
-          </div>
-          <div className="header-search">
-            <SearchBar
-              value={query}
-              onChange={setQuery}
-              placeholder="Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum"
-              buttonText="ARA"
-            />
-          </div>
-          <div className="header-actions">
-            <Link href="/login">
-              <Button className="button-primary" variant="default">
-                GİRİŞ YAP
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <HeaderWithSearch 
+        initialUser={user} 
+        searchValue={query}
+        onSearchChange={setQuery}
+      />
 
       <section className="hero-search">
         <div className="hero-search-container">
@@ -723,69 +602,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="featured-institutions-section">
-            <div className="featured-institutions-header">
-              <div className="featured-institutions-header-left">
-                <h2 className="featured-institutions-title">Öne Çıkanlar</h2>
-                <p className="featured-institutions-subtitle">Eğitim hayatınızı şekillendirecek en prestijli kurumları keşfedin.</p>
-              </div>
-            </div>
-            <div className="featured-institutions-slider">
-              <div className="featured-institutions-scroller">
-                {shuffledFeaturedInstitutions.map((institution) => (
-                  <div key={institution.id} className="featured-institution-card">
-                    <div className="featured-institution-image-wrapper">
-                      <img 
-                        src={institution.imageUrl} 
-                        alt={institution.name}
-                        className="featured-institution-image"
-                      />
-                      <div className="featured-institution-overlay" />
-                      <div className={`featured-institution-badge featured-institution-badge--${institution.badge.color}`}>
-                        <span className="featured-institution-badge-icon">{institution.badge.icon}</span>
-                        <span className="featured-institution-badge-label">{institution.badge.label}</span>
-                      </div>
-                      <button 
-                        type="button" 
-                        className="featured-institution-favorite"
-                        aria-label="Favorilere ekle"
-                      >
-                        <svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 2.24 0 5 0C6.74 0 8.41 0.81 9.5 2.09C10.59 0.81 12.26 0 14 0C16.76 0 19 1.96 19 4.5C19 8.28 15.6 11.36 10.45 16.04L10 17.35Z" fill="currentColor"/>
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="featured-institution-content">
-                      <div className="featured-institution-location">
-                        <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M6 0C2.69 0 0 2.69 0 6C0 10.5 6 14 6 14C6 14 12 10.5 12 6C12 2.69 9.31 0 6 0ZM6 8.25C4.76 8.25 3.75 7.24 3.75 6C3.75 4.76 4.76 3.75 6 3.75C7.24 3.75 8.25 4.76 8.25 6C8.25 7.24 7.24 8.25 6 8.25Z" fill="currentColor"/>
-                        </svg>
-                        <span>{institution.location}</span>
-                      </div>
-                      <h3 className="featured-institution-name">{institution.name}</h3>
-                      <p className="featured-institution-description">{institution.description}</p>
-                      <div className="featured-institution-footer">
-                        <div className="featured-institution-rating">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 0L9.79611 5.52786L15.6085 5.52786L10.9062 8.94427L12.7023 14.4721L8 11.0557L3.29772 14.4721L5.09383 8.94427L0.391548 5.52786L6.20389 5.52786L8 0Z" fill="currentColor"/>
-                          </svg>
-                          <span>{institution.rating}</span>
-                        </div>
-                        <Link href="#" className="featured-institution-link">
-                          İncele ›
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="featured-institutions-view-all">
-              <Link href="#">
-                Tüm Kurumları Görüntüle →
-              </Link>
-            </div>
-          </section>
+          <FeaturedInstitutions />
 
           <section>
             <div className="cta-section">
