@@ -387,7 +387,7 @@
   font-size: $text-base;
   font-weight: $font-semibold;
   color: $bg-white;
-  @include gradient-purple-top;
+  background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
   border: none;
   @include rounded-xl;
   cursor: pointer;
@@ -402,6 +402,11 @@
 
   &:active {
     transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.3);
   }
 
   @media (max-width: 640px) {

@@ -217,7 +217,7 @@ export default function SignupPage() {
           </div>
           <div className="header-actions">
             <Link href="/login">
-              <Button className="button-primary" variant="default">
+              <Button className="button-primary btn-gradient-primary" variant="default">
                 GİRİŞ YAP
               </Button>
             </Link>

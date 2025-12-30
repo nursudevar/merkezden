@@ -629,7 +629,9 @@
 }
 
 .price-filter-title {
-  @include flex-center;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   font-size: $text-sm;
   font-weight: $font-semibold;

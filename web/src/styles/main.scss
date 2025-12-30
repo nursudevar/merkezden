@@ -167,6 +167,28 @@ button,
   @include transition-colors;
   cursor: pointer;
   border: none;
+}
+
+.btn-gradient-primary {
+  background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
+  color: $bg-white;
+  border: none;
+  @include transition;
+  transition-property: transform, box-shadow;
+
+  &:hover {
+    transform: translateY(-2px);
+    @include shadow-md;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.3);
+  }
 
   &:hover {
     background-color: $blue-hover;

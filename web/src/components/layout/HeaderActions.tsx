@@ -43,7 +43,7 @@ export default function HeaderActions({
       {user ? (
         <>
           <Link href="/profile">
-            <Button className="button-primary" variant="default">
+            <Button className="button-primary btn-gradient-primary" variant="default">
               Profil
             </Button>
           </Link>
@@ -51,7 +51,7 @@ export default function HeaderActions({
         </>
       ) : (
         <Link href="/login">
-          <Button className="button-primary" variant="default">
+          <Button className="button-primary btn-gradient-primary" variant="default">
             GİRİŞ YAP
           </Button>
         </Link>

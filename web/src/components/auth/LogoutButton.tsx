@@ -18,7 +18,7 @@ export default function LogoutButton() {
     <Button
       onClick={handleLogout}
       variant="outline"
-      className="button-primary"
+      className="button-primary btn-gradient-primary"
     >
       Çıkış Yap
     </Button>

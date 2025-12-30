@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { Search as SearchIcon } from "lucide-react";
@@ -344,7 +345,12 @@ export default function Home() {
             <CardContent className="filter-sidebar-content">
               <div className="filter-section">
                 <div className="filter-section-title">
-                  <span>🔍</span>
+                  <Image 
+                    src="/images/search.svg" 
+                    alt="Ara" 
+                    width={20} 
+                    height={20}
+                  />
                   <span>Aranacak Kelime</span>
                 </div>
                 <div className="search-container">
@@ -362,7 +368,12 @@ export default function Home() {
               <Separator />
               <div className="filter-section">
                 <div className="filter-section-title">
-                  <span>📍</span>
+                  <Image 
+                    src="/images/map.svg" 
+                    alt="Lokasyon" 
+                    width={20} 
+                    height={20}
+                  />
                   <span>Lokasyon</span>
                 </div>
                 <div className="filter-section-inputs">
@@ -405,7 +416,12 @@ export default function Home() {
               <Separator />
               <div className="price-filter">
                 <div className="price-filter-title">
-                  <span>💰</span>
+                  <Image 
+                    src="/images/banknotes.svg" 
+                    alt="Fiyat" 
+                    width={20} 
+                    height={20}
+                  />
                   <span>Fiyat Filtresi</span>
                 </div>
                 <div className="price-filter-inputs">
@@ -435,7 +451,12 @@ export default function Home() {
               <Separator />
               <div className="filter-section">
                 <div className="filter-section-title">
-                  <span>🎯</span>
+                  <Image 
+                    src="/images/identification.svg" 
+                    alt="Öğrenci Yaşı" 
+                    width={20} 
+                    height={20}
+                  />
                   <span>Öğrenci Yaşı</span>
                 </div>
                 <div className="filter-section-options">
