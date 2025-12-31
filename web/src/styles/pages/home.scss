@@ -359,6 +359,55 @@
   align-items: flex-start;
 }
 
+.education-type-pills {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.education-type-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  background-color: #f5f5f5;
+  color: #4b5563;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+  transition-property: background-color, color;
+
+  &:hover {
+    background-color: #e5e5e5;
+  }
+
+  .education-type-pill-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: #4b5563;
+  }
+}
+
+.education-type-pill--selected {
+  background-color: #e0d9f7;
+  color: #6d5dfc;
+  font-weight: $font-semibold;
+
+  .education-type-pill-icon {
+    color: #6d5dfc;
+  }
+
+  &:hover {
+    background-color: #d4c9f0;
+  }
+}
+
 .filter-section-inputs {
   display: flex;
   flex-direction: column;
@@ -807,7 +856,7 @@
   gap: 12px;
   @include rounded-xl;
   background-color: $bg-white;
-  padding: 12px 16px;
+  padding: 12px 0 12px 0;
   text-align: left;
   font-size: $text-sm;
   font-weight: $font-semibold;
@@ -815,9 +864,21 @@
   @include transition-colors;
   cursor: pointer;
   border: none;
+  padding: 10px;
+
 
   &:hover {
     background-color: $bg-filter-hover;
+  }
+}
+
+.filter-option--selected {
+  background-color: #e0d9f7;
+  color: #6d5dfc;
+  font-weight: $font-semibold;
+
+  &:hover {
+    background-color: #d4c9f0;
   }
 }
 
@@ -828,11 +889,22 @@
   align-items: center;
   justify-content: center;
   @include rounded-6;
-  border: 1px solid $border-checkbox;
+  border: 2px solid #c0c8d4;
   background-color: $bg-white;
-  font-size: $text-xs;
-  font-weight: $font-semibold;
-  color: $blue-main;
+  flex-shrink: 0;
+  @include transition;
+  transition-property: background-color, border-color, transform;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: $bg-white;
+  }
+}
+
+.filter-indicator--checked {
+  background-color: #6d5dfc;
+  border-color: #6d5dfc;
 }
 
 .category-accordion {
@@ -890,7 +962,7 @@
     bottom: 10px;
     width: 3px;
     border-radius: 999px;
-    background-color: $purple-violet-dark;
+    background-color: #6d5dfc;
     opacity: 0;
     transform: scaleY(0.9);
     @include transition;
@@ -1786,16 +1858,10 @@
   backdrop-filter: blur(4px);
 }
 
-.featured-institution-badge--purple {
-  background-color: rgba(109, 93, 252, 0.9);
-}
-
-.featured-institution-badge--blue {
-  background-color: rgba(59, 130, 246, 0.9);
-}
-
+.featured-institution-badge--purple,
+.featured-institution-badge--blue,
 .featured-institution-badge--green {
-  background-color: rgba(16, 185, 129, 0.9);
+  background-color: rgba(107, 114, 128, 0.5);
 }
 
 .featured-institution-badge-icon {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -170,15 +170,13 @@ const categories = [
 ];
 
 const ageOptions = [
-  { value: "child", label: "👶 Çocuk (0-17 yaş)", className: "filter-option filter-option-child" },
-  { value: "adult", label: "🧑‍🎓 Yetişkin (18+ yaş)", className: "filter-option filter-option-adult" },
+  { value: "child", label: "Çocuk (0-17 yaş)", className: "filter-option filter-option-child" },
+  { value: "adult", label: "Yetişkin (18+ yaş)", className: "filter-option filter-option-adult" },
 ];
 
 const serviceOptions = [
-  { value: "online", label: "💻 Online", className: "filter-option filter-option-online" },
-  { value: "face", label: "🏫 Yüz Yüze", className: "filter-option filter-option-face" },
-  { value: "group", label: "👥 Grup", className: "filter-option filter-option-group" },
-  { value: "personal", label: "🧑‍🏫 Bireysel", className: "filter-option filter-option-personal" },
+  { value: "face", label: "Yüz Yüze", icon: Users },
+  { value: "online", label: "Online", icon: Wifi },
 ];
 
 const categoryGroups = [
@@ -232,9 +230,6 @@ const blogPosts = [
   },
 ];
 
-function FilterIndicator() {
-  return <span className="filter-indicator" />;
-}
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -248,6 +243,8 @@ export default function Home() {
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
+  const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null);
+  const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -460,41 +457,66 @@ export default function Home() {
                   <span>Öğrenci Yaşı</span>
                 </div>
                 <div className="filter-section-options">
-                  {ageOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={option.className}
-                    >
-                      <FilterIndicator />
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
+                  {ageOptions.map((option) => {
+                    const isSelected = selectedAgeOption === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`${option.className} ${isSelected ? 'filter-option--selected' : ''}`}
+                        onClick={() => {
+                          setSelectedAgeOption(isSelected ? null : option.value);
+                        }}
+                      >
+                        <span className={`filter-indicator ${isSelected ? 'filter-indicator--checked' : ''}`}>
+                          {isSelected && <Check size={14} />}
+                        </span>
+                        <span>{option.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <Separator />
               <div className="filter-section">
                 <div className="filter-section-title">
-                  <span>🔧</span>
-                  <span>Hizmet Tipi</span>
+                  <Image 
+                    src="/images/services.svg" 
+                    alt="Eğitim Türü" 
+                    width={20} 
+                    height={20}
+                  />
+                  <span>Eğitim Türü</span>
                 </div>
-                <div className="filter-section-options">
-                  {serviceOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={option.className}
-                    >
-                      <FilterIndicator />
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
+                <div className="education-type-pills">
+                  {serviceOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isSelected = selectedServiceType === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`education-type-pill ${isSelected ? 'education-type-pill--selected' : ''}`}
+                        onClick={() => {
+                          setSelectedServiceType(isSelected ? null : option.value);
+                        }}
+                      >
+                        <Icon className="education-type-pill-icon" />
+                        <span>{option.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <Separator />
               <div className="filter-section">
                 <div className="filter-section-title">
-                  <span>📁</span>
+                  <Image 
+                    src="/images/categories.svg" 
+                    alt="Kategori" 
+                    width={20} 
+                    height={20}
+                  />
                   <span>Kategori</span>
                 </div>
                 <Accordion type="multiple" defaultValue={categoryGroups.slice(0, 2).map((group) => group.id)}>
