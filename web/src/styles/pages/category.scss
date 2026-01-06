@@ -1,0 +1,40 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.category-page-container {
+  min-height: 100vh;
+  width: 100%;
+  background-color: $bg-zinc-50;
+}
+
+.category-page-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 30px;
+
+  @media (max-width: 640px) {
+    padding: 24px 16px;
+  }
+}
+
+.category-page-title {
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin-bottom: 24px;
+
+  @media (max-width: 640px) {
+    font-size: $text-2xl;
+    margin-bottom: 20px;
+  }
+}
+
+.category-page-filters {
+  margin-bottom: 32px;
+}
+
+.category-page-results {
+  min-height: 400px;
+}
+

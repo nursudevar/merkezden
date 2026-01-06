@@ -1,0 +1,123 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.category-page-layout {
+  width: 100%;
+  padding: 40px 0 60px;
+  background-color: #f9fafb;
+}
+
+.category-page-layout-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 32px;
+  align-items: start;
+
+  @media (max-width: 1023px) {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0 20px;
+  }
+}
+
+.category-page-layout-sidebar {
+  @media (max-width: 1023px) {
+    display: none;
+  }
+}
+
+.category-page-layout-results {
+  position: relative;
+}
+
+.category-page-layout-filter-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: $bg-white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $default-text-color;
+  cursor: pointer;
+  margin-bottom: 24px;
+  @include transition;
+  transition-property: background-color, border-color;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: $purple-main;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: $purple-main;
+  }
+
+  @media (max-width: 1023px) {
+    display: flex;
+  }
+}
+
+.category-page-layout-filter-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  @include transition;
+  transition-property: opacity;
+
+  &--open {
+    pointer-events: all;
+    opacity: 1;
+  }
+}
+
+.category-page-layout-filter-drawer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.category-page-layout-filter-drawer-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 90%;
+  max-width: 400px;
+  background-color: $bg-white;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  transform: translateX(-100%);
+  @include transition;
+  transition-property: transform;
+
+  .category-page-layout-filter-drawer--open & {
+    transform: translateX(0);
+  }
+
+  .category-filter-sidebar-card {
+    position: static;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+}
+

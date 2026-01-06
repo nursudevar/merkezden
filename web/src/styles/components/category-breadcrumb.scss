@@ -1,0 +1,47 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.category-breadcrumb {
+  background-color: transparent;
+  padding: 0;
+  border-bottom: none;
+}
+
+.category-breadcrumb-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+
+  @media (max-width: 640px) {
+    padding: 0 20px;
+    font-size: 13px;
+  }
+}
+
+.category-breadcrumb-link {
+  color: $text-zinc-500;
+  text-decoration: none;
+  @include transition;
+  transition-property: color;
+
+  &:hover {
+    color: $text-zinc-700;
+    text-decoration: none;
+  }
+}
+
+.category-breadcrumb-separator {
+  color: $text-zinc-700;
+  user-select: none;
+}
+
+.category-breadcrumb-current {
+  color: $purple-main;
+  font-weight: $font-semibold;
+}
+

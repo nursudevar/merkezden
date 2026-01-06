@@ -23,15 +23,13 @@ const FeaturedInstitutions = dynamic(() => import("@/components/FeaturedInstitut
 const mainCategories = [
   "Tümü",
   "Okul",
+  "Kurs & Sınava Hazırlık",
   "Spor",
-  "Teknoloji",
   "Sanat",
-  "Dil",
-  "Müzik",
-  "Dans",
-  "Yazılım",
+  "Yabancı Dil",
   "Kişisel Gelişim",
-  "Sağlık",
+  "Mesleki Eğitim",
+  "Özel Eğitim",
 ];
 
 // Service cards data
@@ -584,17 +582,60 @@ export default function Home() {
             </header>
             
             <div className="main-categories-pills">
-              {mainCategories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  className={`main-category-pill ${selectedMainCategory === category ? "main-category-pill--active" : ""}`}
-                  onClick={() => setSelectedMainCategory(category)}
-                  aria-pressed={selectedMainCategory === category}
-                >
-                  {category}
-                </button>
-              ))}
+              {mainCategories.map((category) => {
+                // Category to route mapping
+                const categoryRoutes: Record<string, string> = {
+                  "Okul": "/school",
+                  "Kurs & Sınava Hazırlık": "/courses",
+                  "Spor": "/sports",
+                  "Sanat": "/arts",
+                  "Yabancı Dil": "/languages",
+                  "Kişisel Gelişim": "/personal-development",
+                  "Mesleki Eğitim": "/vocational-training",
+                  "Özel Eğitim": "/special-education",
+                };
+
+                const route = categoryRoutes[category];
+                const isAll = category === "Tümü";
+
+                if (isAll) {
+                  // "Tümü" remains a button that filters
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`main-category-pill ${selectedMainCategory === category ? "main-category-pill--active" : ""}`}
+                      onClick={() => setSelectedMainCategory(category)}
+                      aria-pressed={selectedMainCategory === category}
+                    >
+                      {category}
+                    </button>
+                  );
+                } else if (route) {
+                  // Mapped categories become navigation links
+                  return (
+                    <Link
+                      key={category}
+                      href={route}
+                      className={`main-category-pill ${selectedMainCategory === category ? "main-category-pill--active" : ""}`}
+                    >
+                      {category}
+                    </Link>
+                  );
+                } else {
+                  // Unmapped categories remain buttons but don't filter
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      className="main-category-pill"
+                      onClick={() => setSelectedMainCategory("Tümü")}
+                    >
+                      {category}
+                    </button>
+                  );
+                }
+              })}
             </div>
 
             <div className="home-main-categories-slider">
@@ -608,7 +649,7 @@ export default function Home() {
               </button>
               <div className="categories-scroller" ref={categoriesScrollerRef}>
                 {serviceCards
-                  .filter((card) => selectedMainCategory === "Tümü" || card.category === selectedMainCategory)
+                  .filter((card) => selectedMainCategory === "Tümü")
                   .map((card) => (
                     <div key={card.id} className="service-card">
                       <div className="service-card-image-wrapper">

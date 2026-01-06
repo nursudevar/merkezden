@@ -1162,9 +1162,11 @@
   @include transition;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 
   &:hover {
     background-color: #e2e8f0;
+    text-decoration: none;
   }
 
   &:focus {
@@ -1942,6 +1944,7 @@
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;

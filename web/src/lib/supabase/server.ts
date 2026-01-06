@@ -1,10 +1,8 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
-export function createSupabaseServerClient() {
-  // In Next.js 16, cookies() is synchronous in server components and route handlers
-  // Type assertion needed because TypeScript types may not reflect runtime behavior
-  const cookieStore = cookies() as unknown as Awaited<ReturnType<typeof cookies>>;
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

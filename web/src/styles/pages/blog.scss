@@ -6,35 +6,53 @@
 .blog-listing-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 60px 0px;
+  padding: 60px 30px;
   box-sizing: border-box;
 
-  @media (max-width: 900px) {
-    padding: 40px 30px;
+  @media (max-width: 1024px) {
+    padding: 50px 24px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 40px 20px;
   }
 
   @media (max-width: 640px) {
-    padding: 30px 20px;
+    padding: 30px 16px;
   }
 }
 
 .blog-listing-header {
   text-align: center;
   margin-bottom: 40px;
+  padding: 0;
+
+  @media (max-width: 1024px) {
+    margin-bottom: 36px;
+  }
+
+  @media (max-width: 768px) {
+    margin-bottom: 32px;
+  }
 
   @media (max-width: 640px) {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
   }
 }
 
 .blog-listing-title {
-  font-size: $text-3xl;
+  font-size: 28px;
   font-weight: $font-bold;
   letter-spacing: $tracking-tight;
   color: $text-zinc-900;
   margin-bottom: 8px;
+  line-height: 1.2;
 
   @media (min-width: 640px) {
+    font-size: 32px;
+  }
+
+  @media (min-width: 768px) {
     font-size: 36px;
   }
 
@@ -44,12 +62,19 @@
 }
 
 .blog-listing-subtitle {
-  font-size: $text-base;
+  font-size: $text-sm;
   color: $text-zinc-500;
   margin: 0;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  padding: 0 16px;
+  line-height: 1.6;
+
+  @media (min-width: 640px) {
+    font-size: $text-base;
+    padding: 0;
+  }
 }
 
 // Category Tabs
@@ -59,10 +84,31 @@
   gap: 12px;
   justify-content: center;
   margin-bottom: 48px;
+  padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    margin-bottom: 40px;
+    justify-content: flex-start;
+    padding: 0 4px;
+  }
+
+  @media (max-width: 768px) {
+    margin-bottom: 36px;
+    gap: 10px;
+  }
 
   @media (max-width: 640px) {
     gap: 8px;
     margin-bottom: 32px;
+    padding: 0;
   }
 }
 
@@ -77,6 +123,23 @@
   cursor: pointer;
   @include transition-colors;
   outline: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media (max-width: 1024px) {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 16px;
+    font-size: $text-sm;
+  }
+
+  @media (max-width: 640px) {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
 
   &:hover {
     background-color: $bg-card;
