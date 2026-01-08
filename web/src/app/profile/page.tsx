@@ -10,16 +10,21 @@ import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/compo
 import '@/styles/main.scss';
 import '@/styles/pages/profile.scss';
 
-interface IndividualProfile {
-  id: string;
-  user_id: string;
+interface UsersRow {
+  id: number;
+  user_type: string | null;
+  auth_user_id: string;
+  email: string | null;
   first_name: string | null;
   last_name: string | null;
-  phone: string | null;
-  city: string | null;
-  country: string | null;
-  age: number | null;
-  about: string | null;
+}
+
+interface IndividualProfile {
+  user_id: number;
+  name: string | null;
+  surname: string | null;
+  email: string | null;
+  birth_date: string | null;
 }
 
 interface FavoriteItem {
@@ -117,8 +122,8 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
     router.refresh();
   };
 
-  const fullName = profile?.first_name && profile?.last_name
-    ? `${profile.first_name} ${profile.last_name}`
+  const fullName = profile?.name && profile?.surname
+    ? `${profile.name} ${profile.surname}`
     : user.email?.split('@')[0] || 'Kullanıcı';
 
   return (
@@ -162,17 +167,46 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
 
 function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: IndividualProfile | null }) {
   const [isEditing, setIsEditing] = useState(false);
+
+  const calculateAge = (birthDate: string | null): string => {
+    if (!birthDate) return '';
+    try {
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return String(age);
+    } catch {
+      return '';
+    }
+  };
+
   const [formData, setFormData] = useState({
-    firstName: profile?.first_name || '',
-    lastName: profile?.last_name || '',
-    email: user.email || '',
-    phone: profile?.phone || '',
-    cityCountry: profile?.city && profile?.country 
-      ? `${profile.city}, ${profile.country}`
-      : profile?.city || profile?.country || '',
-    age: profile?.age ? String(profile.age) : '',
-    about: profile?.about || '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    cityCountry: '',
+    age: '',
+    about: '',
   });
+
+  useEffect(() => {
+    if (profile || user) {
+      setFormData({
+        firstName: profile?.name ?? '',
+        lastName: profile?.surname ?? '',
+        email: profile?.email ?? user?.email ?? '',
+        phone: '',
+        cityCountry: '',
+        age: calculateAge(profile?.birth_date ?? null),
+        about: '',
+      });
+    }
+  }, [profile, user]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -186,7 +220,7 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
   };
 
   return (
-    <Card className="profile-info-card">
+    <Card className="info-card profile-info-card">
       <CardHeader className="profile-info-card-header">
         <div className="profile-info-card-header-left">
           <UserIcon className="profile-info-card-icon" />
@@ -384,15 +418,16 @@ function FavoritesSection() {
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [usersRow, setUsersRow] = useState<UsersRow | null>(null);
   const [profile, setProfile] = useState<IndividualProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
 
-    const checkAuth = async () => {
+    const loadProfile = async () => {
       try {
+        // A) Auth check
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !currentUser) {
@@ -402,100 +437,61 @@ export default function ProfilePage() {
 
         setUser(currentUser);
 
-        // Try to fetch user type from users table (if exists)
-        // If table doesn't exist or query fails, allow access anyway
-        try {
-          const { data: userData, error: userDataError } = await supabase
-            .from('users')
-            .select('user_type')
-            .eq('id', currentUser.id)
-            .single();
+        // B) Read users row (SELECT only)
+        const { data: userData, error: userDataError } = await supabase
+          .from('users')
+          .select('id, user_type, auth_user_id, email, first_name, last_name')
+          .eq('auth_user_id', currentUser.id)
+          .maybeSingle();
 
-          if (userDataError) {
-            // Table might not exist or user might not be in users table yet
-            // Allow access for authenticated users
-            console.log('Users table query failed or user not found, allowing access');
-            setUserType(null);
-          } else if (userData && userData.user_type) {
-            if (userData.user_type !== 'individual') {
-              router.push('/');
-              return;
-            }
-            setUserType(userData.user_type);
-          } else {
-            // No user_type found, allow access
-            setUserType(null);
-          }
-        } catch (error) {
-          // If users table doesn't exist at all, allow access
-          console.log('Users table might not exist, allowing access');
-          setUserType(null);
+        let resolvedUsersRow: UsersRow | null = null;
+
+        if (userDataError) {
+          // RLS or other error - continue safely
+          console.warn('Users table query error:', userDataError.message);
+        } else {
+          resolvedUsersRow = userData;
         }
 
-        // Fetch individual profile (if table exists)
-        try {
+        console.log({ authUserId: currentUser.id, usersRow: userData, usersError: userDataError });
+
+        setUsersRow(resolvedUsersRow);
+
+        // C) Access control
+        if (resolvedUsersRow?.user_type && resolvedUsersRow.user_type !== 'individual') {
+          router.push('/');
+          return;
+        }
+
+        // D) Read individual_profiles row (SELECT only)
+        if (resolvedUsersRow?.id) {
           const { data: profileData, error: profileError } = await supabase
             .from('individual_profiles')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .single();
+            .select('user_id, name, surname, email, birth_date')
+            .eq('user_id', resolvedUsersRow.id)
+            .maybeSingle();
+
+          console.log({ usersId: resolvedUsersRow?.id, profileRow: profileData, profileError });
 
           if (profileError) {
-            if (profileError.code === 'PGRST116') {
-              // No profile found, create empty one
-              setProfile({
-                id: '',
-                user_id: currentUser.id,
-                first_name: null,
-                last_name: null,
-                phone: null,
-                city: null,
-                country: null,
-                age: null,
-                about: null,
-              });
-            } else {
-              // Table might not exist, create empty profile
-              console.log('Individual profiles table might not exist');
-              setProfile({
-                id: '',
-                user_id: currentUser.id,
-                first_name: null,
-                last_name: null,
-                phone: null,
-                city: null,
-                country: null,
-                age: null,
-                about: null,
-              });
-            }
-          } else if (profileData) {
+            // RLS or other error - continue safely
+            console.warn('Individual profiles query error:', profileError.message);
+            setProfile(null);
+          } else {
             setProfile(profileData);
           }
-        } catch (error) {
-          // If table doesn't exist, create empty profile
-          console.log('Individual profiles table might not exist');
-          setProfile({
-            id: '',
-            user_id: currentUser.id,
-            first_name: null,
-            last_name: null,
-            phone: null,
-            city: null,
-            country: null,
-            age: null,
-            about: null,
-          });
+        } else {
+          setProfile(null);
         }
       } catch (error) {
-        console.error('Error checking auth:', error);
-        router.push('/login');
+        console.error('Error loading profile:', error);
+        // Do not redirect on error, just keep UI empty
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    loadProfile();
   }, [router]);
 
   if (loading) {
@@ -513,8 +509,8 @@ export default function ProfilePage() {
     return null;
   }
 
-  // Allow access if userType is null (users table might not exist) or if it's 'individual'
-  if (userType !== null && userType !== 'individual') {
+  // Access control: if usersRow exists and user_type is not 'individual', redirect
+  if (usersRow?.user_type && usersRow.user_type !== 'individual') {
     return null;
   }
 

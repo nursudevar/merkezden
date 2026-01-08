@@ -1,7 +1,9 @@
 import * as React from "react"
 
 function Card({ className = "", ...props }: React.ComponentProps<"div">) {
-  const classes = `card ${className}`.trim()
+  // If className already contains a specific card class (info-card, favorite-card), don't add generic "card"
+  const hasSpecificCardClass = className.includes('info-card') || className.includes('favorite-card');
+  const classes = hasSpecificCardClass ? className.trim() : `card ${className}`.trim();
   return <div className={classes} {...props} />
 }
 
