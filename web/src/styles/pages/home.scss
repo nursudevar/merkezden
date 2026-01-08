@@ -387,8 +387,8 @@
   }
 
   .education-type-pill-icon {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     flex-shrink: 0;
     color: #4b5563;
   }
@@ -1116,13 +1116,18 @@
 }
 
 .home-main-categories-subtitle {
-  font-size: $text-lg;
-  color: $text-zinc-600;
+  font-size: $text-sm;
+  color: $text-zinc-500;
   margin: 0;
-  line-height: 1.5;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 16px;
+  line-height: 1.6;
 
-  @media (max-width: 640px) {
+  @media (min-width: 640px) {
     font-size: $text-base;
+    padding: 0;
   }
 }
 
@@ -1674,13 +1679,18 @@
 }
 
 .featured-institutions-subtitle {
-  font-size: $text-lg;
-  color: $text-zinc-600;
+  font-size: $text-sm;
+  color: $text-zinc-500;
   margin: 0;
-  line-height: 1.5;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 16px;
+  line-height: 1.6;
 
-  @media (max-width: 640px) {
+  @media (min-width: 640px) {
     font-size: $text-base;
+    padding: 0;
   }
 }
 
@@ -2092,13 +2102,18 @@
 }
 
 .blog-section-subtitle {
-  font-size: $text-lg;
-  color: $text-zinc-600;
+  font-size: $text-sm;
+  color: $text-zinc-500;
   margin: 0;
-  line-height: 1.5;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 16px;
+  line-height: 1.6;
 
-  @media (max-width: 640px) {
+  @media (min-width: 640px) {
     font-size: $text-base;
+    padding: 0;
   }
 }
 
@@ -2174,7 +2189,7 @@
 .blog-card-image-wrapper {
   position: relative;
   width: 100%;
-  padding-top: 56.25%; // 16:9 aspect ratio
+  padding-top: 60%;
   overflow: hidden;
  
   @include rounded-24;
@@ -2188,17 +2203,17 @@
 }
 
 .blog-card-content-new {
-  padding: 24px;
+  padding: 20px;
   @include flex-col;
   flex: 1;
-  gap: 12px;
+  gap: 10px;
 }
 
 .blog-card-title-new {
-  font-size: $text-lg;
+  font-size: 16px;
   font-weight: $font-bold;
   color: $text-zinc-900;
-  line-height: $leading-tight;
+  line-height: 1.4;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2208,15 +2223,15 @@
 }
 
 .blog-card-excerpt {
-  font-size: $text-sm;
+  font-size: 13px;
   color: $text-zinc-600;
-  line-height: $leading-normal;
+  line-height: 1.5;
   margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-clamp: 3;
+  line-clamp: 2;
 }
 
 

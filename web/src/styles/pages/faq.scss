@@ -41,13 +41,17 @@
 
   &__subtitle {
     font-size: $text-sm;
-    color: $text-zinc-600;
-    max-width: 520px;
-    margin: 0 auto;
-    line-height: $leading-normal;
+    color: $text-zinc-500;
+    margin: 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 16px;
+    line-height: 1.6;
 
     @media (min-width: 640px) {
       font-size: $text-base;
+      padding: 0;
     }
   }
 }

@@ -56,9 +56,9 @@ export default function FeaturedPost({
                 </div>
               </div>
             )}
-            <Link href={`/blog/${slug}`} className="featured-post-read-more">
+            <span className="featured-post-read-more">
               Devamını Oku →
-            </Link>
+            </span>
           </div>
         </div>
       </article>

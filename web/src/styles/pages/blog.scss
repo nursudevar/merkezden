@@ -6,7 +6,7 @@
 .blog-listing-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 60px 30px;
+  padding: 60px 0px;
   box-sizing: border-box;
 
   @media (max-width: 1024px) {
@@ -186,9 +186,12 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
+  max-width: 85%;
+  margin: 0 auto;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
 
   &:hover {
@@ -201,12 +204,12 @@
 .featured-post-image-wrapper {
   position: relative;
   width: 100%;
-  padding-top: 60%;
+  padding-top: 48%;
   background-color: $bg-zinc-50;
   overflow: hidden;
 
   @media (max-width: 1024px) {
-    padding-top: 50%;
+    padding-top: 40%;
   }
 }
 
@@ -230,17 +233,17 @@
 }
 
 .featured-post-content {
-  padding: 40px;
+  padding: 32px;
   @include flex-col;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
 
   @media (max-width: 1024px) {
-    padding: 32px 24px;
+    padding: 28px 20px;
   }
 
   @media (max-width: 640px) {
-    padding: 24px 20px;
+    padding: 20px 16px;
   }
 }
 
@@ -263,22 +266,26 @@
 }
 
 .featured-post-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: $font-bold;
   color: $text-zinc-900;
   line-height: 1.3;
   margin: 0;
 
   @media (max-width: 640px) {
-    font-size: 24px;
+    font-size: 20px;
   }
 }
 
 .featured-post-excerpt {
-  font-size: $text-base;
+  font-size: $text-sm;
   color: $text-zinc-600;
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .featured-post-meta {
@@ -287,12 +294,13 @@
   justify-content: space-between;
   gap: 16px;
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid $border-light;
 
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: flex-start;
+    padding-top: 12px;
   }
 }
 
@@ -327,9 +335,11 @@
   font-size: $text-sm;
   font-weight: $font-semibold;
   text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
   @include transition-colors;
 
-  &:hover {
+  .featured-post-link:hover & {
     color: $purple-dark;
     text-decoration: underline;
   }
@@ -404,14 +414,21 @@
 .blog-posts-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 20px;
 
   @media (min-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 
   @media (min-width: 1024px) {
     grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
 }
 

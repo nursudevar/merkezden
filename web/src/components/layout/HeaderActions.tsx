@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -16,7 +16,9 @@ export default function HeaderActions({
   initialUser,
 }: HeaderActionsProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(initialUser);
+  const isProfilePage = pathname === '/profile';
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -42,11 +44,13 @@ export default function HeaderActions({
     <div className="header-actions">
       {user ? (
         <>
-          <Link href="/profile">
-            <Button className="button-primary btn-gradient-primary" variant="default">
-              Profil
-            </Button>
-          </Link>
+          {!isProfilePage && (
+            <Link href="/profile">
+              <Button className="button-primary btn-gradient-primary" variant="default">
+                Profil
+              </Button>
+            </Link>
+          )}
           <LogoutButton />
         </>
       ) : (

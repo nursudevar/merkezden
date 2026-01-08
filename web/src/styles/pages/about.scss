@@ -145,29 +145,19 @@
 }
 
 .about-hero-subtitle {
-  font-size: $text-lg;
-  font-weight: $font-medium;
-  line-height: $leading-relaxed;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: $text-sm;
+  color: $text-zinc-500;
+  margin: 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 16px;
+  line-height: 1.6;
   word-wrap: break-word;
 
-  @media (max-width: 1023px) {
-    font-size: 17px;
-  }
-
-  @media (max-width: 768px) {
+  @media (min-width: 640px) {
     font-size: $text-base;
-    line-height: 1.5;
-  }
-
-  @media (max-width: 640px) {
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  @media (max-width: 480px) {
-    font-size: $text-sm;
-    line-height: 1.4;
+    padding: 0;
   }
 }
 

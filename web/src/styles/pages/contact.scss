@@ -74,13 +74,17 @@
 
 .contact-hero-subtitle {
   font-size: $text-sm;
-  color: $text-zinc-600;
-  line-height: $leading-normal;
-  max-width: 720px;
-  margin: 0 auto;
+  color: $text-zinc-500;
+  margin: 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 16px;
+  line-height: 1.6;
 
   @media (min-width: 640px) {
     font-size: $text-base;
+    padding: 0;
   }
 }
 
