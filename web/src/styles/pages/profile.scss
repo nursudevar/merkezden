@@ -123,6 +123,7 @@
 .profile-sidebar-avatar-placeholder {
   width: 100%;
   height: 100%;
+  border: 1px solid rgba(128, 128, 128, 0.25);
   @include rounded-full;
   @include flex-center;
   font-size: 32px;
@@ -296,36 +297,32 @@
 .profile-info-card-edit-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
-  color: $bg-white;
-  border: none;
-  border-radius: 12px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  background: transparent;
+  color: grey;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 50%;
   cursor: pointer;
   @include transition;
-  transition-property: transform, box-shadow;
+  transition-property: background-color, border-color, transform;
 
   &:hover {
-    transform: translateY(-2px);
-    @include shadow-md;
+    background-color: rgba(63, 63, 70, 0.05);
+    border-color: #3f3f46;
   }
 
   &:active {
-    transform: translateY(0);
-  }
-
-  @media (max-width: 640px) {
-    width: 100%;
-    justify-content: center;
+    transform: scale(0.95);
   }
 }
 
 .profile-info-card-edit-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  color: #3f3f46;
 }
 
 .profile-info-card-content {
@@ -392,7 +389,7 @@
 }
 
 .profile-info-form-input {
-  width: 92%;
+  width: 100%;
   height: 44px;
   padding: 0 16px;
   border-radius: 12px;
@@ -430,7 +427,7 @@
 }
 
 .profile-info-form-textarea {
-  width: 96%;
+  width: 100%;
   min-height: 120px;
   padding: 12px 16px;
   border-radius: 12px;

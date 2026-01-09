@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Heart, Settings, LogOut, Edit2, User as UserIcon, Star } from 'lucide-react';
+import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import HeaderClient from '@/components/layout/HeaderClient';
@@ -118,8 +118,9 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
   const handleLogout = async () => {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
+    
+    // Ana sayfaya yönlendir
+    window.location.href = '/';
   };
 
   const fullName = profile?.name && profile?.surname
@@ -151,14 +152,24 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
             <Heart className="profile-sidebar-nav-icon" />
             <span>Favorilerim</span>
           </a>
-          <button className="profile-sidebar-nav-item">
+          <a 
+            href="#settings" 
+            className="profile-sidebar-nav-item"
+          >
             <Settings className="profile-sidebar-nav-icon" />
             <span>Ayarlar</span>
-          </button>
-          <button className="profile-sidebar-nav-item profile-sidebar-nav-item--logout" onClick={handleLogout}>
+          </a>
+          <a 
+            href="#" 
+            className="profile-sidebar-nav-item profile-sidebar-nav-item--logout" 
+            onClick={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
+          >
             <LogOut className="profile-sidebar-nav-icon" />
             <span>Çıkış Yap</span>
-          </button>
+          </a>
         </nav>
       </div>
     </aside>
@@ -231,8 +242,7 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
           className="profile-info-card-edit-btn"
           onClick={handleEdit}
         >
-          <Edit2 className="profile-info-card-edit-icon" />
-          Düzenle
+          <PencilLine className="profile-info-card-edit-icon" />
         </Button>
       </CardHeader>
       <CardContent className="profile-info-card-content">
