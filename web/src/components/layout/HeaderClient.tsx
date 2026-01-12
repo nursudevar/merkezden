@@ -1,30 +1,32 @@
 "use client";
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import HeaderActions from './HeaderActions';
-import type { User } from '@supabase/supabase-js';
+import { Button } from '@/components/ui';
+import LogoutButton from '@/components/auth/LogoutButton';
 
-export default function HeaderClient() {
-  const [user, setUser] = useState<User | null>(null);
+interface HeaderClientProps {
+  initialUser: { id: string; email?: string } | null;
+  initialUserType: 'individual' | 'institution' | null;
+}
 
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
+export default function HeaderClient({
+  initialUser,
+  initialUserType,
+}: HeaderClientProps) {
+  const getCTALabel = () => {
+    if (initialUserType === 'individual') return 'Profil';
+    if (initialUserType === 'institution') return 'Panel';
+    return 'Hesap';
+  };
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+  const getCTAHref = () => {
+    if (initialUserType === 'individual') return '/profile';
+    if (initialUserType === 'institution') return '/institution';
+    return '#';
+  };
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const shouldShowCTA = initialUserType === 'individual' || initialUserType === 'institution';
+  const isDisabled = initialUser && !initialUserType;
 
   return (
     <>
@@ -37,10 +39,36 @@ export default function HeaderClient() {
             </Link>
             <span className="header-subtitle">HAYATIN MERKEZİ</span>
           </div>
-          <HeaderActions initialUser={user} />
+          <div className="header-actions">
+            {initialUser ? (
+              <>
+                {shouldShowCTA ? (
+                  <Link href={getCTAHref()}>
+                    <Button className="button-primary btn-gradient-primary" variant="default">
+                      {getCTALabel()}
+                    </Button>
+                  </Link>
+                ) : isDisabled ? (
+                  <Button
+                    className="button-primary btn-gradient-primary"
+                    variant="default"
+                    disabled
+                  >
+                    {getCTALabel()}
+                  </Button>
+                ) : null}
+                <LogoutButton />
+              </>
+            ) : (
+              <Link href="/login">
+                <Button className="button-primary btn-gradient-primary" variant="default">
+                  GİRİŞ YAP
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
     </>
   );
 }
-

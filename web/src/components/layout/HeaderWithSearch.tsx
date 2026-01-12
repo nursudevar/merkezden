@@ -1,12 +1,9 @@
 "use client";
 
-import Link from 'next/link';
-import HeaderActions from './HeaderActions';
-import SearchBar from '@/components/SearchBar';
-import type { User } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
+import HeaderWithSearchClient from './HeaderWithSearchClient';
 
 interface HeaderWithSearchProps {
-  initialUser: User | null;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -14,37 +11,59 @@ interface HeaderWithSearchProps {
 }
 
 export default function HeaderWithSearch({
-  initialUser,
   searchValue = '',
   onSearchChange,
   searchPlaceholder,
   searchButtonText,
 }: HeaderWithSearchProps) {
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [userType, setUserType] = useState<'individual' | 'institution' | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      try {
+        const response = await fetch('/api/auth/user-role', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+          setUserType(data.userType);
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[HeaderWithSearch] Error fetching user role:', error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserRole();
+  }, []);
+
+  if (loading) {
+    return (
+      <HeaderWithSearchClient
+        user={null}
+        userType={null}
+        searchValue={searchValue}
+        onSearchChange={onSearchChange}
+        searchPlaceholder={searchPlaceholder}
+        searchButtonText={searchButtonText}
+      />
+    );
+  }
+
   return (
-    <>
-      <div className="top-bar" />
-      <header className="header">
-        <div className="header-container">
-          <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
-            <span className="header-subtitle">HAYATIN MERKEZİ</span>
-          </div>
-          {onSearchChange && (
-            <div className="header-search">
-              <SearchBar
-                value={searchValue}
-                onChange={onSearchChange}
-                placeholder={searchPlaceholder || "Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum"}
-                buttonText={searchButtonText || "ARA"}
-              />
-            </div>
-          )}
-          <HeaderActions initialUser={initialUser} />
-        </div>
-      </header>
-    </>
+    <HeaderWithSearchClient
+      user={user}
+      userType={userType}
+      searchValue={searchValue}
+      onSearchChange={onSearchChange}
+      searchPlaceholder={searchPlaceholder}
+      searchButtonText={searchButtonText}
+    />
   );
 }
-

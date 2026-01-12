@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui";
-import HeaderClient from "@/components/layout/HeaderClient";
+import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
 import { ContactAnimation } from "@/components/ContactAnimation";
 import "@/styles/main.scss";
 import "@/styles/pages/contact.scss";
@@ -14,7 +14,7 @@ export default function ContactPage() {
 
   return (
     <div className="contact-page">
-      <HeaderClient />
+      <HeaderClientWrapper />
 
       <main className="contact-page-main">
         <section className="contact-hero">

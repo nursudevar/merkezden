@@ -2,6 +2,7 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
+import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
 import "@/styles/main.scss";
 import "@/styles/pages/faq.scss";
 
@@ -33,24 +34,7 @@ const FaqPage: React.FC = () => {
 
   return (
     <div className="faq-page">
-      <div className="top-bar" />
-      <header className="header">
-        <div className="header-container">
-          <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
-            <span className="header-subtitle">HAYATIN MERKEZİ</span>
-          </div>
-          <div className="header-actions">
-            <Link href="/login">
-              <Button className="button-primary btn-gradient-primary" variant="default">
-                GİRİŞ YAP
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <HeaderClientWrapper />
 
       <main className="faq-page__container">
         {/* Header */}

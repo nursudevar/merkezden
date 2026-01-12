@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import HeaderClient from '@/components/layout/HeaderClient';
+import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import '@/styles/main.scss';
 import '@/styles/pages/profile.scss';
@@ -467,12 +467,6 @@ export default function ProfilePage() {
 
         setUsersRow(resolvedUsersRow);
 
-        // C) Access control
-        if (resolvedUsersRow?.user_type && resolvedUsersRow.user_type !== 'individual') {
-          router.push('/');
-          return;
-        }
-
         // D) Read individual_profiles row (SELECT only)
         if (resolvedUsersRow?.id) {
           const { data: profileData, error: profileError } = await supabase
@@ -507,7 +501,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="profile-page">
-        <HeaderClient />
+        <HeaderClientWrapper />
         <div className="profile-page-loading">
           <p>Yükleniyor...</p>
         </div>
@@ -519,14 +513,9 @@ export default function ProfilePage() {
     return null;
   }
 
-  // Access control: if usersRow exists and user_type is not 'individual', redirect
-  if (usersRow?.user_type && usersRow.user_type !== 'individual') {
-    return null;
-  }
-
   return (
     <div className="profile-page">
-      <HeaderClient />
+      <HeaderClientWrapper />
       <div className="profile-page-container">
         <ProfileSidebar user={user} profile={profile} />
         <div className="profile-page-main">

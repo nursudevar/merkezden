@@ -313,7 +313,6 @@ export default function Home() {
   return (
     <div className="page-container">
       <HeaderWithSearch 
-        initialUser={user} 
         searchValue={query}
         onSearchChange={setQuery}
       />

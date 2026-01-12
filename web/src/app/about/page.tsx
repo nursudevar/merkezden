@@ -2,7 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import HeaderClient from "@/components/layout/HeaderClient";
+import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
 import { Target, Eye, GraduationCap, Building, BookOpen } from "lucide-react";
 import { useInViewAnimation } from "@/hooks/useInViewAnimation";
 import "@/styles/main.scss";
@@ -153,7 +153,7 @@ const AboutTimelineItem: React.FC<AboutTimelineItemProps> = ({ item, position })
 export default function AboutPage() {
   return (
     <div className="page-container">
-      <HeaderClient />
+      <HeaderClientWrapper />
 
       <main className="about-page">
         <section className="about-hero">

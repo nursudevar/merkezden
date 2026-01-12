@@ -1,14 +1,27 @@
+"use client";
+
 import Link from 'next/link';
-import { unstable_noStore as noStore } from 'next/cache';
-import { getCurrentUserRole } from '@/lib/auth/getCurrentUserRole';
 import { Button } from '@/components/ui';
 import LogoutButton from '@/components/auth/LogoutButton';
+import SearchBar from '@/components/SearchBar';
 
-export default async function Header() {
-  noStore();
-  const { user, userType } = await getCurrentUserRole();
+interface HeaderWithSearchClientProps {
+  user: { id: string; email?: string } | null;
+  userType: 'individual' | 'institution' | null;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  searchButtonText?: string;
+}
 
-
+export default function HeaderWithSearchClient({
+  user,
+  userType,
+  searchValue = '',
+  onSearchChange,
+  searchPlaceholder,
+  searchButtonText,
+}: HeaderWithSearchClientProps) {
   const getCTALabel = () => {
     if (userType === 'individual') return 'Profil';
     if (userType === 'institution') return 'Panel';
@@ -35,6 +48,16 @@ export default async function Header() {
             </Link>
             <span className="header-subtitle">HAYATIN MERKEZİ</span>
           </div>
+          {onSearchChange && (
+            <div className="header-search">
+              <SearchBar
+                value={searchValue}
+                onChange={onSearchChange}
+                placeholder={searchPlaceholder || "Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum"}
+                buttonText={searchButtonText || "ARA"}
+              />
+            </div>
+          )}
           <div className="header-actions">
             {user ? (
               <>
