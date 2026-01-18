@@ -3,11 +3,9 @@ import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
-import FeaturedPost from "@/components/blog/FeaturedPost";
-import CategoryTabs from "@/components/blog/CategoryTabs";
-import ViewToggle from "@/components/blog/ViewToggle";
-import PostGrid from "@/components/blog/PostGrid";
-import PostList from "@/components/blog/PostList";
+import Image from "next/image";
+import { Grid3x3, List } from "lucide-react";
+import BlogCard from "@/components/BlogCard";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
@@ -275,5 +273,209 @@ export default function BlogPage() {
     }>
       <BlogPageContent />
     </Suspense>
+  );
+}
+
+// Blog Components (inline for blog page only)
+type FeaturedPostProps = {
+  title: string;
+  excerpt: string;
+  imageUrl: string;
+  slug: string;
+  category?: string;
+  author?: string;
+  date?: string;
+};
+
+function FeaturedPost({
+  title,
+  excerpt,
+  imageUrl,
+  slug,
+  category,
+  author,
+  date,
+}: FeaturedPostProps) {
+  return (
+    <Link href={`/blog/${slug}`} className="featured-post-link">
+      <article className="featured-post">
+        <div className="featured-post-image-wrapper">
+          <Image
+            src={imageUrl}
+            alt={title}
+            fill
+            className="featured-post-image"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority
+          />
+          <div className="featured-post-badge">Öne Çıkan</div>
+        </div>
+        <div className="featured-post-content">
+          {category && (
+            <div className="featured-post-category">
+              <span className="featured-post-category-dot" />
+              <span>{category}</span>
+            </div>
+          )}
+          <h2 className="featured-post-title">{title}</h2>
+          <p className="featured-post-excerpt">{excerpt}</p>
+          <div className="featured-post-meta">
+            {author && (
+              <div className="featured-post-author">
+                <div className="featured-post-author-avatar" />
+                <div>
+                  <div className="featured-post-author-name">{author}</div>
+                  {date && <div className="featured-post-date">{date}</div>}
+                </div>
+              </div>
+            )}
+            <span className="featured-post-read-more">
+              Devamını Oku →
+            </span>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+type CategoryTabsProps = {
+  categories: string[];
+  selectedCategory: string;
+  onCategoryChange: (category: string) => void;
+};
+
+function CategoryTabs({
+  categories,
+  selectedCategory,
+  onCategoryChange,
+}: CategoryTabsProps) {
+  return (
+    <div className="blog-category-tabs">
+      {categories.map((category) => (
+        <button
+          key={category}
+          type="button"
+          className={`blog-category-tab ${selectedCategory === category ? "blog-category-tab--active" : ""}`}
+          onClick={() => onCategoryChange(category)}
+          aria-pressed={selectedCategory === category}
+        >
+          {category}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type ViewToggleProps = {
+  view: "grid" | "list";
+  onViewChange: (view: "grid" | "list") => void;
+};
+
+function ViewToggle({ view, onViewChange }: ViewToggleProps) {
+  return (
+    <div className="blog-view-toggle">
+      <button
+        type="button"
+        className={`blog-view-toggle-btn ${view === "grid" ? "blog-view-toggle-btn--active" : ""}`}
+        onClick={() => onViewChange("grid")}
+        aria-label="Grid görünümü"
+        aria-pressed={view === "grid"}
+      >
+        <Grid3x3 size={20} />
+      </button>
+      <button
+        type="button"
+        className={`blog-view-toggle-btn ${view === "list" ? "blog-view-toggle-btn--active" : ""}`}
+        onClick={() => onViewChange("list")}
+        aria-label="Liste görünümü"
+        aria-pressed={view === "list"}
+      >
+        <List size={20} />
+      </button>
+    </div>
+  );
+}
+
+type Post = {
+  title: string;
+  excerpt: string;
+  imageUrl: string;
+  slug: string;
+  category?: string;
+};
+
+type PostGridProps = {
+  posts: Post[];
+};
+
+function PostGrid({ posts }: PostGridProps) {
+  if (posts.length === 0) {
+    return (
+      <div className="blog-empty-state">
+        <p>Bu kategoride henüz yazı bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="blog-posts-grid">
+      {posts.map((post, index) => (
+        <BlogCard
+          key={post.slug || index}
+          title={post.title}
+          excerpt={post.excerpt}
+          imageUrl={post.imageUrl}
+          slug={post.slug}
+        />
+      ))}
+    </div>
+  );
+}
+
+type PostListProps = {
+  posts: Post[];
+};
+
+function PostList({ posts }: PostListProps) {
+  if (posts.length === 0) {
+    return (
+      <div className="blog-empty-state">
+        <p>Bu kategoride henüz yazı bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="blog-posts-list">
+      {posts.map((post, index) => (
+        <Link key={post.slug || index} href={`/blog/${post.slug}`} className="blog-list-item-link">
+          <article className="blog-list-item">
+            <div className="blog-list-item-image-wrapper">
+              <Image
+                src={post.imageUrl}
+                alt={post.title}
+                fill
+                className="blog-list-item-image"
+                sizes="(max-width: 768px) 100vw, 300px"
+              />
+            </div>
+            <div className="blog-list-item-content">
+              {post.category && (
+                <div className="blog-list-item-category">{post.category}</div>
+              )}
+              <h3 className="blog-list-item-title">{post.title}</h3>
+              <p className="blog-list-item-excerpt">{post.excerpt}</p>
+              {(post as any).author || (post as any).date ? (
+                <div className="blog-list-item-meta">
+                  {(post as any).author && <span className="blog-list-item-author">{(post as any).author}</span>}
+                  {(post as any).date && <span className="blog-list-item-date">{(post as any).date}</span>}
+                </div>
+              ) : null}
+            </div>
+          </article>
+        </Link>
+      ))}
+    </div>
   );
 }
