@@ -37,6 +37,7 @@ const serviceCards = [
     rating: 4.8,
     reviewCount: 125,
     price: 1200,
+    slug: "gelecek-spor-akademisi",
   },
   {
     id: 2,
@@ -47,6 +48,7 @@ const serviceCards = [
     rating: 4.9,
     reviewCount: 210,
     price: 950,
+    slug: "aqua-yuzme-kulubu",
   },
   {
     id: 3,
@@ -57,6 +59,7 @@ const serviceCards = [
     rating: 4.7,
     reviewCount: 88,
     price: 1500,
+    slug: "raket-tenis-okulu",
   },
   {
     id: 4,
@@ -67,6 +70,7 @@ const serviceCards = [
     rating: 4.6,
     reviewCount: 92,
     price: 800,
+    slug: "modern-sanat-atolyesi",
   },
   {
     id: 5,
@@ -77,6 +81,7 @@ const serviceCards = [
     rating: 4.9,
     reviewCount: 156,
     price: 1100,
+    slug: "dil-akademisi",
   },
   {
     id: 6,
@@ -87,6 +92,7 @@ const serviceCards = [
     rating: 4.8,
     reviewCount: 203,
     price: 1300,
+    slug: "muzik-okulu",
   },
   {
     id: 7,
@@ -97,6 +103,7 @@ const serviceCards = [
     rating: 4.7,
     reviewCount: 145,
     price: 900,
+    slug: "bale-ve-dans-studyosu",
   },
   {
     id: 8,
@@ -107,6 +114,7 @@ const serviceCards = [
     rating: 4.9,
     reviewCount: 312,
     price: 1800,
+    slug: "kodlama-akademisi",
   },
   {
     id: 9,
@@ -117,6 +125,7 @@ const serviceCards = [
     rating: 4.8,
     reviewCount: 178,
     price: 1400,
+    slug: "kisisel-gelisim-merkezi",
   },
   {
     id: 10,
@@ -127,6 +136,7 @@ const serviceCards = [
     rating: 4.9,
     reviewCount: 267,
     price: 2500,
+    slug: "ozel-okul",
   },
   {
     id: 11,
@@ -137,6 +147,7 @@ const serviceCards = [
     rating: 4.7,
     reviewCount: 189,
     price: 1600,
+    slug: "teknoloji-kursu",
   },
   {
     id: 12,
@@ -147,6 +158,7 @@ const serviceCards = [
     rating: 4.8,
     reviewCount: 134,
     price: 1000,
+    slug: "saglik-ve-wellness",
   },
 ];
 
@@ -230,6 +242,7 @@ type FeaturedInstitution = {
   description: string;
   rating: number;
   imageUrl: string;
+  slug: string;
   badge: {
     icon: string;
     label: string;
@@ -245,6 +258,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Global vizyonu ve modern eğitim kampüsü ile geleceğin liderlerini yetiştiren prestijli bir kurum.",
     rating: 4.9,
     imageUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop",
+    slug: "bogazici-koleji",
     badge: {
       icon: "✓",
       label: "%25 Burs",
@@ -258,6 +272,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Teknoloji ve bilim odaklı müfredatıyla fark yaratan bir eğitim kurumu.",
     rating: 4.7,
     imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop",
+    slug: "ankara-bilim-lisesi",
     badge: {
       icon: "🎓",
       label: "Fen Lisesi",
@@ -271,6 +286,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Sanat ve spor aktiviteleriyle zenginleştirilmiş, bütünsel gelişim odaklı eğitim anlayışı.",
     rating: 4.8,
     imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop",
+    slug: "ege-cagdas-koleji",
     badge: {
       icon: "🌿",
       label: "Yeşil Kampüs",
@@ -284,6 +300,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Uluslararası standartlarda yabancı dil eğitimi ve yurt dışı eğitim fırsatları sunan kurum.",
     rating: 5.0,
     imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop",
+    slug: "nilufer-akademi",
     badge: {
       icon: "🌍",
       label: "Çift Dil",
@@ -297,6 +314,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Mühendislik ve teknoloji alanında uzmanlaşmış, çağdaş eğitim yaklaşımıyla öne çıkan kurum.",
     rating: 4.6,
     imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop",
+    slug: "istanbul-teknik-koleji",
     badge: {
       icon: "🔧",
       label: "Teknik",
@@ -310,6 +328,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Çok dilli eğitim programı ve uluslararası değişim fırsatlarıyla öğrencilerine global vizyon kazandıran kurum.",
     rating: 4.7,
     imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop",
+    slug: "ankara-yabanci-dil-koleji",
     badge: {
       icon: "🗣️",
       label: "Çok Dilli",
@@ -323,6 +342,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Müzik, resim ve tiyatro alanlarında yetenekli öğrencileri keşfeden ve geliştiren sanat odaklı kurum.",
     rating: 4.9,
     imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=400&fit=crop",
+    slug: "izmir-sanat-akademisi",
     badge: {
       icon: "🎨",
       label: "Sanat",
@@ -336,6 +356,7 @@ const featuredInstitutions: FeaturedInstitution[] = [
     description: "Profesyonel sporcu yetiştirme programı ve modern spor tesisleriyle öne çıkan kurum.",
     rating: 4.8,
     imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&h=400&fit=crop",
+    slug: "ankara-spor-lisesi",
     badge: {
       icon: "⚽",
       label: "Spor",
@@ -407,7 +428,7 @@ function FeaturedInstitutions() {
       <div className="featured-institutions-slider">
         <div className="featured-institutions-scroller">
           {shuffledFeaturedInstitutions.map((institution) => (
-            <div key={institution.id} className="featured-institution-card">
+            <Link key={institution.id} href={`/institutions/${institution.slug}`} className="featured-institution-card" aria-label={`${institution.name} detayları`}>
               <div className="featured-institution-image-wrapper">
                 <img 
                   src={institution.imageUrl} 
@@ -423,6 +444,10 @@ function FeaturedInstitutions() {
                   type="button" 
                   className="featured-institution-favorite"
                   aria-label="Favorilere ekle"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                 >
                   <svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 2.24 0 5 0C6.74 0 8.41 0.81 9.5 2.09C10.59 0.81 12.26 0 14 0C16.76 0 19 1.96 19 4.5C19 8.28 15.6 11.36 10.45 16.04L10 17.35Z" fill="currentColor"/>
@@ -445,12 +470,12 @@ function FeaturedInstitutions() {
                     </svg>
                     <span>{institution.rating}</span>
                   </div>
-                  <Link href="#" className="featured-institution-link">
+                  <span className="featured-institution-link">
                     İncele ›
-                  </Link>
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -884,7 +909,7 @@ export default function Home() {
                 {serviceCards
                   .filter((card) => selectedMainCategory === "Tümü")
                   .map((card) => (
-                    <div key={card.id} className="service-card">
+                    <Link key={card.id} href={`/institutions/${card.slug}`} className="service-card" aria-label={`${card.title} detayları`}>
                       <div className="service-card-image-wrapper">
                         <img
                           src={card.imageUrl}
@@ -905,7 +930,7 @@ export default function Home() {
                           {card.price.toLocaleString("tr-TR")}₺ / Ay
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
               </div>
               <button

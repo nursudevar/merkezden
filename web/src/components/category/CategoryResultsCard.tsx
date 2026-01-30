@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Clock, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui";
 
@@ -15,9 +17,12 @@ interface CategoryResultsCardProps {
   badges: string[];
   logoInitial?: string;
   logoColor?: string;
+  imageUrl?: string;
+  slug?: string;
 }
 
 export default function CategoryResultsCard({
+  id,
   name,
   description,
   location,
@@ -28,24 +33,49 @@ export default function CategoryResultsCard({
   badges,
   logoInitial = "M",
   logoColor = "#6d5dfc",
+  imageUrl,
+  slug,
 }: CategoryResultsCardProps) {
   const priceText = typeof price === "number" ? `${price.toLocaleString("tr-TR")} ₺ / ay` : price;
+  
+  // Generate slug from name if not provided
+  const institutionSlug = slug || name.toLowerCase()
+    .replace(/ş/g, "s")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-  return (
-    <article className="category-results-card">
-      <div className="category-results-card-logo" style={{ backgroundColor: logoColor }}>
-        {logoInitial}
+  const cardContent = (
+    <>
+      <div className="category-results-card-logo-section">
+        <div className="category-results-card-logo" style={{ backgroundColor: imageUrl ? 'transparent' : logoColor }}>
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={name}
+              fill
+              className="category-results-card-logo-image"
+              sizes="80px"
+            />
+          ) : (
+            logoInitial
+          )}
+        </div>
+        <div className="category-results-card-badges">
+          {badges.map((badge, index) => (
+            <span key={index} className="category-results-card-badge">
+              {badge}
+            </span>
+          ))}
+        </div>
       </div>
       
       <div className="category-results-card-content">
         <div className="category-results-card-header">
-          <div className="category-results-card-badges">
-            {badges.map((badge, index) => (
-              <span key={index} className="category-results-card-badge">
-                {badge}
-              </span>
-            ))}
-          </div>
           <div className="category-results-card-rating">
             <Star size={14} fill="currentColor" />
             <span>{rating}</span>
@@ -73,13 +103,33 @@ export default function CategoryResultsCard({
         </div>
 
         <div className="category-results-card-actions">
-          <button className="category-results-card-details-link">Detayları İncele</button>
-          <Button className="category-results-card-contact-button">
+          <span className="category-results-card-details-link">Detayları İncele</span>
+          <Button 
+            className="category-results-card-contact-button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
             İletişime Geç
             <ArrowRight size={16} />
           </Button>
         </div>
       </div>
+    </>
+  );
+
+  if (institutionSlug) {
+    return (
+      <Link href={`/institutions/${institutionSlug}`} className="category-results-card" aria-label={`${name} detayları`}>
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <article className="category-results-card">
+      {cardContent}
     </article>
   );
 }

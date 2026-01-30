@@ -68,12 +68,11 @@
   flex: 1;
   height: 48px;
   @include rounded-full;
-  border: 0;
+  border: 1px solid $border-light;
   background: linear-gradient(to right, $bg-white, rgba(255, 255, 255, 0.95));
   padding: 0 20px;
   font-size: 15px;
   color: $text-zinc-800;
-  @include shadow-input;
 
   &::placeholder {
     color: $text-placeholder;
@@ -1197,6 +1196,22 @@
 }
 
 
+// Service card as link - remove underline
+a.service-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &:focus {
+    text-decoration: none;
+    outline: none;
+  }
+}
+
 .service-card {
   background-color: #fdfdfd;
   border-radius: 16px;
@@ -1792,6 +1807,22 @@
     &::-webkit-scrollbar-track {
       margin: 0 40px;
     }
+  }
+}
+
+// Featured institution card as link - remove underline
+a.featured-institution-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &:focus {
+    text-decoration: none;
+    outline: none;
   }
 }
 

@@ -19,6 +19,8 @@ interface CategoryResultsListProps {
     badges: string[];
     logoInitial?: string;
     logoColor?: string;
+    imageUrl?: string;
+    slug?: string;
   }>;
 }
 
@@ -35,6 +37,8 @@ const mockResults = [
     badges: ["ÖZEL OKUL", "ANAOKULU"],
     logoInitial: "M",
     logoColor: "#6d5dfc",
+    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=200&h=200&fit=crop",
+    slug: "montessori-cocuk-akademisi",
   },
   {
     id: "2",
@@ -48,6 +52,8 @@ const mockResults = [
     badges: ["ÖZEL OKUL", "İLKOKUL"],
     logoInitial: "W",
     logoColor: "#10b981",
+    imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=200&h=200&fit=crop",
+    slug: "waldorf-doga-koleji",
   },
   {
     id: "3",
@@ -61,6 +67,8 @@ const mockResults = [
     badges: ["DEVLET", "LİSE"],
     logoInitial: "G",
     logoColor: "#f97316",
+    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=200&h=200&fit=crop",
+    slug: "galata-fen-lisesi",
   },
 ];
 

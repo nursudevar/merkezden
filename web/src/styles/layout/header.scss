@@ -29,9 +29,8 @@
   }
 
 .header-brand {
-    @include flex-col;
   flex-shrink: 0;
-  }
+}
 
 .header-title-link {
   display: inline-block;
@@ -44,20 +43,53 @@
   }
 }
 
-.header-title {
-    display: block;
-    font-size: $text-3xl;
-    font-weight: $font-extrabold;
-    letter-spacing: $tracking-tight;
-    color: $default-text-color;
+.header-logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.header-logo {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+
+  @media (max-width: 640px) {
+    width: 48px;
+    height: 48px;
   }
+}
+
+.header-text-wrapper {
+  @include flex-col;
+  gap: 2px;
+}
+
+.header-title {
+  display: block;
+  font-size: $text-3xl;
+  font-weight: $font-extrabold;
+  letter-spacing: $tracking-tight;
+  color: $default-text-color;
+  line-height: 1.2;
+
+  @media (max-width: 640px) {
+    font-size: $text-2xl;
+  }
+}
 
 .header-subtitle {
-    display: block;
-    font-size: $text-xl;
-    font-weight: $font-semibold;
-    @include gradient-text;
+  display: block;
+  font-size: $text-xl;
+  font-weight: $font-semibold;
+  @include gradient-text;
+  line-height: 1.2;
+
+  @media (max-width: 640px) {
+    font-size: $text-lg;
   }
+}
 
 .header-search {
   flex: 1;
