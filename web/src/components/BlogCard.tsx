@@ -22,6 +22,7 @@ export default function BlogCard({ title, excerpt, imageUrl, slug }: BlogCardPro
             fill
             className="blog-card-image"
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            unoptimized
           />
         </div>
         <div className="blog-card-content-new">

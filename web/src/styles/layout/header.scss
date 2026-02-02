@@ -68,7 +68,7 @@
 
 .header-title {
   display: block;
-  font-size: $text-3xl;
+  font-size: $text-2xl;
   font-weight: $font-extrabold;
   letter-spacing: $tracking-tight;
   color: $default-text-color;
@@ -81,7 +81,7 @@
 
 .header-subtitle {
   display: block;
-  font-size: $text-xl;
+  font-size: $text-lg;
   font-weight: $font-semibold;
   @include gradient-text;
   line-height: 1.2;
