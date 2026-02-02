@@ -2162,6 +2162,76 @@ a.featured-institution-card {
   }
 }
 
+// Search Results Section
+.search-results-section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 20px;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 24px 16px;
+  }
+}
+
+.search-results-container {
+  width: 100%;
+}
+
+.search-results-header {
+  margin-bottom: 24px;
+
+  @media (max-width: 640px) {
+    margin-bottom: 20px;
+  }
+}
+
+.search-results-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+
+  @media (max-width: 640px) {
+    font-size: $text-xl;
+  }
+}
+
+.search-results-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+
+  @media (max-width: 640px) {
+    gap: 16px;
+  }
+}
+
+.search-results-loading,
+.search-results-error,
+.search-results-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: $text-zinc-600;
+  font-size: $text-base;
+
+  p {
+    margin: 0;
+  }
+}
+
+.search-results-error {
+  color: $text-zinc-700;
+}
+
+.search-results-empty {
+  color: $text-zinc-500;
+}
+
 .blog-section-button-wrapper {
   margin-top: 40px;
   @include flex-center;

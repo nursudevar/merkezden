@@ -60,6 +60,7 @@ export default function CategoryResultsCard({
               fill
               className="category-results-card-logo-image"
               sizes="80px"
+              unoptimized
             />
           ) : (
             logoInitial

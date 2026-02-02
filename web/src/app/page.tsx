@@ -7,6 +7,7 @@ import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Sli
 import { Search as SearchIcon, Wifi, Users, Check } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
+import SearchResults from "@/components/SearchResults";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
@@ -586,7 +587,12 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="main-layout">
+      {query && query.trim().length > 0 && (
+        <SearchResults query={query} />
+      )}
+
+      {(!query || query.trim().length === 0) && (
+        <div className="main-layout">
         <aside className="filter-sidebar">
           <Card className="filter-sidebar-card">
             <CardHeader className="filter-sidebar-header">
@@ -987,6 +993,7 @@ export default function Home() {
           </section>
       </main>
       </div>
+      )}
     </div>
   );
 }
