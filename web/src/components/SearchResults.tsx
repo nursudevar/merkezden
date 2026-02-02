@@ -24,9 +24,10 @@ interface SearchResult {
 interface SearchResultsProps {
   query: string;
   onResultClick?: () => void;
+  onClearSearch?: () => void;
 }
 
-export default function SearchResults({ query, onResultClick }: SearchResultsProps) {
+export default function SearchResults({ query, onResultClick, onClearSearch }: SearchResultsProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +143,15 @@ export default function SearchResults({ query, onResultClick }: SearchResultsPro
           <h2 className="search-results-title">
             Arama Sonuçları ({results.length})
           </h2>
+          {onClearSearch && (
+            <button
+              type="button"
+              onClick={onClearSearch}
+              className="search-results-clear-button"
+            >
+              Sıfırla
+            </button>
+          )}
         </div>
         <div className="search-results-grid">
           {results.map((result) => (

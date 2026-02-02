@@ -587,12 +587,7 @@ export default function Home() {
         </div>
       </section>
 
-      {query && query.trim().length > 0 && (
-        <SearchResults query={query} />
-      )}
-
-      {(!query || query.trim().length === 0) && (
-        <div className="main-layout">
+      <div className="main-layout">
         <aside className="filter-sidebar">
           <Card className="filter-sidebar-card">
             <CardHeader className="filter-sidebar-header">
@@ -839,6 +834,13 @@ export default function Home() {
         </aside>
 
         <main className="main-content">
+          {query && query.trim().length > 0 ? (
+            <SearchResults 
+              query={query} 
+              onClearSearch={() => setQuery("")}
+            />
+          ) : (
+            <>
           <section className="home-main-categories">
             <header className="home-main-categories-header">
               <h2 className="home-main-categories-title">Ana Kategoriler</h2>
@@ -991,9 +993,10 @@ export default function Home() {
               </Link>
         </div>
           </section>
+            </>
+          )}
       </main>
       </div>
-      )}
     </div>
   );
 }

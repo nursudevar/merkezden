@@ -1857,6 +1857,13 @@ a.featured-institution-card {
   }
 }
 
+// Override for search results grid - make cards responsive
+.search-results-grid .featured-institution-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .featured-institution-image-wrapper {
   position: relative;
   width: 100%;
@@ -2164,17 +2171,8 @@ a.featured-institution-card {
 
 // Search Results Section
 .search-results-section {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 40px 20px;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px;
-  }
-
-  @media (max-width: 640px) {
-    padding: 24px 16px;
-  }
+  width: 100%;
+  padding: 0;
 }
 
 .search-results-container {
@@ -2182,10 +2180,49 @@ a.featured-institution-card {
 }
 
 .search-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $border-light;
+  gap: 16px;
 
   @media (max-width: 640px) {
     margin-bottom: 20px;
+    padding-bottom: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.search-results-clear-button {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-zinc-600;
+  background-color: transparent;
+  border: 1px solid $border-light;
+  @include rounded-full;
+  cursor: pointer;
+  @include transition;
+  transition-property: color, border-color, background-color;
+  white-space: nowrap;
+
+  &:hover {
+    color: $text-zinc-900;
+    border-color: $border-default;
+    background-color: $bg-zinc-50;
+  }
+
+  &:active {
+    background-color: $bg-card;
+  }
+
+  @media (max-width: 640px) {
+    padding: 6px 14px;
+    font-size: 13px;
   }
 }
 
@@ -2201,12 +2238,21 @@ a.featured-institution-card {
 }
 
 .search-results-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  width: 100%;
+  margin-bottom: 30px;
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @media (max-width: 640px) {
+    grid-template-columns: 1fr;
     gap: 16px;
   }
 }
