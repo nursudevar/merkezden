@@ -8,6 +8,7 @@ import { Search as SearchIcon, Wifi, Users, Check } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
 import SearchResults from "@/components/SearchResults";
+import LoginModal from "@/components/LoginModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
@@ -403,7 +404,7 @@ function FeaturedInstitutionsSkeleton() {
   );
 }
 
-function FeaturedInstitutions() {
+function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.MouseEvent) => void }) {
   // Start with original order to avoid hydration mismatch
   // Server and client will render the same initial state
   const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState(featuredInstitutions);
@@ -445,10 +446,7 @@ function FeaturedInstitutions() {
                   type="button" 
                   className="featured-institution-favorite"
                   aria-label="Favorilere ekle"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
+                  onClick={onFavoriteClick}
                 >
                   <svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 2.24 0 5 0C6.74 0 8.41 0.81 9.5 2.09C10.59 0.81 12.26 0 14 0C16.76 0 19 1.96 19 4.5C19 8.28 15.6 11.36 10.45 16.04L10 17.35Z" fill="currentColor"/>
@@ -492,6 +490,7 @@ function FeaturedInstitutions() {
 export default function Home() {
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [districts, setDistricts] = useState<string[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
@@ -504,6 +503,18 @@ export default function Home() {
   const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null);
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      setShowLoginModal(true);
+    } else {
+      // TODO: Implement favorite functionality for logged-in users
+      console.log("Favorilere ekleniyor...");
+    }
+  };
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -838,6 +849,7 @@ export default function Home() {
             <SearchResults 
               query={query} 
               onClearSearch={() => setQuery("")}
+              onFavoriteClick={handleFavoriteClick}
             />
           ) : (
             <>
@@ -952,7 +964,7 @@ export default function Home() {
             </div>
           </section>
 
-          <FeaturedInstitutions />
+          <FeaturedInstitutions onFavoriteClick={handleFavoriteClick} />
 
           <section>
             <div className="cta-section">
@@ -997,6 +1009,7 @@ export default function Home() {
           )}
       </main>
       </div>
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }

@@ -1,0 +1,110 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+.login-modal-content {
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-lg;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+.login-modal-body {
+  padding: 34px;
+  text-align: left;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.login-modal-message {
+  font-size: $text-base;
+  font-weight: $font-medium;
+  color: $text-zinc-900;
+  margin: 0;
+  line-height: $leading-normal;
+}
+
+.login-modal-footer {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid $border-light;
+  min-height: 60px;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    padding: 12px 20px;
+    min-height: 56px;
+  }
+}
+
+.login-modal-button {
+  @include gradient-purple-top;
+  color: $bg-white;
+  @include rounded-xl;
+  padding: 10px 24px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border: none;
+  cursor: pointer;
+  @include transition;
+  transition-property: transform, box-shadow;
+  height: fit-content;
+
+  &:hover {
+    transform: translateY(-2px);
+    @include shadow-md;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    padding: 8px 20px;
+    font-size: $text-sm;
+  }
+}
