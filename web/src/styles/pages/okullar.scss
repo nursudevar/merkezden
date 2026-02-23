@@ -1,0 +1,409 @@
+@import '../colors';
+@import '../mixins';
+
+// Okullar page - table & pagination
+// Okullar page - header ile aynı x hizası (max-width + yatay padding)
+.okullar-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 30px;
+}
+
+.okullar-title {
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 700;
+  color: $default-text-color;
+}
+
+.okullar-error {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 6px;
+  color: #c33;
+  font-size: 14px;
+}
+
+.okullar-loading {
+  padding: 24px 0;
+  color: $text-zinc-600;
+  font-size: 14px;
+}
+
+// Tek kart: tablo + pagination sayfa bütünlüğü
+.okullar-card {
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 16px;
+  @include shadow-sm;
+  overflow: hidden;
+}
+
+// Arama / filtre çubuğu - tablonun üstünde, tam genişlik
+.okullar-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: $bg-white;
+  border-bottom: 1px solid $border-light;
+  flex-wrap: wrap;
+}
+
+.okullar-filter-search-wrap {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 42px;
+  border: 1px solid $border-default;
+  border-radius: 10px;
+  background: $bg-white;
+  @include transition-colors;
+
+  &:focus-within {
+    border-color: $purple-main;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($purple-main, 0.15);
+  }
+}
+
+.okullar-filter-search-icon {
+  flex-shrink: 0;
+  color: $text-zinc-500;
+}
+
+.okullar-filter-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: $default-text-color;
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+  &:focus {
+    outline: none;
+  }
+}
+
+.okullar-filter-search-clear {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: $text-zinc-500;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    background: $bg-card;
+    color: $text-zinc-700;
+  }
+}
+
+.okullar-filter-temizle {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid $border-default;
+  border-radius: 10px;
+  background: $bg-white;
+  font-size: 14px;
+  color: $text-zinc-600;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    background: $bg-card;
+    border-color: $border-light;
+  }
+}
+
+.okullar-filter-select {
+  height: 42px;
+  padding: 0 14px;
+  min-width: 140px;
+  border: 1px solid $border-default;
+  border-radius: 10px;
+  background: $bg-white;
+  font-size: 14px;
+  color: $text-zinc-800;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    border-color: $border-light;
+  }
+  &:focus {
+    border-color: $purple-main;
+    outline: none;
+  }
+}
+
+.okullar-table-wrap {
+  overflow-x: auto;
+}
+
+.okullar-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: $bg-white;
+
+  // Kolon genişlikleri: Kurum Adı dar, Şehir/İlçe/Telefon daha geniş
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 26%;
+  }
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 18%;
+  }
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 8%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 12%;
+  }
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 12%;
+  }
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 22%;
+  }
+
+  thead {
+    tr {
+      background-color: #f8fafc;
+    }
+    th {
+      padding: 28px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+      color: $text-zinc-600;
+      border-bottom: 1px solid $border-light;
+      &:first-child {
+        border-top-left-radius: 16px;
+      }
+      &:last-child {
+        border-top-right-radius: 16px;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      background: $bg-white;
+      border-bottom: 1px solid $border-light;
+      @include transition-colors;
+      &:hover {
+        background: $bg-card-hover;
+      }
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+    td {
+      padding: 20px 16px;
+      color: $text-zinc-800;
+      vertical-align: top;
+      border-bottom: 1px solid $border-light;
+      word-break: break-word;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+.okullar-table-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: $text-zinc-500;
+  font-size: 14px;
+}
+
+.okullar-table-address {
+  max-width: 220px;
+  color: grey !important;
+}
+
+// Şehir / İlçe: tek satır, taşan ... tooltip ile tam metin
+.okullar-table-cell-truncate {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Telefon hücresi: ikon + numara (tıklanınca aranır)
+.okullar-table-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.okullar-table-phone-link {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.okullar-table-phone-icon {
+  flex-shrink: 0;
+  color: #71717a;
+}
+
+// Kategori pill badge - tema morlarına uyumlu, soft
+.okullar-category-badge {
+  display: inline-block;
+  max-width: 90%;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: rgba($purple-main, 0.1);
+  color: #5f52b8;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Pagination - kartın içinde, tabloyla tek blok
+.okullar-pagination {
+  background-color: #f8fafc;
+  padding: 20px 16px;
+  border-top: 1px solid $border-light;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.okullar-pagination-info {
+  font-size: 14px;
+  color: $text-zinc-700;
+  strong {
+    color: $default-text-color;
+  }
+}
+
+.okullar-pagination-page-nums {
+  margin-left: 8px;
+  color: $text-zinc-500;
+}
+
+.okullar-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.okullar-pagination-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $border-default;
+  border-radius: 8px;
+  background: $bg-white;
+  color: $text-zinc-700;
+  font-size: 14px;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover:not(:disabled) {
+    background: $bg-card;
+    border-color: $border-light;
+  }
+  &:disabled {
+    background: $bg-zinc-50;
+    color: $text-placeholder;
+    cursor: not-allowed;
+  }
+}
+
+.okullar-pagination-num {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid $border-default;
+  border-radius: 8px;
+  background: $bg-white;
+  color: $text-zinc-700;
+  font-size: 13px;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    background: $bg-card;
+  }
+  &.okullar-pagination-num--active {
+    background: $purple-main;
+    border-color: $purple-main;
+    color: $bg-white;
+    font-weight: 600;
+  }
+}
+
+.okullar-pagination-goto {
+  margin-left: 8px;
+  font-size: 14px;
+  color: $text-zinc-500;
+}
+
+.okullar-pagination-input {
+  width: 52px;
+  height: 32px;
+  margin: 0 4px;
+  padding: 0 6px;
+  border: 1px solid $border-default;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  background: $bg-white;
+  color: $default-text-color;
+}
+
+.okullar-pagination-page-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid $border-default;
+  border-radius: 8px;
+  background: $bg-card;
+  color: $text-zinc-600;
+  font-size: 14px;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    background: $bg-filter-hover;
+  }
+}

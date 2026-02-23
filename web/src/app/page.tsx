@@ -595,6 +595,14 @@ export default function Home() {
             alt="Hero Banner" 
             className="hero-search-banner"
           />
+          <div className="hero-search-overlay"></div>
+          <div className="hero-search-content">
+            <h1 className="hero-search-title">
+              <span className="hero-search-title-white">SÜRÜŞÜNÜ</span>{" "}
+              <span className="hero-search-title-purple">ÖZGÜRLEŞTİR</span>
+            </h1>
+            <p className="hero-search-subtitle">YENİ MODEL ŞİMDİ SATIŞTA!</p>
+          </div>
         </div>
       </section>
 

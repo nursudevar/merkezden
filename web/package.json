@@ -2,11 +2,13 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:meb": "node scripts/import-meb.js"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -16,10 +18,11 @@
     "@radix-ui/react-slider": "^1.3.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.89.0",
+    "@supabase/supabase-js": "^2.95.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "dotenv": "^17.3.1",
     "gsap": "^3.13.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.552.0",

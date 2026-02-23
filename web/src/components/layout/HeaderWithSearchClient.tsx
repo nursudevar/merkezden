@@ -72,6 +72,11 @@ export default function HeaderWithSearchClient({
             </div>
           )}
           <div className="header-actions">
+            <Link href="/okullar">
+              <Button className="button-primary btn-gradient-primary" variant="default">
+                OKULLAR
+              </Button>
+            </Link>
             {user ? (
               <>
                 {shouldShowCTA ? (
