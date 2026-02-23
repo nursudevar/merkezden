@@ -1,8 +1,6 @@
 @import '../colors';
 @import '../mixins';
 
-// Okullar page - table & pagination
-// Okullar page - header ile aynı x hizası (max-width + yatay padding)
 .okullar-page {
   max-width: 1280px;
   margin: 0 auto;
@@ -32,7 +30,6 @@
   font-size: 14px;
 }
 
-// Tek kart: tablo + pagination sayfa bütünlüğü
 .okullar-card {
   background: $bg-white;
   border: 1px solid $border-light;
@@ -41,7 +38,6 @@
   overflow: hidden;
 }
 
-// Arama / filtre çubuğu - tablonun üstünde, tam genişlik
 .okullar-filter-bar {
   display: flex;
   align-items: center;
@@ -163,7 +159,6 @@
   font-size: 14px;
   background: $bg-white;
 
-  // Kolon genişlikleri: Kurum Adı dar, Şehir/İlçe/Telefon daha geniş
   th:nth-child(1),
   td:nth-child(1) {
     width: 26%;
@@ -248,7 +243,6 @@
   color: grey !important;
 }
 
-// Şehir / İlçe: tek satır, taşan ... tooltip ile tam metin
 .okullar-table-cell-truncate {
   max-width: 100%;
   white-space: nowrap;
@@ -256,7 +250,6 @@
   text-overflow: ellipsis;
 }
 
-// Telefon hücresi: ikon + numara (tıklanınca aranır)
 .okullar-table-phone {
   display: inline-flex;
   align-items: center;
@@ -277,7 +270,6 @@
   color: #71717a;
 }
 
-// Kategori pill badge - tema morlarına uyumlu, soft
 .okullar-category-badge {
   display: inline-block;
   max-width: 90%;
@@ -293,7 +285,6 @@
   text-overflow: ellipsis;
 }
 
-// Pagination - kartın içinde, tabloyla tek blok
 .okullar-pagination {
   background-color: #f8fafc;
   padding: 20px 16px;

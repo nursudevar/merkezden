@@ -21,7 +21,6 @@ function getCategoryLabel(pathname: string): string {
     return categoryMap[slug];
   }
   
-  // Fallback: derive from slug
   return slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

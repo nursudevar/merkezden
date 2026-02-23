@@ -6,7 +6,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 let supabaseClient: SupabaseClient | null = null;
 
 export function createSupabaseBrowserClient() {
-  // Return cached client if it exists
   if (supabaseClient) {
     return supabaseClient;
   }
@@ -18,7 +17,6 @@ export function createSupabaseBrowserClient() {
     throw new Error('Missing Supabase environment variables. Please check your .env.local file.');
   }
 
-  // Create and cache the client instance
   supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
   return supabaseClient;
 }

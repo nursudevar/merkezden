@@ -2,7 +2,6 @@
 @import '../mixins';
 @import '../typography';
 
-// Blog Listing Page
 .blog-listing-page {
   max-width: 1280px;
   margin: 0 auto;
@@ -77,7 +76,6 @@
   }
 }
 
-// Category Tabs
 .blog-category-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -162,7 +160,6 @@
   }
 }
 
-// Featured Post
 .blog-featured-section {
   margin-bottom: 48px;
 
@@ -345,7 +342,6 @@
   }
 }
 
-// Posts Section
 .blog-posts-section {
   margin-top: 48px;
 
@@ -380,7 +376,6 @@
   margin: 0;
 }
 
-// View Toggle
 .blog-view-toggle {
   display: flex;
   gap: 8px;
@@ -419,7 +414,6 @@
   }
 }
 
-// Posts Grid
 .blog-posts-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -446,7 +440,6 @@
   }
 }
 
-// Posts List
 .blog-posts-list {
   display: flex;
   flex-direction: column;
@@ -558,7 +551,6 @@
   }
 }
 
-// Empty State
 .blog-empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -570,7 +562,6 @@
   }
 }
 
-// Legacy Blog Grid (for backward compatibility)
 .blog-listing-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -585,7 +576,6 @@
   }
 }
 
-// Blog Post Detail Page
 .blog-post-page {
   background-color: $bg-zinc-50;
   min-height: 100vh;

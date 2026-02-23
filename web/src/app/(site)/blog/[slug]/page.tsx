@@ -77,13 +77,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   return (
     <div className="blog-post-page">
       <div className="blog-post-container">
-        {/* Back to Blog Link */}
         <Link href="/blog" className="blog-post-back-link">
           <ArrowLeft size={20} />
           <span>Blog Yazılarına Dön</span>
         </Link>
 
-        {/* Category Label */}
         <div className="blog-post-category-wrapper">
           <div className="blog-post-category">
             <span className="blog-post-category-dot" />
@@ -91,10 +89,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
 
-        {/* Title */}
         <h1 className="blog-post-title">{post.title}</h1>
 
-        {/* Author and Date */}
         <div className="blog-post-meta">
           <div className="blog-post-author">
             <div className="blog-post-author-avatar" />
@@ -105,7 +101,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
 
-        {/* Cover Image */}
         <div className="blog-post-cover-wrapper">
           <Image
             src={post.coverImage}
@@ -118,7 +113,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           />
         </div>
 
-        {/* Content */}
         <article className="blog-post-content">
           {post.content.map((block, index) => renderContentBlock(block, index))}
         </article>

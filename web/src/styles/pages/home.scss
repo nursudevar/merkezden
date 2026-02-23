@@ -2,7 +2,6 @@
 @import '../mixins';
 @import '../typography';
 
-// Hero Search Section
 .hero-search {
   max-width: 1000px;
   margin: 48px auto 30px;
@@ -108,7 +107,6 @@
   }
 }
 
-// Search Bar Component (reusable)
 .search-bar-wrapper {
   @include flex-center;
   width: 100%;
@@ -148,7 +146,6 @@
   }
 }
 
-// Header-specific search bar styles
 .header-search {
   .search-bar-wrapper {
     max-width: 100%;
@@ -336,7 +333,6 @@
   }
 }
 
-// Filter Sidebar
 .filter-sidebar {
   width: 100%;
   flex-shrink: 0;
@@ -777,7 +773,6 @@
   color: $text-placeholder;
 }
 
-// Filter Divider
 .filter-divider {
   height: 1px;
   width: 100%;
@@ -1134,7 +1129,6 @@
   }
 }
 
-// Category Section - Slider
 .home-main-categories {
   display: flex;
   flex-direction: column;
@@ -1181,7 +1175,6 @@
   }
 }
 
-// Main Category Pills
 .main-categories-pills {
   display: flex;
   flex-wrap: nowrap;
@@ -1247,7 +1240,6 @@
 }
 
 
-// Service card as link - remove underline
 a.service-card {
   text-decoration: none;
   color: inherit;
@@ -1698,7 +1690,6 @@ a.service-card {
   }
 }
 
-// Featured Institutions Section
 .featured-institutions-section {
   margin: 20px 0;
 
@@ -1861,7 +1852,6 @@ a.service-card {
   }
 }
 
-// Featured institution card as link - remove underline
 a.featured-institution-card {
   text-decoration: none;
   color: inherit;
@@ -1908,7 +1898,6 @@ a.featured-institution-card {
   }
 }
 
-// Override for search results grid - make cards responsive
 .search-results-grid .featured-institution-card {
   width: 100%;
   min-width: 0;
@@ -2087,7 +2076,6 @@ a.featured-institution-card {
 }
 
 
-// CTA Section
 .cta-section {
   @include rounded-2xl;
   background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
@@ -2220,7 +2208,6 @@ a.featured-institution-card {
   }
 }
 
-// Search Results Section
 .search-results-section {
   width: 100%;
   padding: 0;
@@ -2360,7 +2347,6 @@ a.featured-institution-card {
   }
 }
 
-// Blog Card (New Design)
 .blog-card-link {
   text-decoration: none;
   color: inherit;

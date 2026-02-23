@@ -2,7 +2,6 @@
 @import '../mixins';
 @import '../typography';
 
-// Contact Page Container
 .contact-page {
   min-height: 100vh;
   width: 100%;
@@ -20,7 +19,6 @@
   }
 }
 
-// Hero Section
 .contact-hero {
   text-align: center;
   margin-bottom: 100px;
@@ -88,7 +86,6 @@
   }
 }
 
-// Layout
 .contact-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -133,7 +130,6 @@
   }
 }
 
-// Card Styles
 .contact-card {
   background-color: $bg-white;
   @include rounded-2xl;
@@ -159,7 +155,6 @@
   }
 }
 
-// Form Styles
 .contact-form {
   @include flex-col;
   gap: 20px;
@@ -255,7 +250,6 @@
   flex-shrink: 0;
 }
 
-// Contact Info Styles
 .contact-info-list {
   @include flex-col;
   gap: 24px;
@@ -320,7 +314,6 @@
   }
 }
 
-// Map Card
 .contact-map-card {
   padding: 0;
   overflow: hidden;
@@ -358,7 +351,6 @@
   }
 }
 
-// Contact Animation Styles
 .contact-animation {
   position: relative;
   width: 200px;

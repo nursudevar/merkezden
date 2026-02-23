@@ -422,8 +422,6 @@
   }
 }
 
-
-// Gallery
 .institution-gallery-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -473,7 +471,6 @@
   }
 }
 
-// Reviews
 .institution-review-button {
   height: 2rem;
   padding: 0 1rem;
@@ -574,7 +571,6 @@
   margin: 0;
 }
 
-// Sidebar
 .institution-sidebar {
   position: sticky;
   top: 100px;
@@ -689,7 +685,6 @@
 
 
 
-// Loading
 .institution-loading-skeleton {
   display: flex;
   flex-direction: column;
@@ -732,7 +727,6 @@
   }
 }
 
-// Not Found
 .institution-not-found {
   min-height: 60vh;
   display: flex;

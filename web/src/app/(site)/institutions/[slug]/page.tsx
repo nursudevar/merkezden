@@ -7,7 +7,6 @@ import { MapPin, GraduationCap, CheckCircle2, Star, Clock, Users, Mail, Phone, G
 import "@/styles/pages/institution-detail.scss";
 import ShareButton from "./ShareButton";
 
-// Mock data - matches featuredInstitutions from homepage
 type FeaturedInstitution = {
   id: number;
   name: string;
@@ -24,7 +23,6 @@ type FeaturedInstitution = {
 };
 
 const featuredInstitutions: FeaturedInstitution[] = [
-  // Featured Institutions from homepage
   {
     id: 1,
     name: "Boğaziçi Koleji",
@@ -137,7 +135,6 @@ const featuredInstitutions: FeaturedInstitution[] = [
       color: "green"
     }
   },
-  // Service Cards from homepage main categories
   {
     id: 9,
     name: "Gelecek Spor Akademisi",
@@ -294,7 +291,6 @@ const featuredInstitutions: FeaturedInstitution[] = [
   }
 ];
 
-// Extended view model for detail page
 type InstitutionViewModel = {
   id: number;
   name: string;
@@ -341,14 +337,11 @@ type InstitutionViewModel = {
   }>;
 };
 
-// Adapter: maps FeaturedInstitution to InstitutionViewModel
 function adaptInstitution(institution: FeaturedInstitution): InstitutionViewModel {
-  // Generate mock data based on institution
   const locationParts = institution.location.split(", ");
   const city = locationParts[1] || locationParts[0];
   const district = locationParts[0] || "";
 
-  // Mock courses based on institution type
   const courses = [
     {
       id: `${institution.id}-1`,
@@ -380,14 +373,12 @@ function adaptInstitution(institution: FeaturedInstitution): InstitutionViewMode
     }
   ];
 
-  // Mock gallery
   const gallery = [
     "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&h=600&fit=crop",
     "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=400&fit=crop",
     "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop"
   ];
 
-  // Mock reviews - match screenshot exactly
   const reviews = [
     {
       id: `${institution.id}-review-1`,
@@ -407,7 +398,6 @@ function adaptInstitution(institution: FeaturedInstitution): InstitutionViewMode
     }
   ];
 
-  // Extract categories from badge and description
   const categories: string[] = [];
   if (institution.badge.label.includes("Dil") || institution.name.includes("Dil")) {
     categories.push("Yabancı Dil");
@@ -421,7 +411,7 @@ function adaptInstitution(institution: FeaturedInstitution): InstitutionViewMode
 
   return {
     ...institution,
-    reviewCount: institution.id === 1 ? 120 : Math.floor(institution.rating * 25), // Mock review count - match screenshot for first institution
+    reviewCount: institution.id === 1 ? 120 : Math.floor(institution.rating * 25),
     logoUrl: institution.imageUrl,
     phone: "+90 (212) 555 01 23",
     website: `www.${institution.slug.replace(/-/g, "")}.com`,
@@ -473,7 +463,6 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
   return (
     <div className="institution-detail-page">
       <div className="institution-detail-container">
-        {/* Breadcrumb */}
         <nav className="institution-breadcrumb" aria-label="Breadcrumb">
           <div className="institution-breadcrumb-container">
             <Link href="/" className="institution-breadcrumb-link">
@@ -488,7 +477,6 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           </div>
         </nav>
 
-        {/* Hero Card */}
         <Card className="institution-hero">
           <CardContent className="institution-hero-content">
             <div className="institution-hero-main">
@@ -537,7 +525,6 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           </CardContent>
         </Card>
 
-        {/* Sticky Tabs */}
         <div className="institution-tabs-sticky">
           <div className="institution-tabs-list">
             <a href="#overview" className="institution-tab-item institution-tab-active">
@@ -555,11 +542,8 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           </div>
         </div>
 
-        {/* Content Grid */}
         <div className="institution-content-grid">
-          {/* Main Content */}
           <div className="institution-main-content">
-            {/* Overview Section */}
             <section id="overview" className="institution-section">
               <h2 className="institution-section-title">Hakkımızda</h2>
               <Card className="institution-section-card">
@@ -573,7 +557,6 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               </Card>
             </section>
 
-            {/* Gallery Section */}
             <section id="gallery" className="institution-section">
               <h2 className="institution-section-title">Kurum Galerisi</h2>
               <div className="institution-gallery-grid">
@@ -607,7 +590,6 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               </div>
             </section>
 
-            {/* Reviews Section */}
             <section id="reviews" className="institution-section">
               <div className="institution-section-header">
                 <h2 className="institution-section-title">Öğrenci Yorumları</h2>
@@ -648,7 +630,6 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
             </section>
           </div>
 
-          {/* Sidebar */}
           <aside className="institution-sidebar">
             <div className="institution-sidebar-header">
               <Phone size={20} />

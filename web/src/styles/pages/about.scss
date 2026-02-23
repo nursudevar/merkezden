@@ -2,17 +2,13 @@
 @import '../mixins';
 @import '../typography';
 
-// About Page Container
 .about-page {
   max-width: 1280px;
   margin: 0 auto;
   padding: 30px;
   box-sizing: border-box;
-
-
 }
 
-// Hero Section
 .about-hero {
   margin: 30px;
   margin-bottom: 48px;
@@ -21,7 +17,6 @@
   width: calc(100% - 60px);
   box-sizing: border-box;
 
- 
 }
 
 .about-hero-card {
@@ -161,7 +156,6 @@
   }
 }
 
-// Mission & Vision Section
 .about-mission-vision {
   margin-bottom: 48px;
 
@@ -415,7 +409,6 @@
   }
 }
 
-// Timeline Section
 .about-timeline {
   padding-top: 60px;
   padding-bottom: 80px;
@@ -511,7 +504,6 @@
     padding: 8px 0;
   }
 
-  // Central vertical line
   &::before {
     content: "";
     position: absolute;
@@ -764,7 +756,6 @@
   }
 }
 
-// Stats Section
 .about-stats {
   margin-bottom: 48px;
 
@@ -987,7 +978,6 @@
   }
 }
 
-// CTA Section
 .about-cta {
   max-width: 900px;
   margin: 48px auto;

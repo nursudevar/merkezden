@@ -10,8 +10,6 @@ export function useInViewAnimation(options?: IntersectionObserverInit) {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // We want the animation to trigger every time it enters
-          // and reset when it leaves, so scrolling up re-animates.
           setIsVisible(entry.isIntersecting);
         });
       },

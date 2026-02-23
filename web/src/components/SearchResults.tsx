@@ -35,12 +35,10 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // Clear previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Reset state for empty query
     if (!query || query.trim().length < 1) {
       setResults([]);
       setLoading(false);
@@ -48,12 +46,10 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
       return;
     }
 
-    // Debounce: wait 300ms before searching
     const timeoutId = setTimeout(() => {
       setLoading(true);
       setError(null);
 
-      // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
 
       fetch(`/api/search/institutions?q=${encodeURIComponent(query.trim())}`, {
@@ -76,7 +72,6 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
         })
         .catch((err) => {
           if (err.name === "AbortError") {
-            // Request was cancelled, ignore
             return;
           }
           console.error("[SearchResults] Error:", err);
@@ -96,7 +91,6 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
     };
   }, [query]);
 
-  // Don't render if query is too short
   if (!query || query.trim().length < 1) {
     return null;
   }

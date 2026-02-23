@@ -38,7 +38,6 @@ export default function CategoryResultsCard({
 }: CategoryResultsCardProps) {
   const priceText = typeof price === "number" ? `${price.toLocaleString("tr-TR")} ₺ / ay` : price;
   
-  // Generate slug from name if not provided
   const institutionSlug = slug || name.toLowerCase()
     .replace(/ş/g, "s")
     .replace(/ğ/g, "g")

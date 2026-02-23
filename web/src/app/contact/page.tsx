@@ -5,7 +5,6 @@ import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
 import "@/styles/main.scss";
 import "@/styles/pages/contact.scss";
 
-// Type declaration for dotlottie-wc web component
 declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
@@ -24,7 +23,6 @@ declare module "react" {
 
 function ContactAnimation() {
   useEffect(() => {
-    // Load dotlottie-wc script
     const script = document.createElement("script");
     script.src = "https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js";
     script.type = "module";
@@ -32,7 +30,6 @@ function ContactAnimation() {
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup: remove script on unmount
       if (document.head.contains(script)) {
         document.head.removeChild(script);
       }
@@ -54,7 +51,6 @@ function ContactAnimation() {
 export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Form submit logic will be added later
   };
 
   return (

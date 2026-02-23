@@ -91,23 +91,18 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
       if (hash === 'favorites') {
         setActiveSection('favorites');
       } else {
-        // Default to profile-info if no hash or hash is profile-info
         setActiveSection('profile-info');
       }
     };
 
-    // Set initial active section based on hash
     handleHashChange();
 
-    // Listen for hash changes
     window.addEventListener('hashchange', handleHashChange);
 
-    // Also check on mount in case hash is already set
     const checkHash = () => {
       handleHashChange();
     };
     
-    // Small delay to ensure hash is set
     setTimeout(checkHash, 0);
 
     return () => {
@@ -119,7 +114,6 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
     
-    // Ana sayfaya yönlendir
     window.location.href = '/';
   };
 
@@ -437,7 +431,6 @@ export default function ProfilePage() {
 
     const loadProfile = async () => {
       try {
-        // A) Auth check
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !currentUser) {
@@ -447,7 +440,6 @@ export default function ProfilePage() {
 
         setUser(currentUser);
 
-        // B) Read users row (SELECT only)
         const { data: userData, error: userDataError } = await supabase
           .from('users')
           .select('id, user_type, auth_user_id, email, first_name, last_name')
@@ -457,7 +449,6 @@ export default function ProfilePage() {
         let resolvedUsersRow: UsersRow | null = null;
 
         if (userDataError) {
-          // RLS or other error - continue safely
           console.warn('Users table query error:', userDataError.message);
         } else {
           resolvedUsersRow = userData;
@@ -467,7 +458,6 @@ export default function ProfilePage() {
 
         setUsersRow(resolvedUsersRow);
 
-        // D) Read individual_profiles row (SELECT only)
         if (resolvedUsersRow?.id) {
           const { data: profileData, error: profileError } = await supabase
             .from('individual_profiles')
@@ -478,7 +468,6 @@ export default function ProfilePage() {
           console.log({ usersId: resolvedUsersRow?.id, profileRow: profileData, profileError });
 
           if (profileError) {
-            // RLS or other error - continue safely
             console.warn('Individual profiles query error:', profileError.message);
             setProfile(null);
           } else {
@@ -489,7 +478,6 @@ export default function ProfilePage() {
         }
       } catch (error) {
         console.error('Error loading profile:', error);
-        // Do not redirect on error, just keep UI empty
       } finally {
         setLoading(false);
       }

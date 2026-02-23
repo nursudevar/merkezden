@@ -7,7 +7,6 @@ import { Phone, Search, X } from 'lucide-react';
 
 const PAGE_SIZE = 50;
 
-// Sıra: Kurum Adı, Kategori, Şehir, İlçe, Telefon, Adres
 const COLS = [
   'institution_name',
   'type',
@@ -26,7 +25,6 @@ const COL_LABELS: Record<(typeof COLS)[number], string> = {
   address: 'Adres',
 };
 
-/** Türkçe uyumlu, büyük/küçük harf duyarsız arama için normalize */
 function normalizeForSearch(s: string): string {
   return s.trim().toLocaleLowerCase('tr');
 }
@@ -66,7 +64,6 @@ export default function OkullarPage() {
     [router, searchParams]
   );
 
-  // Şehir ve ilçe seçeneklerini yükle
   useEffect(() => {
     let cancelled = false;
     (async () => {

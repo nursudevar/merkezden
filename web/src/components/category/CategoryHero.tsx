@@ -47,7 +47,6 @@ function getCategoryData(pathname: string): { title: string; description: string
     return categoryData[slug];
   }
   
-  // Fallback: derive from slug
   const fallbackTitle = slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

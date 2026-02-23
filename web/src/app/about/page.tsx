@@ -84,7 +84,6 @@ function AboutStatCard({
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Ease-out function for smooth animation
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = Math.floor(startValue + (endValue - startValue) * easeOut);
 

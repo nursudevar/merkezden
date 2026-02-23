@@ -19,7 +19,6 @@ function BlogPageContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Hepsi");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Initialize from URL params
   useEffect(() => {
     const categoryParam = searchParams.get("category");
     const viewParam = searchParams.get("view");
@@ -31,7 +30,6 @@ function BlogPageContent() {
     if (viewParam === "list" || viewParam === "grid") {
       setViewMode(viewParam);
     } else {
-      // Try to get from localStorage
       const savedView = localStorage.getItem("blogViewMode");
       if (savedView === "list" || savedView === "grid") {
         setViewMode(savedView);
@@ -39,7 +37,6 @@ function BlogPageContent() {
     }
   }, [searchParams]);
 
-  // Update URL when category or view changes
   const updateURL = (category: string, view: "grid" | "list") => {
     const params = new URLSearchParams();
     if (category !== "Hepsi") {
@@ -63,7 +60,6 @@ function BlogPageContent() {
     updateURL(selectedCategory, view);
   };
 
-  // Filter posts based on selected category
   const filteredPosts = useMemo(() => {
     if (selectedCategory === "Hepsi") {
       return allBlogPosts;
@@ -71,13 +67,11 @@ function BlogPageContent() {
     return allBlogPosts.filter((post) => post.category === selectedCategory);
   }, [selectedCategory]);
 
-  // Get featured post (first featured post in filtered results, or first post if none featured)
   const featuredPost = useMemo(() => {
     const featured = filteredPosts.find((post) => post.featured);
     return featured || filteredPosts[0];
   }, [filteredPosts]);
 
-  // Get remaining posts (excluding featured)
   const remainingPosts = useMemo(() => {
     if (!featuredPost) return filteredPosts;
     return filteredPosts.filter((post) => post.slug !== featuredPost.slug);
@@ -181,7 +175,6 @@ export default function BlogPage() {
   );
 }
 
-// Blog Components (inline for blog page only)
 type FeaturedPostProps = {
   title: string;
   excerpt: string;

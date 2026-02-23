@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-// Minimal Ankara dataset: extend as needed.
 const ANKARA = {
   city: "Ankara",
   districts: [

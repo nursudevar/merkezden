@@ -15,7 +15,6 @@ import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 
 
-// Main categories for pills
 const mainCategories = [
   "Tümü",
   "Okul",
@@ -28,7 +27,6 @@ const mainCategories = [
   "Özel Eğitim",
 ];
 
-// Service cards data
 const serviceCards = [
   {
     id: 1,
@@ -236,7 +234,6 @@ const blogPosts = [
   },
 ];
 
-// Featured Institutions Component (inline for homepage only)
 type FeaturedInstitution = {
   id: number;
   name: string;
@@ -405,11 +402,8 @@ function FeaturedInstitutionsSkeleton() {
 }
 
 function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.MouseEvent) => void }) {
-  // Start with original order to avoid hydration mismatch
-  // Server and client will render the same initial state
   const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState(featuredInstitutions);
 
-  // Shuffle on client-side only after mount (runs once per page load)
   useEffect(() => {
     const shuffled = [...featuredInstitutions];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -417,7 +411,7 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setShuffledFeaturedInstitutions(shuffled);
-  }, []); // Empty dependency array - runs once after mount
+  }, []);
 
   return (
     <section className="featured-institutions-section">
@@ -511,7 +505,6 @@ export default function Home() {
     if (!user) {
       setShowLoginModal(true);
     } else {
-      // TODO: Implement favorite functionality for logged-in users
       console.log("Favorilere ekleniyor...");
     }
   };
@@ -869,7 +862,6 @@ export default function Home() {
             
             <div className="main-categories-pills">
               {mainCategories.map((category) => {
-                // Category to route mapping
                 const categoryRoutes: Record<string, string> = {
                   "Okul": "/school",
                   "Kurs & Sınava Hazırlık": "/courses",
@@ -885,7 +877,6 @@ export default function Home() {
                 const isAll = category === "Tümü";
 
                 if (isAll) {
-                  // "Tümü" remains a button that filters
                   return (
                     <button
                       key={category}
@@ -898,7 +889,6 @@ export default function Home() {
                     </button>
                   );
                 } else if (route) {
-                  // Mapped categories become navigation links
                   return (
                     <Link
                       key={category}
@@ -909,7 +899,6 @@ export default function Home() {
                     </Link>
                   );
                 } else {
-                  // Unmapped categories remain buttons but don't filter
                   return (
                     <button
                       key={category}

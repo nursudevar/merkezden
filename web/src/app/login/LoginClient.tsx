@@ -33,7 +33,6 @@ function LoginPageContent() {
         return;
       }
 
-      // Success - redirect to home
       window.location.href = '/';
     } catch (err) {
       setError('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
@@ -163,7 +162,6 @@ function LoginPageContent() {
                     type="button"
                     className="auth-social-button"
                     onClick={() => {
-                      // Google OAuth will be implemented later
                       console.log('Google login clicked');
                     }}
                   >
@@ -181,7 +179,6 @@ function LoginPageContent() {
                     type="button"
                     className="auth-social-button"
                     onClick={() => {
-                      // Facebook OAuth will be implemented later
                       console.log('Facebook login clicked');
                     }}
                   >

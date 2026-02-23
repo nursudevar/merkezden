@@ -37,7 +37,6 @@ const FaqPage: React.FC = () => {
       <HeaderClientWrapper />
 
       <main className="faq-page__container">
-        {/* Header */}
         <header className="faq-header">
           <h1 className="faq-header__title">Sıkça Sorulan Sorular</h1>
           <p className="faq-header__subtitle">
@@ -46,7 +45,6 @@ const FaqPage: React.FC = () => {
           </p>
         </header>
 
-        {/* Top Tabs */}
         <nav className="faq-tabs" aria-label="SSS kategorileri">
           <button
             type="button"
@@ -80,7 +78,6 @@ const FaqPage: React.FC = () => {
           </button>
         </nav>
 
-        {/* Students Section */}
         <section
           className="faq-section"
           aria-labelledby="faq-students-title"
@@ -110,7 +107,6 @@ const FaqPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Institutions Section */}
         <section
           className="faq-section"
           aria-labelledby="faq-institutions-title"
@@ -140,7 +136,6 @@ const FaqPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Instructors Section */}
         <section
           className="faq-section"
           aria-labelledby="faq-instructors-title"
@@ -170,7 +165,6 @@ const FaqPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Call To Action */}
         <section className="faq-cta">
           <div className="faq-cta__card">
             <h2 className="faq-cta__title">Sorunuzu bulamadınız mı?</h2>

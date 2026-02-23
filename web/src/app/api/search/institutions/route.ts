@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { matchesSearch } from "@/lib/utils/search";
 
-// Import institution data - in production, this would come from Supabase
-// For now, using the same mock data structure from homepage
 type Institution = {
   id: number;
   name: string;
@@ -18,7 +16,6 @@ type Institution = {
   };
 };
 
-// Mock institutions data - matches featuredInstitutions from homepage
 const allInstitutions: Institution[] = [
   {
     id: 1,
@@ -120,7 +117,6 @@ const allInstitutions: Institution[] = [
     slug: "kocaeli-meslek-lisesi",
     badge: { icon: "🔩", label: "Meslek", color: "orange" }
   },
-  // Service cards from homepage
   {
     id: 101,
     name: "Gelecek Spor Akademisi",
@@ -218,12 +214,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") || "";
 
-    // Minimum character check
     if (query.length < 1) {
       return NextResponse.json({ results: [], message: "En az 1 karakter giriniz" });
     }
 
-    // Search in name, location, and description
     const results = allInstitutions
       .filter((institution) => {
         return (
@@ -232,14 +226,14 @@ export async function GET(request: Request) {
           matchesSearch(institution.description, query)
         );
       })
-      .slice(0, 20) // Limit to 20 results
+      .slice(0, 20)
       .map((institution) => ({
         id: institution.id.toString(),
         name: institution.name,
         description: institution.description,
         location: institution.location,
         rating: institution.rating,
-        reviewCount: Math.floor(institution.rating * 25), // Mock review count
+        reviewCount: Math.floor(institution.rating * 25),
         imageUrl: institution.imageUrl,
         slug: institution.slug,
         badge: institution.badge || null,
