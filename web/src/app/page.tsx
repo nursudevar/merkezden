@@ -543,6 +543,7 @@ export default function Home() {
       <HeaderWithSearch 
         searchValue={query}
         onSearchChange={setQuery}
+        showSearchButton={false}
       />
 
     

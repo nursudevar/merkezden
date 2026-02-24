@@ -8,6 +8,7 @@ interface SearchBarProps {
   onChange: (value: string) => void;
   placeholder?: string;
   buttonText?: string;
+  showButton?: boolean;
   className?: string;
   inputClassName?: string;
   buttonClassName?: string;
@@ -18,6 +19,7 @@ export default function SearchBar({
   onChange,
   placeholder = "Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum",
   buttonText = "🔍 ARA",
+  showButton = true,
   className = "",
   inputClassName = "",
   buttonClassName = "",
@@ -30,9 +32,11 @@ export default function SearchBar({
         placeholder={placeholder}
         className={`search-bar-input ${inputClassName}`}
       />
-      <Button className={`search-bar-button ${buttonClassName}`}>
-        {buttonText}
-      </Button>
+      {showButton && (
+        <Button className={`search-bar-button ${buttonClassName}`}>
+          {buttonText}
+        </Button>
+      )}
     </div>
   );
 }

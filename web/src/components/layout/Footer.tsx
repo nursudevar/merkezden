@@ -1,7 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, ChevronDown } from "lucide-react";
 
 export default function Footer() {
+  const [openKurumsal, setOpenKurumsal] = useState(false);
+  const [openDestek, setOpenDestek] = useState(false);
+  const [openKategoriler, setOpenKategoriler] = useState(false);
+
   return (
     <footer className="footer">
       <div className="footer-container">
@@ -30,53 +37,107 @@ export default function Footer() {
               </a>
             </div>
           </div>
-          <div className="footer-section">
-            <h3 className="footer-section-title">Kurumsal</h3>
-            <ul className="footer-section-list">
-              <li className="footer-section-item">
-                <Link href="/about">Hakkımızda</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="/contact">İletişim</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="/faq">Sıkça Sorulan Sorular</Link>
-              </li>
-            </ul>
+
+          <div className={`footer-section footer-section-accordion ${openKurumsal ? "is-open" : ""}`}>
+            <button
+              type="button"
+              className="footer-section-header"
+              aria-expanded={openKurumsal}
+              aria-controls="footer-kurumsal"
+              id="footer-kurumsal-btn"
+              onClick={() => setOpenKurumsal(!openKurumsal)}
+            >
+              <span className="footer-section-title">Kurumsal</span>
+              <ChevronDown className="footer-section-chevron" aria-hidden size={20} />
+            </button>
+            <div
+              id="footer-kurumsal"
+              role="region"
+              aria-labelledby="footer-kurumsal-btn"
+              className="footer-section-content"
+            >
+              <ul className="footer-section-list">
+                <li className="footer-section-item">
+                  <Link href="/about">Hakkımızda</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="/contact">İletişim</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="/faq">Sıkça Sorulan Sorular</Link>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="footer-section">
-            <h3 className="footer-section-title">Destek</h3>
-            <ul className="footer-section-list">
-              <li className="footer-section-item">
-                <Link href="#">Yardım Merkezi</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="#">Kullanım Şartları</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="#">Gizlilik Politikası</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="#">KVKK</Link>
-              </li>
-            </ul>
+
+          <div className={`footer-section footer-section-accordion ${openDestek ? "is-open" : ""}`}>
+            <button
+              type="button"
+              className="footer-section-header"
+              aria-expanded={openDestek}
+              aria-controls="footer-destek"
+              id="footer-destek-btn"
+              onClick={() => setOpenDestek(!openDestek)}
+            >
+              <span className="footer-section-title">Destek</span>
+              <ChevronDown className="footer-section-chevron" aria-hidden size={20} />
+            </button>
+            <div
+              id="footer-destek"
+              role="region"
+              aria-labelledby="footer-destek-btn"
+              className="footer-section-content"
+            >
+              <ul className="footer-section-list">
+                <li className="footer-section-item">
+                  <Link href="#">Yardım Merkezi</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="#">Kullanım Şartları</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="#">Gizlilik Politikası</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="#">KVKK</Link>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="footer-section">
-            <h3 className="footer-section-title">Kategoriler</h3>
-            <ul className="footer-section-list">
-              <li className="footer-section-item">
-                <Link href="/school">Okul</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="/courses">Kurs</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="/sports">Spor</Link>
-              </li>
-              <li className="footer-section-item">
-                <Link href="/arts">Sanat</Link>
-              </li>
-            </ul>
+
+          <div className={`footer-section footer-section-accordion ${openKategoriler ? "is-open" : ""}`}>
+            <button
+              type="button"
+              className="footer-section-header"
+              aria-expanded={openKategoriler}
+              aria-controls="footer-kategoriler"
+              id="footer-kategoriler-btn"
+              onClick={() => setOpenKategoriler(!openKategoriler)}
+            >
+              <span className="footer-section-title">Kategoriler</span>
+              <ChevronDown className="footer-section-chevron" aria-hidden size={20} />
+            </button>
+            <div
+              id="footer-kategoriler"
+              role="region"
+              aria-labelledby="footer-kategoriler-btn"
+              className="footer-section-content"
+            >
+              <ul className="footer-section-list">
+                <li className="footer-section-item">
+                  <Link href="/school">Okul</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="/courses">Kurs</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="/sports">Spor</Link>
+                </li>
+                <li className="footer-section-item">
+                  <Link href="/arts">Sanat</Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
         <div className="footer-divider" />

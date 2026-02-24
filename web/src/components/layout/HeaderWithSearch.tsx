@@ -8,6 +8,7 @@ interface HeaderWithSearchProps {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   searchButtonText?: string;
+  showSearchButton?: boolean;
 }
 
 export default function HeaderWithSearch({
@@ -15,6 +16,7 @@ export default function HeaderWithSearch({
   onSearchChange,
   searchPlaceholder,
   searchButtonText,
+  showSearchButton,
 }: HeaderWithSearchProps) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<'individual' | 'institution' | null>(null);
@@ -52,6 +54,7 @@ export default function HeaderWithSearch({
         onSearchChange={onSearchChange}
         searchPlaceholder={searchPlaceholder}
         searchButtonText={searchButtonText}
+        showSearchButton={showSearchButton}
       />
     );
   }
@@ -64,6 +67,7 @@ export default function HeaderWithSearch({
       onSearchChange={onSearchChange}
       searchPlaceholder={searchPlaceholder}
       searchButtonText={searchButtonText}
+      showSearchButton={showSearchButton}
     />
   );
 }

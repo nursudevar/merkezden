@@ -342,6 +342,17 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .main-layout {
+    .filter-sidebar {
+      order: 2;
+    }
+    .main-content {
+      order: 1;
+    }
+  }
+}
+
 .filter-sidebar-card {
   border-radius: 32px;
   border: 0;
