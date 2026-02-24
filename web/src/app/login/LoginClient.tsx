@@ -162,7 +162,6 @@ function LoginPageContent() {
                     type="button"
                     className="auth-social-button"
                     onClick={() => {
-                      console.log('Google login clicked');
                     }}
                   >
                     <div className="auth-social-icon">
@@ -179,7 +178,6 @@ function LoginPageContent() {
                     type="button"
                     className="auth-social-button"
                     onClick={() => {
-                      console.log('Facebook login clicked');
                     }}
                   >
                     <div className="auth-social-icon">

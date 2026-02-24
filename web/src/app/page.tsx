@@ -470,7 +470,6 @@ export default function Home() {
     if (!user) {
       setShowLoginModal(true);
     } else {
-      console.log("Favorilere ekleniyor...");
     }
   };
 

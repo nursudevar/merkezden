@@ -449,12 +449,9 @@ export default function ProfilePage() {
         let resolvedUsersRow: UsersRow | null = null;
 
         if (userDataError) {
-          console.warn('Users table query error:', userDataError.message);
         } else {
           resolvedUsersRow = userData;
         }
-
-        console.log({ authUserId: currentUser.id, usersRow: userData, usersError: userDataError });
 
         setUsersRow(resolvedUsersRow);
 
@@ -465,10 +462,7 @@ export default function ProfilePage() {
             .eq('user_id', resolvedUsersRow.id)
             .maybeSingle();
 
-          console.log({ usersId: resolvedUsersRow?.id, profileRow: profileData, profileError });
-
           if (profileError) {
-            console.warn('Individual profiles query error:', profileError.message);
             setProfile(null);
           } else {
             setProfile(profileData);

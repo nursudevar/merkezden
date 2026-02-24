@@ -84,7 +84,6 @@ export default function SignupClient() {
       );
 
       if (emailCheckError) {
-        console.error("EMAIL CHECK ERROR:", emailCheckError);
       }
 
       if (emailExists === true) {
@@ -174,8 +173,6 @@ export default function SignupClient() {
       });
       return;
     }
-
-    console.log("Google OAuth start:", data);
   };
 
   return (
