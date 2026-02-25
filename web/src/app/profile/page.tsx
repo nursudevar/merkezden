@@ -422,37 +422,68 @@ function FavoritesSection() {
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [usersRow, setUsersRow] = useState<UsersRow | null>(null);
   const [profile, setProfile] = useState<IndividualProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Auth: same Supabase browser client as header; only redirect when isAuthReady && !user
   useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    async function initSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsAuthReady(true);
+    }
+
+    initSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Redirect only after auth is ready and we're sure there is no session (double-check before redirect to avoid race)
+  useEffect(() => {
+    if (!isAuthReady || user !== null) return;
+
+    const supabase = createSupabaseBrowserClient();
+    let cancelled = false;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        router.replace('/login');
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, user, router]);
+
+  // Load profile data when user is set
+  useEffect(() => {
+    if (!user) return;
+
     const supabase = createSupabaseBrowserClient();
 
     const loadProfile = async () => {
       try {
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !currentUser) {
-          router.push('/login');
-          return;
-        }
-
-        setUser(currentUser);
-
         const { data: userData, error: userDataError } = await supabase
           .from('users')
           .select('id, user_type, auth_user_id, email, first_name, last_name')
-          .eq('auth_user_id', currentUser.id)
+          .eq('auth_user_id', user.id)
           .maybeSingle();
 
-        let resolvedUsersRow: UsersRow | null = null;
-
-        if (userDataError) {
-        } else {
-          resolvedUsersRow = userData;
-        }
-
+        let resolvedUsersRow: UsersRow | null = userDataError ? null : userData;
         setUsersRow(resolvedUsersRow);
 
         if (resolvedUsersRow?.id) {
@@ -462,11 +493,7 @@ export default function ProfilePage() {
             .eq('user_id', resolvedUsersRow.id)
             .maybeSingle();
 
-          if (profileError) {
-            setProfile(null);
-          } else {
-            setProfile(profileData);
-          }
+          setProfile(profileError ? null : profileData);
         } else {
           setProfile(null);
         }
@@ -477,10 +504,17 @@ export default function ProfilePage() {
       }
     };
 
+    setLoading(true);
     loadProfile();
-  }, [router]);
+  }, [user]);
 
-  if (loading) {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    console.log('Profile gate:', { isAuthReady, userId: user?.id });
+  }, [isAuthReady, user?.id]);
+
+  // Do not redirect while auth is not ready; show skeleton
+  if (!isAuthReady || (user && loading)) {
     return (
       <div className="profile-page">
         <HeaderClientWrapper />
@@ -491,6 +525,7 @@ export default function ProfilePage() {
     );
   }
 
+  // After ready: if no user, redirect runs above; avoid flash by not rendering content
   if (!user) {
     return null;
   }

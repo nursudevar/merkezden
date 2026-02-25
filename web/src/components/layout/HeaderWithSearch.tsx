@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { resolveUserTypeFromUsersClient } from '@/lib/auth/resolveUserTypeFromUsersClient';
 import HeaderWithSearchClient from './HeaderWithSearchClient';
 
 interface HeaderWithSearchProps {
@@ -20,49 +22,61 @@ export default function HeaderWithSearch({
 }: HeaderWithSearchProps) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<'individual' | 'institution' | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    async function fetchUserRole() {
-      try {
-        const response = await fetch('/api/auth/user-role', {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-          setUserType(data.userType);
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[HeaderWithSearch] Error fetching user role:', error);
-        }
-      } finally {
-        setLoading(false);
+    const supabase = createSupabaseBrowserClient();
+
+    async function initSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const authUser = session?.user ?? null;
+      setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
+      if (!authUser) {
+        setUserType(null);
       }
+      setIsAuthReady(true);
     }
 
-    fetchUserRole();
+    initSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authUser = session?.user ?? null;
+      setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
+      if (!authUser) {
+        setUserType(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (loading) {
-    return (
-      <HeaderWithSearchClient
-        user={null}
-        userType={null}
-        searchValue={searchValue}
-        onSearchChange={onSearchChange}
-        searchPlaceholder={searchPlaceholder}
-        searchButtonText={searchButtonText}
-        showSearchButton={showSearchButton}
-      />
-    );
-  }
+  useEffect(() => {
+    if (!user?.id) {
+      setUserType(null);
+      return;
+    }
+    let cancelled = false;
+    resolveUserTypeFromUsersClient(user.id).then((type) => {
+      if (!cancelled) setUserType(type);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    console.log('Header role:', { authUid: user?.id, userType });
+  }, [user?.id, userType]);
+
+  const displayUser = isAuthReady ? user : null;
+  const displayUserType = isAuthReady ? userType : null;
 
   return (
     <HeaderWithSearchClient
-      user={user}
-      userType={userType}
+      user={displayUser}
+      userType={displayUserType}
       searchValue={searchValue}
       onSearchChange={onSearchChange}
       searchPlaceholder={searchPlaceholder}

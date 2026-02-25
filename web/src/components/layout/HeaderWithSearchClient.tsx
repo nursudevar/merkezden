@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import LogoutButton from '@/components/auth/LogoutButton';
 import SearchBar from '@/components/SearchBar';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
@@ -27,22 +29,28 @@ export default function HeaderWithSearchClient({
   showSearchButton = true,
 }: HeaderWithSearchClientProps) {
   const getCTALabel = () => {
-    if (userType === 'individual') return 'Profil';
-    if (userType === 'institution') return 'Panel';
-    return 'Hesap';
+    if (userType === 'institution') return 'YÖNETİM PANELİ';
+    return 'PROFİL';
   };
 
   const getCTAHref = () => {
-    if (userType === 'individual') return '/profile';
-    if (userType === 'institution') return '/institution';
-    return '#';
+    if (userType === 'institution') return '/panel';
+    return '/profile';
   };
 
-  const shouldShowCTA = userType === 'individual' || userType === 'institution';
-  const isDisabled = user && !userType;
+  const shouldShowCTA = !!user;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  const handleMobileLogout = async () => {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setMenuOpen(false);
+    router.push('/');
+    router.refresh();
+  };
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -100,9 +108,22 @@ export default function HeaderWithSearchClient({
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                     Tüm Okullar
                   </Link>
-                  <Link href="/login" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                    Giriş Yap
-                  </Link>
+                  {user ? (
+                    <>
+                      {shouldShowCTA && (
+                        <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                          {getCTALabel()}
+                        </Link>
+                      )}
+                      <button type="button" className="header-hamburger-link header-hamburger-link-button" onClick={handleMobileLogout}>
+                        Çıkış Yap
+                      </button>
+                    </>
+                  ) : (
+                    <Link href="/login" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                      Giriş Yap
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -126,21 +147,11 @@ export default function HeaderWithSearchClient({
             </Link>
             {user ? (
               <>
-                {shouldShowCTA ? (
-                  <Link href={getCTAHref()}>
-                    <Button className="button-primary btn-gradient-primary" variant="default">
-                      {getCTALabel()}
-                    </Button>
-                  </Link>
-                ) : isDisabled ? (
-                  <Button
-                    className="button-primary btn-gradient-primary"
-                    variant="default"
-                    disabled
-                  >
+                <Link href={getCTAHref()}>
+                  <Button className="button-primary btn-gradient-primary" variant="default">
                     {getCTALabel()}
                   </Button>
-                ) : null}
+                </Link>
                 <LogoutButton />
               </>
             ) : (

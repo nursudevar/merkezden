@@ -10,7 +10,8 @@ export default function LogoutButton() {
   const handleLogout = async () => {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
-    window.location.href = '/';
+    router.push('/');
+    router.refresh();
   };
 
   return (

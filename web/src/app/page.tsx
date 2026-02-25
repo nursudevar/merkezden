@@ -438,7 +438,7 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
         </div>
       </div>
       <div className="featured-institutions-view-all">
-        <Link href="#">
+        <Link href="/okullar">
           Tüm Kurumları Görüntüle →
         </Link>
       </div>

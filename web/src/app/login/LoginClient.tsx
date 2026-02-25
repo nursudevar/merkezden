@@ -23,7 +23,7 @@ function LoginPageContent() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -31,6 +31,10 @@ function LoginPageContent() {
       if (signInError) {
         setError(signInError.message || 'Giriş yapılırken bir hata oluştu.');
         return;
+      }
+
+      if (data?.user?.email) {
+        console.log(data.user.email);
       }
 
       window.location.href = '/';

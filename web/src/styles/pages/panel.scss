@@ -1,0 +1,70 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.panel-page {
+  min-height: 100vh;
+  width: 100%;
+  background-color: $bg-zinc-50;
+  overflow-x: clip;
+  overflow-x: -moz-hidden-unscrollable;
+  overflow-x: hidden;
+}
+
+.panel-page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: $text-lg;
+  color: $text-zinc-600;
+}
+
+.panel-page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  box-sizing: border-box;
+
+  @media (max-width: 720px) {
+    padding: 24px 16px;
+  }
+}
+
+.panel-page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $default-text-color;
+  margin: 0 0 32px 0;
+
+  @media (max-width: 720px) {
+    font-size: $text-xl;
+    margin-bottom: 24px;
+  }
+}
+
+.panel-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.panel-section-title {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $default-text-color;
+  margin: 0 0 12px 0;
+}
+
+.panel-section-placeholder {
+  font-size: $text-base;
+  color: $text-zinc-600;
+  margin: 0;
+}

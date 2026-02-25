@@ -11,19 +11,14 @@ export default async function Header() {
 
 
   const getCTALabel = () => {
-    if (userType === 'individual') return 'Profil';
-    if (userType === 'institution') return 'Panel';
-    return 'Hesap';
+    if (userType === 'institution') return 'YÖNETİM PANELİ';
+    return 'PROFİL';
   };
 
   const getCTAHref = () => {
-    if (userType === 'individual') return '/profile';
-    if (userType === 'institution') return '/institution';
-    return '#';
+    if (userType === 'institution') return '/panel';
+    return '/profile';
   };
-
-  const shouldShowCTA = userType === 'individual' || userType === 'institution';
-  const isDisabled = user && !userType;
 
   return (
     <>
@@ -56,21 +51,11 @@ export default async function Header() {
             </Link>
             {user ? (
               <>
-                {shouldShowCTA ? (
-                  <Link href={getCTAHref()}>
-                    <Button className="button-primary btn-gradient-primary" variant="default">
-                      {getCTALabel()}
-                    </Button>
-                  </Link>
-                ) : isDisabled ? (
-                  <Button
-                    className="button-primary btn-gradient-primary"
-                    variant="default"
-                    disabled
-                  >
+                <Link href={getCTAHref()}>
+                  <Button className="button-primary btn-gradient-primary" variant="default">
                     {getCTALabel()}
                   </Button>
-                ) : null}
+                </Link>
                 <LogoutButton />
               </>
             ) : (

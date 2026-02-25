@@ -15,19 +15,14 @@ export default function HeaderClient({
   initialUserType,
 }: HeaderClientProps) {
   const getCTALabel = () => {
-    if (initialUserType === 'individual') return 'Profil';
-    if (initialUserType === 'institution') return 'Panel';
-    return 'Hesap';
+    if (initialUserType === 'institution') return 'YÖNETİM PANELİ';
+    return 'PROFİL';
   };
 
   const getCTAHref = () => {
-    if (initialUserType === 'individual') return '/profile';
-    if (initialUserType === 'institution') return '/institution';
-    return '#';
+    if (initialUserType === 'institution') return '/panel';
+    return '/profile';
   };
-
-  const shouldShowCTA = initialUserType === 'individual' || initialUserType === 'institution';
-  const isDisabled = initialUser && !initialUserType;
 
   return (
     <>
@@ -55,21 +50,11 @@ export default function HeaderClient({
           <div className="header-actions">
             {initialUser ? (
               <>
-                {shouldShowCTA ? (
-                  <Link href={getCTAHref()}>
-                    <Button className="button-primary btn-gradient-primary" variant="default">
-                      {getCTALabel()}
-                    </Button>
-                  </Link>
-                ) : isDisabled ? (
-                  <Button
-                    className="button-primary btn-gradient-primary"
-                    variant="default"
-                    disabled
-                  >
+                <Link href={getCTAHref()}>
+                  <Button className="button-primary btn-gradient-primary" variant="default">
                     {getCTALabel()}
                   </Button>
-                ) : null}
+                </Link>
                 <LogoutButton />
               </>
             ) : (
