@@ -550,7 +550,7 @@ export default function Home() {
       <section className="hero-search">
         <div className="hero-search-container">
           <img 
-            src="/images/hero-car-banner.png" 
+            src="/images/ad_banner_picture.png" 
             alt="Hero Banner" 
             className="hero-search-banner"
           />

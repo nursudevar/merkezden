@@ -41,8 +41,13 @@ export default function HeaderWithSearchClient({
   const shouldShowCTA = !!user;
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuRefDesktop = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const isInsideAnyMenu = (target: EventTarget | null) =>
+    menuRef.current?.contains(target as Node) || menuRefDesktop.current?.contains(target as Node);
 
   const handleMobileLogout = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -54,15 +59,25 @@ export default function HeaderWithSearchClient({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (isInsideAnyMenu(e.target)) return;
+      setMenuOpen(false);
+      setDesktopMenuOpen(false);
     }
-    if (menuOpen) {
+    if (menuOpen || desktopMenuOpen) {
       document.addEventListener('click', handleClickOutside);
     }
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [menuOpen]);
+  }, [menuOpen, desktopMenuOpen]);
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setDesktopMenuOpen(false);
+      }
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
 
   return (
     <>
@@ -88,7 +103,7 @@ export default function HeaderWithSearchClient({
                 </div>
               </Link>
             </div>
-            <div className="header-hamburger" ref={menuRef}>
+            <div className="header-hamburger header-hamburger-mobile" ref={menuRef}>
               <button
                 type="button"
                 className="header-hamburger-btn nav-toggle"
@@ -140,27 +155,57 @@ export default function HeaderWithSearchClient({
             </div>
           )}
           <div className="header-actions">
-            <Link href="/okullar">
+            <Link href="/okullar" className="header-actions-nav header-actions-okullar">
               <Button className="button-primary btn-gradient-primary" variant="default">
                 OKULLAR
               </Button>
             </Link>
             {user ? (
               <>
-                <Link href={getCTAHref()}>
+                <Link href={getCTAHref()} className="header-actions-nav header-actions-profile">
                   <Button className="button-primary btn-gradient-primary" variant="default">
                     {getCTALabel()}
                   </Button>
                 </Link>
-                <LogoutButton />
+                <div className="header-actions-auth">
+                  <LogoutButton />
+                </div>
               </>
             ) : (
-              <Link href="/login">
-                <Button className="button-primary btn-gradient-primary" variant="default">
-                  GİRİŞ YAP
-                </Button>
-              </Link>
+              <div className="header-actions-auth">
+                <Link href="/login">
+                  <Button className="button-primary btn-gradient-primary" variant="default">
+                    GİRİŞ YAP
+                  </Button>
+                </Link>
+              </div>
             )}
+            <div className={`header-actions-desktop-menu ${desktopMenuOpen ? 'is-open' : ''}`} ref={menuRefDesktop}>
+              <button
+                type="button"
+                className="header-hamburger-btn header-hamburger-btn-desktop nav-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDesktopMenuOpen((prev) => !prev);
+                }}
+                aria-expanded={desktopMenuOpen}
+                aria-label="Menü"
+              >
+                <span /><span /><span />
+              </button>
+              {desktopMenuOpen && (
+                <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
+                  <Link href="/okullar" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                    OKULLAR
+                  </Link>
+                  {user && shouldShowCTA && (
+                    <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                      {getCTALabel()}
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

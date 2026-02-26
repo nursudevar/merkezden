@@ -204,6 +204,81 @@
   }
 }
 
+@media (min-width: 768px) {
+  .header-actions-nav {
+    display: none;
+  }
+}
+
+.header-actions-desktop-menu {
+  display: none;
+  position: relative;
+  flex-shrink: 0;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Desktop hamburger: birebir mobil ile aynı görünüm ve animasyon (auth butonlarıyla ortak sınıf yok)
+@media (min-width: 768px) {
+  .header-hamburger-btn-desktop.nav-toggle {
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(to right, rgb(109, 93, 252), rgb(127, 86, 217), rgb(148, 84, 255));
+    border: none;
+    padding: 0;
+    @include rounded-6;
+    @include transition-colors;
+  }
+
+  .header-hamburger-btn-desktop.nav-toggle span {
+    display: block;
+    width: 70%;
+    height: 2px;
+    background-color: white;
+    border-radius: 10px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+
+  .header-actions-desktop-menu.is-open .header-hamburger-btn-desktop.nav-toggle span:nth-child(1) {
+    transform: rotate(45deg) translate(6px, 6px);
+  }
+
+  .header-actions-desktop-menu.is-open .header-hamburger-btn-desktop.nav-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .header-actions-desktop-menu.is-open .header-hamburger-btn-desktop.nav-toggle span:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+  }
+}
+
+.header-hamburger-dropdown-desktop {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    min-width: 180px;
+    padding: 8px 0;
+    background-color: $bg-white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    @include flex-col;
+    gap: 0;
+  }
+}
+
 .header-hamburger {
   display: none;
   position: relative;
