@@ -398,7 +398,6 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
                 />
                 <div className="featured-institution-overlay" />
                 <div className={`featured-institution-badge featured-institution-badge--${institution.badge.color}`}>
-                  <span className="featured-institution-badge-icon">{institution.badge.icon}</span>
                   <span className="featured-institution-badge-label">{institution.badge.label}</span>
                 </div>
                 <button 
@@ -420,7 +419,7 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
                   <span>{institution.location}</span>
                 </div>
                 <h3 className="featured-institution-name">{institution.name}</h3>
-                <p className="featured-institution-description">{institution.description}</p>
+                <p className="featured-institution-description" title={institution.description}>{institution.description}</p>
                 <div className="featured-institution-footer">
                   <div className="featured-institution-rating">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -550,7 +549,7 @@ export default function Home() {
       <section className="hero-search">
         <div className="hero-search-container">
           <img 
-            src="/images/ad_banner_picture.png" 
+            src="/images/hero-banner-car.jpg" 
             alt="Hero Banner" 
             className="hero-search-banner"
           />
@@ -904,7 +903,11 @@ export default function Home() {
                         <h3 className="service-card-title">{card.title}</h3>
                         <p className="service-card-categories">{card.subCategories.join(", ")}</p>
                         <div className="service-card-rating">
-                          <span className="service-card-star">⭐</span>
+                          <span className="service-card-star">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                              <path d="M8 0L9.79611 5.52786L15.6085 5.52786L10.9062 8.94427L12.7023 14.4721L8 11.0557L3.29772 14.4721L5.09383 8.94427L0.391548 5.52786L6.20389 5.52786L8 0Z" fill="currentColor"/>
+                            </svg>
+                          </span>
                           <span className="service-card-rating-text">
                             {card.rating} ({card.reviewCount} Değerlendirme)
                           </span>
@@ -931,7 +934,7 @@ export default function Home() {
 
           <section>
             <div className="cta-section">
-              <h3 className="cta-section-title">✨ Hayatın Merkezinde Olun!</h3>
+              <h3 className="cta-section-title">Hayatın Merkezinde Olun!</h3>
               <p className="cta-section-subtitle">İhtiyacınız olan tüm hizmetleri tek platformda bulun. Kaliteli hizmet sağlayıcılarıyla tanışın!</p>
               <div className="cta-section-buttons">
                 <button className="cta-section-button cta-section-button-primary">

@@ -93,7 +93,7 @@
 }
 
 .hero-search-title-purple {
-  color: #9F7AEA;
+  @include gradient-text;
 }
 
 .hero-search-subtitle {
@@ -1241,7 +1241,7 @@
 
 .main-category-pill--active {
   background-color: rgba(124, 58, 237, 0.14);
-  color: #7c3aed;
+  color: #5F2FD1;
   font-weight: 600;
   border: none;
 
@@ -1316,19 +1316,18 @@ a.service-card {
 
 .service-card-content {
   padding: 12px;
-  @include flex-col;
-  flex: 1;
-  min-height: 120px;
-  gap: 0;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 140px;
 }
 
 .service-card-title {
   font-size: $text-lg;
   font-weight: $font-bold;
   color: $text-zinc-900;
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   line-height: $leading-tight;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1336,13 +1335,20 @@ a.service-card {
   overflow: hidden;
   line-clamp: 2;
   min-height: 48px;
+  flex-shrink: 0;
 }
 
 .service-card-categories {
   font-size: 12px;
   color: $text-zinc-600;
-  margin: 0 0 auto 0;
-  flex-shrink: 0;
+  margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .service-card-rating {
@@ -1351,12 +1357,20 @@ a.service-card {
   gap: 6px;
   font-size: 12px;
   color: $text-zinc-600;
-  margin: 0 0 10px 0;
+  margin: 0 0 6px 0;
   flex-shrink: 0;
 }
 
 .service-card-star {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: $yellow-rating;
+  }
 }
 
 .service-card-rating-text {
@@ -1366,7 +1380,7 @@ a.service-card {
 .service-card-price {
   font-size: 16px;
   font-weight: $font-bold;
-  color: $purple-main;
+  color: #5F2FD1;
   margin: 0;
   flex-shrink: 0;
 }
@@ -1389,7 +1403,7 @@ a.service-card {
   overflow-y: hidden;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: rgba(109, 93, 252, 0.6) rgba(191, 184, 250, 0.2);
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   flex: 1;
   min-width: 0;
   padding: 8px 4px 28px 4px;
@@ -1398,23 +1412,23 @@ a.service-card {
   order: 2;
 
   &::-webkit-scrollbar {
-    height: 6px;
+    height: 4px;
     -webkit-appearance: none;
     appearance: none;
   }
 
   &::-webkit-scrollbar-track {
-    background-color: rgba(109, 93, 252, 0.2);
-    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.06);
+    border-radius: 2px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(109, 93, 252, 0.6);
-    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(109, 93, 252, 0.8);
+    background-color: rgba(0, 0, 0, 0.3);
   }
 
   @media (min-width: 640px) {
@@ -1777,7 +1791,7 @@ a.service-card {
   a {
     font-size: $text-base;
     font-weight: $font-medium;
-    color: $purple-main;
+    color: #5F2FD1;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -1806,7 +1820,7 @@ a.service-card {
   overflow-y: hidden;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: rgba(109, 93, 252, 0.6) rgba(109, 93, 252, 0.2);
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   width: 100%;
   padding: 8px 4px 28px 4px;
   scroll-padding-left: 0;
@@ -1815,29 +1829,25 @@ a.service-card {
   box-sizing: border-box;
 
   &::-webkit-scrollbar {
-    height: 6px;
+    height: 4px;
     -webkit-appearance: none;
     appearance: none;
     display: block !important;
   }
 
   &::-webkit-scrollbar-track {
-    background-color: rgba(109, 93, 252, 0.2);
-    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.06);
+    border-radius: 2px;
     margin: 0 20px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(109, 93, 252, 0.6);
-    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
   }
 
-  &:hover {
-    scrollbar-color: rgba(109, 93, 252, 0.6) rgba(109, 93, 252, 0.2);
-    
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(109, 93, 252, 0.6);
-    }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3);
   }
 
   @media (min-width: 640px) {
@@ -2005,8 +2015,10 @@ a.featured-institution-card {
 
 .featured-institution-content {
   padding: 20px;
-  @include flex-col;
+  display: flex;
+  flex-direction: column;
   flex: 1;
+  min-height: 0;
   gap: 12px;
 }
 
@@ -2019,6 +2031,7 @@ a.featured-institution-card {
   color: $text-zinc-600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 
   svg {
     width: 12px;
@@ -2034,6 +2047,13 @@ a.featured-institution-card {
   color: $text-zinc-900;
   margin: 0;
   line-height: 1.3;
+  flex-shrink: 0;
+  min-height: 2.6em; /* 2 satır: line-height 1.3 × 2 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .featured-institution-description {
@@ -2041,20 +2061,26 @@ a.featured-institution-card {
   color: $text-zinc-600;
   margin: 0;
   line-height: 1.5;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-height: 3em; /* 2 satır: line-height 1.5 × 2 */
+  overflow: hidden;
   display: -webkit-box;
+  -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .featured-institution-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
   padding-top: 8px;
+  flex-shrink: 0;
 }
 
 .featured-institution-rating {
@@ -2076,7 +2102,7 @@ a.featured-institution-card {
 .featured-institution-link {
   font-size: $text-base;
   font-weight: $font-medium;
-  color: $purple-main;
+  color: #5F2FD1;
   text-decoration: none;
   @include transition;
 

@@ -169,7 +169,6 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
                 <div className="featured-institution-overlay" />
                 {result.badge && (
                   <div className={`featured-institution-badge featured-institution-badge--${result.badge.color}`}>
-                    <span className="featured-institution-badge-icon">{result.badge.icon}</span>
                     <span className="featured-institution-badge-label">{result.badge.label}</span>
                   </div>
                 )}
@@ -195,7 +194,7 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
                   <span>{result.location}</span>
                 </div>
                 <h3 className="featured-institution-name">{result.name}</h3>
-                <p className="featured-institution-description">{result.description}</p>
+                <p className="featured-institution-description" title={result.description}>{result.description}</p>
                 <div className="featured-institution-footer">
                   <div className="featured-institution-rating">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
