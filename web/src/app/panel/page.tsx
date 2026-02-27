@@ -12,6 +12,9 @@ import {
   PencilLine,
   Trash2,
   Plus,
+  CheckCircle,
+  Info,
+  Star,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveUserTypeFromUsersClient } from "@/lib/auth/resolveUserTypeFromUsersClient";
@@ -287,6 +290,34 @@ export default function PanelPage() {
   const isInstitutionProfileTab = activeTab === "institution-profile";
   const isAnnouncementsTab = activeTab === "announcements";
   const isRequestsTab = activeTab === "requests";
+  const isOverviewTab = activeTab === "overview";
+
+  const OVERVIEW_ANNOUNCEMENTS = [
+    {
+      id: "o1",
+      title: "Sistem Bakım Çalışması Hakkında",
+      description: "24 Mayıs 2024 tarihinde saat 02:00 - 04:00 arasında planlı bakım çalışması gerçekleştirilecektir.",
+      timeLabel: "2 Saat Önce",
+      icon: Megaphone,
+      iconBg: "orange",
+    },
+    {
+      id: "o2",
+      title: "Yeni Şube Kayıt Özelliği Aktif Edildi",
+      description: "Artık panel üzerinden birden fazla şubenizi tek bir hesapla kolayca yönetebilirsiniz.",
+      timeLabel: "Dün",
+      icon: Info,
+      iconBg: "blue",
+    },
+    {
+      id: "o3",
+      title: "Aylık Performans Raporu Yayınlandı",
+      description: "Nisan ayı kurum içi büyüme ve kullanıcı etkileşim verilerini içeren raporunuz hazır.",
+      timeLabel: "2 Gün Önce",
+      icon: Star,
+      iconBg: "purple",
+    },
+  ];
 
   const filteredRequests = requestsList.filter((r) => {
     if (requestStatusFilter === "all") return true;
@@ -412,9 +443,84 @@ export default function PanelPage() {
         </aside>
         <div className="panel-page-main">
           <section
-            className={isInstitutionProfileTab ? "panel-main-card panel-institution-card" : "panel-main-card"}
-            aria-labelledby="panel-card-title"
+            className={
+              isOverviewTab
+                ? "panel-main-card panel-overview-card"
+                : isInstitutionProfileTab
+                  ? "panel-main-card panel-institution-card"
+                  : "panel-main-card"
+            }
+            aria-labelledby={isOverviewTab ? "panel-overview-title" : "panel-card-title"}
           >
+            {isOverviewTab ? (
+              <>
+                <div className="panel-overview-header">
+                  <h2 id="panel-overview-title" className="panel-overview-title">
+                    Genel Bakış
+                  </h2>
+                  <p className="panel-overview-subtitle">
+                    Profil durumunuzu ve duyuruları buradan takip edebilirsiniz.
+                  </p>
+                </div>
+                <div className="panel-overview-content">
+                  <div className="panel-overview-cards">
+                    <div className="panel-overview-summary-card panel-overview-summary-card--progress">
+                      <div className="panel-overview-summary-card-text">
+                        <span className="panel-overview-card-label">HESAP DURUMU</span>
+                        <h3 className="panel-overview-card-title">Profil Tamamlanma Yüzdesi</h3>
+                        <p className="panel-overview-card-desc">
+                          Profilinizi %100 yaparak daha fazla özelliğe erişim sağlayın.
+                        </p>
+                      </div>
+                      <div className="panel-overview-progress-wrap">
+                        <div className="panel-overview-progress-ring" aria-hidden>
+                          <span className="panel-overview-progress-value">85%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="panel-overview-summary-card">
+                      <span className="panel-overview-card-label">KURUMSAL ONAY</span>
+                      <h3 className="panel-overview-card-title">Onay Durumu</h3>
+                      <div className="panel-overview-status-row">
+                        <span className="panel-overview-status-chip">
+                          <span className="panel-overview-status-dot" aria-hidden />
+                          YAYINDA
+                        </span>
+                        <div className="panel-overview-status-icon" aria-hidden>
+                          <CheckCircle className="panel-overview-status-check" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="panel-overview-announcements">
+                    <div className="panel-overview-announcements-header">
+                      <h3 className="panel-overview-announcements-title">Yaklaşan Duyurular</h3>
+                      <span className="panel-overview-announcements-pill">SON DUYURULAR</span>
+                    </div>
+                    <ul className="panel-overview-announcements-list">
+                      {OVERVIEW_ANNOUNCEMENTS.map((item) => (
+                        <li key={item.id} className="panel-overview-announcements-item">
+                          <div className={`panel-overview-announcements-icon panel-overview-announcements-icon--${item.iconBg}`}>
+                            <item.icon className="panel-overview-announcements-icon-svg" aria-hidden />
+                          </div>
+                          <div className="panel-overview-announcements-body">
+                            <span className="panel-overview-announcements-item-title">{item.title}</span>
+                            <p className="panel-overview-announcements-item-desc">{item.description}</p>
+                          </div>
+                          <span className="panel-overview-announcements-time">{item.timeLabel}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="panel-overview-announcements-footer">
+                      <button type="button" className="panel-overview-announcements-link">
+                        Tüm Duyuruları Gör &gt;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
             <div className="panel-main-card-header">
               <div className="panel-main-card-header-left">
                 {isAnnouncementsTab ? (
@@ -706,6 +812,8 @@ export default function PanelPage() {
               </div>
             ) : (
               <p className="panel-main-card-placeholder">{activeTabConfig.placeholder}</p>
+            )}
+              </>
             )}
           </section>
         </div>
