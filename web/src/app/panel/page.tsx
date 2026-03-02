@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -15,6 +15,8 @@ import {
   CheckCircle,
   Info,
   Star,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveUserTypeFromUsersClient } from "@/lib/auth/resolveUserTypeFromUsersClient";
@@ -65,6 +67,10 @@ export default function PanelPage() {
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTabId>("overview");
   const [institutionName, setInstitutionName] = useState<string>("");
+  const [institutionId, setInstitutionId] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
   const [institutionFormData, setInstitutionFormData] = useState({
     institutionName: "",
@@ -75,6 +81,7 @@ export default function PanelPage() {
     district: "",
     address: "",
     about: "",
+    logoUrl: "",
   });
 
   type AnnouncementStatus = "draft" | "published";
@@ -227,6 +234,31 @@ export default function PanelPage() {
   }, [user?.id, userType]);
 
   useEffect(() => {
+    if (!user?.id || userType !== "institution") return;
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+    supabase
+      .from("institutions")
+      .select("id, institution_name, logo")
+      .eq("owner_auth_id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        const row = data as { id: number; institution_name?: string; logo?: string | null } | null;
+        if (row) {
+          setInstitutionId(String(row.id));
+          const logoUrl = row.logo
+            ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
+            : "";
+          setInstitutionFormData((prev) => ({ ...prev, logoUrl }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, userType]);
+
+  useEffect(() => {
     if (!isAuthReady || !user || !roleLoaded) return;
     if (userType !== "institution") {
       router.replace("/");
@@ -281,6 +313,52 @@ export default function PanelPage() {
 
   const handleInstitutionFormChange = (field: keyof typeof institutionFormData, value: string) => {
     setInstitutionFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const ALLOWED_LOGO_TYPES: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/webp": "webp",
+  };
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    setLogoUploadError(null);
+    if (!file) return;
+    const ext = ALLOWED_LOGO_TYPES[file.type];
+    if (!ext) {
+      setLogoUploadError("Sadece PNG, JPG veya WebP yükleyebilirsiniz.");
+      return;
+    }
+    if (!institutionId) {
+      setLogoUploadError("Kurum kaydı bulunamadı.");
+      return;
+    }
+    setLogoUploading(true);
+    const supabase = createSupabaseBrowserClient();
+    const path = `institutions/${institutionId}/logo.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("institution-logos")
+      .upload(path, file, { upsert: true });
+    if (uploadError) {
+      setLogoUploading(false);
+      setLogoUploadError(uploadError.message || "Yükleme başarısız.");
+      return;
+    }
+    const { error: updateError } = await supabase
+      .from("institutions")
+      .update({ logo: path })
+      .eq("id", Number(institutionId));
+    if (updateError) {
+      setLogoUploading(false);
+      setLogoUploadError(updateError.message || "Kayıt güncellenemedi.");
+      return;
+    }
+    const publicUrl = supabase.storage.from("institution-logos").getPublicUrl(path).data.publicUrl;
+    setInstitutionFormData((prev) => ({ ...prev, logoUrl: publicUrl }));
+    setLogoUploading(false);
   };
 
   const handleInstitutionProfileSave = () => {
@@ -596,26 +674,72 @@ export default function PanelPage() {
             {isInstitutionProfileTab ? (
               <div className="panel-institution-card-content">
                 <div className="panel-institution-form">
-                  <div className="panel-institution-form-row">
-                    <div className="panel-institution-form-field">
-                      <label className="panel-institution-form-label">KURUM ADI</label>
-                      <Input
-                        type="text"
-                        value={institutionFormData.institutionName}
-                        onChange={(e) => handleInstitutionFormChange("institutionName", e.target.value)}
-                        disabled={!isEditingInstitutionProfile}
-                        className="panel-institution-form-input"
+                  <div className="panel-institution-form-row-first">
+                    <div className="panel-institution-form-logo-wrap">
+                      <input
+                        ref={logoFileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/jpg"
+                        className="panel-institution-form-logo-input"
+                        aria-label="Kurum logosu yükle"
+                        onChange={handleLogoFileChange}
                       />
+                      <div
+                        className={`panel-institution-form-logo-box ${logoUploading ? "panel-institution-form-logo-box--uploading" : ""}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          if (logoUploading) return;
+                          logoFileInputRef.current?.click();
+                        }}
+                        onKeyDown={(e) => {
+                          if (logoUploading) return;
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            logoFileInputRef.current?.click();
+                          }
+                        }}
+                        aria-label="Kurum logosu yükle"
+                      >
+                        {logoUploading ? (
+                          <>
+                            <Loader2 className="panel-institution-form-logo-icon panel-institution-form-logo-spinner" aria-hidden />
+                            <span className="panel-institution-form-logo-loading-text">Yükleniyor…</span>
+                          </>
+                        ) : institutionFormData.logoUrl ? (
+                          <img src={institutionFormData.logoUrl} alt="" className="panel-institution-form-logo-img" />
+                        ) : (
+                          <Upload className="panel-institution-form-logo-icon" aria-hidden />
+                        )}
+                      </div>
+                      <span className="panel-institution-form-label">Kurum Logosu</span>
+                      {logoUploadError && (
+                        <span className="panel-institution-form-logo-error" role="alert">
+                          {logoUploadError}
+                        </span>
+                      )}
                     </div>
-                    <div className="panel-institution-form-field">
-                      <label className="panel-institution-form-label">RESMİ E-POSTA</label>
-                      <Input
-                        type="email"
-                        value={institutionFormData.email}
-                        onChange={(e) => handleInstitutionFormChange("email", e.target.value)}
-                        disabled={!isEditingInstitutionProfile}
-                        className="panel-institution-form-input"
-                      />
+                    <div className="panel-institution-form-first-fields">
+                      <div className="panel-institution-form-field">
+                        <label className="panel-institution-form-label">Kurum Adı</label>
+                        <Input
+                          type="text"
+                          value={institutionFormData.institutionName}
+                          onChange={(e) => handleInstitutionFormChange("institutionName", e.target.value)}
+                          disabled={!isEditingInstitutionProfile}
+                          className="panel-institution-form-input"
+                        />
+                      </div>
+                      <div className="panel-institution-form-field">
+                        <label className="panel-institution-form-label">Resmi E-posta</label>
+                        <Input
+                          type="email"
+                          value={institutionFormData.email}
+                          onChange={(e) => handleInstitutionFormChange("email", e.target.value)}
+                          disabled={!isEditingInstitutionProfile}
+                          className="panel-institution-form-input"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="panel-institution-form-row">
