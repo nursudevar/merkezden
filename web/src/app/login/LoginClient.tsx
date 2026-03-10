@@ -54,6 +54,16 @@ function LoginPageContent() {
         <div className="auth-main-container">
           <div className="auth-layout">
             <div className="auth-visual">
+                <video
+                  className="auth-visual-video"
+                  src="/gifs/login-meko.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  aria-label="Giriş görseli"
+                />
+              {/* auth-orbit
               <div className="auth-orbit">
                 <div className="auth-orbit-circle auth-orbit-circle-outer"></div>
                 <div className="auth-orbit-circle auth-orbit-circle-inner"></div>
@@ -64,6 +74,7 @@ function LoginPageContent() {
                   <div className="auth-orbit-dot"></div>
                 </div>
               </div>
+              */}
             </div>
 
             <div className="auth-form-panel">

@@ -69,6 +69,25 @@
   }
 }
 
+.auth-visual-video-wrap {
+  position: relative;
+  width: 380px;
+  height: 380px;
+
+  @media (max-width: 900px) {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+.auth-visual-video {
+  width: 70%;
+  height: 80%;
+  object-fit: cover;
+  border-radius: 10%;
+}
+
+/*
 .auth-orbit {
   position: relative;
   width: 280px;
@@ -194,6 +213,7 @@
     transform: rotate(360deg);
   }
 }
+*/
 
 .auth-form-panel {
   display: flex;

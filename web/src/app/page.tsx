@@ -455,6 +455,7 @@ export default function Home() {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
   const [priceRange, setPriceRange] = useState<number[]>([0, 10000]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [openCategoryId, setOpenCategoryId] = useState<string>(() => categoryGroups[0]?.id ?? "");
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
@@ -753,7 +754,7 @@ export default function Home() {
                   />
                   <span>Kategori</span>
                 </div>
-                <Accordion type="multiple" defaultValue={categoryGroups.slice(0, 2).map((group) => group.id)}>
+                <Accordion type="single" value={openCategoryId} onValueChange={(v) => setOpenCategoryId(v ?? "")} collapsible>
                   {categoryGroups.map((group) => {
                     const isExpanded = expandedCategories.includes(group.id);
                     const hasMore = group.items.length > 4;
@@ -974,6 +975,14 @@ export default function Home() {
             </>
           )}
       </main>
+      </div>
+      <div className="content-layout">
+        <div className="content-layout-inner">
+          <div className="content-layout-banner">
+            <p className="content-layout-banner-text">İhtiyacınız olan tüm hizmetleri tek platformda keşfedin.</p>
+            <button type="button" className="content-layout-banner-cta">Daha fazla göster</button>
+          </div>
+        </div>
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
 

@@ -336,6 +336,7 @@
 .filter-sidebar {
   width: 100%;
   flex-shrink: 0;
+  align-self: flex-start;
 
   @media (min-width: 1024px) {
     width: 320px;
