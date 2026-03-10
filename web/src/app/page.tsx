@@ -3,8 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check } from "lucide-react";
+import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
+import { Search as SearchIcon, Wifi, Users, Check, MessageCircle } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
 import SearchResults from "@/components/SearchResults";
@@ -556,10 +556,10 @@ export default function Home() {
           <div className="hero-search-overlay"></div>
           <div className="hero-search-content">
             <h1 className="hero-search-title">
-              <span className="hero-search-title-white">SÜRÜŞÜNÜ</span>{" "}
-              <span className="hero-search-title-purple">ÖZGÜRLEŞTİR</span>
+              <span className="hero-search-title-white">ÇAYYOLU</span>{" "}
+              <span className="hero-search-title-purple">SÜRÜCÜ KURSU</span>
             </h1>
-            <p className="hero-search-subtitle">YENİ MODEL ŞİMDİ SATIŞTA!</p>
+            <p className="hero-search-subtitle">İLETİŞİME GEÇMEYİ UNUTMAYIN!</p>
           </div>
         </div>
       </section>
@@ -976,6 +976,31 @@ export default function Home() {
       </main>
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+      <ExpandableChat size="lg" position="bottom-right" icon={<MessageCircle aria-hidden />}>
+        <ExpandableChatHeader>
+          <h2 className="expandable-chat-header-title">Bize ulaşın</h2>
+        </ExpandableChatHeader>
+        <ExpandableChatBody>
+          <p className="expandable-chat-welcome">Sorularınız için buradan yazabilirsiniz.</p>
+        </ExpandableChatBody>
+        <ExpandableChatFooter>
+          <form
+            className="expandable-chat-form"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <Input
+              type="text"
+              placeholder="Mesajınızı yazın..."
+              className="expandable-chat-input"
+              aria-label="Mesaj"
+            />
+            <Button type="submit" variant="default" className="expandable-chat-send-btn">
+              Gönder
+            </Button>
+          </form>
+        </ExpandableChatFooter>
+      </ExpandableChat>
     </div>
   );
 }

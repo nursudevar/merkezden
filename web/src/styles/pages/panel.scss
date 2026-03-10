@@ -737,12 +737,27 @@
 }
 
 /* Kurum Profili form (matches Profile Kişisel Bilgiler layout) */
+.panel-institution-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .panel-institution-save-btn {
+  @include gradient-purple-top;
+  color: $bg-white;
+  border: none;
   padding: 8px 20px;
   font-size: $text-sm;
   font-weight: $font-semibold;
   border-radius: 12px;
   min-height: 40px;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    opacity: 0.95;
+  }
 }
 
 .panel-institution-card-content {

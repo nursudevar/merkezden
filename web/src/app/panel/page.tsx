@@ -17,6 +17,7 @@ import {
   Star,
   Upload,
   Loader2,
+  X,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveUserTypeFromUsersClient } from "@/lib/auth/resolveUserTypeFromUsersClient";
@@ -233,30 +234,73 @@ export default function PanelPage() {
     };
   }, [user?.id, userType]);
 
+ 
   useEffect(() => {
     if (!user?.id || userType !== "institution") return;
+  
+    const userId = user.id;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
-    supabase
-      .from("institutions")
-      .select("id, institution_name, logo")
-      .eq("owner_auth_id", user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        const row = data as { id: number; institution_name?: string; logo?: string | null } | null;
-        if (row) {
-          setInstitutionId(String(row.id));
-          const logoUrl = row.logo
-            ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
-            : "";
-          setInstitutionFormData((prev) => ({ ...prev, logoUrl }));
-        }
+  
+    async function loadInstitutionProfile() {
+      const { data, error } = await supabase
+        .from("institutions")
+        .select(
+          "id, institution_name, official_email, official_phone, website, city, district, address, about, logo"
+        )
+        .eq("owner_auth_id", userId)
+        .maybeSingle();
+  
+      if (cancelled) return;
+  
+      if (error) {
+        console.error("Institution profile load error:", error);
+        return;
+      }
+  
+      const row = data as {
+        id: number;
+        institution_name?: string | null;
+        official_email?: string | null;
+        official_phone?: string | null;
+        website?: string | null;
+        city?: string | null;
+        district?: string | null;
+        address?: string | null;
+        about?: string | null;
+        logo?: string | null;
+      } | null;
+  
+      if (!row) return;
+  
+      setInstitutionId(String(row.id));
+  
+      const logoUrl = row.logo
+        ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
+        : "";
+  
+      setInstitutionName(row.institution_name || "");
+  
+      setInstitutionFormData({
+        institutionName: row.institution_name || "",
+        email: row.official_email || "",
+        phone: row.official_phone || "",
+        website: row.website || "",
+        city: row.city || "",
+        district: row.district || "",
+        address: row.address || "",
+        about: row.about || "",
+        logoUrl,
       });
+    }
+  
+    loadInstitutionProfile();
+  
     return () => {
       cancelled = true;
     };
   }, [user?.id, userType]);
+
 
   useEffect(() => {
     if (!isAuthReady || !user || !roleLoaded) return;
@@ -362,6 +406,10 @@ export default function PanelPage() {
   };
 
   const handleInstitutionProfileSave = () => {
+    setIsEditingInstitutionProfile(false);
+  };
+
+  const handleInstitutionProfileCancel = () => {
     setIsEditingInstitutionProfile(false);
   };
 
@@ -614,14 +662,24 @@ export default function PanelPage() {
               </div>
               {isInstitutionProfileTab ? (
                 isEditingInstitutionProfile ? (
-                  <Button
-                    type="button"
-                    variant="default"
-                    className="panel-institution-save-btn"
-                    onClick={handleInstitutionProfileSave}
-                  >
-                    Kaydet
-                  </Button>
+                  <div className="panel-institution-header-actions">
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="panel-institution-save-btn"
+                      onClick={handleInstitutionProfileSave}
+                    >
+                      Kaydet
+                    </Button>
+                    <button
+                      type="button"
+                      className="panel-main-card-edit-btn panel-institution-cancel-btn"
+                      aria-label="İptal"
+                      onClick={handleInstitutionProfileCancel}
+                    >
+                      <X className="panel-main-card-edit-icon" aria-hidden />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
