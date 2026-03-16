@@ -200,6 +200,30 @@
   }
 }
 
+.expandable-chat-toggle-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.expandable-chat-particles {
+  position: absolute;
+  inset: 0px;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.expandable-chat-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, rgba($bg-white, 0.9), rgba($purple-main, 0.9));
+  box-shadow: 0 0 6px rgba($purple-main, 0.35);
+}
+
 .expandable-chat-toggle {
   width: 56px;
   height: 56px;
@@ -213,7 +237,6 @@
   @include gradient-purple-top;
   color: $bg-white;
   border: none;
-  box-shadow: 0 4px 14px rgba($purple-main, 0.4);
   @include transition;
 
   &:hover {

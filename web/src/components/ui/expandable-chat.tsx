@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { X, MessageCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -124,23 +125,72 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
   isOpen,
   toggleChat,
   ...props
-}) => (
-  <Button
-    type="button"
-    variant="default"
-    onClick={toggleChat}
-    className={cn("expandable-chat-toggle", className)}
-    aria-label={isOpen ? "Sohbeti kapat" : "Sohbeti aç"}
-    aria-expanded={isOpen}
-    {...props}
-  >
-    {isOpen ? (
-      <X className="expandable-chat-toggle-icon" aria-hidden />
-    ) : (
-      icon || <MessageCircle className="expandable-chat-toggle-icon" aria-hidden />
-    )}
-  </Button>
-);
+}) => {
+  const [burstId, setBurstId] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBurstId((id) => id + 1);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const particles = useMemo(() => {
+    const count = 8;
+    const radius = 50;
+    return Array.from({ length: count }).map((_, index) => {
+      const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      return {
+        id: `${burstId}-${index}`,
+        x,
+        y,
+        delay: index * 0.04,
+      };
+    });
+  }, [burstId]);
+
+  return (
+    <div className="expandable-chat-toggle-wrapper">
+      <div className="expandable-chat-particles" aria-hidden>
+        {particles.map((particle) => (
+          <motion.span
+            key={particle.id}
+            className="expandable-chat-particle"
+            initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+            animate={{
+              opacity: [0, 1, 0],
+              scale: [0, 1, 0],
+              x: particle.x,
+              y: particle.y,
+            }}
+            transition={{
+              duration: 1.4,
+              ease: "easeOut",
+              delay: particle.delay,
+            }}
+          />
+        ))}
+      </div>
+      <Button
+        type="button"
+        variant="default"
+        onClick={toggleChat}
+        className={cn("expandable-chat-toggle", className)}
+        aria-label={isOpen ? "Sohbeti kapat" : "Sohbeti aç"}
+        aria-expanded={isOpen}
+        {...props}
+      >
+        {isOpen ? (
+          <X className="expandable-chat-toggle-icon" aria-hidden />
+        ) : (
+          icon || <MessageCircle className="expandable-chat-toggle-icon" aria-hidden />
+        )}
+      </Button>
+    </div>
+  );
+};
 
 ExpandableChatToggle.displayName = "ExpandableChatToggle";
 

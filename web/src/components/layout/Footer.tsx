@@ -1,16 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Linkedin, ChevronDown } from "lucide-react";
 
 export default function Footer() {
+  const footerCategories = [
+    "Okul",
+    "Kurs & Sınava Hazırlık",
+    "Spor",
+    "Sanat",
+    "Yabancı Dil",
+    "Kişisel Gelişim",
+    "Mesleki Eğitim",
+    "Özel Eğitim",
+  ];
   const [openKurumsal, setOpenKurumsal] = useState(false);
   const [openDestek, setOpenDestek] = useState(false);
   const [openKategoriler, setOpenKategoriler] = useState(false);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
 
-  return (
-    <footer className="footer">
+  const footerInner = (
       <div className="footer-container">
         <div className="footer-grid">
           <div className="footer-brand">
@@ -148,6 +160,45 @@ export default function Footer() {
           </div>
         </div>
       </div>
-    </footer>
   );
+
+  if (isHome) {
+    return (
+      <footer className="footer footer--with-wave">
+        <div className="homepage-footer">
+          <div className="homepage-footer-wave-top" aria-hidden="true">
+            <svg
+              viewBox="0 0 1440 160"
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M0,70 C180,110 360,20 540,45 C720,70 900,130 1080,95 C1260,60 1350,40 1440,55 L1440,160 L0,160 Z"
+                fill="#1f2733"
+              />
+            </svg>
+          </div>
+          <div className="homepage-footer-extension">
+            <div className="homepage-footer-extension-inner">
+              <h3 className="homepage-footer-extension-title">
+                Popüler Kategoriler
+              </h3>
+              <div className="homepage-footer-extension-tags">
+                {footerCategories.map((category) => (
+                  <span key={category} className="homepage-footer-extension-tag">
+                    {category}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="homepage-footer-existing-content">
+            {footerInner}
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  return <footer className="footer">{footerInner}</footer>;
 }

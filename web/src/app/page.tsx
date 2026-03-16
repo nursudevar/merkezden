@@ -4,7 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, MessageCircle } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, MessageCircle, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart } from "lucide-react";
+import { motion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
 import SearchResults from "@/components/SearchResults";
@@ -364,10 +365,95 @@ const featuredInstitutions: FeaturedInstitution[] = [
   }
 ];
 
+const premiumPicks = [
+  {
+    name: "Ankara İstek Koleji",
+    imageUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop",
+    rating: 4.9,
+    reviewCount: "120+",
+    location: "İncek, Ankara",
+    slug: "ankara-istek-koleji",
+  },
+  {
+    name: "Özel Bilkent Lisesi",
+    imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&h=600&fit=crop",
+    rating: 4.8,
+    reviewCount: "95+",
+    location: "Çankaya, Ankara",
+    slug: "ozel-bilkent-lisesi",
+  },
+  {
+    name: "Ankara Bilfen Koleji",
+    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop",
+    rating: 4.9,
+    reviewCount: "140+",
+    location: "Bilkent, Ankara",
+    slug: "ankara-bilfen-koleji",
+  },
+  {
+    name: "TED Ankara Koleji",
+    imageUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&h=600&fit=crop",
+    rating: 4.8,
+    reviewCount: "180+",
+    location: "Çankaya, Ankara",
+    slug: "ted-ankara-koleji",
+  },
+  {
+    name: "Çankaya Üniversitesi Koleji",
+    imageUrl: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=600&fit=crop",
+    rating: 4.7,
+    reviewCount: "88+",
+    location: "Yıldız, Ankara",
+    slug: "cankaya-universitesi-koleji",
+  },
+  {
+    name: "Ankara Fen Lisesi",
+    imageUrl: "https://images.unsplash.com/photo-1498243691587-b319d71d3eb4?w=800&h=600&fit=crop",
+    rating: 4.9,
+    reviewCount: "210+",
+    location: "Çankaya, Ankara",
+    slug: "ankara-fen-lisesi",
+  },
+];
 
+const purpleFeatured = [
+  {
+    id: "ozel-ders",
+    badge: "ÖNE ÇIKAN",
+    title: "Birebir Özel Ders",
+    location: "Çankaya, Ankara",
+    cta: "Detayları Gör",
+    imageUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=900&h=650&fit=crop",
+  },
+  {
+    id: "yabanci-dil",
+    badge: "POPÜLER",
+    title: "Yabancı Dil Kursları",
+    location: "Kızılay, Ankara",
+    cta: "Detayları Gör",
+    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=900&h=650&fit=crop",
+  },
+  {
+    id: "sinav",
+    badge: "TAVSİYE",
+    title: "Sınava Hazırlık",
+    location: "Bilkent, Ankara",
+    cta: "Detayları Gör",
+    imageUrl: "https://images.unsplash.com/photo-1454165205744-3b78555e5572?w=900&h=650&fit=crop",
+  },
+  {
+    id: "spor",
+    badge: "YENİ",
+    title: "Spor Akademileri",
+    location: "Ümitköy, Ankara",
+    cta: "Detayları Gör",
+    imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=900&h=650&fit=crop",
+  },
+];
 
 function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.MouseEvent) => void }) {
   const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState(featuredInstitutions);
+  const [favorites, setFavorites] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const shuffled = [...featuredInstitutions];
@@ -388,8 +474,15 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
       </div>
       <div className="featured-institutions-slider">
         <div className="featured-institutions-scroller">
-          {shuffledFeaturedInstitutions.map((institution) => (
-            <Link key={institution.id} href={`/institutions/${institution.slug}`} className="featured-institution-card" aria-label={`${institution.name} detayları`}>
+          {shuffledFeaturedInstitutions.map((institution) => {
+            const isFavorite = favorites[institution.id] ?? false;
+            return (
+              <Link
+                key={institution.id}
+                href={`/institutions/${institution.slug}`}
+                className="featured-institution-card"
+                aria-label={`${institution.name} detayları`}
+              >
               <div className="featured-institution-image-wrapper">
                 <img 
                   src={institution.imageUrl} 
@@ -400,16 +493,28 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
                 <div className={`featured-institution-badge featured-institution-badge--${institution.badge.color}`}>
                   <span className="featured-institution-badge-label">{institution.badge.label}</span>
                 </div>
-                <button 
-                  type="button" 
+                <motion.button
+                  type="button"
+                  aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
                   className="featured-institution-favorite"
-                  aria-label="Favorilere ekle"
-                  onClick={onFavoriteClick}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => {
+                    onFavoriteClick(e);
+                    setFavorites((prev) => ({
+                      ...prev,
+                      [institution.id]: !isFavorite,
+                    }));
+                  }}
                 >
-                  <svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 2.24 0 5 0C6.74 0 8.41 0.81 9.5 2.09C10.59 0.81 12.26 0 14 0C16.76 0 19 1.96 19 4.5C19 8.28 15.6 11.36 10.45 16.04L10 17.35Z" fill="currentColor"/>
-                  </svg>
-                </button>
+                  <motion.div
+                    animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <Heart
+                      className={isFavorite ? "heart-favorite-icon heart-favorite-icon--active" : "heart-favorite-icon"}
+                    />
+                  </motion.div>
+                </motion.button>
               </div>
               <div className="featured-institution-content">
                 <div className="featured-institution-location">
@@ -432,8 +537,9 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
                   </span>
                 </div>
               </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
       <div className="featured-institutions-view-all">
@@ -461,6 +567,7 @@ export default function Home() {
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null);
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
+  const [premiumPicksPage, setPremiumPicksPage] = useState(0);
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -978,10 +1085,165 @@ export default function Home() {
       </div>
       <div className="content-layout">
         <div className="content-layout-inner">
-          <div className="content-layout-banner">
-            <p className="content-layout-banner-text">İhtiyacınız olan tüm hizmetleri tek platformda keşfedin.</p>
-            <button type="button" className="content-layout-banner-cta">Daha fazla göster</button>
-          </div>
+          <section className="purple-featured-section" aria-label="Hızlı Keşif">
+            <div className="purple-featured-bg" aria-hidden />
+            <div className="purple-featured-inner">
+              <div className="purple-featured-heading">
+                <span className="purple-featured-kicker">Yabancı Dil İçin Özenle Seçildi</span>
+                <h2 className="purple-featured-title">Dil Eğitiminde Fark Yaratanlar</h2>
+              </div>
+
+              <div className="purple-featured-cards">
+                {purpleFeatured.map((card, idx) => (
+                  <Link key={card.id} href="/okullar" className="purple-featured-card" aria-label={card.title}>
+                    <div className="purple-featured-card-media">
+                      <img className="purple-featured-card-img" src={card.imageUrl} alt={card.title} />
+                      <span className="purple-featured-card-badge">{card.badge}</span>
+                    </div>
+                    <div className="purple-featured-card-body">
+                      <h3 className="purple-featured-card-title">{card.title}</h3>
+                      <div className="purple-featured-card-location">
+                        <MapPin className="purple-featured-card-location-icon" aria-hidden />
+                        <span>{card.location}</span>
+                      </div>
+                      <div className="purple-featured-card-cta">{card.cta} ›</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="premium-picks-section" aria-label="Ankara'nın En İyileri">
+            <div className="premium-picks-header">
+              <div className="premium-picks-header-text">
+                <span className="premium-picks-badge">PREMIUM KEŞİF</span>
+                <h2 className="premium-picks-title">Ankara'nın En İyileri</h2>
+                <p className="premium-picks-desc">Başkentin en prestijli eğitim kurumlarını keşfedin.</p>
+              </div>
+              <div className="premium-picks-nav" aria-hidden>
+                <button
+                  type="button"
+                  className="premium-picks-nav-btn premium-picks-nav-btn--prev"
+                  aria-label="Önceki"
+                  onClick={() => setPremiumPicksPage((p) => (p - 1 + 2) % 2)}
+                >
+                  <ChevronLeft className="premium-picks-nav-icon" />
+                </button>
+                <button
+                  type="button"
+                  className="premium-picks-nav-btn premium-picks-nav-btn--next"
+                  aria-label="Sonraki"
+                  onClick={() => setPremiumPicksPage((p) => (p + 1) % 2)}
+                >
+                  <ChevronRight className="premium-picks-nav-icon" />
+                </button>
+              </div>
+            </div>
+            <div className="premium-picks-cards">
+              {premiumPicks.slice(premiumPicksPage * 3, premiumPicksPage * 3 + 3).map((item) => (
+                <Link key={item.slug} href={`/okullar/${item.slug}`} className="premium-picks-card">
+                  <div
+                    className="premium-picks-card-media"
+                    style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                  >
+                    <span className="premium-picks-card-badge">TOP PICK</span>
+                    <div className="premium-picks-card-overlay" />
+                    <div className="premium-picks-card-info">
+                      <h3 className="premium-picks-card-title">{item.name}</h3>
+                      <div className="premium-picks-card-rating">
+                        <Star className="premium-picks-card-star" fill="currentColor" aria-hidden />
+                        <span>{item.rating}</span>
+                        <span className="premium-picks-card-reviews">({item.reviewCount} Değerlendirme)</span>
+                      </div>
+                      <p className="premium-picks-card-location">{item.location}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="announcements-section" aria-label="Duyurular">
+            <div className="announcements-header">
+              <h2 className="announcements-title">Duyurular</h2>
+              <div className="announcements-nav" aria-hidden>
+                <button type="button" className="announcements-nav-btn">
+                  <ChevronLeft className="announcements-nav-icon" />
+                </button>
+                <button type="button" className="announcements-nav-btn">
+                  <ChevronRight className="announcements-nav-icon" />
+                </button>
+              </div>
+            </div>
+
+            <div className="announcements-grid">
+              <Link href="/blog" className="announcement-featured">
+                <div
+                  className="announcement-featured-media"
+                  style={{
+                    backgroundImage:
+                      'url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&h=700&fit=crop")',
+                  }}
+                >
+                  <span className="announcement-badge">Yeni</span>
+                  <div className="announcement-featured-overlay" />
+                  <div className="announcement-featured-body">
+                    <h3 className="announcement-featured-title">Eğitimde Bahar Dönemi Kayıtları Başladı</h3>
+                    <p className="announcement-featured-desc">
+                      Yakınınızdaki kurumları karşılaştırın, fiyat ve hizmet detaylarını tek ekranda inceleyin.
+                    </p>
+                    <div className="announcement-featured-meta">
+                      <span className="announcement-meta-item">
+                        <CalendarDays className="announcement-meta-icon" />
+                        2 Mart 2026
+                      </span>
+                      <span className="announcement-meta-item">
+                        <MapPin className="announcement-meta-icon" />
+                        Ankara
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              <div className="announcements-side">
+                <Link href="/blog" className="announcement-small">
+                  <div
+                    className="announcement-small-thumb"
+                    style={{
+                      backgroundImage:
+                        'url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop")',
+                    }}
+                  />
+                  <div className="announcement-small-body">
+                    <div className="announcement-small-kicker">KAMPANYA</div>
+                    <h4 className="announcement-small-title">Üyeliğe Özel İlk Görüşme İndirimi</h4>
+                    <p className="announcement-small-desc">
+                      Seçili kurumlarda tanışma dersleri ve değerlendirme görüşmeleri avantajlı.
+                    </p>
+                  </div>
+                </Link>
+
+                <Link href="/blog" className="announcement-small">
+                  <div
+                    className="announcement-small-thumb"
+                    style={{
+                      backgroundImage:
+                        'url("https://images.unsplash.com/photo-1454165205744-3b78555e5572?w=600&h=400&fit=crop")',
+                    }}
+                  />
+                  <div className="announcement-small-body">
+                    <div className="announcement-small-kicker">BİLGİLENDİRME</div>
+                    <h4 className="announcement-small-title">Yeni Filtreler ve Arama Deneyimi</h4>
+                    <p className="announcement-small-desc">
+                      Lokasyon, fiyat ve kategori filtreleriyle en uygun seçeneklere daha hızlı ulaşın.
+                    </p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />

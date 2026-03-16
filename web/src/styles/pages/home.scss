@@ -1993,7 +1993,7 @@ a.featured-institution-card {
   width: 36px;
   height: 36px;
   @include rounded-full;
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(255, 255, 255, 0.8);
   border: none;
   @include flex-center;
   cursor: pointer;
@@ -2004,13 +2004,20 @@ a.featured-institution-card {
 
   &:hover {
     background-color: $bg-white;
-    color: $red-error;
-    transform: scale(1.1);
+    transform: scale(1.03);
   }
 
-  svg {
-    width: 18px;
-    height: 18px;
+  .heart-favorite-icon {
+    width: 20px;
+    height: 20px;
+    color: #71717a;
+    display: block;
+    margin: 0;
+  }
+
+  .heart-favorite-icon--active {
+    color: $red-error;
+    fill: $red-error;
   }
 }
 
