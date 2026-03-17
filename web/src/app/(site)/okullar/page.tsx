@@ -25,20 +25,6 @@ const COL_LABELS: Record<(typeof COLS)[number], string> = {
   address: 'Adres',
 };
 
-function normalizeForSearch(s: string): string {
-  return s.trim().toLocaleLowerCase('tr');
-}
-
-function rowMatchesSearch(row: Record<string, unknown>, searchNorm: string): boolean {
-  if (!searchNorm) return true;
-  for (const col of COLS) {
-    const val = row[col];
-    const str = val != null ? String(val) : '';
-    if (normalizeForSearch(str).includes(searchNorm)) return true;
-  }
-  return false;
-}
-
 export default function OkullarPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -50,10 +36,18 @@ export default function OkullarPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [cities, setCities] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 450);
+    return () => window.clearTimeout(t);
+  }, [searchText]);
 
   const setPage = useCallback(
     (newPage: number) => {
@@ -91,49 +85,51 @@ export default function OkullarPage() {
         const selectCols = COLS.join(', ');
         const from = (page - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
+        const searchTerm = debouncedSearchText.trim();
 
-        let countQuery = supabase.from('institutions').select('*', { count: 'exact', head: true });
         let dataQuery = supabase
           .from('institutions')
-          .select(selectCols)
+          .select(selectCols, { count: 'exact' })
           .order('institution_name', { ascending: true })
           .order('id', { ascending: true });
 
         if (selectedCity) {
-          countQuery = countQuery.eq('city', selectedCity);
           dataQuery = dataQuery.eq('city', selectedCity);
         }
         if (selectedDistrict) {
-          countQuery = countQuery.eq('district', selectedDistrict);
           dataQuery = dataQuery.eq('district', selectedDistrict);
         }
+        if (searchTerm) {
+          const q = `%${searchTerm}%`;
+          const or = [
+            `institution_name.ilike.${q}`,
+            `type.ilike.${q}`,
+            `city.ilike.${q}`,
+            `district.ilike.${q}`,
+            `official_phone.ilike.${q}`,
+            `address.ilike.${q}`,
+          ].join(',');
+          dataQuery = dataQuery.or(or);
+        }
 
-        const [countRes, dataRes] = await Promise.all([
-          countQuery,
-          dataQuery.range(from, to),
-        ]);
+        const dataRes = await dataQuery.range(from, to);
 
         if (cancelled) return;
 
-        if (countRes.error) {
-          setError(countRes.error.message);
+        if (dataRes.error) {
+          setError(dataRes.error.message);
           setRows([]);
           setTotalCount(null);
         } else {
-          setTotalCount(countRes.count ?? 0);
-          if (dataRes.error) {
-            setError(dataRes.error.message);
-            setRows([]);
-          } else {
-            const data = dataRes.data;
-            const list = Array.isArray(data) ? (data as unknown as Record<string, unknown>[]) : [];
-            list.sort((a, b) => {
-              const na = String(a?.institution_name ?? '');
-              const nb = String(b?.institution_name ?? '');
-              return na.localeCompare(nb, 'tr');
-            });
-            setRows(list);
-          }
+          setTotalCount(dataRes.count ?? 0);
+          const data = dataRes.data;
+          const list = Array.isArray(data) ? (data as unknown as Record<string, unknown>[]) : [];
+          list.sort((a, b) => {
+            const na = String(a?.institution_name ?? '');
+            const nb = String(b?.institution_name ?? '');
+            return na.localeCompare(nb, 'tr');
+          });
+          setRows(list);
         }
       } catch (e) {
         if (!cancelled) {
@@ -146,13 +142,9 @@ export default function OkullarPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [page, selectedCity, selectedDistrict]);
+  }, [page, selectedCity, selectedDistrict, debouncedSearchText]);
 
-  const searchNorm = useMemo(() => normalizeForSearch(searchText), [searchText]);
-  const filteredRows = useMemo(
-    () => (searchNorm ? rows.filter((row) => rowMatchesSearch(row, searchNorm)) : rows),
-    [rows, searchNorm]
-  );
+  const filteredRows = useMemo(() => rows, [rows]);
 
   const totalPages = totalCount !== null ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE)) : 0;
   const hasPrev = page > 1;
@@ -171,6 +163,7 @@ export default function OkullarPage() {
 
   const handleSearchChange = (value: string) => {
     setSearchText(value);
+    if (page !== 1) setPage(1);
   };
   const handleClearSearch = () => setSearchText('');
   const handleClearAll = () => {
@@ -195,10 +188,7 @@ export default function OkullarPage() {
 
         {error && <div className="okullar-error">{error}</div>}
 
-        {loading ? (
-          <p className="okullar-loading">Yükleniyor...</p>
-        ) : (
-          <div className="okullar-card">
+        <div className="okullar-card">
             <div className="okullar-filter-bar">
               <div className="okullar-filter-search-wrap">
                 <Search className="okullar-filter-search-icon" size={18} aria-hidden />
@@ -221,6 +211,11 @@ export default function OkullarPage() {
                   </button>
                 )}
               </div>
+              {loading && (
+                <span className="okullar-filter-loading" aria-live="polite">
+                  Yükleniyor…
+                </span>
+              )}
               <select
                 className="okullar-filter-select"
                 value={selectedCity}
@@ -372,8 +367,7 @@ export default function OkullarPage() {
                 )}
               </div>
             )}
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );

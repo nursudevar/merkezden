@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui";
 import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
 import "@/styles/main.scss";
@@ -22,27 +22,15 @@ declare module "react" {
 }
 
 function ContactAnimation() {
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js";
-    script.type = "module";
-    script.async = true;
-    document.head.appendChild(script);
-
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-    };
-  }, []);
-
   return (
     <div className="contact-animation" aria-hidden="true">
-      <dotlottie-wc
-        src="https://lottie.host/aff8c858-70de-4d2c-996d-ffc295a9a60f/T7DW1moe7j.lottie"
-        style={{ width: "300px", height: "300px" }}
-        autoplay
+      <video
+        className="contact-animation-video"
+        src="/gifs/iletisim-meko.mp4"
+        autoPlay
+        muted
         loop
+        playsInline
       />
     </div>
   );

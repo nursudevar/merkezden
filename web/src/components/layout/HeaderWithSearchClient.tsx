@@ -8,6 +8,7 @@ import { Button } from '@/components/ui';
 import LogoutButton from '@/components/auth/LogoutButton';
 import SearchBar from '@/components/SearchBar';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { GraduationCap, Info, Phone, HelpCircle, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
 
 interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
@@ -121,22 +122,42 @@ export default function HeaderWithSearchClient({
               {menuOpen && (
                 <div className="header-hamburger-dropdown">
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                    Tüm Okullar
+                    <GraduationCap className="header-hamburger-icon" aria-hidden />
+                    <span>Tüm Okullar</span>
+                  </Link>
+                  <Link href="/about" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                    <Info className="header-hamburger-icon" aria-hidden />
+                    <span>Hakkımızda</span>
+                  </Link>
+                  <Link href="/contact" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                    <Phone className="header-hamburger-icon" aria-hidden />
+                    <span>İletişim</span>
+                  </Link>
+                  <Link href="/faq" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                    <HelpCircle className="header-hamburger-icon" aria-hidden />
+                    <span>S.S.S</span>
                   </Link>
                   {user ? (
                     <>
                       {shouldShowCTA && (
                         <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                          {getCTALabel()}
+                          {userType === 'institution' ? (
+                            <LayoutDashboard className="header-hamburger-icon" aria-hidden />
+                          ) : (
+                            <User className="header-hamburger-icon" aria-hidden />
+                          )}
+                          <span>{getCTALabel()}</span>
                         </Link>
                       )}
                       <button type="button" className="header-hamburger-link header-hamburger-link-button" onClick={handleMobileLogout}>
-                        Çıkış Yap
+                        <LogOut className="header-hamburger-icon" aria-hidden />
+                        <span>Çıkış Yap</span>
                       </button>
                     </>
                   ) : (
                     <Link href="/login" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                      Giriş Yap
+                      <LogIn className="header-hamburger-icon" aria-hidden />
+                      <span>Giriş Yap</span>
                     </Link>
                   )}
                 </div>
@@ -196,11 +217,29 @@ export default function HeaderWithSearchClient({
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                    OKULLAR
+                    <GraduationCap className="header-hamburger-icon" aria-hidden />
+                    <span>OKULLAR</span>
+                  </Link>
+                  <Link href="/about" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                    <Info className="header-hamburger-icon" aria-hidden />
+                    <span>HAKKIMIZDA</span>
+                  </Link>
+                  <Link href="/contact" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                    <Phone className="header-hamburger-icon" aria-hidden />
+                    <span>İLETİŞİM</span>
+                  </Link>
+                  <Link href="/faq" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                    <HelpCircle className="header-hamburger-icon" aria-hidden />
+                    <span>S.S.S</span>
                   </Link>
                   {user && shouldShowCTA && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                      {getCTALabel()}
+                      {userType === 'institution' ? (
+                        <LayoutDashboard className="header-hamburger-icon" aria-hidden />
+                      ) : (
+                        <User className="header-hamburger-icon" aria-hidden />
+                      )}
+                      <span>{getCTALabel()}</span>
                     </Link>
                   )}
                 </div>

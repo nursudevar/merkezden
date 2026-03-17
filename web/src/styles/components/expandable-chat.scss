@@ -220,8 +220,8 @@
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background: radial-gradient(circle at 30% 30%, rgba($bg-white, 0.9), rgba($purple-main, 0.9));
-  box-shadow: 0 0 6px rgba($purple-main, 0.35);
+  background: radial-gradient(circle at 30% 30%, rgba($purple-main, 0.6), rgba($purple-primary, 0.9));
+  box-shadow: 0 0 6px rgba($purple-primary, 0.35);
 }
 
 .expandable-chat-toggle {

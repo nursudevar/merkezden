@@ -1167,14 +1167,9 @@ export default function Home() {
           <section className="announcements-section" aria-label="Duyurular">
             <div className="announcements-header">
               <h2 className="announcements-title">Duyurular</h2>
-              <div className="announcements-nav" aria-hidden>
-                <button type="button" className="announcements-nav-btn">
-                  <ChevronLeft className="announcements-nav-icon" />
-                </button>
-                <button type="button" className="announcements-nav-btn">
-                  <ChevronRight className="announcements-nav-icon" />
-                </button>
-              </div>
+              <Link href="/blog" className="announcements-view-all">
+                tümünü gör
+              </Link>
             </div>
 
             <div className="announcements-grid">

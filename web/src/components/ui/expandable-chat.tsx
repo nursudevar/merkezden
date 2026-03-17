@@ -136,8 +136,8 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
   }, []);
 
   const particles = useMemo(() => {
-    const count = 8;
-    const radius = 50;
+    const count = 10;
+    const radius = 60;
     return Array.from({ length: count }).map((_, index) => {
       const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
       const x = Math.cos(angle) * radius;
@@ -166,7 +166,7 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
               y: particle.y,
             }}
             transition={{
-              duration: 1.4,
+              duration: 1.6,
               ease: "easeOut",
               delay: particle.delay,
             }}

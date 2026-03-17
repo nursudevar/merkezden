@@ -48,6 +48,14 @@
   flex-wrap: wrap;
 }
 
+.okullar-filter-loading {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba($purple-main, 0.85);
+  white-space: nowrap;
+  padding: 0 8px;
+}
+
 .okullar-filter-search-wrap {
   flex: 1;
   min-width: 200px;

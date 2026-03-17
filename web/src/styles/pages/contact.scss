@@ -24,7 +24,6 @@
   margin-bottom: 100px;
   padding-top: 20px;
   padding-bottom: 20px;
-  max-height: 25vh;
   min-height: 200px;
   display: flex;
   flex-direction: column;
@@ -353,25 +352,28 @@
 
 .contact-animation {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: clamp(160px, 28vw, 240px);
+  height: clamp(160px, 28vw, 240px);
+  max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
 
   @media (max-width: 768px) {
-    width: 160px;
-    height: 160px;
+    width: clamp(140px, 40vw, 190px);
+    height: clamp(140px, 40vw, 190px);
   }
 
   @media (max-width: 480px) {
-    width: 140px;
-    height: 140px;
+    width: clamp(130px, 52vw, 170px);
+    height: clamp(130px, 52vw, 170px);
   }
 
-  dotlottie-wc {
+  dotlottie-wc,
+  .contact-animation-video {
     width: 100%;
     height: 100%;
+    object-fit: contain;
   }
 }
