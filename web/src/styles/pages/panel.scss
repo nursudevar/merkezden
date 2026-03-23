@@ -371,6 +371,387 @@
   }
 }
 
+/* Kurum Ozellikleri tab */
+.panel-institutions-content {
+  padding: 24px 30px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.panel-institutions-section {
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.panel-institutions-section-title {
+  margin: 0 0 16px;
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+}
+
+.panel-institutions-empty {
+  border: 1px solid $border-light;
+  background: $bg-white;
+  border-radius: 14px;
+  padding: 22px 18px;
+}
+
+.panel-institutions-empty-text {
+  margin: 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+}
+
+.panel-institutions-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-institutions-meta {
+  margin: 0;
+  font-size: $text-xs;
+  color: $text-zinc-500;
+}
+
+.panel-institutions-group-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-institutions-group-item {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background: $bg-zinc-50;
+}
+
+.panel-institutions-group-title {
+  margin: 0 0 12px;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-zinc-800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-institutions-group-title-icon {
+  width: 16px;
+  height: 16px;
+  color: $text-zinc-700;
+}
+
+.panel-institutions-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 24px;
+  border-radius: 999px;
+  background: $purple-main;
+  color: white;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  padding: 0 8px;
+}
+
+.panel-institutions-features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-institutions-features-grid--selection {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 16px;
+
+  @media (max-width: 1080px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 820px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-institutions-selection-item {
+  min-width: 0;
+}
+
+.panel-institutions-selection-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: $text-sm;
+  color: $text-zinc-700;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: $purple-main;
+    cursor: pointer;
+  }
+}
+
+.panel-institutions-feature-item {
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 10px;
+  padding: 10px 12px;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.panel-institutions-group-item--basic {
+  border-color: $border-light;
+}
+
+.panel-institutions-feature-name {
+  margin: 0;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-zinc-700;
+}
+
+.panel-institutions-feature-boolean {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: $purple-main;
+    cursor: pointer;
+  }
+}
+
+.panel-institutions-feature-help {
+  margin: 6px 0 0;
+  font-size: $text-xs;
+  color: $text-zinc-500;
+  line-height: 1.4;
+}
+
+.panel-institutions-feature-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-institutions-feature-input,
+.panel-institutions-feature-textarea {
+  width: 100%;
+  border: 1px solid $border-light;
+  background: $bg-white;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: $text-sm;
+  color: $text-zinc-800;
+  outline: none;
+  @include transition;
+
+  &:focus {
+    border-color: rgba($purple-main, 0.5);
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.12);
+  }
+}
+
+.panel-institutions-feature-textarea {
+  resize: vertical;
+}
+
+.panel-institutions-feature-select {
+  @extend .panel-institutions-feature-input;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 36px;
+}
+
+.panel-institutions-feature-multi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-institutions-feature-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid $border-light;
+  background: $bg-white;
+  color: $text-zinc-700;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    background: $bg-zinc-50;
+  }
+
+  &.is-selected {
+    background: lightgray;
+    color: $text-zinc-800;
+  }
+}
+
+.panel-institutions-feature-chip-check {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid $border-light;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  background: $bg-white;
+}
+
+.panel-institutions-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.panel-institutions-save-btn {
+  min-width: 128px;
+}
+
+.panel-institutions-save-message {
+  margin: 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+}
+
+.panel-institutions-feature-number-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-institutions-feature-unit {
+  font-size: $text-xs;
+  color: $text-zinc-500;
+  white-space: nowrap;
+}
+
+.panel-institutions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-institutions-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel-institutions-label {
+  margin: 0;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-zinc-700;
+}
+
+.panel-institutions-select {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #e9dff6;
+  background: #f4ecfb;
+  border-radius: 999px;
+  padding: 0 40px 0 14px;
+  font-size: $text-sm;
+  color: $text-zinc-800;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23755990' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  @include transition;
+
+  &:focus {
+    border-color: rgba($purple-main, 0.5);
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.12);
+  }
+}
+
+.panel-institutions-branches {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid #e9dff6;
+  background: #f4ecfb;
+  border-radius: 18px;
+  padding: 8px 10px;
+}
+
+.panel-institutions-branch-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #b58de4;
+  color: $bg-white;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+}
+
+.panel-institutions-branch-add {
+  height: 24px;
+  border-radius: 999px;
+  border: 1px dashed rgba($purple-main, 0.45);
+  background: rgba($bg-white, 0.7);
+  color: $purple-main;
+  padding: 0 10px;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    background: $bg-white;
+  }
+}
+
 /* Genel Bakış tab */
 .panel-overview-card {
   overflow: visible;
