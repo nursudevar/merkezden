@@ -1,0 +1,92 @@
+[
+  {
+    "sira_no": "1",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL AYDINLIKEVLER YİRMİ ÜÇ NİSAN ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "AYDINLIKEVLER MAH. ÇEVRELİ CAD. NO: 18 İÇ KAPI NO: 3 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 4-5-6)",
+    "telefon": "(532) 287 37 37",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "2",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL YİRMİ ÜÇ NİSAN ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "AYDINLIKEVLER MAH. ŞEHİT ÖMER HALİSDEMİR BUL. NO: 142/21 ALTINDAĞ / ANKARA",
+    "telefon": "(554) 832 23 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "3",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL CANSIN ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "AKPINAR MAH. DİKMEN CAD. NO: 546A ÇANKAYA / ANKARA",
+    "telefon": "(507) 288 00 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "4",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL CEMRE BİLİM SANAT AKADEMİSİ ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "EMEK MAH. KIRIM CAD. NO: 70A ÇANKAYA / ANKARA",
+    "telefon": "(530) 716 02 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "5",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL FİLİZLER ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "ŞEKER MAH. 1417 CAD. ÖZEL FILIZLER ANA OKULU NO: 2B İÇ KAPI NO: 4 ETİMESGUT / ANKARA",
+    "telefon": "(530) 352 69 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "6",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL GENÇ HACETTEPELİLER ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "KAVACIK SUBAYEVLERİ MAH. ŞEHİT MAKBULE SK. NO: 39 İÇ KAPI NO: 2 KEÇİÖREN / ANKARA",
+    "telefon": "(506) 503 05 68",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "7",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL GÜLNUR ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "PINARBAŞI MAH. ASYA SK. NO: 23A KEÇİÖREN / ANKARA",
+    "telefon": "(554) 984 00 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "8",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL TEK ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "KÖŞK MAH. ANAVATAN CAD. NO: 36C KEÇİÖREN / ANKARA",
+    "telefon": "(554) 633 36 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "9",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SÜVARİ ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "FEVZİ ÇAKMAK MAH. LALE. SK. NO: 2A SİNCAN / ANKARA",
+    "telefon": "(312) 277 32 69",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "10",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL SELİN BOYRAZ AKADEMİ ÖĞRENCİ ETKİNLİK MERKEZİ",
+    "okul_turu": "Öğrenci Etkinlik Merkezi",
+    "adres": "YENİ BATI MAH. PALANDÖKEN CAD. NO: 45 YENİMAHALLE / ANKARA",
+    "telefon": "(552) 216 42 62",
+    "il": "ANKARA"
+  }
+]

@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveUserTypeFromUsersClient } from '@/lib/auth/resolveUserTypeFromUsersClient';
+import { resolveInstitutionNameFromUsersClient } from '@/lib/auth/resolveInstitutionNameFromUsersClient';
 import HeaderClient from './HeaderClient';
 
 export default function HeaderClientWrapper() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<'individual' | 'institution' | null>(null);
+  const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export default function HeaderClientWrapper() {
       setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
       if (!authUser) {
         setUserType(null);
+        setInstitutionName(null);
       }
       setIsAuthReady(true);
     }
@@ -30,6 +33,7 @@ export default function HeaderClientWrapper() {
       setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
       if (!authUser) {
         setUserType(null);
+        setInstitutionName(null);
       }
     });
 
@@ -41,6 +45,7 @@ export default function HeaderClientWrapper() {
   useEffect(() => {
     if (!user?.id) {
       setUserType(null);
+      setInstitutionName(null);
       return;
     }
     let cancelled = false;
@@ -53,11 +58,31 @@ export default function HeaderClientWrapper() {
   }, [user?.id]);
 
   useEffect(() => {
+    if (!user?.id || userType !== 'institution') {
+      setInstitutionName(null);
+      return;
+    }
+    let cancelled = false;
+    resolveInstitutionNameFromUsersClient(user.id).then((name) => {
+      if (!cancelled) setInstitutionName(name || 'Kurum Hesabı');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, userType]);
+
+  useEffect(() => {
     console.log('Header role:', { authUid: user?.id, userType });
   }, [user?.id, userType]);
 
   const displayUser = isAuthReady ? user : null;
   const displayUserType = isAuthReady ? userType : null;
 
-  return <HeaderClient initialUser={displayUser} initialUserType={displayUserType} />;
+  return (
+    <HeaderClient
+      initialUser={displayUser}
+      initialUserType={displayUserType}
+      initialInstitutionName={displayUserType === 'institution' ? institutionName : null}
+    />
+  );
 }

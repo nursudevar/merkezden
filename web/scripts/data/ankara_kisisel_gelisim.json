@@ -1,0 +1,1352 @@
+[
+  {
+    "sira_no": "1",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL AKYURT FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YILDIRIM MAH. KADER SK. 2 SİTESİ KALENDER APT NO: 2A AKYURT / ANKARA",
+    "telefon": "(552) 064 46 13",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "2",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL AKYURT SEBAT SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YILDIRIM MAH. KİRAZ SK. NO: 2B İÇ KAPI NO: 8 AKYURT / ANKARA (DİĞER İÇ KAPILAR: 9)",
+    "telefon": "(541) 952 48 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "3",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ALTINDAĞ BİLİMSEL FARKINDALIK (BF) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KARAPÜRÇEK MAH. KARAPÜRÇEK CAD. C-D-E BLOK NO: 136/2 İÇ KAPI NO: 5 ALTINDAĞ / ANKARA",
+    "telefon": "(507) 641 34 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "4",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ALTINDAĞ VERA SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KARAPÜRÇEK MAH. ŞEHİT SAVAŞ BATU CAD. OZEL VERA ORTAOKUKU NO: 15 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(545) 470 09 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "5",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL AYDINLIKEVLER PRATİK HIZ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AYDINLIKEVLER MAH. ÇEVRELİ CAD. NO: 48 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(532) 679 94 14",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "6",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL BAŞÖĞRETMEN FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BEŞİKKAYA MAH. 1956 SK. SATILMIŞ DOĞANCI IŞ MERKEZI NO: 1 İÇ KAPI NO: 4 ALTINDAĞ / ANKARA",
+    "telefon": "(530) 917 19 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "7",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL GÜNEŞEVLER FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GÜNEŞEVLER MAH. MEHMET AKİF ERSOY CAD. NO: 11A ALTINDAĞ / ANKARA",
+    "telefon": "(530) 399 71 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "8",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL KARAPÜRÇEK FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KARAPÜRÇEK MAH. ŞEHİT HARUN AYDIN CAD. NO: 62D ALTINDAĞ / ANKARA",
+    "telefon": "(532) 296 06 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "9",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL KARAPÜRÇEK NOKTA TEK SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KARAPÜRÇEK MAH. ŞEHİT EYÜP ÖKSÜZ CAD. OZEL KARAPURCEK KISISRL GELISIM KURSU NO: 33 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 376 73 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "10",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL NOKTA TEK SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "FERİDUN ÇELİK MAH. ORHAN KEMAL CAD. NO: 93B ALTINDAĞ / ANKARA",
+    "telefon": "(312) 375 02 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "11",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA AÇI SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KORKUTREİS MAH. İLKİZ SK. NO: 1 İÇ KAPI NO: 15 ÇANKAYA / ANKARA",
+    "telefon": "(312) 231 75 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "12",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BAHÇELİ FİNAL VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "EMEK MAH. ŞEHİT YAVUZ OĞUZ CAD. NO: 6 ÇANKAYA / ANKARA",
+    "telefon": "(530) 143 69 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "13",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BAŞARI AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BÜYÜKESAT MAH. KOZA CAD. HAS-AN APT. NO: 123A ÇANKAYA / ANKARA",
+    "telefon": "(553) 594 40 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "14",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BEYTEPE TEST TEKNİĞİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BEYTEPE MAH. HAFSA SULTAN CAD. NO: 9/9 ÇANKAYA / ANKARA",
+    "telefon": "(532) 258 17 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "15",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇANKAYA AYDIN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İLKBAHAR MAH. 608 SK. NO: 3 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 490 98 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "16",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇANKAYA NOKTA TEK SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "FİDANLIK MAH. ADAKALE SK. NO: 27 İÇ KAPI NO: 8 ÇANKAYA / ANKARA",
+    "telefon": "(536) 781 83 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "17",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇAYYOLU DURSUN GÜVEN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2808 CAD. NO: 15 İÇ KAPI NO: 3 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(545) 506 06 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "18",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DİKMEN ÇÖZÜM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "OSMAN TEMİZ MAH. DİKMEN CAD. ÖZEL LIDERLER DIKMEN LISESI NO: 321 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(507) 886 37 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "19",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DİKMEN SINAV İLERİ KURS SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İLKADIM MAH. DİKMEN CAD. NO: 137 İÇ KAPI NO: 5 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(534) 942 83 83",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "20",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DURSUN GÜVEN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ALACAATLI MAH. 3346 CAD. NO: 60 İÇ KAPI NO: 13 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 19)",
+    "telefon": "(545) 506 06 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "21",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ESAS EĞİTİM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MEBUSEVLERİ MAH. ŞEREFLİ SK. NO: 11 ÇANKAYA / ANKARA",
+    "telefon": "(534) 761 06 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "22",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ETKİM VİP AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BİRLİK MAH. 448 CAD. PEKCAN APT. NO: 117C ÇANKAYA / ANKARA",
+    "telefon": "(554) 124 87 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "23",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İL BİLGE AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ALACAATLI MAH. 3346 CAD. NO: 60 İÇ KAPI NO: 19 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 29)",
+    "telefon": "(542) 313 74 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "24",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY AYDIN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KIZILAY MAH. KUMRULAR CAD. NO: 20 İÇ KAPI NO: 12 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 13-14-15-16-17)",
+    "telefon": "(312) 425 62 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "25",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KIZILAY MAH. ATATÜRK BUL. NO: 74 İÇ KAPI NO: 4 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 5)",
+    "telefon": "(312) 425 60 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "26",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY SEVİYE VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KIZILAY MAH. İZMİR 1 CAD. NO: 37 İÇ KAPI NO: 7 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 8)",
+    "telefon": "(312) 424 25 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "27",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY SINAV İLERİ KURS SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KIZILAY MAH. ATATÜRK BUL. NO: 70 İÇ KAPI NO: 17 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 18-19-20-21-22)",
+    "telefon": "(312) 418 99 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "28",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL METROPOL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MEBUSEVLERİ MAH. İLLER CAD. NO: 4 İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(312) 231 44 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "29",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MUSTAFA KEMAL AKADEMİ (MKA) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KIZILAY MAH. MİLLİ MÜDAFAA CAD. NO: 4 İÇ KAPI NO: 7 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 8)",
+    "telefon": "(312) 425 82 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "30",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL NESNEL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AYDINLAR MAH. HÜRRİYET CAD. NO: 153A ÇANKAYA / ANKARA",
+    "telefon": "(533) 050 21 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "31",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL OPTİMUM BAŞARI SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KIZILIRMAK MAH. YÜCEL SEÇKİNER CAD. NO: 24A ÇANKAYA / ANKARA",
+    "telefon": "(552) 572 44 45",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "32",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÖVEÇLER FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ÖVEÇLER MAH. KABİL CAD. NO: 13 ÇANKAYA / ANKARA",
+    "telefon": "(312) 472 44 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "33",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÖVEÇLER ROTA BAŞARI SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATA MAH. KABİL CAD. NO: 158 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(532) 550 40 85",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "34",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY AYDIN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ÜMİT MAH. DOĞAN TAŞDELEN BUL. NO: 36B ÇANKAYA / ANKARA",
+    "telefon": "(532) 737 60 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "35",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MUTLUKENT MAH. 2074 SK. NO: 8 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 236 38 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "36",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YAŞAMKENT FİNAL VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAŞAMKENT MAH. 3250 CAD. NO: 26AH ÇANKAYA / ANKARA",
+    "telefon": "(312) 544 77 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "37",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YILDIZ FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YILDIZEVLER MAH. 713 CAD. NO: 11 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-7-8)",
+    "telefon": "(505) 771 47 68",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "38",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YUSUF ÖNCEBE SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 31 İÇ KAPI NO: 7 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 8-9-10)",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "39",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK AYDIN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "CUMHURİYET MAH. BİLAL-İ HABEŞ SK. NO: 5A ÇUBUK / ANKARA",
+    "telefon": "(545) 636 74 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "40",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK BİLGE NESLİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "CUMHURİYET MAH. ANKARA BUL. SIPAHI APT SİTESİ NO: 32A ÇUBUK / ANKARA",
+    "telefon": "(506) 279 24 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "41",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK BOĞAZİÇİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAVUZSELİM MAH. SARAY CAD. NO: 4A ÇUBUK / ANKARA",
+    "telefon": "(507) 618 41 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "42",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BARBAROS MAH. KARAGÖL CAD. İŞYERİ NO: 29A ÇUBUK / ANKARA",
+    "telefon": "(312) 838 11 01",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "43",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK VİP ODAK AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BARBAROS MAH. KARAGÖL CAD. NO: 37A ÇUBUK / ANKARA",
+    "telefon": "(546) 500 20 16",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "44",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK YÜKSELİŞ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YILDIRIM BEYAZIT MAH. TUNAHAN CAD. NO: 22/1A ÇUBUK / ANKARA",
+    "telefon": "(554) 666 48 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "45",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL AHİMESUT SINAV İLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "PİYADE MAH. AHİ MESUD BUL. NO: 72C/B ETİMESGUT / ANKARA",
+    "telefon": "(312) 504 23 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "46",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA ETİMESGUT BİL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İSTASYON MAH. ŞEHİT HİKMET ÖZER CAD. NO: 113 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(507) 011 47 34",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "47",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA OKUYAN DÜŞÜNEN TARTIŞAN ÜRETEN LİYAKATLI ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ (ODTÜLÜLER) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ALSANCAK MAH. ŞEHİT HİKMET ÖZER CAD. NO: 94 İÇ KAPI NO: 5 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "48",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA YÜCEL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "TUNAHAN MAH. 254 CAD. NO: 8E ETİMESGUT / ANKARA",
+    "telefon": "(312) 503 55 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "49",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAĞLICA ÇÖZÜM VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAĞLICA MAH. BAĞLICA KÖYÜ CAD. NO: 6 İÇ KAPI NO: 4 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(543) 603 47 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "50",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAĞLICA JALE TEZER SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAĞLICA MAH. MERMEROĞLU CAD. NO: 23 İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(537) 761 95 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "51",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAĞLICA SINAV İLERİ KURS SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAĞLICA MAH. BAĞLICA BUL. NO: 63A ETİMESGUT / ANKARA",
+    "telefon": "(312) 234 55 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "52",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ÇİZGİM AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ERYAMAN MAH. 4 CAD. NO: 16A ETİMESGUT / ANKARA",
+    "telefon": "(554) 543 61 92",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "53",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL DOĞRU REHBER CEM DURAK SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YENİ BAĞLICA MAH. 1179 SK. NO: 4 İÇ KAPI NO: 31 ETİMESGUT / ANKARA",
+    "telefon": "(543) 550 61 34",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "54",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 23 İÇ KAPI NO: 2 ETİMESGUT / ANKARA",
+    "telefon": "(312) 261 91 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "55",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT KÜLTÜR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 63 İÇ KAPI NO: 5 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 6-7-8)",
+    "telefon": "(312) 260 00 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "56",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL EMİRLER SINAV İLERİ KURS SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ELVAN MAH. 1952 SK. NO: 54 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(505) 082 65 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "57",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERDAL BİÇER PARLA SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "SÜVARİ MAH. AHİ MESUD BUL. NO: 53A ETİMESGUT / ANKARA",
+    "telefon": "(507) 886 37 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "58",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN AYDIN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ALTAY MAH. SÖĞÜT CAD. NO: 14A İÇ KAPI NO: 4 ETİMESGUT / ANKARA",
+    "telefon": "(544) 850 98 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "59",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN DOĞRU CEVAP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ŞEHİT OSMAN AVCI MAH. ŞEHİT MEHMET ÇAVUŞ CAD. UZUNER PLAZA NO: 9 İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(538) 892 14 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "60",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN SINAV İLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ALTAY MAH. SÖĞÜT CAD. NO: 2 İÇ KAPI NO: 3 ETİMESGUT / ANKARA",
+    "telefon": "(312) 282 65 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "61",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT BİREY SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KAZIM KARABEKİR MAH. ŞEHİT HASAN ÖZTÜRK CAD. UYUM APT. NO: 38 İÇ KAPI NO: 7 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 8-9-10)",
+    "telefon": "(312) 243 25 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "62",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT KAVRAM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YEŞİLOVA MAH. 4017 CAD. CAĞ DOBA NO: 18 İÇ KAPI NO: 47 ETİMESGUT / ANKARA",
+    "telefon": "(542) 121 76 92",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "63",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ÖNEM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ŞEHİT OSMAN AVCI MAH. ŞEHİT MEHMET ÇAVUŞ CAD. UZUNER PLAZA NO: 9 İÇ KAPI NO: 3 ETİMESGUT / ANKARA",
+    "telefon": "(532) 162 08 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "64",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ÖZNEL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATAKENT MAH. 1512 CAD. NO: 71A ETİMESGUT / ANKARA",
+    "telefon": "(552) 256 28 30",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "65",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL SEÇENEK SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AHİ MESUT MAH. ŞEHİT İZZET ÖZKAN CAD. NO: 6A ETİMESGUT / ANKARA",
+    "telefon": "(312) 502 10 80",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "66",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ÜÇ BİLGE SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GÜZELKENT MAH. 726 SK. NO: 3 ETİMESGUT / ANKARA",
+    "telefon": "(505) 911 02 62",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "67",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YILDIZLI AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GÜZELKENT MAH. 730 SK. NO: 12 ETİMESGUT / ANKARA",
+    "telefon": "(542) 785 04 47",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "68",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YÜZYIL FEN KURS SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KAZIM KARABEKİR MAH. İSTASYON CAD. ONUR BILIM KURSLARI NO: 97 İÇ KAPI NO: 5 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(539) 653 58 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "69",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL OLİMPİYAT SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "EYMİR MAH. YEDİGÖLLER CAD. ÖZEL TÜRKAY ÖZEL EĞITIM KURSU NO: 8 GÖLBAŞI / ANKARA",
+    "telefon": "(542) 549 64 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "70",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL KAHRAMANKAZAN BİLGİ MERKEZİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YILDIRIMBEYAZIT MAH. ANKARA BUL. NO: 7A KAHRAMANKAZAN / ANKARA",
+    "telefon": "(501) 097 64 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "71",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL AKTEPE VİP YÜKSELİŞ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AKTEPE MAH. ŞEHİT FEVZİ BAŞARAN SK. KÜBRA APT  NO: 87A KEÇİÖREN / ANKARA",
+    "telefon": "(506) 483 77 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "72",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL AYVALI VİP ANTARES AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AYVALI MAH. SÖĞÜT YAPRAĞI SK. NO: 1 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(543) 889 58 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "73",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BAŞKENT MAVİ LİMİT SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KUŞCAĞIZ MAH. AŞIK VEYSEL CAD. YAĞIZ APT. NO: 55A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 378 61 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "74",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK BİREY SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İNCİRLİ MAH. YUNUS EMRE CAD. NO: 11 İÇ KAPI NO: 7 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 8-10-11-12-13)",
+    "telefon": "(312) 352 02 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "75",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK KÜLTÜR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İNCİRLİ MAH. YUNUS EMRE CAD. NO: 7 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 321 11 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "76",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK ROTA SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAYLA MAH. SEYİTLER CAD. NO: 7A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 379 10 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "77",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAYLA MAH. ŞEHİT MUSTAFA ERCİĞEZ CAD. NO: 97A KEÇİÖREN / ANKARA",
+    "telefon": "(553) 919 60 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "78",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL FOKUS BİR AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GÜÇLÜKAYA MAH. SAVUR CAD. NO: 8 İÇ KAPI NO: 3 KEÇİÖREN / ANKARA",
+    "telefon": "(554) 007 95 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "79",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL HANÇERLİOĞULLARI VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ETLİK MAH. KIVRIMLI SK. MELİKE NO: 25A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 325 93 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "80",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL İLERİ SEVİYE SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ESERTEPE MAH. ŞEHİT MUSTAFA ERCİĞEZ CAD. NO: 60 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(506) 388 60 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "81",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL İYİ Kİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ESERTEPE MAH. 326 SK. NO: 2A KEÇİÖREN / ANKARA",
+    "telefon": "(544) 346 48 90",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "82",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KAFKAS FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KAFKAS MAH. BAĞLUM BUL. NO: 124-126A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 432 58 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "83",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN EĞİTİM BİLİMLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAYLA MAH. 1495 SK. NO: 4B KEÇİÖREN / ANKARA",
+    "telefon": "(312) 379 08 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "84",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAKACIK MAH. BAHTİYAR SK. GÜLER NO: 41 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11-12)",
+    "telefon": "(312) 361 58 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "85",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN İNCİRLİ ETLİK SINAV SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İNCİRLİ MAH. MELİKE SK. MÜHÜRDAROĞLU APT. NO: 2 İÇ KAPI NO: 4 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 5-6)",
+    "telefon": "(312) 321 26 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "86",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN OKUYAN DÜŞÜNEN TARTIŞAN ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ (ODTÜLÜLER) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "UYANIŞ MAH. ANAVATAN CAD. NO: 3 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(0)",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "87",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN SINAV İLERİ SOSYAL ETKİNLİK VE  GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "PINARBAŞI MAH. ASYA SK. NO: 32A KEÇİÖREN / ANKARA",
+    "telefon": "(532) 131 99 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "88",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KUŞCAĞIZ İLKİM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KUŞCAĞIZ MAH. GAZELLER CAD. NO: 109A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 361 88 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "89",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KUŞCAĞIZ UĞUR DAĞASLAN SOSYAL  ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KUŞCAĞIZ MAH. 387 SK. NO: 8B KEÇİÖREN / ANKARA",
+    "telefon": "(553) 178 66 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "90",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL MAHMUT FISTIKCI SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATAPARK MAH. AŞIK VEYSEL CAD. NO: 11A KEÇİÖREN / ANKARA",
+    "telefon": "(542) 579 10 07",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "91",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL OVACIK AYDIN SOSYAL ETKİNLİK VE GELİŞİM KURSU",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YAYLA MAH. 1488 CAD. NO: 4BA KEÇİÖREN / ANKARA",
+    "telefon": "(541) 945 71 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "92",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL OVACIK ÇÖZÜM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "OVACIK MAH. YOZGAT BUL. NO: 68 İÇ KAPI NO: 13 KEÇİÖREN / ANKARA",
+    "telefon": "(505) 923 95 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "93",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ÖYKÜM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "OSMANGAZİ MAH. AŞIKPAŞA CAD. NO: 117A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 581 12 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "94",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SEZGİ BİLİM SANAT SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KARARGAHTEPE MAH. RENÇBER SK. NO: 22A KEÇİÖREN / ANKARA",
+    "telefon": "(507) 563 01 61",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "95",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SUBAYEVLERİ ALTINÇINAR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KAVACIK SUBAYEVLERİ MAH. ŞEHİT MAKBULE SK. NO: 47 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 347 28 29",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "96",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ŞAHİN AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATAPARK MAH. AŞIK VEYSEL CAD. NO: 36A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 321 01 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "97",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ŞELALE SINAV İLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GÜÇLÜKAYA MAH. BELÖREN SK. NO: 2 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(532) 131 99 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "98",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL TAM İSABET VİP AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AŞAĞI EĞLENCE MAH. MİMARLAR SK. MARİS NO: 28A KEÇİÖREN / ANKARA",
+    "telefon": "(546) 690 34 89",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "99",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL VADİ AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ŞENLİK MAH. ŞEHİT TAYFUN SÜMER SK. NO: 11B KEÇİÖREN / ANKARA",
+    "telefon": "(551) 956 05 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "100",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL VİP ANTARES AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AYVALI MAH. GAZZE CAD. HACI ELİF HANIM APT. NO: 64B KEÇİÖREN / ANKARA",
+    "telefon": "(543) 889 58 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "101",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YENİ NESİL ILGAZ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "AKTEPE MAH. 949 CAD. ÇIZGISEL KIŞISEL GELIŞIM KURSU NO: 48 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 340 30 80",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "102",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ADEN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ÇAĞLAYAN MAH. TIP FAKÜLTESİ CAD. KENT PARK APT. NO: 293 İÇ KAPI NO: 31 MAMAK / ANKARA",
+    "telefon": "(312) 504 44 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "103",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL AKDERE UĞUR DAĞASLAN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "PEYAMİ SAFA MAH. MEHMET ALİ ALTIN CAD. NO: 115 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9)",
+    "telefon": "(506) 585 62 92",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "104",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ANKARA PARLA SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MİSKET MAH. 289 CAD. NO: 3A MAMAK / ANKARA",
+    "telefon": "(543) 679 32 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "105",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ARZU TUNCEL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAHÇELERÜSTÜ MAH. ARİF YALDIZ CAD. NO: 91A MAMAK / ANKARA",
+    "telefon": "(312) 363 88 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "106",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ÇAĞDAŞ DORUK AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GENERAL ZEKİ DOĞAN MAH. NATOYOLU CAD. NO: 8 İÇ KAPI NO: 3 MAMAK / ANKARA",
+    "telefon": "(546) 202 99 56",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "107",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL DİNAMİK EĞİTİM REHBERLİK SINAV PLANLAMA LİSANS VE UYGULAMA SİSTEMLERİ (DERSPLUS) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YEŞİLBAYIR MAH. 1755 SK. NO: 2 İÇ KAPI NO: 14 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 15-16-17-23)",
+    "telefon": "(546) 809 05 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "108",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL EGE SAFİR VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "EGE MAH. 794 SK. D-BLOK NO: 3D MAMAK / ANKARA",
+    "telefon": "(532) 632 09 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "109",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL EGE SEVİYE SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "FAHRİ KORUTÜRK MAH. ŞEHİTLER CAD. NO: 52A MAMAK / ANKARA",
+    "telefon": "(506) 450 40 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "110",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK BİREY SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAHÇELERİÇİ MAH. MAMAK ÇARŞIİÇİ CAD. NO: 81 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9)",
+    "telefon": "(530) 524 56 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "111",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK ÇARŞI FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "HARMAN MAH. 172 SK. NO: 2 İÇ KAPI NO: 5 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(530) 549 58 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "112",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK DETAY AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GÜLVEREN MAH. ABDÜLHAKHAMİT CAD. NO: 30A MAMAK / ANKARA",
+    "telefon": "(506) 433 45 85",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "113",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK KAVRAM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "DURALİ ALIÇ MAH. DOĞUKENT CAD. DOĞU LIFE APT NO: 316B MAMAK / ANKARA",
+    "telefon": "(540) 150 50 59",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "114",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK MARKALAR BİRLİĞİ İNGİLİZCE KÜLTÜR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "EGE MAH. 774 SK. NO: 2A MAMAK / ANKARA",
+    "telefon": "(554) 974 91 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "115",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK MÜKEMMELİYETÇİ AKILCI TAKİPÇİ FENOMEN EĞİTİM NOKTASI (MATFEN) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAŞAK MAH. ÖZALP CAD. NO: 13 İÇ KAPI NO: 3 MAMAK / ANKARA",
+    "telefon": "(505) 144 01 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "116",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL NATAVEGA FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "DURALİ ALIÇ MAH. 969 SK. YILDIZ APT. NO: 1 İÇ KAPI NO: 1 MAMAK / ANKARA",
+    "telefon": "(506) 779 11 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "117",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ÖZNEM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YEŞİLBAYIR MAH. 1768 CAD. NO: 24A MAMAK / ANKARA",
+    "telefon": "(312) 373 43 73",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "118",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL YENİ BİREBİR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BAHÇELERÜSTÜ MAH. ŞEHİT UMUT COŞKUN CAD. NO: 25A MAMAK / ANKARA",
+    "telefon": "(545) 229 30 33",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "119",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL EĞİTİCİ KALİTELİ İLKELİ POZİTİF REHBER OBJEKTİF (EKİPRO) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ŞEHİTLİK MAH. AFŞİN SK. NO: 3 İÇ KAPI NO: 1 POLATLI / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(507) 998 25 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "120",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI AÇI SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "CUMHURİYET MAH. NECATİBEY CAD. NO: 10 İÇ KAPI NO: 1 POLATLI / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 621 12 13",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "121",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI ALFABE VİP SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "CUMHURİYET MAH. ANKARA CAD. NO: 12 İÇ KAPI NO: Z12 POLATLI / ANKARA",
+    "telefon": "(544) 637 02 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "122",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL KARACAN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MERKEZ MAH. YUNUS EMRE CAD. KARACAN EĞITIM KURUMLARI NO: 61 İÇ KAPI NO: 3 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(507) 585 54 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "123",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL MÜKEMMEL EĞİTİM DOĞRU YARATICI ANALİTİK NİTELİKLİ (MEDYAN) KURS AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "SARAY CUMHURİYET MAH. BELEDİYE. CAD. NO: 27A PURSAKLAR / ANKARA",
+    "telefon": "(312) 399 50 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "124",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR ÇÖZÜM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "FATİH MAH. AY SK. NO: 2 İÇ KAPI NO: 4 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 5-6-7-8-9)",
+    "telefon": "(507) 611 05 97",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "125",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR ON ADIM EĞİTİM BİLİMLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "FATİH MAH. KADIOĞLU SK. NO: 28 İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(505) 983 23 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "126",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ANKARA SİNCAN İPUCU SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MARAŞAL ÇAKMAK MAH. ATATÜRK.. CAD. IPUCU KURS NO: 74 İÇ KAPI NO: 3 SİNCAN / ANKARA",
+    "telefon": "(552) 653 06 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "127",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL BEŞLER AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATATÜRK MAH. ATATÜRK.. CAD. NO: 8 İÇ KAPI NO: 3 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(312) 276 02 37",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "128",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ÇETİN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "İSTASYON MAH. KAYA CAD. NO: 1 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(552) 569 50 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "129",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL DOĞRU NİTELİKLİ AKILCI AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "TÖREKENT MAH. SEYRİCE MEVKİ KÜME EVLERİ NO: 6H İÇ KAPI NO: 3 SİNCAN / ANKARA",
+    "telefon": "(536) 765 19 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "130",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN AÇILIM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATATÜRK MAH. ATATÜRK.. CAD. AÇI  DERSHANE NO: 10 İÇ KAPI NO: 5 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(312) 271 65 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "131",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN KÜLTÜR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATATÜRK MAH. ONUR CAD. BİLGİ YILDIZI EĞİTİM KURUMLARI NO: 17 İÇ KAPI NO: 5 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 6-7-8)",
+    "telefon": "(312) 263 50 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "132",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN MODERN ANALİTİK TEORİK BİLİMSEL İLETİŞİM REHBERLİK (MATBİR) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATATÜRK MAH. VATAN CAD. NO: 45 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 268 35 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "133",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN OKUYAN DÜŞÜNEN TARTIŞAN ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ (ODTÜLÜLER) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ATATÜRK MAH. ANKARA CAD. ISMAIL ÖLMEZ PLAZA NO: 15 İÇ KAPI NO: 2 SİNCAN / ANKARA",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "134",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN TEKNOÇAĞ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "PLEVNE MAH. SELVİ. CAD. KIRAZOĞLU IŞ MERKEZI NO: 6 İÇ KAPI NO: 6 SİNCAN / ANKARA",
+    "telefon": "(312) 276 25 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "135",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN YENİ ROTAMIZ EĞİTİM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "TÖREKENT MAH. ŞEHİT MUSA ÖZALKAN CAD. NO: 124 SİNCAN / ANKARA",
+    "telefon": "(506) 533 29 56",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "136",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL YENİKENT KUTAY SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MUSTAFA KEMAL MAH. LEYLAK. SK. NO: 6A SİNCAN / ANKARA",
+    "telefon": "(312) 369 85 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "137",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ZEKA KÜPÜ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "FEVZİ ÇAKMAK MAH. 6 CAD. NO: 90A SİNCAN / ANKARA",
+    "telefon": "(505) 430 13 78",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "138",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL AKILCI SEVİYELİ MANTIKLI (ASM) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "SERHAT MAH. SERHAT CAD. NO: 41 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(532) 581 99 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "139",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT AYDIN SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YENİ BATI MAH. ERCİYES CAD. NO: 9 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 385 05 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "140",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT GELİŞİM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KENTKOOP MAH. 1862 CAD. NO: 18A YENİMAHALLE / ANKARA",
+    "telefon": "(505) 893 55 33",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "141",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT MEYDAN ORTA DOĞULULAR (MOD) SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "KENTKOOP MAH. 1862 CAD. C4 BLOK NO: 10/4 İÇ KAPI NO: 18 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 19-21-78-80-81-82-83)",
+    "telefon": "(532) 237 18 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "142",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT PRATİK REEL OPTİMUM FARKLI ETKİLİ NİTELİKLİ (PROFEN) AKADEMİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YENİ BATI MAH. 2412 SK. NO: 7 YENİMAHALLE / ANKARA",
+    "telefon": "(552) 181 65 39",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "143",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BİZİM SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "DEMETGÜL MAH. SAMET ÖZGÜL SK. ANADOLU APT NO: 4D YENİMAHALLE / ANKARA",
+    "telefon": "(505) 092 46 87",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "144",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL DEMETEVLER FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "DEMETEVLER MAH. İVEDİK CAD. NO: 95 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 336 11 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "145",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL PARK FİNAL SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "MEHMET AKİF ERSOY MAH. ANADOLU BUL. NO: 42/2 İÇ KAPI NO: 2 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 514 53 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "146",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ŞENTEPE BURÇ SINAV İLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BURÇ MAH. SEVAL CAD. NO: 123 İÇ KAPI NO: 5 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(312) 331 19 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "147",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ŞENTEPE GARANTİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "ÇİĞDEMTEPE MAH. AYDAN CAD. NO: 175 İÇ KAPI NO: 7 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 8)",
+    "telefon": "(506) 701 99 68",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "148",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YASEMİN AYAN TAŞDEMİR SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "YENİ BATI MAH. 2402 CAD. NO: 4 YENİMAHALLE / ANKARA",
+    "telefon": "(543) 684 56 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "149",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE ON ADIM EĞİTİM BİLİMLERİ SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "BURÇ MAH. 684 SK. NO: 2A YENİMAHALLE / ANKARA",
+    "telefon": "(538) 410 56 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "150",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE SINAV İLERİ KURS SOSYAL ETKİNLİK VE GELİŞİM MERKEZİ",
+    "okul_turu": "Sosyal Etkinlik ve Gelişim Merkezi",
+    "adres": "GAYRET MAH. İVEDİK CAD. NO: 11B İÇ KAPI NO: 9 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 10-11-12)",
+    "telefon": "(312) 343 35 36",
+    "il": "ANKARA"
+  }
+]

@@ -70,6 +70,9 @@ export default function Footer() {
             >
               <ul className="footer-section-list">
                 <li className="footer-section-item">
+                  <Link href="/okullar">Tüm Okullar</Link>
+                </li>
+                <li className="footer-section-item">
                   <Link href="/about">Hakkımızda</Link>
                 </li>
                 <li className="footer-section-item">

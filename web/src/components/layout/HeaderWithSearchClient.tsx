@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import LogoutButton from '@/components/auth/LogoutButton';
 import SearchBar from '@/components/SearchBar';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { GraduationCap, Info, Phone, HelpCircle, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
@@ -13,6 +12,7 @@ import { GraduationCap, Info, Phone, HelpCircle, LogIn, LogOut, LayoutDashboard,
 interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
   userType: 'individual' | 'institution' | null;
+  institutionName?: string | null;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -23,6 +23,7 @@ interface HeaderWithSearchClientProps {
 export default function HeaderWithSearchClient({
   user,
   userType,
+  institutionName,
   searchValue = '',
   onSearchChange,
   searchPlaceholder,
@@ -50,10 +51,14 @@ export default function HeaderWithSearchClient({
   const isInsideAnyMenu = (target: EventTarget | null) =>
     menuRef.current?.contains(target as Node) || menuRefDesktop.current?.contains(target as Node);
 
-  const handleMobileLogout = async () => {
+  const handleLogout = async (closeMenu: 'mobile' | 'desktop') => {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
-    setMenuOpen(false);
+    if (closeMenu === 'mobile') {
+      setMenuOpen(false);
+    } else {
+      setDesktopMenuOpen(false);
+    }
     router.push('/');
     router.refresh();
   };
@@ -121,6 +126,25 @@ export default function HeaderWithSearchClient({
               </button>
               {menuOpen && (
                 <div className="header-hamburger-dropdown">
+                  {user && userType === 'institution' && (
+                    <div className="header-hamburger-welcome">
+                      <div className="header-hamburger-welcome-avatar" aria-hidden>
+                        <User className="header-hamburger-welcome-avatar-icon" />
+                      </div>
+                      <div className="header-hamburger-welcome-text">
+                        <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
+                        <span className="header-hamburger-welcome-name">
+                          {institutionName || 'Kurum Hesabı'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {user && userType === 'institution' && shouldShowCTA && (
+                    <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                      <LayoutDashboard className="header-hamburger-icon" aria-hidden />
+                      <span>{getCTALabel()}</span>
+                    </Link>
+                  )}
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                     <GraduationCap className="header-hamburger-icon" aria-hidden />
                     <span>Tüm Okullar</span>
@@ -139,17 +163,17 @@ export default function HeaderWithSearchClient({
                   </Link>
                   {user ? (
                     <>
-                      {shouldShowCTA && (
+                      {shouldShowCTA && userType !== 'institution' && (
                         <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                          {userType === 'institution' ? (
-                            <LayoutDashboard className="header-hamburger-icon" aria-hidden />
-                          ) : (
-                            <User className="header-hamburger-icon" aria-hidden />
-                          )}
+                          <User className="header-hamburger-icon" aria-hidden />
                           <span>{getCTALabel()}</span>
                         </Link>
                       )}
-                      <button type="button" className="header-hamburger-link header-hamburger-link-button" onClick={handleMobileLogout}>
+                      <button
+                        type="button"
+                        className="header-hamburger-link header-hamburger-link-button header-hamburger-link--logout"
+                        onClick={() => handleLogout('mobile')}
+                      >
                         <LogOut className="header-hamburger-icon" aria-hidden />
                         <span>Çıkış Yap</span>
                       </button>
@@ -188,9 +212,6 @@ export default function HeaderWithSearchClient({
                     {getCTALabel()}
                   </Button>
                 </Link>
-                <div className="header-actions-auth">
-                  <LogoutButton />
-                </div>
               </>
             ) : (
               <div className="header-actions-auth">
@@ -216,6 +237,25 @@ export default function HeaderWithSearchClient({
               </button>
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
+                  {user && userType === 'institution' && (
+                    <div className="header-hamburger-welcome">
+                      <div className="header-hamburger-welcome-avatar" aria-hidden>
+                        <User className="header-hamburger-welcome-avatar-icon" />
+                      </div>
+                      <div className="header-hamburger-welcome-text">
+                        <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
+                        <span className="header-hamburger-welcome-name">
+                          {institutionName || 'Kurum Hesabı'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {user && userType === 'institution' && shouldShowCTA && (
+                    <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                      <LayoutDashboard className="header-hamburger-icon" aria-hidden />
+                      <span>{getCTALabel()}</span>
+                    </Link>
+                  )}
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
                     <GraduationCap className="header-hamburger-icon" aria-hidden />
                     <span>OKULLAR</span>
@@ -232,15 +272,21 @@ export default function HeaderWithSearchClient({
                     <HelpCircle className="header-hamburger-icon" aria-hidden />
                     <span>S.S.S</span>
                   </Link>
-                  {user && shouldShowCTA && (
+                  {user && shouldShowCTA && userType !== 'institution' && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                      {userType === 'institution' ? (
-                        <LayoutDashboard className="header-hamburger-icon" aria-hidden />
-                      ) : (
-                        <User className="header-hamburger-icon" aria-hidden />
-                      )}
+                      <User className="header-hamburger-icon" aria-hidden />
                       <span>{getCTALabel()}</span>
                     </Link>
+                  )}
+                  {user && (
+                    <button
+                      type="button"
+                      className="header-hamburger-link header-hamburger-link-button header-hamburger-link--logout"
+                      onClick={() => handleLogout('desktop')}
+                    >
+                      <LogOut className="header-hamburger-icon" aria-hidden />
+                      <span>ÇIKIŞ YAP</span>
+                    </button>
                   )}
                 </div>
               )}

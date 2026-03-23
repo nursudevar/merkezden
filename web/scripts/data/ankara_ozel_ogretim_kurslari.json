@@ -1,0 +1,3053 @@
+[
+  {
+    "sira_no": "1",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL AKYURT FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BEYAZIT MAH. SARAY CAD. NO: 7A AKYURT / ANKARA",
+    "telefon": "(552) 183 19 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "2",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL AKYURT SEBAT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YILDIRIM MAH. KİRAZ SK. NO: 2B İÇ KAPI NO: 9 AKYURT / ANKARA (DİĞER İÇ KAPILAR: 10-11-12)",
+    "telefon": "(541) 516 28 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "3",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL SORGU ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YILDIRIM MAH. DR. NESLİHAN ÖZENLİ CAD. NO: 14A AKYURT / ANKARA",
+    "telefon": "(533) 059 75 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "4",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL AYDINLIKEVLER PRATİK HIZ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AYDINLIKEVLER MAH. ÇEVRELİ CAD. NO: 48 İÇ KAPI NO: 5 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(532) 679 94 14",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "5",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL VERA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KARAPÜRÇEK MAH. ŞEHİT SAVAŞ BATU CAD. OZEL VERA ORTAOKUKU NO: 15 İÇ KAPI NO: 4 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 5-6)",
+    "telefon": "(545) 470 09 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "6",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ALTINDAĞ FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BEŞİKKAYA MAH. 1956 SK. SATILMIŞ DOĞANCI IŞ MERKEZI NO: 1 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA",
+    "telefon": "(552) 079 13 87",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "7",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL AYDINLIKEVLER ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AYDINLIKEVLER MAH. ÇEVRELİ CAD. ORTADOGU EGITIM KURUMLARI NO: 95 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 318 20 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "8",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL AYDINLIKEVLER POLİNOM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AYDINLIKEVLER MAH. KOVAN CAD. 60 SİTESİ BIREY DERSANELERI NO: 60 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA",
+    "telefon": "(312) 347 05 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "9",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL GÜNEŞEVLER ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜNEŞEVLER MAH. MEHMET AKİF ERSOY CAD. NO: 7B ALTINDAĞ / ANKARA",
+    "telefon": "(541) 350 97 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "10",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL GÜNEŞEVLER FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜNEŞEVLER MAH. MEHMET AKİF ERSOY CAD. NO: 11B ALTINDAĞ / ANKARA",
+    "telefon": "(530) 399 71 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "11",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL GÜNEŞEVLER SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜNEŞEVLER MAH. MEHMET AKİF ERSOY CAD. NO: 9A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 338 30 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "12",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL HÜSEYİNGAZİ SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BATTALGAZİ MAH. BILGE TONYUKUK CAD. YEŞİL ELMA ANAOKULU NO: 2 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 369 27 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "13",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL KARAPÜRÇEK NOKTA TEK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KARAPÜRÇEK MAH. ŞEHİT EYÜP ÖKSÜZ CAD. OZEL KARAPURCEK KISISRL GELISIM KURSU NO: 33 İÇ KAPI NO: 5 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(312) 376 73 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "14",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ÜÇİKİBİR ÖZEL ÖĞREİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BATTALGAZİ MAH. BOSTANCIK CAD. NO: 153 İÇ KAPI NO: 2 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(546) 583 83 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "15",
+    "ilce": "BEYPAZARI",
+    "okul_adi": "ÖZEL ATABEY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HACIKARA MAH. CEVAT KÖPRÜCÜ CAD. NO: 7 İÇ KAPI NO: 1 BEYPAZARI / ANKARA",
+    "telefon": "(312) 763 31 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "16",
+    "ilce": "BEYPAZARI",
+    "okul_adi": "ÖZEL ELİT ÇİZGİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KURTULUŞ MAH. SPOR SALONU YANI SK. NO: 38 BEYPAZARI / ANKARA",
+    "telefon": "(312) 762 30 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "17",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ALACAATLI DURSUN GÜVEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALACAATLI MAH. 3346 CAD. NO: 60 İÇ KAPI NO: 25 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 26)",
+    "telefon": "(545) 506 06 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "18",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA RASYONEL ARAŞTIRMA SAYISAL YETENEK AKADEMİSİ (ARASYA)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KOCATEPE MAH. ZİYA GÖKALP CAD. ANADOLU HAN NO: 14 İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(532) 693 43 61",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "19",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DİKİMEVİ ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CEBECİ MAH. TALATPAŞA BUL. NO: 172 ÇANKAYA / ANKARA",
+    "telefon": "(312) 363 63 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "20",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY KARANFİL AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 23 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(505) 780 48 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "21",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY SEVİNÇ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ZİYA GÖKALP CAD. ŞENER ONAR İŞ MERKEZİ NO: 23 İÇ KAPI NO: 10 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 11-12-13-14)",
+    "telefon": "(505) 715 91 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "22",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MEHMET UZ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 51 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(530) 110 79 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "23",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TOPRAK KARİYER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. SÜMER 2 CAD. AKMAN APT NO: 27 İÇ KAPI NO: 3 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(542) 474 34 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "24",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YAŞAMKENT FİNAL VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YAŞAMKENT MAH. 3250 CAD. NO: 26A ÇANKAYA / ANKARA",
+    "telefon": "(552) 854 50 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "25",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ABRA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÇANKAYA MAH. PROF. DR. AZİZ SANCAR CAD. NO: 5 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(543) 574 33 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "26",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL AKADEMİK RASYONEL EĞİTİM SİSTEMİ (ARES) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YILDIZEVLER MAH. TURAN GÜNEŞ BUL. AYKAM İŞ MERKEZİ NO: 40 İÇ KAPI NO: 16 ÇANKAYA / ANKARA",
+    "telefon": "(533) 629 50 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "27",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL AKDERE ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "50.YIL MAH. MEHMET ALİ ALTIN CAD. NO: 18 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(544) 269 86 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "28",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ALFA VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. BULVAR PALAS NO: 141 İÇ KAPI NO: 81 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 82)",
+    "telefon": "(546) 853 02 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "29",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ALPER DENİZ ORHAN BİLİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2819 SK. NO: 5 ÇANKAYA / ANKARA",
+    "telefon": "(533) 474 38 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "30",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANGORA FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. NO: 107 İÇ KAPI NO: 67 ÇANKAYA / ANKARA",
+    "telefon": "(530) 638 06 87",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "31",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA AÇI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KORKUTREİS MAH. İLKİZ SK. NO: 1 İÇ KAPI NO: 3 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 4-5-6-7)",
+    "telefon": "(312) 231 75 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "32",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA BİLBAŞAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. BAYINDIR 1 SK. NO: 27 İÇ KAPI NO: 43 ÇANKAYA / ANKARA",
+    "telefon": "(535) 912 70 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "33",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA BİLGİ AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. MİTHATPAŞA CAD. GEZGİN APT. NO: 27 İÇ KAPI NO: 3 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(506) 228 89 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "34",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA MATEMATİK VE FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KORKUTREİS MAH. HANIMELİ SK. NO: 49 İÇ KAPI NO: 0 ÇANKAYA / ANKARA",
+    "telefon": "(312) 232 21 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "35",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA NEVA ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MALTEPE MAH. ŞEHİT DANİŞ TUNALIGİL SK. NO: 3 İÇ KAPI NO: 9 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 10)",
+    "telefon": "(507) 395 35 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "36",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA SAYILARLA İMGELERLE GELİŞİM MODELLİ AKADEMİ(SİGMA)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 1961 CAD. NO: 9 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(312) 246 42 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "37",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL AYDINLIK KARİYERE ADIM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÖKKUŞAĞI MAH. CEYHUN ATUF KANSU CAD. ÖZÇELİK APT. NO: 195A ÇANKAYA / ANKARA",
+    "telefon": "(312) 472 72 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "38",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BAHÇELİEVLER SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "EMEK MAH. BİŞKEK CAD. NO: 153 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 222 21 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "39",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BALGAT ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "OĞUZLAR MAH. CEYHUN ATUF KANSU CAD. NO: 86 ÇANKAYA / ANKARA",
+    "telefon": "(312) 284 28 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "40",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BALGAT SEVİYE ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "OĞUZLAR MAH. CEYHUN ATUF KANSU CAD. NO: 40 İÇ KAPI NO: 3 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(533) 403 41 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "41",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BAŞAK BURAK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İŞÇİ BLOKLARI MAH. 1506 CAD. NO: 21 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(532) 063 44 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "42",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BAŞARI FARKI ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 1927 CAD. NO: 25 ÇANKAYA / ANKARA",
+    "telefon": "(506) 801 07 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "43",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BAŞKENT BASAMAK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 1964 CAD. NO: 25 ÇANKAYA / ANKARA",
+    "telefon": "(505) 378 48 81",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "44",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BEŞADAM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 1963 CAD. NO: 5 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(505) 314 11 47",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "45",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BEŞGEN ÜMİTKÖY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 2073 SK. NO: 8 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 236 38 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "46",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BEYTEPE FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BEYTEPE MAH. HAFSA SULTAN CAD. NO: 9/5 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 785 58 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "47",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİLBAŞAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. BAYINDIR 1 SK. NO: 27 İÇ KAPI NO: 44 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 45-46-47)",
+    "telefon": "(532) 315 20 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "48",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİLGİN VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUSTAFA KEMAL MAH. 2127 CAD. KILIÇ OFFİCE NO: 9 İÇ KAPI NO: 14 ÇANKAYA / ANKARA",
+    "telefon": "(532) 414 99 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "49",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİLİM AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. GAZİ MUSTAFA KEMAL BUL. NO: 5 İÇ KAPI NO: 501 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 502-503-504-505-506-507-508-509-510-511)",
+    "telefon": "(505) 728 06 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "50",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİLİM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. GAZİ MUSTAFA KEMAL BUL. NO: 5 İÇ KAPI NO: 101 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 102-103-104-105-106-107-108-109-110-111)",
+    "telefon": "(505) 728 06 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "51",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİLİM YUVASI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2499 SK. NO: 7 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 236 35 78",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "52",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİLİRKİŞİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KOCATEPE MAH. BAYINDIR 2 SK. NO: 53 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(505) 365 22 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "53",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİR MATEMATİK BİR FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MALTEPE MAH. GAZİ MUSTAFA KEMAL BUL. NO: 51 İÇ KAPI NO: 5 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 6-7-8)",
+    "telefon": "(312) 229 22 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "54",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİRLİK ANT VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BİRLİK MAH. 448 CAD. NO: 33 ÇANKAYA / ANKARA",
+    "telefon": "(312) 495 58 78",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "55",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BULVAR NOKTA TEK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. ATATÜRK BUL. NO: 65 İÇ KAPI NO: 2 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 3-4-5-6-7-8-9-10)",
+    "telefon": "(536) 781 83 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "56",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BURAK ALTINIŞIK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2547 CAD. NO: 16 ÇANKAYA / ANKARA",
+    "telefon": "(505) 733 39 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "57",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BURÇE ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KORU MAH. AHMET TANER KIŞLALI CAD. NORTHSTAR NO: 4 İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(532) 471 17 82",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "58",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL CEBİRSEL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2510 CAD. NO: 24 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(505) 931 72 41",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "59",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇANKAYA SÜPER KALEMLER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HİLAL MAH. 699 SK. NO: 2 İÇ KAPI NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(505) 542 81 29",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "60",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇAYYOLU DURSUN GÜVEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2808 CAD. NO: 15 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(545) 506 06 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "61",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇAYYOLU GÜLEÇ FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2870 SK. SHOT BITE NO: 3/2 İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(543) 342 90 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "62",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇAYYOLU SEKİZ ON İKİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2817 SK. NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(532) 409 72 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "63",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇAYYOLU SON AŞAMA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. BANGABANDHU BUL. ÖZÇELİK - PELİT İŞ MERKEZİ NO: 94 İÇ KAPI NO: 23 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 24)",
+    "telefon": "(551) 104 67 61",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "64",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇUKURAMBAR FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILIRMAK MAH. YÜCEL SEÇKİNER CAD. NO: 30A ÇANKAYA / ANKARA",
+    "telefon": "(312) 284 76 66",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "65",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇUKURAMBAR ORTADOĞULULAR VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILIRMAK MAH. UFUK ÜNİVERSİTESİ CAD. NO: 11B İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(552) 452 36 69",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "66",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇUKURAMBAR SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILIRMAK MAH. EROL YAŞAR TÜRKALP CAD. NO: 23 ÇANKAYA / ANKARA",
+    "telefon": "(312) 286 68 82",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "67",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DENİZ PINAR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. MEŞRUTİYET CAD. KÖK ÇARŞISI VE İŞHANI NO: 2 İÇ KAPI NO: 197 ÇANKAYA / ANKARA",
+    "telefon": "(530) 287 73 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "68",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DESTEK BİL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. SAKARYA CAD. NO: 5 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(539) 567 04 94",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "69",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DİKMEN SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İLKADIM MAH. DİKMEN CAD. NO: 137 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(554) 583 70 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "70",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DOĞRU NİTELİKLİ ANLAŞILIR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. GAZİ MUSTAFA KEMAL BUL. NO: 16 İÇ KAPI NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(312) 231 36 94",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "71",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DÖRT DÖRTLÜK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2815 SK. NO: 10 ÇANKAYA / ANKARA",
+    "telefon": "(551) 860 05 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "72",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DÖRT MEVSİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. NO: 95 İÇ KAPI NO: 14 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 15)",
+    "telefon": "(507) 666 80 81",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "73",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ELİT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MALTEPE MAH. ÖZVEREN CAD. NO: 9 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 425 07 52",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "74",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ER FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. MİLLİ MÜDAFAA CAD. NO: 16 İÇ KAPI NO: 14 ÇANKAYA / ANKARA",
+    "telefon": "(536) 238 35 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "75",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ESAS EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. BULVAR PALAS NO: 141 İÇ KAPI NO: 89 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 90)",
+    "telefon": "(534) 761 06 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "76",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL FEN ÇAĞI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. MİTHATPAŞA CAD. NO: 30 İÇ KAPI NO: 21 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 22-23-24)",
+    "telefon": "(312) 431 20 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "77",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL FİLİZ CANBULAN MATEMATİK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YAŞAMKENT MAH. 3190 CAD. NO: 69 ÇANKAYA / ANKARA",
+    "telefon": "(312) 217 06 86",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "78",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL GÜRKAN ATAKAN AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2813 SK. NO: 9 ÇANKAYA / ANKARA",
+    "telefon": "(535) 766 70 59",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "79",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL GÜVEN ÖZENER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YILDIZEVLER MAH. TURAN GÜNEŞ BUL. ÖZALTIN APT. NO: 52 İÇ KAPI NO: 5 ÇANKAYA / ANKARA",
+    "telefon": "(505) 497 74 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "80",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL HACETTEPELİLER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. MİTHATPAŞA CAD. NO: 38 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(532) 365 78 94",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "81",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL HASAN CENGİZ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2540 SK. NO: 9 ÇANKAYA / ANKARA",
+    "telefon": "(312) 236 31 92",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "82",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İDEAL GELİŞİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BÜYÜKESAT MAH. KÜPE SK. NO: 13 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 446 21 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "83",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İKSİR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2526 SK. NO: 6 ÇANKAYA / ANKARA",
+    "telefon": "(532) 484 89 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "84",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İL BİLGE AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALACAATLI MAH. 3346 CAD. NO: 60 İÇ KAPI NO: 23 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 24-28)",
+    "telefon": "(542) 313 74 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "85",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İLKELİ BEŞGEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KAVAKLIDERE MAH. KARANFİL SK. NO: 69 ÇANKAYA / ANKARA",
+    "telefon": "(312) 417 21 20",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "86",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İŞLEM EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. ZEMNUNLAR APT. NO: 42 İÇ KAPI NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(505) 950 12 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "87",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İVME FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KOCATEPE MAH. ZİYA GÖKALP CAD. ANADOLU HAN NO: 14 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 433 23 14",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "88",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İVME ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2539 SK. NO: 5 ÇANKAYA / ANKARA",
+    "telefon": "(312) 236 15 08",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "89",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL JALE TEZER ŞAMPİYON ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2760 CAD. NO: 25 ÇANKAYA / ANKARA",
+    "telefon": "(312) 425 86 86",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "90",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KAPSAM AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. ANGORA BUL. NO: 118 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(312) 235 55 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "91",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KARACAN AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. SAKARYA CAD. NO: 11 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 435 96 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "92",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KARAKALEM AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 2074 SK. NO: 9 ÇANKAYA / ANKARA",
+    "telefon": "(532) 584 70 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "93",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY AÇI ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. ZİYA GÖKALP CAD. NO: 17 ÇANKAYA / ANKARA",
+    "telefon": "(312) 432 36 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "94",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY AYDIN ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. KUMRULAR CAD. NO: 20 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11)",
+    "telefon": "(312) 425 62 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "95",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY BULVAR ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. NO: 135 İÇ KAPI NO: 3 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27)",
+    "telefon": "(539) 200 05 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "96",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. SELANİK CAD. NO: 5 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 430 10 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "97",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY FİNAL LOKMAN KARATAŞ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. ATATÜRK BUL. NO: 74 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(536) 720 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "98",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MALTEPE MAH. GAZİ MUSTAFA KEMAL BUL. GÜRAKAN NO: 33 ÇANKAYA / ANKARA",
+    "telefon": "(312) 230 15 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "99",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY GELİŞİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. MEŞRUTİYET CAD. KORAY İŞHANI NO: 1 İÇ KAPI NO: 4 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 5)",
+    "telefon": "(312) 417 58 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "100",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY GÜLEÇ FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. SAKARYA CAD. NO: 18A ÇANKAYA / ANKARA",
+    "telefon": "(312) 433 99 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "101",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY GÜLHANE AKADEMİK BAŞARI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. NO: 95 İÇ KAPI NO: 18 ÇANKAYA / ANKARA",
+    "telefon": "(312) 417 60 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "102",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY KAVRAM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ZİYA GÖKALP CAD. ŞENER ONAR İŞ MERKEZİ NO: 23 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(530) 976 97 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "103",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY MARKA PİRAMİT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KOCATEPE MAH. MEŞRUTİYET CAD. NO: 27 İÇ KAPI NO: 25 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 26-27-28)",
+    "telefon": "(505) 681 31 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "104",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY NAR VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. NO: 95 İÇ KAPI NO: 16 ÇANKAYA / ANKARA",
+    "telefon": "(507) 591 54 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "105",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY PAYDA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. MİTHATPAŞA CAD. NO: 30 İÇ KAPI NO: 28 ÇANKAYA / ANKARA",
+    "telefon": "(507) 737 40 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "106",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY SEVİYE VİP ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. İZMİR 1 CAD. NO: 37 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(533) 247 27 82",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "107",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. ATATÜRK BUL. NO: 70 İÇ KAPI NO: 5 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 6-7-8-9-10-11-12-13-14-15-16)",
+    "telefon": "(312) 418 99 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "108",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY SÜPER KALEMLER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ZİYA GÖKALP CAD. ŞENER ONAR İŞ MERKEZİ NO: 23 İÇ KAPI NO: 36 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 37-38-39)",
+    "telefon": "(312) 435 15 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "109",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY ŞİFRE EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KOCATEPE MAH. MEŞRUTİYET CAD. NO: 27 İÇ KAPI NO: 13 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 14-15-16)",
+    "telefon": "(552) 882 52 86",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "110",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY UĞUR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. ATATÜRK BUL. NO: 55 ÇANKAYA / ANKARA",
+    "telefon": "(532) 615 81 41",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "111",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY VİP SEMBOL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. ŞEHİT ADEM YAVUZ SK. KUMRULAR İŞMERKEZİ NO: 17 İÇ KAPI NO: 19 ÇANKAYA / ANKARA",
+    "telefon": "(530) 283 88 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "112",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KIZILAY YÜKSELİŞ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. İZMİR 2 CAD. NO: 43 İÇ KAPI NO: 2 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 3-4)",
+    "telefon": "(542) 800 70 61",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "113",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL LİMİTSİZ EĞİTİMİN NİTELİKLİ EĞİTMENLERLE VERİLDİĞİ AKADEMİ(LENEVA) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 51 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(312) 417 60 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "114",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MODERN ANALİTİK TEKNİK BİREYLER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 50A ÇANKAYA / ANKARA",
+    "telefon": "(530) 679 91 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "115",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MODERN ORTADOĞU ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 20 İÇ KAPI NO: 2 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 3-4-5)",
+    "telefon": "(505) 652 71 72",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "116",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MUSTAFA KEMAL AKADEMİ (MKA) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. MİLLİ MÜDAFAA CAD. NO: 4 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 425 82 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "117",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL NAZMİ ARIKAN FEN BİLİMLERİ KIZILAY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. ATATÜRK BUL. NO: 66 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 432 44 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "118",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL NAZMİ ARIKAN ÜMİTKÖY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2510 CAD. NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(533) 413 15 45",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "119",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL OKUYAN DOĞRULAYAN TESTEDEN ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ(ODTÜLÜLER) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 29 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "120",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ORAN AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YUKARI DİKMEN MAH. 645 SK. NO: 18/1 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 544 04 94",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "121",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ORAN SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İLKBAHAR MAH. GALİP ERDEM CAD. NO: 51 ÇANKAYA / ANKARA",
+    "telefon": "(312) 391 00 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "122",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ORHAN DALBAZ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BÜYÜKESAT MAH. UĞUR MUMCU CAD. NO: 32 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 447 07 80",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "123",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÖVEÇLER ROTA BAŞARI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATA MAH. KABİL CAD. NO: 158 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(532) 550 40 85",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "124",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÖZEL ULAK EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ZİYA GÖKALP CAD. ŞENER ONAR İŞ MERKEZİ NO: 23 İÇ KAPI NO: 5 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 6-7-8-9)",
+    "telefon": "(533) 486 63 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "125",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL PROFESYONEL SAYISALCILAR (PROSAY ) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2780 CAD. NO: 88 ÇANKAYA / ANKARA",
+    "telefon": "(538) 892 14 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "126",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL PROJE FEN (PROFEN) AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. ZİRAAT BANKASI NO: 111A İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(505) 319 89 14",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "127",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL REHBER PERMA AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "SANCAK MAH. TURAN GÜNEŞ BUL. NO: 23 İÇ KAPI NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(312) 439 58 78",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "128",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL SEMBOL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUSTAFA KEMAL MAH. 2119 CAD. NO: 13 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(532) 368 45 51",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "129",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL SÜPER KALEMLER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2480 CAD. KAFKAS NO: 46 ÇANKAYA / ANKARA",
+    "telefon": "(312) 235 61 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "130",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TASARI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. İNKILAP SK. NO: 2 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(312) 432 08 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "131",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TEK SEMBOL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUSTAFA KEMAL MAH. 2119 CAD. NO: 13A ÇANKAYA / ANKARA",
+    "telefon": "(532) 368 45 51",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "132",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TEST TEKNİĞİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 1933 CAD. NO: 28 ÇANKAYA / ANKARA",
+    "telefon": "(312) 235 15 85",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "133",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TESTFEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. ATATÜRK BUL. NO: 57 ÇANKAYA / ANKARA",
+    "telefon": "(312) 419 61 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "134",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TURAN CANBOLAT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YILDIZEVLER MAH. RABİNDRANATH TAGORE CAD. NO: 47 İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(541) 541 92 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "135",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TUZKAYA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. DOĞAN TAŞDELEN BUL. NO: 61 ÇANKAYA / ANKARA",
+    "telefon": "(312) 235 75 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "136",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜÇFEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2818 CAD. NO: 44 ÇANKAYA / ANKARA",
+    "telefon": "(533) 164 90 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "137",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜÇLER VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 1960 CAD. NO: 38 ÇANKAYA / ANKARA",
+    "telefon": "(312) 419 40 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "138",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. DOĞAN TAŞDELEN BUL. NO: 36A ÇANKAYA / ANKARA",
+    "telefon": "(312) 374 19 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "139",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÜMİT MAH. 2494 CAD. NO: 15 ÇANKAYA / ANKARA",
+    "telefon": "(312) 236 20 28",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "140",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY GRUP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÇAYYOLU MAH. DOĞAN TAŞDELEN BUL. NO: 130 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 235 00 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "141",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY İKİ FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 2074 SK. NO: 8 İÇ KAPI NO: 5 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 6-7-8)",
+    "telefon": "(312) 236 38 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "142",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. 2074 SK. NO: 5/1 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 235 45 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "143",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY UĞUR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MUTLUKENT MAH. DOĞAN TAŞDELEN BUL. NO: 49 ÇANKAYA / ANKARA",
+    "telefon": "(312) 235 90 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "144",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL VİP BAKIŞ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CEVİZLİDERE MAH. 1225 SK. NO: 3A ÇANKAYA / ANKARA",
+    "telefon": "(545) 683 06 34",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "145",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YARDIMCI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ZİYA GÖKALP CAD. DAMAR ARIKOĞLU İŞHANI NO: 21 İÇ KAPI NO: 9 ÇANKAYA / ANKARA",
+    "telefon": "(312) 434 14 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "146",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YAŞAM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALACAATLI MAH. MEHMET RİFAT BÖREKÇİ CAD. NO: 37G İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(507) 034 54 39",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "147",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YAŞAMKENT AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YAŞAMKENT MAH. MEHMET RİFAT BÖREKÇİ CAD. NO: 27C ÇANKAYA / ANKARA",
+    "telefon": "(312) 217 20 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "148",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YAŞAMKENT DÖRT MEVSİM AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALACAATLI MAH. 3372 SK. NO: 1A ÇANKAYA / ANKARA",
+    "telefon": "(507) 817 34 51",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "149",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YELDEĞİRMENİ VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AYDINLAR MAH. DİKMEN CAD. NO: 292 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 482 00 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "150",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YENİ GÜNCEL KIZILAY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KIZILAY MAH. IHLAMUR CAD. NO: 3 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 418 45 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "151",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YENİ REHBER AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. MİTHATPAŞA CAD. NO: 30 İÇ KAPI NO: 5 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 6-7-8)",
+    "telefon": "(532) 558 33 28",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "152",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YENİ SONUÇ EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ADAKALE SK. NO: 27 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(312) 433 75 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "153",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YENİ YÜZ ARTI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. ATATÜRK BUL. NO: 95 İÇ KAPI NO: 19 ÇANKAYA / ANKARA",
+    "telefon": "(506) 911 07 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "154",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YILDIZ ÇİZGİ ÜSTÜ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. MİTHATPAŞA CAD. NO: 37 İÇ KAPI NO: 6 ÇANKAYA / ANKARA",
+    "telefon": "(546) 481 82 94",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "155",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YILDIZ FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YILDIZEVLER MAH. 713 CAD. NO: 11 İÇ KAPI NO: 4 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 5-6)",
+    "telefon": "(312) 440 20 53",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "156",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YILDIZFEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FİDANLIK MAH. ADAKALE SK. NO: 24 İÇ KAPI NO: 9 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 10-11-12-13)",
+    "telefon": "(532) 505 88 89",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "157",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YORUM ZEKA KIZILAY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KONUR SK. NO: 6 İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(532) 675 87 59",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "158",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL YUSUF ÖNCEBE ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEŞRUTİYET MAH. KARANFİL SK. NO: 31 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 418 88 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "159",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL BUĞRA ÜNSES MATEMATİK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. İMAM HATİP CAD. NO: 6/1B ÇUBUK / ANKARA",
+    "telefon": "(531) 898 90 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "160",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YAVUZSELİM MAH. P.T.T. CAD. NO: 6A ÇUBUK / ANKARA",
+    "telefon": "(312) 837 37 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "161",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BARBAROS MAH. KARAGÖL CAD. İŞYERİ NO: 29A ÇUBUK / ANKARA",
+    "telefon": "(555) 108 11 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "162",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL ÇUBUK HEDEFİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. OLGUNLAR SK. NO: 2A ÇUBUK / ANKARA",
+    "telefon": "(552) 868 06 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "163",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL MURAT ÜNAL MATEMATİK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. MESAJ SK. NO: 1G ÇUBUK / ANKARA",
+    "telefon": "(505) 368 84 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "164",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL ANKARA FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KEMALPAŞA MAH. HAMZA ÖZTEKİN SK. NO: 12 ELMADAĞ / ANKARA",
+    "telefon": "(312) 863 28 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "165",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL ELMADAĞ AÇI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KEMALPAŞA MAH. SOĞUKPINAR CAD. NO: 34 İÇ KAPI NO: 1 ELMADAĞ / ANKARA",
+    "telefon": "(312) 863 63 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "166",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL ELMADAĞ SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KEMALPAŞA MAH. CUMHURİYET. CAD. NO: 44A ELMADAĞ / ANKARA",
+    "telefon": "(533) 306 77 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "167",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL HASANOĞLAN AÇI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HASANOĞLAN BAHÇELİEVLER MAH. MENDERES BUL. KÜÇÜKKARACA APT. NO: 98A ELMADAĞ / ANKARA",
+    "telefon": "(536) 036 46 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "168",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL HASANOĞLAN VERA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HASANOĞLAN BAHÇELİEVLER MAH. MENDERES BUL. HAMDI BEY APARTMANI NO: 161B ELMADAĞ / ANKARA",
+    "telefon": "(507) 874 43 67",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "169",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELİT İLGİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ MESUT MAH. 1903 CAD. NO: 10A ETİMESGUT / ANKARA",
+    "telefon": "(312) 228 01 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "170",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL TUNAHAN FİNAL ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TUNAHAN MAH. 211 CAD. NO: 8C İÇ KAPI NO: 10 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 11-12-13-14)",
+    "telefon": "(532) 154 50 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "171",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL AHİ MESUT BAKIŞ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ MESUT MAH. 1906 CAD. NO: 5A ETİMESGUT / ANKARA",
+    "telefon": "(312) 557 10 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "172",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL AHİMESUT İPUCU ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ MESUT MAH. 1904 CAD. NO: 21 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(506) 049 26 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "173",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL AHİMESUT MODÜL FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ MESUT MAH. AHİ MESUD BUL. NO: 81B ETİMESGUT / ANKARA",
+    "telefon": "(506) 395 55 56",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "174",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA OKUYAN DÜŞÜNEN TARTIŞAN ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ (ODTÜLÜLER) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALSANCAK MAH. ŞEHİT HİKMET ÖZER CAD. NO: 94 İÇ KAPI NO: 2 ETİMESGUT / ANKARA",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "175",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA YAPRAKCIK SEKİZ ONİKİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAYURT MAH. EVLİYA ÇELEBİ CAD. A BLOK NO: 23 İÇ KAPI NO: 34 ETİMESGUT / ANKARA",
+    "telefon": "(505) 779 00 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "176",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ARTIFEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. 312 SK. ARTI FEN KOLEJI NO: 5 İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(535) 653 82 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "177",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ASAL AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALTAY MAH. SÖĞÜT CAD. NO: 2 İÇ KAPI NO: 2 ETİMESGUT / ANKARA",
+    "telefon": "(501) 706 06 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "178",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ATA AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. 1478 CAD. NO: 59A ETİMESGUT / ANKARA",
+    "telefon": "(533) 097 63 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "179",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAĞLICA ÇÖZÜM VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAĞLICA MAH. BAĞLICA KÖYÜ CAD. NO: 6 İÇ KAPI NO: 3 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 5)",
+    "telefon": "(543) 603 47 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "180",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAĞLICA DOĞRU CEVAP ALFA KUŞAĞI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BAĞLICA MAH. ETİMESGUT BUL. A BLOK NO: 92A ETİMESGUT / ANKARA",
+    "telefon": "(536) 207 23 20",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "181",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAĞLICA JALE TEZER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAĞLICA MAH. MERMEROĞLU CAD. NO: 23A ETİMESGUT / ANKARA",
+    "telefon": "(537) 761 95 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "182",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BİREL AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERLER MAH. BAĞLICA BUL. AKTEPE IŞ MERKEZ NO: 4 İÇ KAPI NO: 2 ETİMESGUT / ANKARA",
+    "telefon": "(541) 493 60 67",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "183",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELİT İDEAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. ŞAPKA DEVRİMİ CAD. GERIM APT NO: 8 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 282 82 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "184",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT ATA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. 1478 CAD. NO: 11A ETİMESGUT / ANKARA",
+    "telefon": "(553) 060 63 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "185",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 67 İÇ KAPI NO: 5 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(312) 260 78 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "186",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 42 İÇ KAPI NO: 5 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 6)",
+    "telefon": "(312) 261 00 53",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "187",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT İKİ FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 21 İÇ KAPI NO: 3 ETİMESGUT / ANKARA",
+    "telefon": "(312) 261 91 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "188",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT İPUCU ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 71 İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(312) 261 00 08",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "189",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT KÜLTÜR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 63 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(531) 503 34 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "190",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TOPÇU MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 15 İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(542) 828 61 39",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "191",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 60 ETİMESGUT / ANKARA",
+    "telefon": "(532) 771 72 78",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "192",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ELVANKENT UĞUR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. ŞEHİT MURAT ÜÇÖZ CAD. NO: 62 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(532) 438 00 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "193",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN BİLİMSEL FARKLILIK (BF) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. SUBAŞI SK. NO: 43 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(505) 708 40 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "194",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALTAY MAH. SÖĞÜT CAD. NO: 14A İÇ KAPI NO: 3 ETİMESGUT / ANKARA",
+    "telefon": "(544) 850 98 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "195",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN ELİT EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEHİT OSMAN AVCI MAH. 1404 CAD. NO: 8BC ETİMESGUT / ANKARA",
+    "telefon": "(505) 918 11 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "196",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. EMİRYAMAN CAD. NO: 29 ETİMESGUT / ANKARA",
+    "telefon": "(312) 282 10 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "197",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN GÜLEÇ FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEHİT OSMAN AVCI MAH. MALAZGİRT 1071 CAD. NO: 42AE ETİMESGUT / ANKARA",
+    "telefon": "(532) 525 60 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "198",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN İMZA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. AKINCI CAD. AYŞE SADAY YABANCI DILLER KÜRSÜ NO: 33 İÇ KAPI NO: 2 ETİMESGUT / ANKARA",
+    "telefon": "(555) 197 01 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "199",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN KARACAN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TUNAHAN MAH. AMASYA BEYANNAMESİ CAD. OKYANUS PLAZA NO: 5A İÇ KAPI NO: 26 ETİMESGUT / ANKARA",
+    "telefon": "(507) 022 06 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "200",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN NAZMİ ARIKAN FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEHİT OSMAN AVCI MAH. 1404 CAD. NO: 8BE ETİMESGUT / ANKARA",
+    "telefon": "(312) 502 58 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "201",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. 285 SK. NO: 4 İÇ KAPI NO: 34 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 35-36-37-38-39-40-41-42-43-44-45-46-47-48-49-50-51-52)",
+    "telefon": "(312) 905 57 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "202",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALTAY MAH. SÖĞÜT CAD. NO: 2 İÇ KAPI NO: 4 ETİMESGUT / ANKARA",
+    "telefon": "(312) 282 65 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "203",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN TUNAFEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TUNAHAN MAH. 254 CAD. NO: 8A ETİMESGUT / ANKARA",
+    "telefon": "(312) 282 82 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "204",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN ÜÇ BİLGE ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ERYAMAN MAH. 285 SK. NO: 4 İÇ KAPI NO: 15 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33)",
+    "telefon": "(554) 964 08 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "205",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT CAN SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KAZIM KARABEKİR MAH. ŞEHİT HASAN ÖZTÜRK CAD. SINAV DERSANESİ NO: 14 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 243 10 55",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "206",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT MODERN ANALİTİK TEKNİK BİLİMSEL İLETİŞİM REHBERLİK (MATBİR) NET ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KAZIM KARABEKİR MAH. ŞEHİT HASAN ÖZTÜRK CAD. BIREY EĞITIM KURUMLARI NO: 34A ETİMESGUT / ANKARA",
+    "telefon": "(312) 243 25 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "207",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT MODERN ANALİTİK TEKNİK BİLİMSEL İLETİŞİM REHBERLİK (MATBİR) ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KAZIM KARABEKİR MAH. ŞEHİT HASAN ÖZTÜRK CAD. UYUM APT. NO: 38 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 243 25 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "208",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT OKUYAN DÜŞÜNEN TARTIŞAN ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLER (ODTÜLÜLER)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEHİT OSMAN AVCI MAH. ŞEHİT MEHMET ÇAVUŞ CAD. NO: 14 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "209",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İSTASYON MAH. 2309 CAD. NO: 6 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(532) 602 83 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "210",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PİYADE MAH. AHİ MESUD BUL. NO: 72D/A ETİMESGUT / ANKARA",
+    "telefon": "(312) 504 23 24",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "211",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETKİN ACİL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALTAY MAH. ORHAN BEY CAD. GALERİA İŞ MERKEZİ NO: 3 İÇ KAPI NO: 97 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 100)",
+    "telefon": "(507) 752 71 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "212",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL FİNALİSTLER VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ MESUT MAH. 1903 CAD. NO: 5BA ETİMESGUT / ANKARA",
+    "telefon": "(507) 274 30 54",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "213",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL GÜLEÇ FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İSTASYON MAH. HUZUR DUDAYEV CAD. ABK EĞITIM KURUMLARI NO: 1 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 243 36 66",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "214",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL İLKE VİP AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEYH ŞAMİL MAH. 13 CAD. ERYAMAN CENTER NO: 10 İÇ KAPI NO: 116 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 117)",
+    "telefon": "(507) 925 90 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "215",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL KAMP EĞİTİM MODELİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. 1471 SK. NO: 2A ETİMESGUT / ANKARA",
+    "telefon": "(552) 652 05 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "216",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL MOD MEDYAN MATEMATİK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ MESUT MAH. ŞEHİT İZZET ÖZKAN CAD. NO: 8 B- ETİMESGUT / ANKARA",
+    "telefon": "(312) 502 10 80",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "217",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL MODERN ANALİTİK TEKNİK BİREYLER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ALTAY MAH. ORHAN BEY CAD. GALERİA İŞ MERKEZİ NO: 3 İÇ KAPI NO: 98 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 99)",
+    "telefon": "(312) 280 80 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "218",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL MODÜL ANKARA MATEMATİK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. 1512 CAD. KARDELEN NO: 110A ETİMESGUT / ANKARA",
+    "telefon": "(532) 899 37 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "219",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ÖZNEL AKASYA ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATAKENT MAH. ŞEHİT CELAL İŞEN CAD. NO: 4D ETİMESGUT / ANKARA",
+    "telefon": "(530) 466 70 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "220",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL PLANLI İŞLEYEN SİSTEMLİ ANALİTİK GÖZLEMCİLERDEN OLUŞAN RASYONEL, EĞİTİMDE LİBERAL İNSANLAR TOPLULUĞU (PİSAGORELİT)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TUNAHAN MAH. 254 CAD. NO: 8S ETİMESGUT / ANKARA",
+    "telefon": "(312) 283 40 41",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "221",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL SİMGE ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BAĞLICA MAH. 1174 SK. NO: 2 İÇ KAPI NO: 3 ETİMESGUT / ANKARA",
+    "telefon": "(505) 540 89 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "222",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL TEK YILDIZ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PİYADE MAH. 2002 SK. TEKYILDIZ OZEL ÖĞRETİM KURSU NO: 1A ETİMESGUT / ANKARA",
+    "telefon": "(312) 228 12 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "223",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YANKI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜZELKENT MAH. 709 SK. ÖZEL YANKI ÖZEL ÖĞRETIM KURSU NO: 10 ETİMESGUT / ANKARA",
+    "telefon": "(541) 778 89 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "224",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YÜZYIL AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KAZIM KARABEKİR MAH. İSTASYON CAD. ONUR BILIM KURSLARI NO: 97 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(539) 653 58 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "225",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL MODERN EĞİTİM DÜNYASI FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞAFAK MAH. TEK YOLU CAD. NO: 11 İÇ KAPI NO: 9 GÖLBAŞI / ANKARA (DİĞER İÇ KAPILAR: 10-11-12)",
+    "telefon": "(506) 339 00 62",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "226",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL ANKARA GÖLBAŞI EYMİR ARTI DELTA FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GAZİOSMANPAŞA MAH. ANKARA CAD. NO: 64 İÇ KAPI NO: 3 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 484 00 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "227",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL ANKARA GÖLBAŞI MOGAN ARTI DELTA FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GAZİOSMANPAŞA MAH. PLEVNE CAD. NO: 23A GÖLBAŞI / ANKARA",
+    "telefon": "(312) 484 00 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "228",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL ARGÜMAN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "SEĞMENLER MAH. 943 SK. NO: 4A İÇ KAPI NO: 1 GÖLBAŞI / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(542) 896 06 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "229",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL EYMİR FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "EYMİR MAH. YEDİGÖLLER CAD. NO: 11 GÖLBAŞI / ANKARA",
+    "telefon": "(539) 574 23 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "230",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL GÖLBAŞI ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞAFAK MAH. 914 CAD. NO: 1 İÇ KAPI NO: 1 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 484 80 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "231",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL GÖLBAŞI SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAHÇELİEVLER MAH. CEMAL GÜRSEL CAD. ÖZEL SINAV ÖĞRETIM KURSLARI NO: 30 İÇ KAPI NO: 1 GÖLBAŞI / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11-12)",
+    "telefon": "(312) 484 93 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "232",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL NACİYE YÜKSEL BAŞARI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAHÇELİEVLER MAH. CEMAL GÜRSEL CAD. NO: 4 İÇ KAPI NO: 1 GÖLBAŞI / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(507) 343 23 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "233",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL KAHRAMANKAZAN AÇI ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. GAZİ MUSTAFA KEMAL CAD. NO: 35A KAHRAMANKAZAN / ANKARA",
+    "telefon": "(505) 260 43 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "234",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL KAHRAMANKAZAN MERSİN EĞİTİM KURUMLARI (MEK) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. ATİK SK. NO: 1 İÇ KAPI NO: 1 KAHRAMANKAZAN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 357 20 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "235",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL KAHRAMANKAZAN POZİTİF EĞİTİM VE GELİŞİM AKADEMİSİ (PEGEM AKADEMİ) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "SATIKADIN MAH. SANCAK CAD. NO: 39/1A KAHRAMANKAZAN / ANKARA",
+    "telefon": "(553) 171 80 83",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "236",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BİLİMSEL İLKELİ LİMİTSİZ CEBİRSEL EĞİTİM (BİLCE) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TEPEBAŞI MAH. FATİH CAD. NO: 135/1 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 679 10 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "237",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN UĞUR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜÇLÜKAYA MAH. SAVUR CAD. NO: 8 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 359 95 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "238",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL PROFESYONEL İLETİŞİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEFKAT MAH. 57 SK. ÜNAL NO: 39A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 339 90 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "239",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ANKARA ANKA MASABAŞI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "EMRAH MAH. YEDİGÜN SK. MALTEPE DERSANESİ TEKAP AP. NO: 15A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 325 01 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "240",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL AŞAĞIEĞLENCE FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İNCİRLİ MAH. MELİKE SK. NO: 7 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(506) 407 71 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "241",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BAĞLUM FİNAL ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HİSAR MAH. BAĞLUM BUL. NO: 50A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 837 58 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "242",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK BİREY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İNCİRLİ MAH. YUNUS EMRE CAD. NO: 11 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-9)",
+    "telefon": "(312) 352 02 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "243",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK KÜLTÜR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İNCİRLİ MAH. YUNUS EMRE CAD. NO: 7 İÇ KAPI NO: 6 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 7)",
+    "telefon": "(531) 503 34 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "244",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ETLİK ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ETLİK MAH. BAĞCI CAD. NO: 23 İÇ KAPI NO: 3 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 4-5-6)",
+    "telefon": "(541) 951 64 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "245",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL GENÇ KAPSÜL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAĞLARBAŞI MAH. BURSA CAD. HALICIOĞLUUARI NO: 11 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(505) 184 53 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "246",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KARE KOD ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TEPEBAŞI MAH. MUSTAFA ASIM KÖKSAL CAD. SÜREÇ DERSANELERİ NO: 24 İÇ KAPI NO: 3 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 4-5-6-7-8)",
+    "telefon": "(312) 358 43 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "247",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN İNCİRLİ ETLİK SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İNCİRLİ MAH. MELİKE SK. MÜHÜRDAROĞLU APT. NO: 2 İÇ KAPI NO: 7 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 8-9)",
+    "telefon": "(532) 350 46 01",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "248",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN BİREY ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAĞLARBAŞI MAH. GONCAGÜL SK. NO: 2 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 538 16 16",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "249",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN ÇÖZÜM VİP ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜÇLÜKAYA MAH. KIZLAR PINARI CAD. NO: 65 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7)",
+    "telefon": "(312) 314 06 66",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "250",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN ETLİK SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İNCİRLİ MAH. MELİKE SK. MÜHÜRDAROĞLU APT. NO: 2 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 321 26 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "251",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN KAVRAM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PINARBAŞI MAH. ŞEHİT HAKAN TURAN CAD. NO: 23B KEÇİÖREN / ANKARA",
+    "telefon": "(505) 833 10 10",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "252",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN KÜLTÜR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PINARBAŞI MAH. ATLAS CAD. NO: 12B KEÇİÖREN / ANKARA",
+    "telefon": "(312) 356 31 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "253",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN NOKTA TEK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜÇLÜKAYA MAH. BELÖREN SK. NO: 5A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 359 59 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "254",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN OKUYARAK DÜŞÜNEREK TARTIŞARAK ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ (ODTÜLÜLER) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "UYANIŞ MAH. ANAVATAN CAD. NO: 3 İÇ KAPI NO: 5 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 6-7-8)",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "255",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "19 MAYIS MAH. SANATORYUM CAD. NO: 193 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(532) 602 83 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "256",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PINARBAŞI MAH. ASYA SK. ANLAM OKULLARI NO: 32 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 356 54 54",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "257",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN YENİ NOKTA TEK ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜÇLÜKAYA MAH. BELÖREN SK. NO: 3C KEÇİÖREN / ANKARA",
+    "telefon": "(312) 359 59 58",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "258",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN YILDIZ FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "PINARBAŞI MAH. ŞEHİT FAZIL GÜRS SK. NO: 31 İÇ KAPI NO: 3 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(312) 342 28 28",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "259",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL LİDER LEYLA ÖĞÜTCÜ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "UYANIŞ MAH. 1112 SK. NO: 1 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(541) 449 93 82",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "260",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL OVACIK AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YAYLA MAH. 1488 CAD. NO: 4BB KEÇİÖREN / ANKARA",
+    "telefon": "(506) 779 11 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "261",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL OVACIK ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "OVACIK MAH. YOZGAT BUL. NO: 68 İÇ KAPI NO: 9 KEÇİÖREN / ANKARA",
+    "telefon": "(505) 923 95 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "262",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ÖZDE ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEFKAT MAH. KIZLAR PINARI CAD. A BLOK NO: 50 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10)",
+    "telefon": "(506) 464 21 14",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "263",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SANATORYUM UĞUR DAĞASLAN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KARARGAHTEPE MAH. SANATORYUM CAD. NO: 57 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 360 00 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "264",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SUBAYEVLERİ VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KAVACIK SUBAYEVLERİ MAH. GÜZİN CAD. KUMRU APT. NO: 36 İÇ KAPI NO: 3 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(506) 618 77 49",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "265",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ŞELALE SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GÜÇLÜKAYA MAH. BELÖREN SK. NO: 2 İÇ KAPI NO: 2 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 3)",
+    "telefon": "(312) 360 90 20",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "266",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YÜKSELTEPE ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YÜKSELTEPE MAH. ŞEHİT BAYRAM ULUER CAD. NO: 15 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7)",
+    "telefon": "(312) 577 79 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "267",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ABİDİNPAŞA SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KARTALTEPE MAH. TIP FAKÜLTESİ CAD. SINAV KURS NO: 211 MAMAK / ANKARA",
+    "telefon": "(312) 365 00 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "268",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL AKDERE FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ABİDİNPAŞA MAH. MÜNZEVİLER CAD. NO: 59B İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 344 44 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "269",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL AKDERE SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AKDERE MAH. MEHMET ALİ ALTIN CAD. ERSÖZ APT NO: 53E MAMAK / ANKARA",
+    "telefon": "(312) 364 10 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "270",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL HÜSEYİNGAZİ ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAŞAK MAH. KARAPÜRÇEK CAD. ÇÖZÜM KURS NO: 2 İÇ KAPI NO: 2 MAMAK / ANKARA",
+    "telefon": "(312) 375 35 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "271",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK ÇARŞI FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HARMAN MAH. 172 SK. NO: 2 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(530) 549 58 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "272",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HÜSEYİNGAZİ MAH. MAMAK CAD. AÇARLAR APT NO: 171 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(506) 963 00 68",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "273",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "HÜSEYİNGAZİ MAH. MAMAK ÇARŞIİÇİ CAD. 0RTADOGULULAR ÖZEL EĞITIM KÜRSÜ NO: 6 İÇ KAPI NO: 1 MAMAK / ANKARA",
+    "telefon": "(532) 068 88 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "274",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MAMAK SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAHÇELERİÇİ MAH. MAMAK CAD. SINAV APT NO: 245 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9)",
+    "telefon": "(554) 414 75 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "275",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL META AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "EKİN MAH. 1652 SK. NO: 3 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(549) 519 19 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "276",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL MODERN ANALİTİK TEKNİK BİLİMSEL İLETİŞİM VE REHBERLİK (MATBİR) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KARTALTEPE MAH. SÜLEYMAN AYTEN CAD. NO: 22A MAMAK / ANKARA",
+    "telefon": "(312) 364 44 04",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "277",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL NATOYOLU FİNAL VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "DURALİ ALIÇ MAH. SULTAN FATİH CAD. YILDIZ APT. NO: 43B MAMAK / ANKARA",
+    "telefon": "(506) 779 11 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "278",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ORTADOĞU AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KARTALTEPE MAH. SÜLEYMAN AYTEN CAD. NO: 34 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-4)",
+    "telefon": "(532) 526 87 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "279",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL SON BİREBİR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BAHÇELERÜSTÜ MAH. ARİF YALDIZ CAD. NO: 83A MAMAK / ANKARA",
+    "telefon": "(545) 229 30 33",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "280",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ÜÇEN AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "DURALİ ALIÇ MAH. 961 SK. HASKENT SİTESİ HASKENT SİTESİ NO: 1AA MAMAK / ANKARA",
+    "telefon": "(532) 258 05 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "281",
+    "ilce": "NALLIHAN",
+    "okul_adi": "ÖZEL NALLIHAN ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "NASUHPAŞA MAH. BURSA CAD. ÇÖZÜM ÖZEL ÖĞRETIM KURSU NO: 1A NALLIHAN / ANKARA",
+    "telefon": "(541) 434 56 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "282",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL MEZAİM KİRAZ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ MAH. ETİ CAD. NO: 67 İÇ KAPI NO: 1 POLATLI / ANKARA",
+    "telefon": "(532) 324 39 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "283",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ZAFER MAH. YAVUZ SELİM CAD. NO: 80A İÇ KAPI NO: 1 POLATLI / ANKARA",
+    "telefon": "(553) 057 30 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "284",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI AYYILDIZ ZAFER ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ZAFER MAH. YAVUZ SELİM CAD. NO: 80B İÇ KAPI NO: 3 POLATLI / ANKARA",
+    "telefon": "(312) 621 39 39",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "285",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI BAŞARI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ZAFER MAH. MENTEŞE CAD. SEVGI APT. NO: 23 İÇ KAPI NO: 4 POLATLI / ANKARA",
+    "telefon": "(539) 566 99 04",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "286",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI KÖK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ŞEHİTLİK MAH. KIZILCIK SK. NO: 43 POLATLI / ANKARA",
+    "telefon": "(507) 613 32 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "287",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI POZİTİF MATEMATİK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GAZİ MAH. FEVZİ ÇAKMAK CAD. NO: 62 İÇ KAPI NO: 2 POLATLI / ANKARA",
+    "telefon": "(533) 453 04 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "288",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR ÇÖZÜM AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FATİH MAH. AY SK. NO: 2 İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(507) 611 05 97",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "289",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR MODERN ANALİTİK TEKNİK BİREYSEL İLETİŞİM REHBERLİK (MATBİR) ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FATİH MAH. BELEDİYE CAD. NO: 45A PURSAKLAR / ANKARA",
+    "telefon": "(312) 512 36 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "290",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR ON ADIM EĞİTİM BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "FATİH MAH. KADIOĞLU SK. NO: 28 İÇ KAPI NO: 2 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 3-4-5-6)",
+    "telefon": "(505) 983 23 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "291",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR TAM BAŞARI SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MERKEZ MAH. HAVUZ SK. NO: 1 İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(505) 636 04 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "292",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR TEKNOÇAĞ ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MERKEZ MAH. TAYFA CAD. FINAL OKULLARI NO: 2 İÇ KAPI NO: 1 PURSAKLAR / ANKARA",
+    "telefon": "(312) 328 99 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "293",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL SIRA DIŞI ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MERKEZ MAH. HOCA AHMET YESEVİ CAD. SIRADIŞI ÖZEL EĞİTİM KURSU NO: 9 PURSAKLAR / ANKARA",
+    "telefon": "(506) 268 99 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "294",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ANKARA SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. ANKARA CAD. SINAV DERSHANESI NO: 8B SİNCAN / ANKARA",
+    "telefon": "(312) 269 70 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "295",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ANKARA SİNCAN İPUCU ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MARAŞAL ÇAKMAK MAH. ATATÜRK.. CAD. IPUCU KURS NO: 74 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(552) 653 06 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "296",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL BEŞLER AKADEMİ EĞİTİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. ATATÜRK.. CAD. NO: 8 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 276 02 37",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "297",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL BİLİM IŞIĞI VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "29 EKİM MAH. 785 CAD. NO: 21A SİNCAN / ANKARA",
+    "telefon": "(543) 826 13 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "298",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL FEN BİLİMLERİ ELİT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "SELÇUKLU MAH. KURTARAN SK. EMIR IŞ MERKEZI NO: 55 İÇ KAPI NO: 16 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 17-18)",
+    "telefon": "(505) 304 34 28",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "299",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN AÇILIM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. ATATÜRK.. CAD. AÇI DERSHANE NO: 10 İÇ KAPI NO: 7 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 9-10)",
+    "telefon": "(312) 271 65 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "300",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İSTASYON MAH. AYAŞ CAD. NO: 26 SİNCAN / ANKARA",
+    "telefon": "(532) 326 45 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "301",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN KARACAN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. ONUR CAD. KARACAN AKADEMI NO: 1 İÇ KAPI NO: 1 SİNCAN / ANKARA",
+    "telefon": "(312) 271 25 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "302",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN OKUYAN DÜŞÜNEN TARTIŞAN ÜRETEN LİYAKATLİ ÜSTÜN LİDER EĞİTİMCİLERİN REHBERLİĞİ (ODTÜLÜLER)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. ANKARA CAD. ISMAIL ÖLMEZ PLAZA NO: 15 İÇ KAPI NO: 3 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 4)",
+    "telefon": "(537) 504 30 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "303",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. MELTEM. SK. NO: 47B SİNCAN / ANKARA",
+    "telefon": "(506) 103 76 76",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "304",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "AHİ EVRAN MAH. AYAŞ CAD. SINAV KURSU NO: 27 İÇ KAPI NO: 5 SİNCAN / ANKARA",
+    "telefon": "(312) 268 03 33",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "305",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN VİP ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ATATÜRK MAH. MELTEM. SK. NO: 30 SİNCAN / ANKARA",
+    "telefon": "(312) 269 57 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "306",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL YENİKENT SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MENDERES MAH. YILDIRIM BEYAZIT CAD. HARMANLAR IŞ MERKEZI NO: 5 İÇ KAPI NO: 1 SİNCAN / ANKARA",
+    "telefon": "(505) 789 95 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "307",
+    "ilce": "ŞEREFLİKOÇHİSAR",
+    "okul_adi": "ÖZEL GÖKSEL ATAK ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "SARIKAYA MAH. YİĞİTER SK. NO: 2A ŞEREFLİKOÇHİSAR / ANKARA",
+    "telefon": "(535) 628 59 07",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "308",
+    "ilce": "ŞEREFLİKOÇHİSAR",
+    "okul_adi": "ÖZEL ŞEREFLİKOÇHİSAR MODERN EĞİTİM FAALİYETLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "EKİCİ MAH. ALİ BABACAN CAD. NO: 31 İÇ KAPI NO: 1 ŞEREFLİKOÇHİSAR / ANKARA",
+    "telefon": "(532) 621 31 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "309",
+    "ilce": "ŞEREFLİKOÇHİSAR",
+    "okul_adi": "ÖZEL ŞEREFLİKOÇHİSAR ORTADOĞULULAR ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "İSTİKLAL MAH. ANKARA CAD. DERELI APT NO: 190B ŞEREFLİKOÇHİSAR / ANKARA",
+    "telefon": "(505) 797 43 69",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "310",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL AKADEMİK PLAN UYGULAMA SİSTEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "IŞINLAR MAH. İVEDİK CAD. NO: 32 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(552) 400 13 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "311",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ALFA GRUP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KENTKOOP MAH. 1860 CAD. NO: 31 İÇ KAPI NO: 4 YENİMAHALLE / ANKARA",
+    "telefon": "(542) 540 66 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "312",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ALTIN BAŞARI ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. 2431 SK. NO: 4B YENİMAHALLE / ANKARA",
+    "telefon": "(312) 911 12 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "313",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ATLAS ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. BEYDAĞI SK. NO: 6 YENİMAHALLE / ANKARA",
+    "telefon": "(552) 590 70 92",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "314",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT KARİYER REHBER AKADEMİ(KR)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2412 SK. NO: 10 YENİMAHALLE / ANKARA",
+    "telefon": "(544) 742 11 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "315",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT ANALİTİK TEKNİK BİREYLER (MATBİR)ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2360 SK. NO: 1A YENİMAHALLE / ANKARA",
+    "telefon": "(530) 312 90 93",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "316",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT AYDIN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2372 SK. NO: 5 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 385 05 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "317",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. VEYSEL KARANİ BUL. NO: 3G YENİMAHALLE / ANKARA",
+    "telefon": "(312) 566 10 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "318",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT FİNAL VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2415 SK. FİNAL VİP KURS NO: 21 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(552) 478 92 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "319",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT GELİŞİM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KENTKOOP MAH. 1862 CAD. NO: 18B YENİMAHALLE / ANKARA",
+    "telefon": "(312) 251 11 33",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "320",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT OKUYAN DENEYEN TARTIŞAN UZMANLAR (ODTU) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. HAYDARCAN KILIÇDOĞAN CAD. NO: 20 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 418 18 04",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "321",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT POLİNOM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "CUMHURİYET MAH. 2422 CAD. NO: 22C YENİMAHALLE / ANKARA",
+    "telefon": "(312) 257 44 04",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "322",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT PROJE FEN(PROFEN)AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2415 SK. NO: 2 YENİMAHALLE / ANKARA",
+    "telefon": "(552) 181 65 39",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "323",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT TUNAFEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KENTKOOP MAH. 1862 CAD. C1 BLOK NO: 10/1 İÇ KAPI NO: 24 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 25-26-27-31)",
+    "telefon": "(312) 417 76 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "324",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL DEMETEVLER ÇÖZÜM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÖZEVLER MAH. ŞEHİT ATIF ŞAHİN CAD. NO: 2 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(553) 502 44 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "325",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL DEMETEVLER FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "DEMETEVLER MAH. İVEDİK CAD. NO: 95 İÇ KAPI NO: 4 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 5-6)",
+    "telefon": "(312) 336 11 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "326",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL İYİ TERCİH ÜZERİNE EĞİTİMDE TEK ADRES ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "IŞINLAR MAH. RAGIP TÜZÜN CAD. VIP FEN BILIMLERI NO: 40 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(505) 700 03 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "327",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL MEYDAN ORTA DOĞULULAR (MOD) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "KENTKOOP MAH. 1862 CAD. NO: 8 İÇ KAPI NO: 6 YENİMAHALLE / ANKARA",
+    "telefon": "(553) 171 80 83",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "328",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL MODERN EĞİTİM DÜNYASI (MED) FEN BİLİMLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "RAGIP TÜZÜN MAH. COŞKUN SK. ÇAĞDAŞ GENÇ EĞITIM KURUMLARI NO: 1 İÇ KAPI NO: 0 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 335 44 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "329",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL PARK FİNAL ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "MEHMET AKİF ERSOY MAH. ANADOLU BUL. NO: 42/2 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(532) 583 55 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "330",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ŞENTEPE GARANTİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "ÇİĞDEMTEPE MAH. AYDAN CAD. NO: 175 İÇ KAPI NO: 3 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 4-5-6-7-8)",
+    "telefon": "(506) 701 99 68",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "331",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ŞENTEPE SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BURÇ MAH. SEVAL CAD. NO: 123 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 331 19 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "332",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL TEKNİK ANALİTİK BAŞARI (TAB) ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2360 SK. TAB EĞITIM KURUMLARI NO: 3 YENİMAHALLE / ANKARA",
+    "telefon": "(507) 843 06 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "333",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİ BATI AKADEMİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2415 SK. NO: 12 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 256 59 56",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "334",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİ UMUT ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "YENİ BATI MAH. 2411 SK. NO: 7 YENİMAHALLE / ANKARA",
+    "telefon": "(505) 691 17 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "335",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE KAVRAM ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "RAGIP TÜZÜN MAH. İVEDİK CAD. NO: 170 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(542) 319 19 82",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "336",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE KÜLTÜR ÖZEL ÖĞRETİM KURSU (Sosyal Bilimler Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "TEPEALTI MAH. OĞUZLAR SK. NO: 204 İÇ KAPI NO: 2 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 3-4)",
+    "telefon": "(531) 503 34 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "337",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE SINAV İLERİ ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "GAYRET MAH. İVEDİK CAD. NO: 11B İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(312) 343 35 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "338",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE VİP ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "IŞINLAR MAH. İVEDİK CAD. NÜFUS MÜDÜRLÜĞÜ NO: 84 YENİMAHALLE / ANKARA",
+    "telefon": "(505) 333 66 07",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "339",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YILDIZ KUZEY FEN ÖZEL ÖĞRETİM KURSU (Fen Bilimleri Bilim Grubu)",
+    "okul_turu": "Özel Öğretim Kursu",
+    "adres": "BARIŞTEPE MAH. EROL KAYA CAD. NO: 22 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(544) 552 40 52",
+    "il": "ANKARA"
+  }
+]

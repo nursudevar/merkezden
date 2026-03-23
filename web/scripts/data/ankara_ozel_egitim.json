@@ -1,0 +1,2216 @@
+[
+  {
+    "sira_no": "1",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL AKYURT EKOL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YEŞİLTEPE MAH. EZGİ CAD. EKOL ÖZEL EGITIM NO: 4 İÇ KAPI NO: 1 AKYURT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(312) 844 34 34",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "2",
+    "ilce": "AKYURT",
+    "okul_adi": "ÖZEL AKYURT HARİKA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BEYAZIT MAH. NURETTİN CANKURTARAN CAD.  NO: 94  İÇ KAPI NO: 1 AKYURT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(312) 911 20 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "3",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL BİLGE POLAT ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÖRNEK MAH. GÜLAÇAN CAD.  NO: 34  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 316 65 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "4",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ELİT YAĞMUR ÇOCUKLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BATTALGAZİ MAH. ŞEHİT RAFET SEVER CAD.  NO: 122  İÇ KAPI NO: 3 ALTINDAĞ / ANKARA",
+    "telefon": "(312) 353 21 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "5",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ESENKÖY ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARAPÜRÇEK MAH. 309 CAD. ESENKÖY SİTESİ OZEL ESENKOY EGITIM VE REHABILITASYON MERKEZI BLOK  NO: 62/21  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 376 63 30",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "6",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL GAZİ EFE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ZÜBEYDE HANIM MAH. 657 CAD.  NO: 4A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 384 54 41",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "7",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL İLK SEMPATİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ SİTELER ŞUBESİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BATTALGAZİ MAH. ORHAN KEMAL CAD. CANAN APT NO: 46A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 350 51 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "8",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL İLK YÜKSELİŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GÜLPINAR MAH. 141 CAD.  NO: 33A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 338 39 52",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "9",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL İLKEMİZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYDINLIKEVLER MAH. UZAYAN SK.  NO: 19A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 318 87 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "10",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL KAYRAL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ZÜBEYDE HANIM MAH. SÖĞÜT SK. KIZILIRMAK APT NO: 16 İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(532) 744 88 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "11",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL MUTLUCAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYDINLIKEVLER MAH. ŞEHİT CEMALETTİN CAD.  NO: 57  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 348 61 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "12",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL OKYANUS 75.YIL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÖRNEK MAH. MUVAZİ SK. REHABILITASYON MERKEZI BLOK  NO: 9  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 317 01 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "13",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL OKYANUS 75.YIL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ AYDINLIKEVLER ŞUBESİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÖRNEK MAH. ADALIHALİL CAD. IŞITME KONUŞMA MERKEZI BLOK  NO: 6  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA",
+    "telefon": "(312) 317 01 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "14",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ÖRGÜN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BEŞİKKAYA MAH. 1890 CAD. NO: 25A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 376 18 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "15",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ÖRNEK DERYA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÖRNEK MAH. ÖRNEK CAD. ÖMER APARTMANI NO: 61A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 316 00 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "16",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL ÖZ ALTINAY ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARAPÜRÇEK MAH. ŞEHİT HARUN AYDIN CAD. ALTINAY OZEL EGITIM MERKEZI BLOK  NO: 47  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9)",
+    "telefon": "(312) 375 91 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "17",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL UMUT ÇINARIM ALTINDAĞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÖRNEK MAH. 679 CAD.  NO: 21  İÇ KAPI NO: 1 ALTINDAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(532) 575 56 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "18",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL UMUT ÇINARLARI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARAPÜRÇEK MAH. 454/1 SK.  NO: 9A ALTINDAĞ / ANKARA",
+    "telefon": "(533) 327 68 16",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "19",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL UMUT YOLU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÇAMLIK MAH. 1863 CAD.  NO: 18A ALTINDAĞ / ANKARA",
+    "telefon": "(312) 312 22 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "20",
+    "ilce": "ALTINDAĞ",
+    "okul_adi": "ÖZEL YENİ KURTULUŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "SAKARYA MAH. HACI BAYRAM BUL.  NO: 64 ALTINDAĞ / ANKARA",
+    "telefon": "(312) 320 20 89",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "21",
+    "ilce": "BALA",
+    "okul_adi": "ÖZEL BALA ŞİFA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HAMİDİYE MAH. 17 SK. NO: 3 BALA / ANKARA",
+    "telefon": "(507) 811 67 69",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "22",
+    "ilce": "BEYPAZARI",
+    "okul_adi": "ÖZEL AŞİYAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYVAŞIK MAH. ŞEHİT HALİL KOÇAK CAD. AS-EM İŞ MERK. SİTESİ  NO: 1  İÇ KAPI NO: 1 BEYPAZARI / ANKARA",
+    "telefon": "(312) 761 10 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "23",
+    "ilce": "BEYPAZARI",
+    "okul_adi": "ÖZEL BEYPAZARI GÖKKUŞAĞI ÖZEL EĞİTİM V E REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYVAŞIK MAH. AKYAZI KÜME EVLERİ   NO: 104A BEYPAZARI / ANKARA",
+    "telefon": "(545) 459 60 51",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "24",
+    "ilce": "BEYPAZARI",
+    "okul_adi": "ÖZEL BEYPAZARI KARDELEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HACIKARA MAH. ATLAS SK. Ö.BİLLUR R.M. SİTESİ  NO: 14  İÇ KAPI NO: 1 BEYPAZARI / ANKARA",
+    "telefon": "(312) 708 08 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "25",
+    "ilce": "BEYPAZARI",
+    "okul_adi": "ÖZEL BEYPAZARI YENİ UMUT ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYVAŞIK MAH. BOZTEPE KÜME EVLERİ NO: 41 İÇ KAPI NO: 1 BEYPAZARI / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(542) 396 22 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "26",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKA ÇOCUK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YÜCETEPE MAH. AKDENİZ CAD. NO: 35 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10)",
+    "telefon": "(312) 212 25 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "27",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKA NOVA ÇİZGİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÜMİT MAH. 2528 SK.  NO: 9  İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(532) 406 01 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "28",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA MAVİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "PROF. DR. AHMET TANER KIŞLALI MAH. 2856 CAD.  NO: 2-  İÇ KAPI NO: - ÇANKAYA / ANKARA",
+    "telefon": "(555) 732 50 66",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "29",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA NEFES ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MUTLUKENT MAH. ATEŞ ÇİÇEĞİ CAD. NO: 5 ÇANKAYA / ANKARA",
+    "telefon": "(543) 301 30 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "30",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ANKARA YENİ DOĞUŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İLKBAHAR MAH. 607 SK.  NO: 7 ÇANKAYA / ANKARA",
+    "telefon": "(312) 467 84 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "31",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ARTI KALİTE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MEŞRUTİYET MAH. SELANİK CAD. BARIŞ 72 APT. BLOK  NO: 72  İÇ KAPI NO: 6 ÇANKAYA / ANKARA",
+    "telefon": "(312) 418 03 53",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "32",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ATÖLYE DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MUTLUKENT MAH. 1963 CAD. NO: 9 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(505) 732 22 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "33",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BALGAT AYIŞIĞI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "OĞUZLAR MAH. SÜLEYMAN HACIABDULLAHOĞLU CAD. NO: 44 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 285 90 72",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "34",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL BİREYSEL BİRİKİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARAPINAR MAH. 1173 SK.  NO: 2  İÇ KAPI NO: 18 ÇANKAYA / ANKARA",
+    "telefon": "(312) 476 16 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "35",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇANKAYA DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MALTEPE MAH. ÖZVEREN CAD. NO: 22 İÇ KAPI NO: 3 ÇANKAYA / ANKARA",
+    "telefon": "(312) 231 42 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "36",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÇANKAYA YAMAN ŞİRİNLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÇANKAYA MAH. EBUZİYA TEVFİK SK.  NO: 17  İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 438 00 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "37",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DİSLEKSİ ANKARA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "100.YIL MAH. GÖLGELİ SK.  NO: 26  İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(530) 494 17 08",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "38",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DİZEM DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İLKBAHAR MAH. 614 CAD.  NO: 7 ÇANKAYA / ANKARA",
+    "telefon": "(312) 447 51 51",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "39",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DÖNENCE ÇOCUK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YAŞAMKENT MAH. 3193 SK.  NO: 72 ÇANKAYA / ANKARA",
+    "telefon": "(507) 241 25 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "40",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL DUYUM ERKEN MÜDAHALE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KOCATEPE MAH. BAYINDIR 2 SK. İREM APT NO: 61 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11-12)",
+    "telefon": "(312) 236 64 20",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "41",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL EDİNİM DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MUTLUKENT MAH. 1966 CAD.  NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(553) 216 68 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "42",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL EGEMEN NAKIŞÇI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YAŞAMKENT MAH. 3190 CAD. NO: 76 İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(533) 303 53 29",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "43",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL GÜÇLÜ YAŞAM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÜMİT MAH. 2539 SK.  NO: 34 ÇANKAYA / ANKARA",
+    "telefon": "(543) 275 90 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "44",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL GÜL YAPRAK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ATA MAH. KABİL CAD. BİRLİK  APT BLOK  NO: 142A ÇANKAYA / ANKARA",
+    "telefon": "(312) 476 32 41",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "45",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL GÜLESİN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KIZILAY MAH. MENEKŞE 2 CAD. YASEMİN APT. NO: 19 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 3-7)",
+    "telefon": "(312) 418 08 61",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "46",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL HACI ŞAHİN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAVAKLIDERE MAH. PARİS CAD.  NO: 12A ÇANKAYA / ANKARA",
+    "telefon": "(312) 418 32 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "47",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL HAYDİ ÇANKAYA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GÜZELTEPE MAH. AHMET MİTHAT EFENDİ CAD.  NO: 39  İÇ KAPI NO: K ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 1-2-3-4-5-6-7-8-9)",
+    "telefon": "(312) 442 17 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "48",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL HEDEF  ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MALTEPE MAH. YAYLA SK.  NO: 4  İÇ KAPI NO: 4 ÇANKAYA / ANKARA",
+    "telefon": "(312) 231 46 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "49",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İLGİ OTİZM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HUZUR MAH. LİZBON CAD. PELEN APT NO: 106  İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 436 35 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "50",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İLK ALKIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MEBUSEVLERİ MAH. ŞEREFLİ SK.  NO: 27  İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(312) 212 28 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "51",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İLK ESEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÜMİT MAH. 2532 CAD. NO: 12 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 231 69 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "52",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL İLKE BAŞARI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AŞIKPAŞA MAH. VEDAT DALOKAY CAD.  NO: 43B ÇANKAYA / ANKARA",
+    "telefon": "(312) 446 08 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "53",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL KÜP DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KONUTKENT MAH. 2969 SK.  NO: 12 ÇANKAYA / ANKARA",
+    "telefon": "(312) 240 49 65",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "54",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MAVİ BARIŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MALTEPE MAH. KIRAĞI SK. SÖNMEZ AP. BLOK  NO: 9  İÇ KAPI NO: 1 ÇANKAYA / ANKARA",
+    "telefon": "(312) 232 45 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "55",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MAVİ MAYA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AŞIKPAŞA MAH. VEDAT DALOKAY CAD. NO: 41A ÇANKAYA / ANKARA",
+    "telefon": "(542) 677 31 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "56",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL MAVİ YILDIZLAR ÇAYYOLU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YAŞAMKENT MAH. 3055 SK. NO: 57 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(542) 463 08 08",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "57",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÖZTAY ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "FİDANLIK MAH. ATAÇ 1 SK. ATAÇ APT. BLOK  NO: 28  İÇ KAPI NO: 2 ÇANKAYA / ANKARA",
+    "telefon": "(312) 433 27 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "58",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL PARLA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ETİ MAH. ALİ SUAVİ CAD.  NO: 23  İÇ KAPI NO: 16 ÇANKAYA / ANKARA",
+    "telefon": "(536) 246 55 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "59",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL PERA ÇANKAYA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÇANKAYA MAH. EBUZİYA TEVFİK SK.  NO: 6 ÇANKAYA / ANKARA",
+    "telefon": "(312) 441 61 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "60",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL SAYGI ÇANKAYA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞEHİT CENGİZ KARACA MAH. SOKULLU MEHMETPAŞA CAD. NO: 184 İÇ KAPI NO: 1 ÇANKAYA / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 439 06 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "61",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL SAYGI ESAT ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AŞIKPAŞA MAH. VEDAT DALOKAY CAD. AKDENİZ APT. BLOK  NO: 83A ÇANKAYA / ANKARA",
+    "telefon": "(312) 447 55 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "62",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL TURNA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BADEMLİDERE MAH. ŞEMSETTİN GÜNALTAY CAD.  NO: 27 ÇANKAYA / ANKARA",
+    "telefon": "(312) 447 37 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "63",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MUTLUKENT MAH. 1980 CAD.  NO: 7 ÇANKAYA / ANKARA",
+    "telefon": "(545) 497 87 47",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "64",
+    "ilce": "ÇANKAYA",
+    "okul_adi": "ÖZEL ÜMİTKÖY ÖZEM  ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MUTLUKENT MAH. 1961 CAD.  NO: 15 ÇANKAYA / ANKARA",
+    "telefon": "(312) 236 15 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "65",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL HANZADE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "CUMHURİYET MAH. CESUR SK. ÖZEL HANZADE ÖZEL EĞITIM VE REHABILITASYON MERKEZI BLOK  NO: 1  İÇ KAPI NO: 1 ÇUBUK / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(506) 611 70 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "66",
+    "ilce": "ÇUBUK",
+    "okul_adi": "ÖZEL YENİ HARİKA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YAVUZSELİM MAH. P.T.T. CAD.  NO: 22 ÇUBUK / ANKARA",
+    "telefon": "(312) 837 40 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "67",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL ELMADAĞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KURTULUŞ MAH. DENGİ SK.  NO: 7  İÇ KAPI NO: 1 ELMADAĞ / ANKARA",
+    "telefon": "(312) 863 00 04",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "68",
+    "ilce": "ELMADAĞ",
+    "okul_adi": "ÖZEL ETİK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TATLICA MAH. YİĞİT SK. NO: 14 İÇ KAPI NO: 1 ELMADAĞ / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 863 57 20",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "69",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA EFLATUN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İSTASYON MAH. 2319 CAD.  NO: 10 ETİMESGUT / ANKARA",
+    "telefon": "(507) 409 93 4",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "70",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA MEYRA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "PİYADE MAH. 1544 CAD. NO: 75 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(530) 478 00 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "71",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA ROTA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BAĞLICA MAH. ULUPINAR CAD. NAZ AKADEMI NO: 18B ETİMESGUT / ANKARA",
+    "telefon": "(552) 824 76 82",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "72",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ANKARA SELVİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BAĞLICA MAH. ŞEHİT HARUN TURAK CAD. ÖZEL KARACAN BLOK  NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(312) 234 10 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "73",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAŞAK ÖZTÜRK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ETİLER MAH. FABRİKA CAD.  NO: 8  İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(312) 245 32 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "74",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BAŞKENT DEĞİŞİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İSTASYON MAH. 2357 CAD. ANADOLU GENÇLIK DERNEGI NO: 22 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(507) 380 79 27",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "75",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL BİREBİR İPEKYOLU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GÜZELKENT MAH. 734 SK. ÖZEL BIREBIR EGITIM VE REHABILITASYON MERKEZI NO: 4 ETİMESGUT / ANKARA",
+    "telefon": "(312) 273 01 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "76",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN DENGE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ERYAMAN MAH. SUBAŞI SK.  NO: 25A ETİMESGUT / ANKARA",
+    "telefon": "(532) 169 86 01",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "77",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN MUCİZE HAYATLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ERYAMAN MAH. AMASYA BEYANNAMESİ CAD. ORTADOGU ANADOLU LISESI BLOK  NO: 27  İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(532) 493 91 88",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "78",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ERYAMAN MAH. 1 MEŞRUTİYET CAD.  NO: 58  İÇ KAPI NO: P1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: P10-P11-P2-P3-P4-P5-P6-P7-P8-P9)",
+    "telefon": "(312) 280 44 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "79",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ERYAMAN YETMİŞ BEŞİNCİ YIL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GÜZELKENT MAH. 694 SK.  NO: 25 ETİMESGUT / ANKARA",
+    "telefon": "(506) 682 35 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "80",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYYILDIZ MAH. 6112 CAD.  NO: 10B ETİMESGUT / ANKARA",
+    "telefon": "(532) 055 91 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "81",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT ENGELSİZ YAŞAM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BAĞLICA MAH. BELPINARI CAD. ETIMESGUT BELEDIYESI REHABILITASYON MERKEZI NO: 21B ETİMESGUT / ANKARA",
+    "telefon": "(312) 234 50 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "82",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ETİMESGUT KARDELEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ELVAN MAH. 1847 SK.  NO: 12  İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 245 15 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "83",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL FONEM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BAĞLICA MAH. 1263 SK. ÖZEL FONEM ÖZEL EĞITIM VE REHABILITASYON MERKEZI BLOK  NO: 6  İÇ KAPI NO: K ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 1-2-3-4)",
+    "telefon": "(312) 213 20 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "84",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL GELİŞİM AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ERYAMAN MAH. SUBAŞI SK.  NO: 8  İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7)",
+    "telefon": "(507) 484 03 39",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "85",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL GÖKKUŞAĞI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ERYAMAN MAH. 335 CAD. NO: 13 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 261 55 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "86",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL İLK GÜNEBAKAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ELVAN MAH. 1948 SK.  NO: 3  İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(312) 226 26 69",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "87",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL LİVA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "30 AĞUSTOS MAH. AHİ MESUD BUL. YÜKSELEN MADALYON REHABILITASYON MERKEZI NO: 4 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(501) 516 97 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "88",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL MEVSİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "SÜVARİ MAH. 1684 SK. NO: 4 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 247 21 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "89",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL RABİA MELİKE ÇIRAK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BAĞLICA MAH. 1078 SK. NO: 8 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(533) 239 69 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "90",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL TEBESSÜM ÖZEL  EĞİTİM VE REHABİLİTASYON MERKEZİ ETİMESGUT ŞUBESİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ELVAN MAH. 1917 SK.  NO: 3A ETİMESGUT / ANKARA",
+    "telefon": "(312) 327 54 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "91",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL UMUT ÇINARI AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "30 AĞUSTOS MAH. 1682 CAD. 81 SİTESİ ZEHRA HANIM KREŞ VE GÜNDÜZ BAKIM EVI NO: 91 İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(545) 713 77 52",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "92",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YENİ İZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BAĞLICA MAH. HÖYÜK CAD.  NO: 22B  İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(506) 602 72 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "93",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YENİ SAYGIN AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BAĞLICA MAH. MERT CAD.  NO: 5  İÇ KAPI NO: 1 ETİMESGUT / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 511 75 30",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "94",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL YÜRÜTEÇ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAZIM KARABEKİR MAH. 2042 SK.  NO: 29  İÇ KAPI NO: 1 ETİMESGUT / ANKARA",
+    "telefon": "(312) 244 24 28",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "95",
+    "ilce": "ETİMESGUT",
+    "okul_adi": "ÖZEL ZEBRA AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BAĞLICA MAH. 1035 SK.  NO: 35/5 ETİMESGUT / ANKARA",
+    "telefon": "(312) 234 51 59",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "96",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL  GÖLBAŞI BAHÇELİEVLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BAHÇELİEVLER MAH. 171 CAD. GÜRŞEN SITESI SİTESİ GÖLBAŞI BAHÇELIEVLER REHABILITASYON MERKEZI BLOK  NO: 8/1 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 484 95 95",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "97",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL ANKARA ABA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İNCEK MAH. 1002 CAD. NO: 34 GÖLBAŞI / ANKARA",
+    "telefon": "(543) 334 08 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "98",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL GÖLBAŞI DR. TÜRKAN KAHVECİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARŞIYAKA MAH. 674 SK. NO: 5 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 496 38 54",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "99",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL GÖLBAŞI MOGAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARŞIYAKA MAH. 749 SK. HUZUR SİTESİ  NO: 50 GÖLBAŞI / ANKARA",
+    "telefon": "(553) 882 44 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "100",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL GÖLBAŞI UFUKLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARŞIYAKA MAH. HAYMANA BUL. NO: 16 İÇ KAPI NO: 10 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 484 01 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "101",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL HALİSE ARSLAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KIZILCAŞAR MAH. KIZILCAŞAR  KÜME EVLERİ  1 BLOK  NO: 411B GÖLBAŞI / ANKARA",
+    "telefon": "(312) 557 23 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "102",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL MAKBULE ÖLÇEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BAHÇELİEVLER MAH. 79 CAD.  NO: 33 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 484 24 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "103",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL OTİZM VAKFI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HACILAR MAH. 1262 SK. SAĞLIK İŞLERİ LAB. BLOK  NO: 13 GÖLBAŞI / ANKARA",
+    "telefon": "(312) 460 16 28",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "104",
+    "ilce": "GÖLBAŞI",
+    "okul_adi": "ÖZEL SEVGİ ÇİÇEĞİ DÜNYASI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GAZİOSMANPAŞA MAH. 410 SK. FIRAT APT. BLOK  NO: 2  İÇ KAPI NO: 1 GÖLBAŞI / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 485 33 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "105",
+    "ilce": "HAYMANA",
+    "okul_adi": "ÖZEL HAYMANA YAŞAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "SEYRAN MAH. GÜL SK.  NO: 21 HAYMANA / ANKARA",
+    "telefon": "(312) 658 04 56",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "106",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL KAHRAMANKAZAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ATATÜRK MAH. BUYRUK SK.  NO: 7  İÇ KAPI NO: 2 KAHRAMANKAZAN / ANKARA (DİĞER İÇ KAPILAR: 3-4-5)",
+    "telefon": "(542) 696 06 52",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "107",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL KAPTAN DOĞUŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "SATIKADIN MAH. BAYRAK SK. ÖZEL KAPTAN DOĞUŞ ÖZEL EĞITIM VE REHABILITASYON  MERKEZI SİTESİ NECATI BEY APARTMANI NO: 3 İÇ KAPI NO: 1 KAHRAMANKAZAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(541) 897 07 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "108",
+    "ilce": "KAHRAMANKAZAN",
+    "okul_adi": "ÖZEL SUDECAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ATATÜRK MAH. ANKARA BUL.  NO: 65B KAZAN / ANKARA",
+    "telefon": "(312) 814 63 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "109",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ANKARA DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TEPEBAŞI MAH. SANATORYUM CAD. NO: 162 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(312) 359 45 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "110",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ANKARA İMZA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARARGAHTEPE MAH. AHMET VEFİK PAŞA CAD. NO: 57 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 358 40 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "111",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ANKARA ZİRVE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞEHİT KUBİLAY MAH. 1778 SK.  NO: 2  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(538) 392 57 90",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "112",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BASINEVLERİ UĞURUM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BASINEVLERİ MAH. YANKILAR SK. KIVANÇ ANADOLU LISESI ÖZEL BLOK  NO: 59  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(530) 404 42 87",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "113",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BAŞAK TANELERİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YEŞİLTEPE MAH. GÜNEBAKAN SK.  NO: 4  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(545) 370 22 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "114",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BAŞARI CAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ESERTEPE MAH. 314 CAD.  NO: 14 KEÇİÖREN / ANKARA",
+    "telefon": "(530) 036 37 99",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "115",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BAŞKENT DOST ÖZEL EĞİTİM VEREHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞEFKAT MAH. DEMET SK.  NO: 13  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 340 70 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "116",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BAŞKENT PUSULA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ESERTEPE MAH. ŞEHİT VELİ KARA CAD. HAFSA SULTAN KIZ ÖĞRENCİ YURDU NO: 23 KEÇİÖREN / ANKARA",
+    "telefon": "(533) 412 88 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "117",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL BİZİM İLK DESTEK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "19 MAYIS MAH. ÇAYLAK SK. NO: 5 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11-12-13-14)",
+    "telefon": "(545) 399 87 89",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "118",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL CAN YENİ DOĞUŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KANUNİ MAH. BAŞKENT CAD.  NO: 9  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(553) 479 35 32",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "119",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL FATİH İLGİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "UYANIŞ MAH. 1077 SK. ÖZEL YORUM DERSANESİ BLOK  NO: 30  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 580 37 34",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "120",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL FERİDEM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARAKAYA MAH. SELÇUK CAD. NO: 23A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 329 94 94",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "121",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL FİLİZLERİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARAKAYA MAH. BAĞLUM BUL. NO: 87A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 329 00 72",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "122",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL GÜÇLÜ KALEM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YEŞİLTEPE MAH. YEŞİLIRMAK CAD. NO: 37 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 356 50 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "123",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL GÜLÜMSER AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HİSAR MAH. BAĞLAR CAD. NO: 151 KEÇİÖREN / ANKARA",
+    "telefon": "(530) 391 67 89",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "124",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL GÜNER ÇELİK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ATAPARK MAH. 540 CAD. NO: 32 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 580 80 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "125",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL İLK ÇARE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "UYANIŞ MAH. 1092 SK. ALAATTİN ÇINAR APT NO: 12 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(534) 790 65 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "126",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL İLK SEMPATİ SUBAYEVLERİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAVACIK SUBAYEVLERİ MAH. ŞEHİT ÖMER HALİSDEMİR BUL.  NO: 71  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(530) 149 43 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "127",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KARMA KEÇİÖREN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYVALI MAH. GAZZE CAD. HACI HASAN TANIK İLKÖĞRETİM OKULU BLOK  NO: 7 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 344 05 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "128",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN BAŞKENT TERAPİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ETLİK MAH. KIVRIMLI SK. NO: 59A İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(555) 859 44 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "129",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN DESTEK DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAVACIK SUBAYEVLERİ MAH. ŞEHİT ÖMER HALİSDEMİR BUL. NO: 93A KEÇİÖREN / ANKARA",
+    "telefon": "(507) 619 80 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "130",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN ETKİN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KUŞCAĞIZ MAH. GÜN SAZAK CAD.  NO: 175A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 356 66 90",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "131",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN FİLİZ AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKTEPE MAH. 951 CAD. NO: 39 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(506) 152 52 79",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "132",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN İLK ATILIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "UFUKTEPE MAH. UFUKTEPE CAD. KARDEŞ APT BLOK  NO: 18  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 580 50 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "133",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN KARAKAYALAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARARGAHTEPE MAH. KUMRULU CAD.  NO: 19 KEÇİÖREN / ANKARA",
+    "telefon": "(542) 286 18 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "134",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN MERT AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "UYANIŞ MAH. 1086 SK.  NO: 7 KEÇİÖREN / ANKARA",
+    "telefon": "(507) 484 03 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "135",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN ÖZYAŞAM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARARGAHTEPE MAH. ÖZGÜRLER SK.  NO: 27  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(549) 581 19 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "136",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN TANYILDIZI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AYVALI MAH. MİNİ SK. ÇINAR BLOK  NO: 7  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(544) 959 06 71",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "137",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KEÇİÖREN UĞURBÖCEĞİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "19 MAYIS MAH. GÜN SAZAK CAD. NO: 107A KEÇİÖREN / ANKARA",
+    "telefon": "(532) 274 86 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "138",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL KUMRU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKTEPE MAH. 995 SK.  NO: 3  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 382 41 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "139",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ÖZEV ÖZEL  EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GÜÇLÜKAYA MAH. ÇAĞLA SK.  NO: 2 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 358 65 45",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "140",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ÖZGÜR BİREYLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HİSAR MAH. MEVLÜT GÜRBÜZ CAD. NO: 4 İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(535) 651 56 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "141",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SAAT ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TEPEBAŞI MAH. ÇAYCUMA CAD.  NO: 7  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(555) 051 65 64",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "142",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SAYGI ESERTEPE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ESERTEPE MAH. ÇAMBAŞI CAD.  NO: 63  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 358 04 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "143",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SELVİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKTEPE MAH. 983 SK.  NO: 14  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 380 20 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "144",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SELVİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ YEŞİLTEPE ŞUBESİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YEŞİLTEPE MAH. 954 SK.  NO: 7  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 380 20 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "145",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SİSTEMBİR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAVACIK SUBAYEVLERİ MAH. ŞAİR MEHMET EMİN CAD.  NO: 16  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 317 41 73",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "146",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL SU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ESERTEPE MAH. 244 SK.  NO: 24 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 326 95 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "147",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL TSK ELELE VAKFI GATA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "EMRAH MAH. GENERAL DR.TEVFİK SAĞLAM CAD. ENGELLİ ÇOCUK VE REH. MERKEZİ PSİKİYATRİ NO: 2/59 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 326 04 01",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "148",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL UMUT ÇINARIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "PINARBAŞI MAH. ARDAHAN SK.  NO: 6  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 381 81 85",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "149",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL UYANIŞ DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "UYANIŞ MAH. GÜLBABA CAD.  NO: 54  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 381 81 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "150",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL UZMAN PAYLAŞIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KUŞCAĞIZ MAH. GAZELLER CAD. MESA SİTESİ  NO: 14A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 357 58 88",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "151",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL ÜNLÜ  ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BAĞLARBAŞI MAH. 431. CADDE NO:81/A-B KEÇİÖREN/ANKARA",
+    "telefon": "(507) 319 11 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "152",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YAMAN ŞİRİNLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İNCİRLİ MAH. ŞEHİT MEHMET ALTANLAR CAD.  NO: 24 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 323 03 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "153",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YAMAN ŞİRİNLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ İNCİRLİ ŞUBESİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İNCİRLİ MAH. ŞEHİT MEHMET ALTANLAR CAD.  NO: 28  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA",
+    "telefon": "(312) 323 03 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "154",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YAMAN ŞİRİNLER TEPEBAŞI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TEPEBAŞI MAH. DEMİRKÖY CAD.  NO: 29  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(532) 638 98 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "155",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YENİ ASİL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKTEPE MAH. 974 SK.  NO: 13A KEÇİÖREN / ANKARA",
+    "telefon": "(545) 715 15 06",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "156",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YENİDEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TEPEBAŞI MAH. ÇIĞ SK.  NO: 16A KEÇİÖREN / ANKARA",
+    "telefon": "(312) 359 87 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "157",
+    "ilce": "KEÇİÖREN",
+    "okul_adi": "ÖZEL YENİDEN YAKAMOZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KANUNİ MAH. 787 SK.  NO: 17  İÇ KAPI NO: 1 KEÇİÖREN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(533) 135 18 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "158",
+    "ilce": "KIZILCAHAMAM",
+    "okul_adi": "ÖZEL KIZILCAHAMAM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARŞIYAKA MAH. BUHARA SK. NO: 21 KIZILCAHAMAM / ANKARA",
+    "telefon": "(536) 491 98 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "159",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL AÇI YÖNTEM DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TUZLUÇAYIR MAH. MUHTAR GANİ PİLAVCI CAD. GÖKAN APT NO: 3 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(532) 412 97 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "160",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ANKARA KOZA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KUTLU MAH. DEREBOYU CAD.  NO: 60A MAMAK / ANKARA",
+    "telefon": "(312) 364 64 69",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "161",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ARTI DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BALKİRAZ MAH. BAĞLAR CAD.  NO: 12  İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10)",
+    "telefon": "(507) 240 28 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "162",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ATLAS ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "PEYAMİ SEFA MAH. DEREBOYU CAD.  NO: 6A  İÇ KAPI NO: 1 MAMAK / ANKARA",
+    "telefon": "(312) 365 15 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "163",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL BAŞKENT EKOL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MİSKET MAH. 622 SK. NO: 2 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11)",
+    "telefon": "(506) 129 54 59",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "164",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL BELİNAY ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "EKİN MAH. 1603 SK.  NO: 4A MAMAK / ANKARA",
+    "telefon": "(312) 377 00 26",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "165",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL CAN YOLDAŞIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TÜRKÖZÜ MAH. ZİYA ORALAY CAD. DİLEK APT. BLOK  NO: 138  İÇ KAPI NO: 12 MAMAK / ANKARA",
+    "telefon": "(312) 431 11 66",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "166",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL DAMLALAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "DEMİRLİBAHÇE MAH. 129 SK.  NO: 11  İÇ KAPI NO: 1 MAMAK / ANKARA",
+    "telefon": "(312) 320 31 13",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "167",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL DENK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TUZLUÇAYIR MAH. 294 CAD.  NO: 7A MAMAK / ANKARA",
+    "telefon": "(312) 391 91 91",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "168",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL DÖRT YILDIZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AŞIK VEYSEL MAHALLESİ 325.SOKAK NO:6/A  ABİDİNPAŞA MAMAK/ANKARA",
+    "telefon": "(312) 365 53 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "169",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ELÇİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞAFAKTEPE MAH. ARİF YALDIZ CAD.  NO: 49A MAMAK / ANKARA",
+    "telefon": "(537) 062 68 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "170",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL EMİNE DEMİREL DİL KONUŞMA DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÇAĞLAYAN MAH. ŞEHİT ZÜLFİ ÇELİK CAD. NO: 14 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 440 97 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "171",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL HUZUR DİL KONUŞMA DİSLEKSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "EGE MAH. 794 SK. C-BLOK NO: 3C MAMAK / ANKARA",
+    "telefon": "(312) 391 55 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "172",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL HUZUR İŞİTME-KONUŞMA BOZUKLUKLARI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "FAHRİ KORUTÜRK MAH. NEŞET ERTAŞ CAD. ÖZEL EĞITIM KURSU NO: 94 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10-11-12)",
+    "telefon": "(312) 391 55 57",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "173",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL KARAKAYALAR ÖZEL EĞİTİM VE  REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞAFAKTEPE MAH. ARİF YALDIZ CAD. SIĞINMA YERI NO: 53 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 316 30 22",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "174",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ORTAK PAYLAŞIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAZIM ORBAY MAH. 445/3 SK.  NO: 16  İÇ KAPI NO: 1 MAMAK / ANKARA",
+    "telefon": "(312) 364 90 11",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "175",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL ÖNCE ALGI  ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAZIM ORBAY MAH. MEHMET ALİ ALTIN CAD.  NO: 108  İÇ KAPI NO: 2 MAMAK / ANKARA",
+    "telefon": "(312) 389 07 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "176",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL YENİ ÇİSEM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KAYAŞ MAH. 1528 SK.  NO: 38A MAMAK / ANKARA",
+    "telefon": "(312) 373 10 90",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "177",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL YENİ KARÇİÇEĞİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MEHTAP MAH. 150 CAD.  NO: 9  İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 365 61 61",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "178",
+    "ilce": "MAMAK",
+    "okul_adi": "ÖZEL YENİDEN SU PERİSİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKDERE MAH. 397.. CAD. KOÇLAR APT NO: 28 İÇ KAPI NO: 1 MAMAK / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 367 83 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "179",
+    "ilce": "NALLIHAN",
+    "okul_adi": "ÖZEL MAVİ BONCUK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "NASUHPAŞA MAH. OLUKBAŞI SK.  NO: 10  İÇ KAPI NO: 1 NALLIHAN / ANKARA",
+    "telefon": "(535) 055 77 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "180",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL DURUGÜN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "FATİH MAH. ZÜBEYDE HANIM CAD. NO: 12 İÇ KAPI NO: 1 POLATLI / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 623 95 87",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "181",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL POLATLI ÖZGÜR YAŞAM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞEHİTLİK MAH. AYGÜN SK.  NO: 17  İÇ KAPI NO: 1 POLATLI / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 622 18 18",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "182",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL SEDA OĞUZLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞEHİTLİK MAH. KUMLUK SK. SEDA OĞZ. EĞTM.YRDU SİTESİ  NO: 3  İÇ KAPI NO: 1 POLATLI / ANKARA",
+    "telefon": "(312) 622 20 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "183",
+    "ilce": "POLATLI",
+    "okul_adi": "ÖZEL TARHAN ÖZEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ŞEHİTLİK MAH. BOZTEPE CAD.  NO: 12  İÇ KAPI NO: 1 POLATLI / ANKARA",
+    "telefon": "(312) 623 36 70",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "184",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL BAŞKENT TERAPİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "FATİH MAH. EMEK CAD.  NO: 1 PURSAKLAR / ANKARA",
+    "telefon": "(505) 574 60 84",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "185",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL İYİ DİRİLİŞ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MERKEZ MAH. HOCA AHMET YESEVİ CAD.  NO: 13 PURSAKLAR / ANKARA",
+    "telefon": "(553) 730 75 74",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "186",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL MAVİ DENİZİM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YUNUS EMRE MAH. ESER SK.  NO: 8A PURSAKLAR / ANKARA",
+    "telefon": "(312) 527 20 47",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "187",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL MOR KALP ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MERKEZ MAH. CEYLAN SK. ÖZEL MOR KALP REHABILITASYON MERKEZI  NO: 16 İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 328 96 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "188",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PAKSOY ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MİMAR SİNAN MAH. TEPE SK.  NO: 4  İÇ KAPI NO: 1 PURSAKLAR / ANKARA",
+    "telefon": "(532) 346 64 35",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "189",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PARILTI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "FATİH MAH. MEHTAP. SK. PARILTI ÖZEL EĞITIM VE REHABILITASYON MERKEZI NO: 10 PURSAKLAR / ANKARA",
+    "telefon": "(505) 375 70 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "190",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YUNUS EMRE MAH. ESKİKÖY CAD.  NO: 54  İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(546) 506 42 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "191",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR HARİKA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MERKEZ MAH. MİMAR SİNAN.. CAD. NO: 44 İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 911 20 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "192",
+    "ilce": "PURSAKLAR",
+    "okul_adi": "ÖZEL PURSAKLAR LİMON ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MERKEZ MAH. CEYLAN SK. ÖZEL PURSAKLAR SEDAT TAŞ REHABILITASYON MERKEZI BLOK  NO: 7  İÇ KAPI NO: 1 PURSAKLAR / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 527 10 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "193",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ALTIN LALE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MARAŞAL ÇAKMAK MAH. ANKARA CAD.  NO: 188  İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 275 00 25",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "194",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ANNEM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TÖREKENT MAH. 275 SK.  NO: 2 SİNCAN / ANKARA",
+    "telefon": "(312) 267 51 50",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "195",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ARTIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TÖREKENT MAH. 252 CAD.  NO: 64 SİNCAN / ANKARA",
+    "telefon": "(312) 271 99 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "196",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL AYŞE ŞAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MARAŞAL ÇAKMAK MAH. TOPEL SK. AYŞE ŞAN REHABILITASYON MERKEZI NO: 3 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 275 00 37",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "197",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL DEVA ÖZEL EĞTİMİ VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MENDERES MAH. 788 SK. ÖZTÜRK APT. BLOK  NO: 3B SİNCAN / ANKARA",
+    "telefon": "(312) 277 56 46",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "198",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL FATİH GAMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TÖREKENT MAH. 331 SK.  NO: 26 SİNCAN / ANKARA",
+    "telefon": "(312) 273 36 31",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "199",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL GAMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ANDİÇEN MAH. AHİ MESUD BUL. ÖNDER APT BLOK  NO: 230A SİNCAN / ANKARA",
+    "telefon": "(312) 268 71 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "200",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL GÖNÜL YOLU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKŞEMSETTİN MAH. PAPATYA. SK. GÖNÜL YOLU REHABILITASYON MERKEZI BLOK  NO: 26  İÇ KAPI NO: 1 SİNCAN / ANKARA",
+    "telefon": "(312) 271 73 83",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "201",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL GÜRIRMAK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "AKŞEMSETTİN MAH. YAZI CAD. UĞRAŞ BLOKLARI SİTESİ  NO: 28A SİNCAN / ANKARA",
+    "telefon": "(312) 276 48 51",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "202",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL İNCİ SEÇKİN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "PINARBAŞI MAH. YAŞAR KEMAL CAD.  NO: 102  İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 261 32 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "203",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL MELİS ADA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "PLEVNE MAH. SELVİ. CAD. KIRAZOĞLU IŞ MERKEZI NO: 6 İÇ KAPI NO: 8 SİNCAN / ANKARA",
+    "telefon": "(312) 268 88 44",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "204",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ÖNCÜ SİNCAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İSTASYON MAH. KARANFİL SK.  NO: 49  İÇ KAPI NO: 1 SİNCAN / ANKARA",
+    "telefon": "(312) 270 79 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "205",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ÖRS ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "İSTASYON MAH. DERYA. SK. NO: 4 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 276 67 30",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "206",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL ÖZDENİZ SİNCAN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ANDİÇEN MAH. UĞUR. SK. ÖZENIZ ÖZEL EĞTIM VE  REHABILITASYON MERKEZI BLOK  NO: 35  İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 264 00 14",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "207",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN YENİ HAYATLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MARAŞAL ÇAKMAK MAH. ANKARA CAD.  NO: 182  İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(505) 645 61 97",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "208",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL SİNCAN YENİKENT ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "MENDERES MAH. AYAŞ_1 SK. NO: 8 İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 543 00 60",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "209",
+    "ilce": "SİNCAN",
+    "okul_adi": "ÖZEL UMUT ÇINARI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "SELÇUKLU MAH. HAKAN CAD. REHABİLİTASYON MERKEZİ BLOK  NO: 31  İÇ KAPI NO: 1 SİNCAN / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8-9-10)",
+    "telefon": "(312) 268 81 81",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "210",
+    "ilce": "ŞEREFLİKOÇHİSAR",
+    "okul_adi": "ÖZEL KARTANESİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "HACIENBİYA MAH. DÜĞEROĞLU SK.  NO: 41  İÇ KAPI NO: 1 ŞEREFLİKOÇHİSAR / ANKARA",
+    "telefon": "(312) 687 13 13",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "211",
+    "ilce": "ŞEREFLİKOÇHİSAR",
+    "okul_adi": "ÖZEL MELİNA AKADEMİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "EMEK MAH. ADNAN KAHVECİ CAD. NO: 14 İÇ KAPI NO: 1 ŞEREFLİKOÇHİSAR / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 686 74 75",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "212",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL AKADEMİK ADIM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "DEMETLALE MAH. 406 CAD. AKEDEMIK ADIM REHABILTASYON MERKEZI SİTESİ GÜMÜŞ APT BLOK  NO: 73  İÇ KAPI NO: 0 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 335 18 19",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "213",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ANKARA BATIKENT ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ERGAZİ MAH. 1833 CAD. NO: 12E İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(541) 806 06 09",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "214",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ANKARA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "IŞINLAR MAH. İVEDİK CAD. NO: 130 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6)",
+    "telefon": "(312) 315 33 63",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "215",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ANKARA REFERANS ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TEPEALTI MAH. GÜRLER SK. SEDATTAŞ ÖZEL EĞITIM VE REHABILITASYON MERKEZI NO: 114 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5)",
+    "telefon": "(312) 327 79 80",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "216",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL ANKARA ŞAFAK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2377 SK.  NO: 37  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 255 00 30",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "217",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BAŞKENT DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "IŞINLAR MAH. İVEDİK CAD. NO: 2 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 344 93 16",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "218",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT İZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2415 SK.  NO: 7 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 257 22 33",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "219",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BATIKENT NAZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2386 CAD.  NO: 110  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2)",
+    "telefon": "(312) 256 00 56",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "220",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BİZ ANKARA EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "BEŞTEPE MAH. MECNUN CAD.  NO: 34 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 221 21 80",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "221",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BİZİM İKBAL ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "KARŞIYAKA MAH. 513 CAD.  NO: 10  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(555) 859 44 36",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "222",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BİZİM YONCA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "VARLIK MAH. YİVLİ SK.  NO: 6 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 341 00 77",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "223",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BOTANİK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2403 SK. BÜYÜK UMUTLAR BLOK  NO: 7 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 257 37 37",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "224",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL BÜYÜK ASRIN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "VARLIK MAH. YÖNTEMLİ SK.  NO: 14  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7-8)",
+    "telefon": "(535) 334 75 08",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "225",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL CAN YAREN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "RAGIP TÜZÜN MAH. AKIN CAD.  NO: 26A YENİMAHALLE / ANKARA",
+    "telefon": "(312) 327 13 17",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "226",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL DEFNE DURU ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİÇAĞ MAH. OĞUZLAR SK. TEBESSÜM ÖZEL EĞİTİM OKULU SİTESİ  NO: 45  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 327 54 96",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "227",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL DEMİR ÖLÇEN ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2386 CAD. ÖZEL DEMIR ÖLÇEN REHABILITASYON MERKEZI NO: 24 YENİMAHALLE / ANKARA",
+    "telefon": "(536) 234 31 21",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "228",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL DENEYİMLİLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ESENTEPE MAH. RAGIP TÜZÜN CAD.  NO: 349  İÇ KAPI NO: 0 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4-5-6-7)",
+    "telefon": "(532) 164 18 38",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "229",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL FAYDA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. PALANDÖKEN CAD. FAYDA ÖZEL EĞİTİM VE REHABİLİTASYOM MERKEZİ BLOK  NO: 78 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 256 97 00",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "230",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL GAZİ  MUCİZE HAYATLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "EMNİYET MAH. ERTURAN SK.  NO: 28  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 223 60 40",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "231",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL GÖREN KALPLER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "OSTİM OSB MAH. 1151 SK.  NO: 32 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 385 83 05",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "232",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL İNCİ SER ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "IŞINLAR MAH. TUFAN SK.  NO: 95A YENİMAHALLE / ANKARA",
+    "telefon": "(312) 315 05 12",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "233",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL KAMPÜS AYYILDIZ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2400 SK.  NO: 17A YENİMAHALLE / ANKARA",
+    "telefon": "(312) 341 01 52",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "234",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL KUMRULAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "VARLIK MAH. TANZİMAT CAD. KARDELEN REHABILITASYON MERKEZI NO: 11 İÇ KAPI NO: 2 YENİMAHALLE / ANKARA",
+    "telefon": "(532) 562 26 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "235",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL MAVİ YILDIZLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ESENTEPE MAH. RAGIP TÜZÜN CAD. ÖZEL MAVI YILDIZLAR REHABILITASYON M. BLOK  NO: 315  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(312) 315 44 48",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "236",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL MOR MENEKŞE ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "OSTİM MAH. 1316 CAD.  NO: 8  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 386 01 02",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "237",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL RENKLİ YENİ UFUK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "VARLIK MAH. YÖNTEMLİ SK.  NO: 12  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 341 89 89",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "238",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL SEVGİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "ÇİĞDEMTEPE MAHALLESİ ŞEHİT KADİR ÖZBEK SOKAK NO:3/A  YENİMAHALLE/ANKARA",
+    "telefon": "(312) 331 37 47",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "239",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL TURKUAZ DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "GÜVENTEPE MAH. KARABALLI CAD.  NO: 50A YENİMAHALLE / ANKARA",
+    "telefon": "(312) 343 10 43",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "240",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YAŞAM AĞACI ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "TURGUT ÖZAL MAH. 2179 CAD. NO: 2B İÇ KAPI NO: K YENİMAHALLE / ANKARA",
+    "telefon": "(312) 566 48 15",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "241",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİ HAYATLAR ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2385 SK.  NO: 22 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 257 43 03",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "242",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİ İPEK ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2401 SK.  NO: 5 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 255 79 29",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "243",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİ ROTAM ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2402 CAD.  NO: 6 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 257 22 42",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "244",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİ SİMAY ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YENİ BATI MAH. 2386 CAD.  NO: 108  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA",
+    "telefon": "(312) 257 22 98",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "245",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE DİL KONUŞMA ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "RAGIP TÜZÜN MAH. ANIL SK. DIL KONUŞMA ÖZEL EGITIM MERKEZI NO: 1 İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3)",
+    "telefon": "(312) 315 22 23",
+    "il": "ANKARA"
+  },
+  {
+    "sira_no": "246",
+    "ilce": "YENİMAHALLE",
+    "okul_adi": "ÖZEL YENİMAHALLE MAVİ ÖZEL EĞİTİM VE REHABİLİTASYON MERKEZİ",
+    "okul_turu": "Özel Eğitim ve Rehabilitasyon Merkezi",
+    "adres": "YUNUS EMRE MAH. AŞAN SK.  NO: 20  İÇ KAPI NO: 1 YENİMAHALLE / ANKARA (DİĞER İÇ KAPILAR: 2-3-4)",
+    "telefon": "(535) 795 58 16",
+    "il": "ANKARA"
+  }
+]

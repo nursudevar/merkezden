@@ -11,8 +11,7 @@ const TABLE_NAME = process.env.TABLE_NAME || "institutions";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DEFAULT_JSON_PATH = path.join(__dirname, "data", "tum_okullar_ankara.json");
-const JSON_FILE = process.env.JSON_FILE || DEFAULT_JSON_PATH;
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 
 const BATCH_SIZE = Number(process.env.BATCH_SIZE || 300);
 const SLEEP_MS = Number(process.env.SLEEP_MS || 200);
@@ -62,6 +61,13 @@ function chunk(arr, size) {
   return out;
 }
 
+function listJsonFiles(dir) {
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.toLowerCase().endsWith(".json"))
+    .map((f) => path.join(dir, f));
+}
+
 async function upsertWithRetry(rows) {
   let lastError = null;
 
@@ -85,66 +91,77 @@ async function upsertWithRetry(rows) {
 }
 
 async function main() {
-  if (!fs.existsSync(JSON_FILE)) {
-    console.error(`❌ JSON bulunamadı: ${JSON_FILE}`);
-    process.exit(1);
-  }
+  
+  const files = listJsonFiles(DATA_DIR);
 
-  const raw = fs.readFileSync(JSON_FILE, "utf-8");
-  const data = JSON.parse(raw);
-
-  if (!Array.isArray(data)) {
-    console.error("❌ JSON tek bir array değil: [ {..}, {..} ] olmalı");
+  if (!files.length) {
+    console.error(`❌ JSON bulunamadı: ${DATA_DIR} içinde .json yok`);
     process.exit(1);
   }
 
   console.log("✅ Import başlıyor");
   console.log("• Tablo:", TABLE_NAME);
-  console.log("• JSON:", JSON_FILE);
-  console.log("• Kayıt sayısı:", data.length);
+  console.log("• Data klasörü:", DATA_DIR);
+  console.log("• JSON dosya sayısı:", files.length);
   console.log("• Batch size:", BATCH_SIZE);
   console.log("• Source tag (rollback):", importTag);
 
-  const rows = data.map((item) => {
-    const institution_name = normalizeText(item.okul_adi);
-    const district = normalizeText(item.ilce);
-    const city = normalizeText(item.il) || "ANKARA";
-    const type = normalizeText(item.okul_turu);
-    const address = normalizeText(item.adres);
-    const official_phone = normalizePhone(item.telefon);
 
-    return {
-      institution_name,
-      district,
-      city,
-      type,
-      address,
-      official_phone,
-      source: importTag,
-      host: "ookgm.meb.gov.tr",
-      external_key: buildExternalKey(institution_name, district),
-      is_active: true,
-      last_updated_at: new Date().toISOString(),
-    };
-  });
 
-  const emptyName = rows.filter((r) => !r.institution_name).length;
-  const emptyDistrict = rows.filter((r) => !r.district).length;
-  const emptyKey = rows.filter((r) => !r.external_key).length;
+  for (const filePath of files) {
+    const fileName = path.basename(filePath);
+    console.log("\n==============================");
+    console.log("📦 Dosya:", fileName);
+  
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const data = JSON.parse(raw);
 
-  if (emptyName || emptyDistrict || emptyKey) {
-    console.warn(
-      `⚠️ Uyarı: boş institution_name=${emptyName}, boş district=${emptyDistrict}, boş external_key=${emptyKey}`
-    );
+    if (!Array.isArray(data)) {
+      console.error(`❌ JSON tek array değil: ${fileName}`);
+      process.exit(1);
+    }
+  
+    console.log("• Kayıt sayısı:", data.length);
+  
+    // Her dosya için ayrı source tag (rollback kolay olsun)
+    const perFileTag = `${importTag}__${path.basename(fileName, ".json")}`;
+    console.log("• Source tag:", perFileTag);
+  
+    const rows = data.map((item) => {
+      const institution_name = normalizeText(item.okul_adi);
+      const district = normalizeText(item.ilce);
+      const city = normalizeText(item.il) || "ANKARA";
+      const type = normalizeText(item.okul_turu);
+      const address = normalizeText(item.adres);
+      const official_phone = normalizePhone(item.telefon);
+  
+      return {
+        institution_name,
+        district,
+        city,
+        type,
+        address,
+        official_phone,
+        source: perFileTag,
+        host: "ookgm.meb.gov.tr",
+        external_key: buildExternalKey(institution_name, district),
+        is_active: true,
+        last_updated_at: new Date().toISOString(),
+      };
+    });
+  
+    const batches = chunk(rows, BATCH_SIZE);
+  
+    for (let i = 0; i < batches.length; i++) {
+      await upsertWithRetry(batches[i]);
+      console.log(`✅ ${fileName} | Batch ${i + 1}/${batches.length} (+${batches[i].length})`);
+      await sleep(SLEEP_MS);
+    }
+  
+    console.log(`🎉 Dosya tamamlandı: ${fileName}`);
+    console.log(`🔍 Doğrulama: SELECT COUNT(*) FROM ${TABLE_NAME} WHERE source='${perFileTag}';`);
   }
 
-  const batches = chunk(rows, BATCH_SIZE);
-
-  for (let i = 0; i < batches.length; i++) {
-    await upsertWithRetry(batches[i]);
-    console.log(`✅ Batch ${i + 1}/${batches.length} (+${batches[i].length})`);
-    await sleep(SLEEP_MS);
-  }
 
   console.log("\n🎉 Import tamamlandı!");
   console.log("📌 Rollback için source tag:", importTag);
