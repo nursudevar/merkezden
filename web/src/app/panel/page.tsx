@@ -18,7 +18,9 @@ import {
   Upload,
   Loader2,
   X,
+  Check,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveUserTypeFromUsersClient } from "@/lib/auth/resolveUserTypeFromUsersClient";
 import { resolveInstitutionNameFromUsersClient } from "@/lib/auth/resolveInstitutionNameFromUsersClient";
@@ -59,6 +61,176 @@ const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
   },
   { id: "requests", label: "Talepler", placeholder: "Gelen talepler burada listelenecek." },
 ];
+
+type SubscriptionPlan = {
+  title: string;
+  price: {
+    monthly: number;
+    yearly: number;
+  };
+  description: string;
+  features: string[];
+  ctaText: string;
+  isFeatured?: boolean;
+};
+
+const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    title: "Temel",
+    price: { monthly: 1490, yearly: 14304 },
+    description: "Yeni başlayan kurumlar için temel görünürlük ve yönetim özellikleri.",
+    features: [
+      "Kurum profili yayını",
+      "Aylık 2 duyuru paylaşımı",
+      "Temel istatistik ekranı",
+      "E-posta destek",
+      "Tek şube yönetimi",
+    ],
+    ctaText: "Temel Planı Seç",
+  },
+  {
+    title: "Kurumsal",
+    price: { monthly: 2490, yearly: 23904 },
+    description: "Daha yüksek görünürlük ve gelişmiş içerik yönetimi isteyen kurumlar için.",
+    features: [
+      "Öne çıkan kurum görünürlüğü",
+      "Sınırsız duyuru paylaşımı",
+      "Detaylı performans raporları",
+      "Öncelikli destek",
+      "Çoklu şube yönetimi",
+      "Profilde özel rozet",
+    ],
+    ctaText: "Kurumsal Planı Seç",
+    isFeatured: true,
+  },
+  {
+    title: "Premium",
+    price: { monthly: 3990, yearly: 38304 },
+    description: "Maksimum görünürlük ve kurumsal büyüme odaklı kapsamlı paket.",
+    features: [
+      "Ana sayfada premium vitrin",
+      "Sınırsız duyuru ve kampanya",
+      "İleri düzey raporlama",
+      "Öncelikli telefon desteği",
+      "Sınırsız şube yönetimi",
+      "Özel hesap yöneticisi",
+      "Reklam alanlarında öncelik",
+    ],
+    ctaText: "Premium Planı Seç",
+  },
+];
+
+function AnimatedDigit({ digit, index }: { digit: string; index: number }) {
+  return (
+    <div className="panel-subscription-digit-wrap">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={digit}
+          initial={{ y: 18, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -18, opacity: 0 }}
+          transition={{ duration: 0.28, delay: index * 0.04, ease: "easeOut" }}
+          className="panel-subscription-digit"
+        >
+          {digit}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ScrollingNumber({ value }: { value: number }) {
+  const numberString = value.toString();
+  return (
+    <div className="panel-subscription-scrolling-number">
+      {numberString.split("").map((digit, index) => (
+        <AnimatedDigit key={`${value}-${index}`} digit={digit} index={index} />
+      ))}
+    </div>
+  );
+}
+
+function SubscriptionPricingTable({ plans }: { plans: SubscriptionPlan[] }) {
+  const [isYearly, setIsYearly] = useState(false);
+
+  return (
+    <div className="panel-subscription">
+      <div className="panel-subscription-header">
+        <h3 className="panel-subscription-title">Kurumunuza Uygun Planı Seçin</h3>
+        <p className="panel-subscription-subtitle">
+          Tüm planlar kurum profilinizi güçlendirmek ve daha fazla veli/öğrenciye ulaşmanız için tasarlanmıştır.
+        </p>
+        <div className="panel-subscription-billing-toggle" role="tablist" aria-label="Faturalandırma tipi">
+          <button
+            type="button"
+            className={`panel-subscription-billing-btn ${!isYearly ? "panel-subscription-billing-btn--active" : ""}`}
+            onClick={() => setIsYearly(false)}
+          >
+            Aylık
+          </button>
+          <button
+            type="button"
+            className={`panel-subscription-billing-btn ${isYearly ? "panel-subscription-billing-btn--active" : ""}`}
+            onClick={() => setIsYearly(true)}
+          >
+            Yıllık
+            <span className="panel-subscription-billing-badge">%20 Tasarruf</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="panel-subscription-grid">
+        {plans.map((plan) => {
+          const monthlyPrice = isYearly ? Math.round(plan.price.yearly / 12) : plan.price.monthly;
+          const yearlySave = plan.price.monthly * 12 - plan.price.yearly;
+          return (
+            <motion.article
+              key={plan.title}
+              className={`panel-subscription-card ${plan.isFeatured ? "panel-subscription-card--featured" : ""}`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              {plan.isFeatured && <span className="panel-subscription-card-badge">En Popüler</span>}
+              <div className="panel-subscription-card-head">
+                <h4 className="panel-subscription-card-title">{plan.title}</h4>
+                <p className="panel-subscription-card-description">{plan.description}</p>
+                <div className="panel-subscription-price-row">
+                  <span className="panel-subscription-currency">₺</span>
+                  <ScrollingNumber value={monthlyPrice} />
+                  <span className="panel-subscription-price-suffix">/ ay</span>
+                </div>
+                <div className="panel-subscription-bill-row">
+                  <span>{isYearly ? "Yıllık tahsil edilir" : "Aylık tahsil edilir"}</span>
+                  {isYearly && <span className="panel-subscription-save-chip">Yıllık {yearlySave.toLocaleString("tr-TR")} TL avantaj</span>}
+                </div>
+              </div>
+
+              <ul className="panel-subscription-features">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="panel-subscription-feature-item">
+                    <span className="panel-subscription-feature-icon">
+                      <Check size={14} />
+                    </span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                type="button"
+                variant={plan.isFeatured ? "default" : "outline"}
+                className={`panel-subscription-cta ${plan.isFeatured ? "btn-gradient-primary" : ""}`}
+              >
+                {plan.ctaText}
+              </Button>
+            </motion.article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function PanelPage() {
   const router = useRouter();
@@ -111,6 +283,7 @@ export default function PanelPage() {
     },
   ]);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [announcementForm, setAnnouncementForm] = useState({
     title: "",
@@ -310,16 +483,21 @@ export default function PanelPage() {
   }, [isAuthReady, user, roleLoaded, userType, router]);
 
   useEffect(() => {
-    if (!announcementModalOpen) {
+    if (!announcementModalOpen && !subscriptionModalOpen) {
       document.body.style.overflow = "";
       return;
     }
     document.body.style.overflow = "hidden";
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setAnnouncementModalOpen(false);
-        setEditingAnnouncementId(null);
-        setAnnouncementFormErrors({});
+        if (announcementModalOpen) {
+          setAnnouncementModalOpen(false);
+          setEditingAnnouncementId(null);
+          setAnnouncementFormErrors({});
+        }
+        if (subscriptionModalOpen) {
+          setSubscriptionModalOpen(false);
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -327,7 +505,7 @@ export default function PanelPage() {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [announcementModalOpen]);
+  }, [announcementModalOpen, subscriptionModalOpen]);
 
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
@@ -416,6 +594,7 @@ export default function PanelPage() {
   const isInstitutionProfileTab = activeTab === "institution-profile";
   const isAnnouncementsTab = activeTab === "announcements";
   const isRequestsTab = activeTab === "requests";
+  const isSubscriptionTab = activeTab === "subscription";
   const isOverviewTab = activeTab === "overview";
 
   const OVERVIEW_ANNOUNCEMENTS = [
@@ -523,6 +702,14 @@ export default function PanelPage() {
     setAnnouncementsList((prev) => prev.filter((row) => row.id !== id));
   };
 
+  const handleTabSelect = (tabId: PanelTabId) => {
+    if (tabId === "subscription") {
+      setSubscriptionModalOpen(true);
+      return;
+    }
+    setActiveTab(tabId);
+  };
+
   return (
     <div className="panel-page">
       <HeaderClientWrapper />
@@ -557,7 +744,7 @@ export default function PanelPage() {
                   key={tab.id}
                   type="button"
                   className={`panel-sidebar-nav-item ${activeTab === tab.id ? "panel-sidebar-nav-item--active" : ""}`}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabSelect(tab.id)}
                   aria-current={activeTab === tab.id ? "true" : undefined}
                 >
                   {sidebarIcons[tab.id]}
@@ -653,6 +840,8 @@ export default function PanelPage() {
                   <Megaphone className="panel-main-card-icon" aria-hidden />
                 ) : isRequestsTab ? (
                   <Inbox className="panel-main-card-icon" aria-hidden />
+                ) : isSubscriptionTab ? (
+                  <CreditCard className="panel-main-card-icon" aria-hidden />
                 ) : (
                   <Building2 className="panel-main-card-icon" aria-hidden />
                 )}
@@ -718,7 +907,7 @@ export default function PanelPage() {
                     <option value="rejected">Reddedildi</option>
                   </select>
                 </div>
-              ) : (
+              ) : isSubscriptionTab ? null : (
                 <button
                   type="button"
                   className="panel-main-card-edit-btn"
@@ -1000,6 +1189,35 @@ export default function PanelPage() {
           </section>
         </div>
       </div>
+
+      {subscriptionModalOpen && (
+        <div
+          className="panel-subscription-modal-overlay"
+          onClick={() => setSubscriptionModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="panel-subscription-modal-title"
+        >
+          <div className="panel-subscription-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="panel-subscription-modal-header">
+              <h2 id="panel-subscription-modal-title" className="panel-subscription-modal-title">
+                Abonelik
+              </h2>
+              <button
+                type="button"
+                className="panel-subscription-modal-close"
+                aria-label="Kapat"
+                onClick={() => setSubscriptionModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="panel-subscription-modal-body">
+              <SubscriptionPricingTable plans={SUBSCRIPTION_PLANS} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {announcementModalOpen && (
         <div
