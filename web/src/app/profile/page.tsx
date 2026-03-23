@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { FavoritesError, getMyFavoriteInstitutions, removeFavorite, type FavoriteInstitution } from '@/lib/favorites/favoritesClient';
 import '@/styles/main.scss';
 import '@/styles/pages/profile.scss';
 
@@ -26,60 +27,6 @@ interface IndividualProfile {
   email: string | null;
   birth_date: string | null;
 }
-
-interface FavoriteItem {
-  id: string;
-  type: 'school' | 'course';
-  title: string;
-  description: string;
-  imageUrl?: string;
-  logoUrl?: string;
-  rating?: number;
-  reviewCount?: number;
-  category?: string;
-  tags?: string[];
-}
-
-const mockFavorites: FavoriteItem[] = [
-  {
-    id: '1',
-    type: 'course',
-    title: 'UI/UX Tasarım Temelleri',
-    description: 'Kullanıcı arayüzü tasarımının temel prensiplerini öğrenin.',
-    imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop',
-    rating: 4.8,
-    reviewCount: 124,
-    category: 'Tasarım',
-  },
-  {
-    id: '2',
-    type: 'course',
-    title: 'İleri Seviye JavaScript',
-    description: 'Modern JS teknikleri ve asenkron programlama.',
-    imageUrl: 'https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?w=400&h=300&fit=crop',
-    rating: 4.9,
-    reviewCount: 86,
-    category: 'Yazılım',
-  },
-  {
-    id: '3',
-    type: 'school',
-    title: 'MIT OpenCourseWare',
-    description: 'Dünyanın en iyi teknik üniversitelerinden biri.',
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/MIT_logo.svg',
-    category: 'Teknoloji',
-    tags: ['Teknoloji', 'Bilim'],
-  },
-  {
-    id: '4',
-    type: 'school',
-    title: 'Harvard Online',
-    description: 'Liderlik ve işletme alanında uzmanlaşın.',
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Harvard_University_logo.svg',
-    category: 'İşletme',
-    tags: ['İşletme', 'Liderlik'],
-  },
-];
 
 function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: IndividualProfile | null }) {
   const router = useRouter();
@@ -331,14 +278,61 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
 }
 
 function FavoritesSection() {
-  const [activeTab, setActiveTab] = useState<'schools' | 'courses'>('courses');
+  const [favorites, setFavorites] = useState<FavoriteInstitution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoadingIds, setActionLoadingIds] = useState<Set<number>>(() => new Set());
 
-  const filteredFavorites = mockFavorites.filter(item => {
-    if (activeTab === 'schools') {
-      return item.type === 'school';
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const list = await getMyFavoriteInstitutions();
+        if (cancelled) return;
+        setFavorites(list);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err instanceof FavoritesError ? err.message : 'Favoriler yüklenemedi. Lütfen tekrar deneyin.';
+        setError(msg);
+        setFavorites([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleRemove = async (institutionId: number) => {
+    if (actionLoadingIds.has(institutionId)) return;
+    setActionLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(institutionId);
+      return next;
+    });
+    const prev = favorites;
+    setFavorites((cur) => cur.filter((i) => i.id !== institutionId));
+    try {
+      await removeFavorite(institutionId);
+    } catch (err) {
+      setFavorites(prev);
+      const msg =
+        err instanceof FavoritesError ? err.message : 'Favorilerden kaldırılamadı. Lütfen tekrar deneyin.';
+      setError(msg);
+      window.alert(msg);
+    } finally {
+      setActionLoadingIds((prevSet) => {
+        const next = new Set(prevSet);
+        next.delete(institutionId);
+        return next;
+      });
     }
-    return item.type === 'course';
-  });
+  };
 
   return (
     <section className="favorites-section">
@@ -347,73 +341,77 @@ function FavoritesSection() {
           <Heart className="favorites-section-icon" />
           <h2 className="favorites-section-title">Favoriler</h2>
         </div>
-        <div className="favorites-section-tabs">
-          <button
-            className={`favorites-section-tab ${activeTab === 'schools' ? 'favorites-section-tab--active' : ''}`}
-            onClick={() => setActiveTab('schools')}
-          >
-            Okullar
-          </button>
-          <button
-            className={`favorites-section-tab ${activeTab === 'courses' ? 'favorites-section-tab--active' : ''}`}
-            onClick={() => setActiveTab('courses')}
-          >
-            Kurslar
-          </button>
-        </div>
       </div>
 
       <div className="favorites-section-grid">
-        {filteredFavorites.map((item) => (
-          <Card key={item.id} className="favorite-card">
+        {loading ? (
+          <Card className="favorite-card">
             <CardContent className="favorite-card-content">
-              <div className="favorite-card-image-wrapper">
-                {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="favorite-card-image"
-                  />
-                ) : item.logoUrl ? (
-                  <img
-                    src={item.logoUrl}
-                    alt={item.title}
-                    className="favorite-card-logo"
-                  />
-                ) : (
-                  <div className="favorite-card-placeholder" />
-                )}
-                <div className="favorite-card-badge">
-                  {item.type === 'school' ? 'OKUL' : 'KURS'}
-                </div>
-                {item.category && (
-                  <div className="favorite-card-category">{item.category}</div>
-                )}
-              </div>
               <div className="favorite-card-body">
-                <h3 className="favorite-card-title">{item.title}</h3>
-                <p className="favorite-card-description">{item.description}</p>
-                {item.rating && (
-                  <div className="favorite-card-rating">
-                    <Star className="favorite-card-rating-icon" />
-                    <span className="favorite-card-rating-value">
-                      {item.rating} ({item.reviewCount} Değerlendirme)
-                    </span>
-                  </div>
-                )}
-                {item.tags && item.tags.length > 0 && (
-                  <div className="favorite-card-tags">
-                    {item.tags.map((tag, index) => (
-                      <span key={index} className="favorite-card-tag">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <p className="favorite-card-description">Favoriler yükleniyor…</p>
               </div>
             </CardContent>
           </Card>
-        ))}
+        ) : error ? (
+          <Card className="favorite-card">
+            <CardContent className="favorite-card-content">
+              <div className="favorite-card-body">
+                <p className="favorite-card-description">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : favorites.length === 0 ? (
+          <Card className="favorite-card">
+            <CardContent className="favorite-card-content">
+              <div className="favorite-card-body">
+                <p className="favorite-card-description">Henüz favori kurum eklemediniz.</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          favorites.map((inst) => {
+            const title = inst.institution_name ?? 'Kurum';
+            const desc = inst.address || inst.about || `${inst.city ?? ''}${inst.district ? ` / ${inst.district}` : ''}` || '—';
+            const category = inst.type ?? null;
+            return (
+              <Card key={inst.id} className="favorite-card">
+                <CardContent className="favorite-card-content">
+                  <div className="favorite-card-image-wrapper">
+                    {inst.logo ? (
+                      <img src={inst.logo} alt={title} className="favorite-card-logo" />
+                    ) : (
+                      <div className="favorite-card-placeholder" />
+                    )}
+                    <div className="favorite-card-badge">OKUL</div>
+                    {category && <div className="favorite-card-category">{category}</div>}
+                    <button
+                      type="button"
+                      className="favorite-card-remove"
+                      aria-label="Favorilerden kaldır"
+                      disabled={actionLoadingIds.has(inst.id)}
+                      onClick={() => handleRemove(inst.id)}
+                    >
+                      <Heart className="favorite-card-remove-icon" />
+                    </button>
+                  </div>
+                  <div className="favorite-card-body">
+                    <h3 className="favorite-card-title">{title}</h3>
+                    <p className="favorite-card-description">{desc}</p>
+                    {(inst.city || inst.district) && (
+                      <div className="favorite-card-rating">
+                        <Star className="favorite-card-rating-icon" />
+                        <span className="favorite-card-rating-value">
+                          {inst.city}
+                          {inst.district ? ` / ${inst.district}` : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </section>
   );

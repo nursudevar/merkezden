@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Heart } from "lucide-react";
 import "@/styles/pages/home.scss";
 
 interface SearchResult {
-  id: string;
+  id: string | number;
   name: string;
   description: string;
   location: string;
@@ -25,10 +26,23 @@ interface SearchResultsProps {
   query: string;
   onResultClick?: () => void;
   onClearSearch?: () => void;
-  onFavoriteClick?: (e: React.MouseEvent) => void;
+  onToggleFavorite?: (institutionId: number, e: React.MouseEvent) => void;
+  favoriteIds?: Set<number>;
+  favoritesEnabled?: boolean;
+  favoriteActionLoadingIds?: Set<number>;
+  isAuthenticated?: boolean;
 }
 
-export default function SearchResults({ query, onResultClick, onClearSearch, onFavoriteClick }: SearchResultsProps) {
+export default function SearchResults({
+  query,
+  onResultClick,
+  onClearSearch,
+  onToggleFavorite,
+  favoriteIds,
+  favoritesEnabled,
+  favoriteActionLoadingIds,
+  isAuthenticated,
+}: SearchResultsProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +163,14 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
           )}
         </div>
         <div className="search-results-grid">
-          {results.map((result) => (
+          {results.map((result) => {
+            const institutionId = Number(result.id);
+            const isFavorite = Number.isFinite(institutionId) ? Boolean(favoriteIds?.has(institutionId)) : false;
+            const isActionLoading = Number.isFinite(institutionId)
+              ? Boolean(favoriteActionLoadingIds?.has(institutionId))
+              : false;
+
+            return (
             <Link
               key={result.id}
               href={`/institutions/${result.slug}`}
@@ -175,15 +196,22 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
                 <button
                   type="button"
                   className="featured-institution-favorite"
-                  aria-label="Favorilere ekle"
-                  onClick={onFavoriteClick || ((e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  })}
+                  aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
+                  disabled={isActionLoading || !Number.isFinite(institutionId) || (isAuthenticated && !favoritesEnabled)}
+                  onClick={(e) => {
+                    if (!onToggleFavorite || !Number.isFinite(institutionId)) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    onToggleFavorite(institutionId, e);
+                  }}
                 >
-                  <svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 2.24 0 5 0C6.74 0 8.41 0.81 9.5 2.09C10.59 0.81 12.26 0 14 0C16.76 0 19 1.96 19 4.5C19 8.28 15.6 11.36 10.45 16.04L10 17.35Z" fill="currentColor"/>
-                  </svg>
+                  <Heart
+                    className={
+                      isFavorite ? "heart-favorite-icon heart-favorite-icon--active" : "heart-favorite-icon"
+                    }
+                  />
                 </button>
               </div>
               <div className="featured-institution-content">
@@ -208,7 +236,8 @@ export default function SearchResults({ query, onResultClick, onClearSearch, onF
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

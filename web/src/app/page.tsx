@@ -4,13 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, MessageCircle, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, MessageCircle, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark } from "lucide-react";
 import { motion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -182,6 +183,11 @@ const ageOptions = [
 const serviceOptions = [
   { value: "face", label: "Yüz Yüze", icon: Users },
   { value: "online", label: "Online", icon: Wifi },
+];
+
+const schoolStatusOptions = [
+  { value: "private", label: "Özel", icon: Building2 },
+  { value: "public", label: "Devlet", icon: Landmark },
 ];
 
 const categoryGroups = [
@@ -451,9 +457,20 @@ const purpleFeatured = [
   },
 ];
 
-function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.MouseEvent) => void }) {
+function FeaturedInstitutions({
+  onToggleFavorite,
+  favoriteIds,
+  favoritesEnabled,
+  favoriteActionLoadingIds,
+  isAuthenticated,
+}: {
+  onToggleFavorite: (institutionId: number, e: React.MouseEvent) => void;
+  favoriteIds: Set<number>;
+  favoritesEnabled: boolean;
+  favoriteActionLoadingIds: Set<number>;
+  isAuthenticated: boolean;
+}) {
   const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState(featuredInstitutions);
-  const [favorites, setFavorites] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const shuffled = [...featuredInstitutions];
@@ -475,7 +492,8 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
       <div className="featured-institutions-slider">
         <div className="featured-institutions-scroller">
           {shuffledFeaturedInstitutions.map((institution) => {
-            const isFavorite = favorites[institution.id] ?? false;
+            const isFavorite = favoriteIds.has(institution.id);
+            const isActionLoading = favoriteActionLoadingIds.has(institution.id);
             return (
               <Link
                 key={institution.id}
@@ -498,12 +516,9 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
                   aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
                   className="featured-institution-favorite"
                   whileTap={{ scale: 0.9 }}
+                  disabled={isActionLoading || (isAuthenticated && !favoritesEnabled)}
                   onClick={(e) => {
-                    onFavoriteClick(e);
-                    setFavorites((prev) => ({
-                      ...prev,
-                      [institution.id]: !isFavorite,
-                    }));
+                    onToggleFavorite(institution.id, e);
                   }}
                 >
                   <motion.div
@@ -554,7 +569,13 @@ function FeaturedInstitutions({ onFavoriteClick }: { onFavoriteClick: (e: React.
 export default function Home() {
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
+  const [favoritesEnabled, setFavoritesEnabled] = useState(false);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [favoritesError, setFavoritesError] = useState<string | null>(null);
+  const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
   const [districts, setDistricts] = useState<string[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
@@ -566,26 +587,125 @@ export default function Home() {
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null);
+  const [selectedSchoolStatus, setSelectedSchoolStatus] = useState<string | null>(null);
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
   const [premiumPicksPage, setPremiumPicksPage] = useState(0);
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleFavoriteToggle = async (institutionId: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (!user) {
       setShowLoginModal(true);
-    } else {
+      return;
+    }
+    if (!favoritesEnabled) {
+      window.alert("Favoriler yalnızca bireysel hesaplarda kullanılabilir.");
+      return;
+    }
+    if (favoriteActionLoadingIds.has(institutionId)) return;
+
+    const wasFavorited = favoriteIds.has(institutionId);
+    setFavoritesError(null);
+    setFavoriteActionLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(institutionId);
+      return next;
+    });
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorited) next.delete(institutionId);
+      else next.add(institutionId);
+      return next;
+    });
+
+    try {
+      const res = await toggleFavorite(institutionId);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (res.isFavorited) next.add(institutionId);
+        else next.delete(institutionId);
+        return next;
+      });
+    } catch (err) {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorited) next.add(institutionId);
+        else next.delete(institutionId);
+        return next;
+      });
+      const msg =
+        err instanceof FavoritesError
+          ? err.message
+          : "Favori işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+      setFavoritesError(msg);
+      window.alert(msg);
+    } finally {
+      setFavoriteActionLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(institutionId);
+        return next;
+      });
     }
   };
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setIsAuthReady(true);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthReady || !user) {
+      setFavoriteIds(new Set());
+      setFavoritesEnabled(false);
+      setFavoritesLoading(false);
+      setFavoritesError(null);
+      setFavoriteActionLoadingIds(new Set());
+      return;
+    }
+
+    setFavoritesLoading(true);
+    setFavoritesError(null);
+    (async () => {
+      try {
+        const ids = await getMyFavoriteInstitutionIds();
+        if (cancelled) return;
+        setFavoritesEnabled(true);
+        setFavoriteIds(new Set(ids));
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof FavoritesError && err.code === "NOT_INDIVIDUAL") {
+          setFavoritesEnabled(false);
+          setFavoriteIds(new Set());
+        } else {
+          const msg =
+            err instanceof FavoritesError ? err.message : "Favoriler yüklenemedi. Lütfen tekrar deneyin.";
+          setFavoritesError(msg);
+          setFavoritesEnabled(false);
+        }
+      } finally {
+        if (!cancelled) setFavoritesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, user]);
 
   useEffect(() => {
     fetch("/api/locations")
@@ -753,38 +873,34 @@ export default function Home() {
                 </div>
               </div>
               <Separator />
-              <div className="price-filter">
-                <div className="price-filter-title">
+              <div className="filter-section">
+                <div className="filter-section-title">
                   <Image 
-                    src="/images/banknotes.svg" 
-                    alt="Fiyat" 
+                    src="/images/services.svg" 
+                    alt="Okul Durumu" 
                     width={20} 
                     height={20}
                   />
-                  <span>Fiyat Filtresi</span>
+                  <span>Okul Durumu</span>
                 </div>
-                <div className="price-filter-inputs">
-                  <Input
-                    type="number"
-                    value={priceRange[0]}
-                    onChange={(e) => handlePriceInput(0, e.target.value)}
-                    className="price-filter-input"
-                  />
-                  <span className="price-filter-separator">-</span>
-                  <Input
-                    type="number"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceInput(1, e.target.value)}
-                    className="price-filter-input"
-                  />
-                </div>
-                <div className="price-filter-slider">
-                  <Slider value={priceRange} onValueChange={setPriceRange} min={0} max={10000} step={500} />
-                </div>
-                <div className="price-filter-labels">
-                  <span>0₺</span>
-                  <span>5K₺</span>
-                  <span>10K₺</span>
+                <div className="education-type-pills">
+                  {schoolStatusOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isSelected = selectedSchoolStatus === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`education-type-pill ${isSelected ? 'education-type-pill--selected' : ''}`}
+                        onClick={() => {
+                          setSelectedSchoolStatus(isSelected ? null : option.value);
+                        }}
+                      >
+                        <Icon className="education-type-pill-icon" />
+                        <span>{option.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <Separator />
@@ -848,6 +964,41 @@ export default function Home() {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+              <Separator />
+              <div className="price-filter">
+                <div className="price-filter-title">
+                  <Image 
+                    src="/images/banknotes.svg" 
+                    alt="Fiyat" 
+                    width={20} 
+                    height={20}
+                  />
+                  <span>Fiyat Filtresi</span>
+                </div>
+                <div className="price-filter-inputs">
+                  <Input
+                    type="number"
+                    value={priceRange[0]}
+                    onChange={(e) => handlePriceInput(0, e.target.value)}
+                    className="price-filter-input"
+                  />
+                  <span className="price-filter-separator">-</span>
+                  <Input
+                    type="number"
+                    value={priceRange[1]}
+                    onChange={(e) => handlePriceInput(1, e.target.value)}
+                    className="price-filter-input"
+                  />
+                </div>
+                <div className="price-filter-slider">
+                  <Slider value={priceRange} onValueChange={setPriceRange} min={0} max={10000} step={500} />
+                </div>
+                <div className="price-filter-labels">
+                  <span>0₺</span>
+                  <span>5K₺</span>
+                  <span>10K₺</span>
                 </div>
               </div>
               <Separator />
@@ -923,7 +1074,11 @@ export default function Home() {
             <SearchResults 
               query={query} 
               onClearSearch={() => setQuery("")}
-              onFavoriteClick={handleFavoriteClick}
+              onToggleFavorite={handleFavoriteToggle}
+              favoriteIds={favoriteIds}
+              favoritesEnabled={favoritesEnabled && !favoritesLoading}
+              favoriteActionLoadingIds={favoriteActionLoadingIds}
+              isAuthenticated={Boolean(user)}
             />
           ) : (
             <>
@@ -1038,7 +1193,13 @@ export default function Home() {
             </div>
           </section>
 
-          <FeaturedInstitutions onFavoriteClick={handleFavoriteClick} />
+          <FeaturedInstitutions
+            onToggleFavorite={handleFavoriteToggle}
+            favoriteIds={favoriteIds}
+            favoritesEnabled={favoritesEnabled && !favoritesLoading}
+            favoriteActionLoadingIds={favoriteActionLoadingIds}
+            isAuthenticated={Boolean(user)}
+          />
 
           <section>
             <div className="cta-section">

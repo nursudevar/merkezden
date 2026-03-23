@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Phone, Search, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Heart, Phone, Search, X } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
+import LoginModal from '@/components/LoginModal';
+import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from '@/lib/favorites/favoritesClient';
 
 const PAGE_SIZE = 50;
 
@@ -35,12 +39,24 @@ export default function OkullarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
+  const [favoritesEnabled, setFavoritesEnabled] = useState(false);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
+
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [categories, setCategories] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const categoryMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -62,13 +78,16 @@ export default function OkullarPage() {
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const [cityRes, districtRes] = await Promise.all([
+      const [categoryRes, cityRes, districtRes] = await Promise.all([
+        supabase.from('institutions').select('type').limit(5000),
         supabase.from('institutions').select('city').limit(5000),
         supabase.from('institutions').select('district').limit(5000),
       ]);
       if (cancelled) return;
+      const categoryList = [...new Set((categoryRes.data ?? []).map((r) => r.type).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'tr'));
       const cityList = [...new Set((cityRes.data ?? []).map((r) => r.city).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'tr'));
       const districtList = [...new Set((districtRes.data ?? []).map((r) => r.district).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'tr'));
+      setCategories(categoryList);
       setCities(cityList);
       setDistricts(districtList);
     })();
@@ -82,7 +101,7 @@ export default function OkullarPage() {
         setLoading(true);
         setError(null);
         const supabase = createSupabaseBrowserClient();
-        const selectCols = COLS.join(', ');
+        const selectCols = `id, ${COLS.join(', ')}`;
         const from = (page - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
         const searchTerm = debouncedSearchText.trim();
@@ -99,11 +118,13 @@ export default function OkullarPage() {
         if (selectedDistrict) {
           dataQuery = dataQuery.eq('district', selectedDistrict);
         }
+        if (selectedCategory) {
+          dataQuery = dataQuery.eq('type', selectedCategory);
+        }
         if (searchTerm) {
           const q = `%${searchTerm}%`;
           const or = [
             `institution_name.ilike.${q}`,
-            `type.ilike.${q}`,
             `city.ilike.${q}`,
             `district.ilike.${q}`,
             `official_phone.ilike.${q}`,
@@ -142,7 +163,115 @@ export default function OkullarPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [page, selectedCity, selectedDistrict, debouncedSearchText]);
+  }, [page, selectedCity, selectedDistrict, selectedCategory, debouncedSearchText]);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setIsAuthReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthReady || !user) {
+      setFavoriteIds(new Set());
+      setFavoritesEnabled(false);
+      setFavoritesLoading(false);
+      setFavoriteActionLoadingIds(new Set());
+      return;
+    }
+
+    setFavoritesLoading(true);
+    (async () => {
+      try {
+        const ids = await getMyFavoriteInstitutionIds();
+        if (cancelled) return;
+        setFavoritesEnabled(true);
+        setFavoriteIds(new Set(ids));
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof FavoritesError && err.code === 'NOT_INDIVIDUAL') {
+          setFavoritesEnabled(false);
+          setFavoriteIds(new Set());
+        } else {
+          setFavoritesEnabled(false);
+        }
+      } finally {
+        if (!cancelled) setFavoritesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, user]);
+
+  const handleFavoriteToggle = async (institutionId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (!favoritesEnabled) {
+      window.alert('Favoriler yalnızca bireysel hesaplarda kullanılabilir.');
+      return;
+    }
+    if (favoritesLoading || favoriteActionLoadingIds.has(institutionId)) return;
+
+    const wasFavorited = favoriteIds.has(institutionId);
+    setFavoriteActionLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(institutionId);
+      return next;
+    });
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorited) next.delete(institutionId);
+      else next.add(institutionId);
+      return next;
+    });
+
+    try {
+      const res = await toggleFavorite(institutionId);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (res.isFavorited) next.add(institutionId);
+        else next.delete(institutionId);
+        return next;
+      });
+    } catch (err) {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorited) next.add(institutionId);
+        else next.delete(institutionId);
+        return next;
+      });
+      const msg =
+        err instanceof FavoritesError
+          ? err.message
+          : 'Favori işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+      window.alert(msg);
+    } finally {
+      setFavoriteActionLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(institutionId);
+        return next;
+      });
+    }
+  };
 
   const filteredRows = useMemo(() => rows, [rows]);
 
@@ -168,8 +297,14 @@ export default function OkullarPage() {
   const handleClearSearch = () => setSearchText('');
   const handleClearAll = () => {
     setSearchText('');
+    setSelectedCategory('');
     setSelectedCity('');
     setSelectedDistrict('');
+    setPage(1);
+  };
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setIsCategoryMenuOpen(false);
     setPage(1);
   };
   const handleCityChange = (value: string) => {
@@ -180,6 +315,19 @@ export default function OkullarPage() {
     setSelectedDistrict(value);
     setPage(1);
   };
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!categoryMenuRef.current) return;
+      if (!categoryMenuRef.current.contains(event.target as Node)) {
+        setIsCategoryMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+    };
+  }, []);
 
   return (
     <div className="page-container">
@@ -216,6 +364,46 @@ export default function OkullarPage() {
                   Yükleniyor…
                 </span>
               )}
+              <div className="okullar-category-dropdown" ref={categoryMenuRef}>
+                <button
+                  type="button"
+                  className={`okullar-filter-select okullar-filter-select--category ${isCategoryMenuOpen ? 'okullar-filter-select--open' : ''}`}
+                  onClick={() => setIsCategoryMenuOpen((prev) => !prev)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isCategoryMenuOpen}
+                  aria-label="Kategoriler"
+                >
+                  <span className="okullar-category-dropdown-label" title={selectedCategory || 'Kategoriler'}>
+                    {selectedCategory || 'Kategoriler'}
+                  </span>
+                </button>
+                {isCategoryMenuOpen && (
+                  <div className="okullar-category-dropdown-menu" role="listbox" aria-label="Kategori seçenekleri">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selectedCategory === ''}
+                      className={`okullar-category-dropdown-option ${selectedCategory === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
+                      onClick={() => handleCategoryChange('')}
+                    >
+                      Tüm Kategoriler
+                    </button>
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedCategory === category}
+                        className={`okullar-category-dropdown-option ${selectedCategory === category ? 'okullar-category-dropdown-option--selected' : ''}`}
+                        onClick={() => handleCategoryChange(category)}
+                        title={category}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <select
                 className="okullar-filter-select"
                 value={selectedCity}
@@ -238,7 +426,7 @@ export default function OkullarPage() {
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
-              {(searchText || selectedCity || selectedDistrict) && (
+              {(searchText || selectedCategory || selectedCity || selectedDistrict) && (
                 <button type="button" className="okullar-filter-temizle" onClick={handleClearAll}>
                   Temizle
                 </button>
@@ -248,6 +436,7 @@ export default function OkullarPage() {
               <table className="okullar-table">
                 <thead>
                   <tr>
+                    <th className="okullar-table-fav-col" aria-label="Favoriler" />
                     {COLS.map((col) => (
                       <th key={col}>{COL_LABELS[col]}</th>
                     ))}
@@ -256,7 +445,7 @@ export default function OkullarPage() {
                 <tbody>
                   {filteredRows.length === 0 ? (
                     <tr>
-                      <td colSpan={COLS.length} className="okullar-table-empty">
+                      <td colSpan={COLS.length + 1} className="okullar-table-empty">
                         {rows.length === 0
                           ? 'Henüz okul kaydı bulunmamaktadır.'
                           : 'Sonuç bulunamadı.'}
@@ -264,7 +453,37 @@ export default function OkullarPage() {
                     </tr>
                   ) : (
                     filteredRows.map((row, idx) => (
-                      <tr key={(row.id as string) ?? idx}>
+                      <tr key={(row.id as number | string | undefined) ?? idx}>
+                        <td className="okullar-favorite-cell">
+                          {(() => {
+                            const institutionId = Number(row.id);
+                            const isFavorite = Number.isFinite(institutionId) ? favoriteIds.has(institutionId) : false;
+                            const isActionLoading = Number.isFinite(institutionId)
+                              ? favoriteActionLoadingIds.has(institutionId)
+                              : false;
+                            return (
+                              <motion.button
+                                type="button"
+                                aria-label={isFavorite ? 'Favorilerden kaldır' : 'Favorilere ekle'}
+                                className="featured-institution-favorite"
+                                whileTap={{ scale: 0.9 }}
+                                disabled={isActionLoading || (Boolean(user) && !favoritesEnabled) || !Number.isFinite(institutionId)}
+                                onClick={(e) => handleFavoriteToggle(institutionId, e)}
+                              >
+                                <motion.div
+                                  animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
+                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                >
+                                  <Heart
+                                    className={
+                                      isFavorite ? 'heart-favorite-icon heart-favorite-icon--active' : 'heart-favorite-icon'
+                                    }
+                                  />
+                                </motion.div>
+                              </motion.button>
+                            );
+                          })()}
+                        </td>
                         {COLS.map((col) => {
                           const val = row[col];
                           const display = val == null ? '-' : String(val);
@@ -369,6 +588,7 @@ export default function OkullarPage() {
             )}
         </div>
       </main>
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }

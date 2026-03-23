@@ -600,6 +600,41 @@
   overflow: hidden;
 }
 
+.favorite-card-remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba($bg-white, 0.4);
+  background: rgba($bg-white, 0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 999px;
+  cursor: pointer;
+  z-index: 3;
+  @include transition;
+
+  &:hover {
+    background: rgba($bg-white, 0.35);
+    border-color: rgba($bg-white, 0.6);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.favorite-card-remove-icon {
+  width: 18px;
+  height: 18px;
+  color: #ef4444;
+  fill: #ef4444;
+}
+
 .favorite-card-image {
   position: absolute;
   top: 0;
