@@ -188,6 +188,11 @@
   flex: 0 0 190px;
 }
 
+.okullar-generic-dropdown {
+  position: relative;
+  min-width: 140px;
+}
+
 .okullar-category-dropdown-label {
   display: block;
   max-width: 100%;
@@ -229,7 +234,7 @@
   padding: 10px 12px;
   text-align: left;
   font-size: 13px;
-  color: $text-zinc-700;
+  color: black;
   cursor: pointer;
   @include transition;
   white-space: nowrap;
@@ -244,7 +249,7 @@
 
 .okullar-category-dropdown-option--selected {
   background: #f1f5f9;
-  color: $purple-main;
+  color: $purple-primary;
   font-weight: 600;
 }
 

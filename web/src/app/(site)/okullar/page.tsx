@@ -56,7 +56,11 @@ export default function OkullarPage() {
   const [cities, setCities] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isCityMenuOpen, setIsCityMenuOpen] = useState(false);
+  const [isDistrictMenuOpen, setIsDistrictMenuOpen] = useState(false);
   const categoryMenuRef = useRef<HTMLDivElement | null>(null);
+  const cityMenuRef = useRef<HTMLDivElement | null>(null);
+  const districtMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -309,18 +313,26 @@ export default function OkullarPage() {
   };
   const handleCityChange = (value: string) => {
     setSelectedCity(value);
+    setIsCityMenuOpen(false);
     setPage(1);
   };
   const handleDistrictChange = (value: string) => {
     setSelectedDistrict(value);
+    setIsDistrictMenuOpen(false);
     setPage(1);
   };
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
       if (!categoryMenuRef.current) return;
-      if (!categoryMenuRef.current.contains(event.target as Node)) {
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
         setIsCategoryMenuOpen(false);
+      }
+      if (cityMenuRef.current && !cityMenuRef.current.contains(event.target as Node)) {
+        setIsCityMenuOpen(false);
+      }
+      if (districtMenuRef.current && !districtMenuRef.current.contains(event.target as Node)) {
+        setIsDistrictMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', onPointerDown);
@@ -404,28 +416,87 @@ export default function OkullarPage() {
                   </div>
                 )}
               </div>
-              <select
-                className="okullar-filter-select"
-                value={selectedCity}
-                onChange={(e) => handleCityChange(e.target.value)}
-                aria-label="Şehir filtrele"
-              >
-                <option value="">Tüm şehirler</option>
-                {cities.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <select
-                className="okullar-filter-select"
-                value={selectedDistrict}
-                onChange={(e) => handleDistrictChange(e.target.value)}
-                aria-label="İlçe filtrele"
-              >
-                <option value="">Tüm ilçeler</option>
-                {districts.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+              <div className="okullar-generic-dropdown" ref={cityMenuRef}>
+                <button
+                  type="button"
+                  className={`okullar-filter-select ${isCityMenuOpen ? 'okullar-filter-select--open' : ''}`}
+                  onClick={() => setIsCityMenuOpen((prev) => !prev)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isCityMenuOpen}
+                  aria-label="Şehir filtrele"
+                >
+                  <span className="okullar-category-dropdown-label" title={selectedCity || 'Tüm şehirler'}>
+                    {selectedCity || 'Tüm şehirler'}
+                  </span>
+                </button>
+                {isCityMenuOpen && (
+                  <div className="okullar-category-dropdown-menu" role="listbox" aria-label="Şehir seçenekleri">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selectedCity === ''}
+                      className={`okullar-category-dropdown-option ${selectedCity === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
+                      onClick={() => handleCityChange('')}
+                    >
+                      Tüm şehirler
+                    </button>
+                    {cities.map((city) => (
+                      <button
+                        key={city}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedCity === city}
+                        className={`okullar-category-dropdown-option ${selectedCity === city ? 'okullar-category-dropdown-option--selected' : ''}`}
+                        onClick={() => handleCityChange(city)}
+                        title={city}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="okullar-generic-dropdown" ref={districtMenuRef}>
+                <button
+                  type="button"
+                  className={`okullar-filter-select ${isDistrictMenuOpen ? 'okullar-filter-select--open' : ''}`}
+                  onClick={() => setIsDistrictMenuOpen((prev) => !prev)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isDistrictMenuOpen}
+                  aria-label="İlçe filtrele"
+                >
+                  <span className="okullar-category-dropdown-label" title={selectedDistrict || 'Tüm ilçeler'}>
+                    {selectedDistrict || 'Tüm ilçeler'}
+                  </span>
+                </button>
+                {isDistrictMenuOpen && (
+                  <div className="okullar-category-dropdown-menu" role="listbox" aria-label="İlçe seçenekleri">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selectedDistrict === ''}
+                      className={`okullar-category-dropdown-option ${selectedDistrict === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
+                      onClick={() => handleDistrictChange('')}
+                    >
+                      Tüm ilçeler
+                    </button>
+                    {districts.map((district) => (
+                      <button
+                        key={district}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedDistrict === district}
+                        className={`okullar-category-dropdown-option ${selectedDistrict === district ? 'okullar-category-dropdown-option--selected' : ''}`}
+                        onClick={() => handleDistrictChange(district)}
+                        title={district}
+                      >
+                        {district}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               {(searchText || selectedCategory || selectedCity || selectedDistrict) && (
                 <button type="button" className="okullar-filter-temizle" onClick={handleClearAll}>
                   Temizle

@@ -419,6 +419,7 @@ interface InstitutionDetailPreparedData {
   const [institutionMultiSelectValues, setInstitutionMultiSelectValues] = useState<Record<number, string[]>>({});
   const [institutionFeaturesSaving, setInstitutionFeaturesSaving] = useState(false);
   const [institutionFeaturesSaveMessage, setInstitutionFeaturesSaveMessage] = useState<string | null>(null);
+  const [openInstitutionSelectId, setOpenInstitutionSelectId] = useState<number | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -740,6 +741,19 @@ interface InstitutionDetailPreparedData {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [announcementModalOpen, subscriptionModalOpen]);
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest(".panel-institutions-single-select-dropdown")) {
+        setOpenInstitutionSelectId(null);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+    };
+  }, []);
 
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
@@ -1103,19 +1117,24 @@ interface InstitutionDetailPreparedData {
       return { group, features };
     })
     .filter((item) => item.features.length > 0);
+  const isAcademicGroup = (group: InstitutionFeatureGroupRow) => {
+    const key = `${group.slug ?? ""} ${group.name}`.toLocaleLowerCase("tr-TR");
+    return key.includes("akademik") && key.includes("imkan");
+  };
   const academicGroup = institutionGroupsWithFeatures.find(
-    ({ group }) => group.name.trim().toLowerCase() === "akademik imkanlar"
+    ({ group }) => isAcademicGroup(group)
   );
   const academicFeatures = (academicGroup?.features ?? institutionFeatureDefinitions)
     .filter(
       (feature) =>
         feature.input_type === "text" ||
         feature.input_type === "number" ||
-        feature.input_type === "single_select"
+        feature.input_type === "single_select" ||
+        feature.input_type === "multi_select"
     )
     .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   const selectionGroups = institutionGroupsWithFeatures
-    .filter(({ group }) => group.name.trim().toLowerCase() !== "akademik imkanlar")
+    .filter(({ group }) => !isAcademicGroup(group))
     .map(({ group, features }) => ({
       group,
       features: features.filter(
@@ -1440,15 +1459,10 @@ interface InstitutionDetailPreparedData {
               <>
             <div className="panel-main-card-header">
               <div className="panel-main-card-header-left">
-                {isAnnouncementsTab ? (
-                  <Megaphone className="panel-main-card-icon" aria-hidden />
-                ) : isRequestsTab ? (
-                  <Inbox className="panel-main-card-icon" aria-hidden />
-                ) : isSubscriptionTab ? (
-                  <CreditCard className="panel-main-card-icon" aria-hidden />
-                ) : (
-                  <Building2 className="panel-main-card-icon" aria-hidden />
-                )}
+                {isAnnouncementsTab ? <Megaphone className="panel-main-card-icon" aria-hidden /> : null}
+                {isRequestsTab ? <Inbox className="panel-main-card-icon" aria-hidden /> : null}
+                {isSubscriptionTab ? <CreditCard className="panel-main-card-icon" aria-hidden /> : null}
+                {isInstitutionProfileTab ? <Building2 className="panel-main-card-icon" aria-hidden /> : null}
                 <h2 id="panel-card-title" className="panel-main-card-title">
                   {isAnnouncementsTab ? "İçerikler & Duyurular" : isRequestsTab ? "Talepler" : activeTabConfig.label}
                 </h2>
@@ -1809,15 +1823,15 @@ interface InstitutionDetailPreparedData {
                     data-detail-chip-count={institutionDetailPreparedData.items.length}
                   >
                     <section className="panel-institutions-group-item panel-institutions-group-item--basic">
-                      <h4 className="panel-institutions-group-title">
-                        <Info className="panel-institutions-group-title-icon" aria-hidden />
+                      <h4 className="panel-institutions-group-title panel-institutions-group-title--academic">
+                        <Info className="panel-institutions-group-title-icon panel-institutions-group-title-icon--academic" aria-hidden />
                         Akademik İmkanlar
                       </h4>
                       <div className="panel-institutions-features-grid">
                         {academicFeatures.map((feature) => (
                           <div
                             key={feature.id}
-                            className={`panel-institutions-feature-item ${feature.input_type === "text" ? "panel-institutions-feature-item--full" : ""}`}
+                            className={`panel-institutions-feature-item ${feature.input_type === "text" || feature.input_type === "multi_select" ? "panel-institutions-feature-item--full" : ""}`}
                           >
                             {feature.input_type === "text" ? (
                               <div className="panel-institutions-feature-input-wrap">
@@ -1874,25 +1888,78 @@ interface InstitutionDetailPreparedData {
                             ) : (
                               <div className="panel-institutions-feature-input-wrap">
                                 <p className="panel-institutions-feature-name">{feature.name}</p>
-                                <select
-                                  className="panel-institutions-feature-select"
-                                  value={institutionSingleSelectValues[feature.id] ?? ""}
-                                  onChange={(e) =>
-                                    setInstitutionSingleSelectValues((prev) => ({
-                                      ...prev,
-                                      [feature.id]: e.target.value,
-                                    }))
-                                  }
-                                >
-                                  <option value="">{feature.placeholder || "Seçiniz"}</option>
-                                  {institutionFeatureChoices
-                                    .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                                    .map((choice) => (
-                                      <option key={choice.id} value={String(choice.id)}>
-                                        {choice.name?.trim() || "Adsız tercih"}
-                                      </option>
-                                    ))}
-                                </select>
+                                <div className="panel-institutions-single-select-dropdown">
+                                  <button
+                                    type="button"
+                                    className={`panel-institutions-feature-select panel-institutions-feature-select--button ${openInstitutionSelectId === feature.id ? "panel-institutions-feature-select--open" : ""}`}
+                                    onClick={() =>
+                                      setOpenInstitutionSelectId((prev) =>
+                                        prev === feature.id ? null : feature.id
+                                      )
+                                    }
+                                    aria-haspopup="listbox"
+                                    aria-expanded={openInstitutionSelectId === feature.id}
+                                  >
+                                    <span
+                                      className="panel-institutions-feature-select-label"
+                                      title={
+                                        institutionFeatureChoices.find(
+                                          (choice) =>
+                                            String(choice.id) === (institutionSingleSelectValues[feature.id] ?? "") &&
+                                            choice.feature_definition_id === feature.id &&
+                                            choice.is_active
+                                        )?.name || feature.placeholder || "Seçiniz"
+                                      }
+                                    >
+                                      {institutionFeatureChoices.find(
+                                        (choice) =>
+                                          String(choice.id) === (institutionSingleSelectValues[feature.id] ?? "") &&
+                                          choice.feature_definition_id === feature.id &&
+                                          choice.is_active
+                                      )?.name || feature.placeholder || "Seçiniz"}
+                                    </span>
+                                  </button>
+                                  {openInstitutionSelectId === feature.id && (
+                                    <div className="panel-institutions-feature-select-menu" role="listbox">
+                                      <button
+                                        type="button"
+                                        role="option"
+                                        aria-selected={(institutionSingleSelectValues[feature.id] ?? "") === ""}
+                                        className={`panel-institutions-feature-select-option ${(institutionSingleSelectValues[feature.id] ?? "") === "" ? "panel-institutions-feature-select-option--selected" : ""}`}
+                                        onClick={() => {
+                                          setInstitutionSingleSelectValues((prev) => ({
+                                            ...prev,
+                                            [feature.id]: "",
+                                          }));
+                                          setOpenInstitutionSelectId(null);
+                                        }}
+                                      >
+                                        {feature.placeholder || "Seçiniz"}
+                                      </button>
+                                      {institutionFeatureChoices
+                                        .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
+                                        .map((choice) => (
+                                          <button
+                                            key={choice.id}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={(institutionSingleSelectValues[feature.id] ?? "") === String(choice.id)}
+                                            className={`panel-institutions-feature-select-option ${(institutionSingleSelectValues[feature.id] ?? "") === String(choice.id) ? "panel-institutions-feature-select-option--selected" : ""}`}
+                                            onClick={() => {
+                                              setInstitutionSingleSelectValues((prev) => ({
+                                                ...prev,
+                                                [feature.id]: String(choice.id),
+                                              }));
+                                              setOpenInstitutionSelectId(null);
+                                            }}
+                                            title={choice.name || undefined}
+                                          >
+                                            {choice.name?.trim() || "Adsız tercih"}
+                                          </button>
+                                        ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1900,12 +1967,19 @@ interface InstitutionDetailPreparedData {
                       </div>
                     </section>
 
-                    {selectionGroups.map(({ group, features }, index) => (
+                    {selectionGroups.map(({ group, features }) => (
                       <section key={group.id} className="panel-institutions-group-item">
-                        <h4 className="panel-institutions-group-title">
-                          <span className="panel-institutions-step-badge">Adım {index + 1}</span>
-                          {group.name}
-                        </h4>
+                        {group.name.toLocaleLowerCase("tr-TR").includes("okul") ? (
+                          <h4 className="panel-institutions-group-title panel-institutions-group-title--school">
+                            <Building className="panel-institutions-group-title-icon panel-institutions-group-title-icon--school" aria-hidden />
+                            {group.name}
+                          </h4>
+                        ) : (
+                          <h4 className="panel-institutions-group-title panel-institutions-group-title--physical">
+                            <Building2 className="panel-institutions-group-title-icon panel-institutions-group-title-icon--physical" aria-hidden />
+                            {group.name}
+                          </h4>
+                        )}
                         <div className="panel-institutions-features-grid panel-institutions-features-grid--selection">
                           {features.map((feature) => (
                             <div key={feature.id} className="panel-institutions-selection-item">
