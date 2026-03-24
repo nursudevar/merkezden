@@ -346,7 +346,7 @@ interface InstitutionFeatureEntryRow {
 }
 
 interface InstitutionFeatureEntryChoiceRow {
-  feature_entry_id: number;
+  institution_feature_entry_id: number;
   choice_id: number;
 }
 
@@ -615,8 +615,8 @@ interface InstitutionDetailPreparedData {
         if (entryIds.length > 0) {
           const { data: entryChoicesData, error: entryChoicesError } = await supabase
             .from("institution_feature_entry_choices")
-            .select("feature_entry_id, choice_id")
-            .in("feature_entry_id", entryIds);
+            .select("institution_feature_entry_id, choice_id")
+            .in("institution_feature_entry_id", entryIds);
           if (entryChoicesError) throw entryChoicesError;
           if (cancelled) return;
           entryChoices = (entryChoicesData as InstitutionFeatureEntryChoiceRow[] | null) ?? [];
@@ -640,10 +640,10 @@ interface InstitutionDetailPreparedData {
         const nextMultiSelectValues: Record<number, string[]> = {};
         const choiceIdsByEntryId = new Map<number, string[]>();
         entryChoices.forEach((row) => {
-          const current = choiceIdsByEntryId.get(row.feature_entry_id) ?? [];
+          const current = choiceIdsByEntryId.get(row.institution_feature_entry_id) ?? [];
           const choiceId = String(row.choice_id);
           if (!current.includes(choiceId)) current.push(choiceId);
-          choiceIdsByEntryId.set(row.feature_entry_id, current);
+          choiceIdsByEntryId.set(row.institution_feature_entry_id, current);
         });
         definitions
           .filter((feature) => feature.input_type === "boolean")
@@ -1030,7 +1030,7 @@ interface InstitutionDetailPreparedData {
             const { error: clearChoicesError } = await supabase
               .from("institution_feature_entry_choices")
               .delete()
-              .eq("feature_entry_id", existingEntry.id);
+              .eq("institution_feature_entry_id", existingEntry.id);
             if (clearChoicesError) throw clearChoicesError;
 
             const { error: deleteEntryError } = await supabase
@@ -1060,11 +1060,11 @@ interface InstitutionDetailPreparedData {
         const { error: clearOldChoicesError } = await supabase
           .from("institution_feature_entry_choices")
           .delete()
-          .eq("feature_entry_id", entryId);
+          .eq("institution_feature_entry_id", entryId);
         if (clearOldChoicesError) throw clearOldChoicesError;
 
         const newChoiceRows = selectedChoiceIds.map((choiceId) => ({
-          feature_entry_id: entryId as number,
+          institution_feature_entry_id: entryId as number,
           choice_id: choiceId,
         }));
 
@@ -1090,8 +1090,8 @@ interface InstitutionDetailPreparedData {
           if (refreshedEntryIds.length > 0) {
             const { data: refreshedEntryChoices, error: refreshedChoicesError } = await supabase
               .from("institution_feature_entry_choices")
-              .select("feature_entry_id, choice_id")
-              .in("feature_entry_id", refreshedEntryIds);
+              .select("institution_feature_entry_id, choice_id")
+              .in("institution_feature_entry_id", refreshedEntryIds);
             if (!refreshedChoicesError) {
               setInstitutionFeatureEntryChoices(
                 (refreshedEntryChoices as InstitutionFeatureEntryChoiceRow[] | null) ?? []
@@ -1883,6 +1883,43 @@ interface InstitutionDetailPreparedData {
                                   {feature.unit ? (
                                     <span className="panel-institutions-feature-unit">{feature.unit}</span>
                                   ) : null}
+                                </div>
+                              </div>
+                            ) : feature.input_type === "multi_select" ? (
+                              <div className="panel-institutions-feature-input-wrap">
+                                <p className="panel-institutions-feature-name">{feature.name}</p>
+                                <div className="panel-institutions-feature-multi">
+                                  {institutionFeatureChoices
+                                    .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
+                                    .map((choice) => {
+                                      const choiceId = String(choice.id);
+                                      const selectedValues = institutionMultiSelectValues[feature.id] ?? [];
+                                      const isSelected = selectedValues.includes(choiceId);
+                                      return (
+                                        <button
+                                          key={choice.id}
+                                          type="button"
+                                          className={`panel-institutions-feature-chip ${isSelected ? "is-selected" : ""}`}
+                                          onClick={() =>
+                                            setInstitutionMultiSelectValues((prev) => {
+                                              const current = prev[feature.id] ?? [];
+                                              const next = isSelected
+                                                ? current.filter((id) => id !== choiceId)
+                                                : [...current, choiceId];
+                                              return {
+                                                ...prev,
+                                                [feature.id]: next,
+                                              };
+                                            })
+                                          }
+                                        >
+                                          <span className="panel-institutions-feature-chip-check" aria-hidden>
+                                            {isSelected ? "✓" : ""}
+                                          </span>
+                                          <span>{choice.name?.trim() || "Adsız tercih"}</span>
+                                        </button>
+                                      );
+                                    })}
                                 </div>
                               </div>
                             ) : (
