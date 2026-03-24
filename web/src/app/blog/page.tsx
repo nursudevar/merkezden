@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
 import Image from "next/image";
 import { Grid3x3, List } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
+import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
 import { allBlogPosts } from "@/lib/data/blog";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -79,24 +79,7 @@ function BlogPageContent() {
 
   return (
     <div className="page-container">
-      <div className="top-bar" />
-      <header className="header">
-        <div className="header-container">
-          <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
-            <span className="header-subtitle">HAYATIN MERKEZİ</span>
-          </div>
-          <div className="header-actions">
-            <Link href="/login">
-              <Button className="button-primary btn-gradient-primary" variant="default">
-                GİRİŞ YAP
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <HeaderClientWrapper />
 
       <main className="main-content">
         <div className="blog-listing-page">
@@ -149,17 +132,7 @@ export default function BlogPage() {
   return (
     <Suspense fallback={
       <div className="page-container">
-        <div className="top-bar" />
-        <header className="header">
-          <div className="header-container">
-            <div className="header-brand">
-              <Link href="/" className="header-title-link">
-                <span className="header-title">MERKEZDEN.COM</span>
-              </Link>
-              <span className="header-subtitle">HAYATIN MERKEZİ</span>
-            </div>
-          </div>
-        </header>
+        <HeaderClientWrapper />
         <main className="main-content">
           <div className="blog-listing-page">
             <div className="blog-listing-header">

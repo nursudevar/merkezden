@@ -13,6 +13,7 @@ interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
   userType: 'individual' | 'institution' | null;
   institutionName?: string | null;
+  individualName?: string | null;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -24,12 +25,14 @@ export default function HeaderWithSearchClient({
   user,
   userType,
   institutionName,
+  individualName,
   searchValue = '',
   onSearchChange,
   searchPlaceholder,
   searchButtonText,
   showSearchButton = true,
 }: HeaderWithSearchClientProps) {
+  const welcomeName = userType === 'institution' ? (institutionName || 'Kurum Hesabı') : (individualName || 'Kullanıcı');
   const getCTALabel = () => {
     if (userType === 'institution') return 'YÖNETİM PANELİ';
     return 'PROFİL';
@@ -126,7 +129,7 @@ export default function HeaderWithSearchClient({
               </button>
               {menuOpen && (
                 <div className="header-hamburger-dropdown">
-                  {user && userType === 'institution' && (
+                  {user && (userType === 'institution' || userType === 'individual') && (
                     <div className="header-hamburger-welcome">
                       <div className="header-hamburger-welcome-avatar" aria-hidden>
                         <User className="header-hamburger-welcome-avatar-icon" />
@@ -134,10 +137,16 @@ export default function HeaderWithSearchClient({
                       <div className="header-hamburger-welcome-text">
                         <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
                         <span className="header-hamburger-welcome-name">
-                          {institutionName || 'Kurum Hesabı'}
+                          {welcomeName}
                         </span>
                       </div>
                     </div>
+                  )}
+                  {user && userType === 'individual' && shouldShowCTA && (
+                    <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                      <User className="header-hamburger-icon" aria-hidden />
+                      <span>{getCTALabel()}</span>
+                    </Link>
                   )}
                   {user && userType === 'institution' && shouldShowCTA && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
@@ -163,7 +172,7 @@ export default function HeaderWithSearchClient({
                   </Link>
                   {user ? (
                     <>
-                      {shouldShowCTA && userType !== 'institution' && (
+                      {shouldShowCTA && userType !== 'institution' && userType !== 'individual' && (
                         <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                           <User className="header-hamburger-icon" aria-hidden />
                           <span>{getCTALabel()}</span>
@@ -237,7 +246,7 @@ export default function HeaderWithSearchClient({
               </button>
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
-                  {user && userType === 'institution' && (
+                  {user && (userType === 'institution' || userType === 'individual') && (
                     <div className="header-hamburger-welcome">
                       <div className="header-hamburger-welcome-avatar" aria-hidden>
                         <User className="header-hamburger-welcome-avatar-icon" />
@@ -245,10 +254,16 @@ export default function HeaderWithSearchClient({
                       <div className="header-hamburger-welcome-text">
                         <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
                         <span className="header-hamburger-welcome-name">
-                          {institutionName || 'Kurum Hesabı'}
+                          {welcomeName}
                         </span>
                       </div>
                     </div>
+                  )}
+                  {user && userType === 'individual' && shouldShowCTA && (
+                    <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
+                      <User className="header-hamburger-icon" aria-hidden />
+                      <span>{getCTALabel()}</span>
+                    </Link>
                   )}
                   {user && userType === 'institution' && shouldShowCTA && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
@@ -272,7 +287,7 @@ export default function HeaderWithSearchClient({
                     <HelpCircle className="header-hamburger-icon" aria-hidden />
                     <span>S.S.S</span>
                   </Link>
-                  {user && shouldShowCTA && userType !== 'institution' && (
+                  {user && shouldShowCTA && userType !== 'institution' && userType !== 'individual' && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
                       <User className="header-hamburger-icon" aria-hidden />
                       <span>{getCTALabel()}</span>

@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveUserTypeFromUsersClient } from '@/lib/auth/resolveUserTypeFromUsersClient';
 import { resolveInstitutionNameFromUsersClient } from '@/lib/auth/resolveInstitutionNameFromUsersClient';
+import { resolveIndividualNameFromUsersClient } from '@/lib/auth/resolveIndividualNameFromUsersClient';
 import HeaderClient from './HeaderClient';
 
 export default function HeaderClientWrapper() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<'individual' | 'institution' | null>(null);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
+  const [individualName, setIndividualName] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -22,6 +24,7 @@ export default function HeaderClientWrapper() {
       if (!authUser) {
         setUserType(null);
         setInstitutionName(null);
+        setIndividualName(null);
       }
       setIsAuthReady(true);
     }
@@ -34,6 +37,7 @@ export default function HeaderClientWrapper() {
       if (!authUser) {
         setUserType(null);
         setInstitutionName(null);
+        setIndividualName(null);
       }
     });
 
@@ -72,6 +76,20 @@ export default function HeaderClientWrapper() {
   }, [user?.id, userType]);
 
   useEffect(() => {
+    if (!user?.id || userType !== 'individual') {
+      setIndividualName(null);
+      return;
+    }
+    let cancelled = false;
+    resolveIndividualNameFromUsersClient(user.id).then((name) => {
+      if (!cancelled) setIndividualName(name || 'Kullanıcı');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, userType]);
+
+  useEffect(() => {
     console.log('Header role:', { authUid: user?.id, userType });
   }, [user?.id, userType]);
 
@@ -83,6 +101,7 @@ export default function HeaderClientWrapper() {
       initialUser={displayUser}
       initialUserType={displayUserType}
       initialInstitutionName={displayUserType === 'institution' ? institutionName : null}
+      initialIndividualName={displayUserType === 'individual' ? individualName : null}
     />
   );
 }

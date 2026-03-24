@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star } from 'lucide-react';
+import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
@@ -372,7 +372,10 @@ function FavoritesSection() {
           favorites.map((inst) => {
             const title = inst.institution_name ?? 'Kurum';
             const desc = inst.address || inst.about || `${inst.city ?? ''}${inst.district ? ` / ${inst.district}` : ''}` || '—';
-            const category = inst.type ?? null;
+            const category = (inst.type ?? '').trim();
+            const city = (inst.city ?? '').trim();
+            const district = (inst.district ?? '').trim();
+            const locationLabel = [city, district].filter(Boolean).join(' / ');
             return (
               <Card key={inst.id} className="favorite-card">
                 <CardContent className="favorite-card-content">
@@ -380,10 +383,11 @@ function FavoritesSection() {
                     {inst.logo ? (
                       <img src={inst.logo} alt={title} className="favorite-card-logo" />
                     ) : (
-                      <div className="favorite-card-placeholder" />
+                      <div className="favorite-card-placeholder" aria-label="Logo bulunmuyor">
+                        <Building2 size={28} />
+                      </div>
                     )}
-                    <div className="favorite-card-badge">OKUL</div>
-                    {category && <div className="favorite-card-category">{category}</div>}
+                    {locationLabel && <div className="favorite-card-badge">{locationLabel}</div>}
                     <button
                       type="button"
                       className="favorite-card-remove"
@@ -396,16 +400,8 @@ function FavoritesSection() {
                   </div>
                   <div className="favorite-card-body">
                     <h3 className="favorite-card-title">{title}</h3>
+                    {category && <div className="favorite-card-category-inline">{category}</div>}
                     <p className="favorite-card-description">{desc}</p>
-                    {(inst.city || inst.district) && (
-                      <div className="favorite-card-rating">
-                        <Star className="favorite-card-rating-icon" />
-                        <span className="favorite-card-rating-value">
-                          {inst.city}
-                          {inst.district ? ` / ${inst.district}` : ''}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

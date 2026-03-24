@@ -1,4 +1,4 @@
-import Header from '@/components/layout/Header';
+import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
 
 export default function SiteLayout({
   children,
@@ -7,7 +7,7 @@ export default function SiteLayout({
 }) {
   return (
     <>
-      <Header />
+      <HeaderClientWrapper />
       {children}
     </>
   );
