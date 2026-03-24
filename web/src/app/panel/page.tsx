@@ -245,7 +245,20 @@ export default function PanelPage() {
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
+  const [isSavingInstitutionProfile, setIsSavingInstitutionProfile] = useState(false);
+  const [institutionProfileMessage, setInstitutionProfileMessage] = useState<string | null>(null);
   const [institutionFormData, setInstitutionFormData] = useState({
+    institutionName: "",
+    email: "",
+    phone: "",
+    website: "",
+    city: "",
+    district: "",
+    address: "",
+    about: "",
+    logoUrl: "",
+  });
+  const [institutionInitialFormData, setInstitutionInitialFormData] = useState({
     institutionName: "",
     email: "",
     phone: "",
@@ -549,6 +562,17 @@ interface InstitutionDetailPreparedData {
         about: row.about || "",
         logoUrl,
       });
+      setInstitutionInitialFormData({
+        institutionName: row.institution_name || "",
+        email: row.official_email || "",
+        phone: row.official_phone || "",
+        website: row.website || "",
+        city: row.city || "",
+        district: row.district || "",
+        address: row.address || "",
+        about: row.about || "",
+        logoUrl,
+      });
     }
   
     loadInstitutionProfile();
@@ -820,7 +844,7 @@ interface InstitutionDetailPreparedData {
     const { error: updateError } = await supabase
       .from("institutions")
       .update({ logo: path })
-      .eq("id", Number(institutionId));
+      .eq("owner_auth_id", user.id);
     if (updateError) {
       setLogoUploading(false);
       setLogoUploadError(updateError.message || "Kayıt güncellenemedi.");
@@ -831,11 +855,96 @@ interface InstitutionDetailPreparedData {
     setLogoUploading(false);
   };
 
-  const handleInstitutionProfileSave = () => {
-    setIsEditingInstitutionProfile(false);
+  const handleInstitutionProfileSave = async () => {
+    if (!user?.id) {
+      setInstitutionProfileMessage("Kurum profili kaydedilirken bir hata oluştu.");
+      return;
+    }
+
+    const websiteValue = institutionFormData.website.trim();
+    if (websiteValue && !/^https?:\/\/.+/i.test(websiteValue)) {
+      setInstitutionProfileMessage("Web sitesi alanı http:// veya https:// ile başlamalıdır.");
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
+    const payload = {
+      institution_name: institutionFormData.institutionName.trim(),
+      official_phone: institutionFormData.phone.trim(),
+      website: websiteValue,
+      city: institutionFormData.city.trim(),
+      district: institutionFormData.district.trim(),
+      address: institutionFormData.address.trim(),
+      about: institutionFormData.about.trim(),
+    };
+
+    setIsSavingInstitutionProfile(true);
+    setInstitutionProfileMessage(null);
+
+    try {
+      const { data, error } = await supabase
+        .from("institutions")
+        .update(payload)
+        .eq("owner_auth_id", user.id)
+        .select(
+          "id, institution_name, official_email, official_phone, website, city, district, address, about, logo"
+        )
+        .maybeSingle();
+
+      if (error) {
+        console.error("Institution profile save error:", error);
+        setInstitutionProfileMessage("Kurum profili kaydedilirken bir hata oluştu.");
+        return;
+      }
+
+      if (!data) {
+        console.error("Institution profile save error: no row returned");
+        setInstitutionProfileMessage("Kurum profili kaydedilemedi.");
+        return;
+      }
+
+      const row = data as {
+        id: number;
+        institution_name?: string | null;
+        official_email?: string | null;
+        official_phone?: string | null;
+        website?: string | null;
+        city?: string | null;
+        district?: string | null;
+        address?: string | null;
+        about?: string | null;
+        logo?: string | null;
+      };
+
+      const logoUrl = row.logo
+        ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
+        : "";
+
+      const nextForm = {
+        institutionName: row.institution_name || "",
+        email: row.official_email || "",
+        phone: row.official_phone || "",
+        website: row.website || "",
+        city: row.city || "",
+        district: row.district || "",
+        address: row.address || "",
+        about: row.about || "",
+        logoUrl,
+      };
+
+      setInstitutionFormData(nextForm);
+      setInstitutionInitialFormData(nextForm);
+      setInstitutionName(nextForm.institutionName);
+      setInstitutionProfileMessage("Kurum profili güncellendi.");
+      setIsEditingInstitutionProfile(false);
+    } finally {
+      setIsSavingInstitutionProfile(false);
+    }
   };
 
   const handleInstitutionProfileCancel = () => {
+    setInstitutionFormData(institutionInitialFormData);
+    setInstitutionProfileMessage(null);
     setIsEditingInstitutionProfile(false);
   };
 
@@ -1475,8 +1584,9 @@ interface InstitutionDetailPreparedData {
                       variant="default"
                       className="panel-institution-save-btn"
                       onClick={handleInstitutionProfileSave}
+                      disabled={isSavingInstitutionProfile}
                     >
-                      Kaydet
+                      {isSavingInstitutionProfile ? "Kaydediliyor..." : "Kaydet"}
                     </Button>
                     <button
                       type="button"
@@ -1601,7 +1711,7 @@ interface InstitutionDetailPreparedData {
                           type="email"
                           value={institutionFormData.email}
                           onChange={(e) => handleInstitutionFormChange("email", e.target.value)}
-                          disabled={!isEditingInstitutionProfile}
+                          disabled
                           className="panel-institution-form-input"
                         />
                       </div>
@@ -1677,6 +1787,9 @@ interface InstitutionDetailPreparedData {
                     </div>
                   </div>
                 </div>
+                {institutionProfileMessage ? (
+                  <p className="panel-institutions-save-message">{institutionProfileMessage}</p>
+                ) : null}
               </div>
             ) : isAnnouncementsTab ? (
               <div className="panel-announcements-content">
