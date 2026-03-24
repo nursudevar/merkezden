@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { Heart, Phone, Search, X } from 'lucide-react';
@@ -525,11 +524,26 @@ export default function OkullarPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredRows.map((row, idx) => (
-                      <tr key={(row.id as number | string | undefined) ?? idx}>
+                    filteredRows.map((row, idx) => {
+                      const institutionIdRaw = row.id;
+                      const institutionIdString = institutionIdRaw == null ? '' : String(institutionIdRaw).trim();
+                      const institutionId = Number(institutionIdRaw);
+                      const institutionSource = String(row.source ?? '');
+                      const rowHref = institutionIdString
+                        ? getInstitutionDetailHref({ id: institutionIdString, source: institutionSource })
+                        : '';
+
+                      return (
+                      <tr
+                        key={(row.id as number | string | undefined) ?? idx}
+                        className={rowHref ? 'okullar-table-row-clickable' : undefined}
+                        onClick={() => {
+                          if (!rowHref) return;
+                          router.push(rowHref);
+                        }}
+                      >
                         <td className="okullar-favorite-cell">
                           {(() => {
-                            const institutionId = Number(row.id);
                             const isFavorite = Number.isFinite(institutionId) ? favoriteIds.has(institutionId) : false;
                             const isActionLoading = Number.isFinite(institutionId)
                               ? favoriteActionLoadingIds.has(institutionId)
@@ -560,10 +574,6 @@ export default function OkullarPage() {
                         {COLS.map((col) => {
                           const val = row[col];
                           const display = val == null ? '-' : String(val);
-                          const institutionId = Number(row.id);
-                          const institutionIdRaw = row.id;
-                          const institutionIdString = institutionIdRaw == null ? '' : String(institutionIdRaw).trim();
-                          const institutionSource = String(row.source ?? '');
                           const isAddress = col === 'address';
                           const isCategory = col === 'type';
                           const isInstitutionName = col === 'institution_name';
@@ -584,16 +594,15 @@ export default function OkullarPage() {
                                   {display}
                                 </span>
                               ) : isInstitutionName && display !== '-' && institutionIdString ? (
-                                <Link
-                                  href={getInstitutionDetailHref({ id: institutionIdString, source: institutionSource })}
-                                  className="okullar-table-link"
-                                >
-                                  {display}
-                                </Link>
+                                <span className="okullar-table-link">{display}</span>
                               ) : isPhone && display !== '-' ? (
                                 <span className="okullar-table-phone">
                                   <Phone className="okullar-table-phone-icon" size={12} aria-hidden />
-                                  <a href={`tel:${display}`} className="okullar-table-phone-link">
+                                  <a
+                                    href={`tel:${display}`}
+                                    className="okullar-table-phone-link"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     {display}
                                   </a>
                                 </span>
@@ -604,7 +613,7 @@ export default function OkullarPage() {
                           );
                         })}
                       </tr>
-                    ))
+                    )})
                   )}
                 </tbody>
               </table>
