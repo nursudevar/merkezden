@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2 } from 'lucide-react';
+import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
@@ -25,6 +25,10 @@ interface IndividualProfile {
   name: string | null;
   surname: string | null;
   email: string | null;
+  phone: string | null;
+  city: string | null;
+  age: number | null;
+  bio: string | null;
   birth_date: string | null;
 }
 
@@ -117,8 +121,20 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
   );
 }
 
-function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: IndividualProfile | null }) {
+function ProfileInfoCard({
+  user,
+  profile,
+  usersRowId,
+  onProfileUpdated,
+}: {
+  user: SupabaseUser;
+  profile: IndividualProfile | null;
+  usersRowId: number | null;
+  onProfileUpdated: (next: IndividualProfile) => void;
+}) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const calculateAge = (birthDate: string | null): string => {
     if (!birthDate) return '';
@@ -141,9 +157,16 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
     lastName: '',
     email: '',
     phone: '',
-    cityCountry: '',
+    city: '',
     age: '',
-    about: '',
+  });
+  const [initialFormData, setInitialFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    city: '',
+    age: '',
   });
 
   useEffect(() => {
@@ -152,11 +175,25 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
         firstName: profile?.name ?? '',
         lastName: profile?.surname ?? '',
         email: profile?.email ?? user?.email ?? '',
-        phone: '',
-        cityCountry: '',
-        age: calculateAge(profile?.birth_date ?? null),
-        about: '',
+        phone: profile?.phone ?? '',
+        city: profile?.city ?? '',
+        age:
+          profile?.age !== null && profile?.age !== undefined
+            ? String(profile.age)
+            : calculateAge(profile?.birth_date ?? null),
       });
+      setInitialFormData({
+        firstName: profile?.name ?? '',
+        lastName: profile?.surname ?? '',
+        email: profile?.email ?? user?.email ?? '',
+        phone: profile?.phone ?? '',
+        city: profile?.city ?? '',
+        age:
+          profile?.age !== null && profile?.age !== undefined
+            ? String(profile.age)
+            : calculateAge(profile?.birth_date ?? null),
+      });
+      setSaveMessage(null);
     }
   }, [profile, user]);
 
@@ -168,7 +205,67 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
   };
 
   const handleEdit = () => {
-    setIsEditing(!isEditing);
+    setSaveMessage(null);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setFormData(initialFormData);
+    setSaveMessage(null);
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    if (!usersRowId) {
+      setSaveMessage('Profil kaydedilemedi.');
+      return;
+    }
+
+    const parsedAge = formData.age.trim() ? Number(formData.age.trim()) : null;
+    if (parsedAge !== null && (!Number.isFinite(parsedAge) || parsedAge < 0 || parsedAge > 120)) {
+      setSaveMessage('Yaş alanı 0-120 aralığında olmalıdır.');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    const supabase = createSupabaseBrowserClient();
+
+    try {
+      const payload = {
+        name: formData.firstName.trim() || null,
+        surname: formData.lastName.trim() || null,
+        phone: formData.phone.trim() || null,
+        city: formData.city.trim() || null,
+        age: parsedAge,
+      };
+
+      const { data, error } = await supabase
+        .from('individual_profiles')
+        .update(payload)
+        .eq('user_id', usersRowId)
+        .select('user_id, name, surname, email, phone, city, age, bio, birth_date')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Personal profile save error:', error);
+        setSaveMessage('Profil kaydedilirken bir hata oluştu.');
+        return;
+      }
+
+      if (!data) {
+        console.error('Personal profile save error: no row returned');
+        setSaveMessage('Profil kaydedilemedi.');
+        return;
+      }
+
+      const nextProfile = data as IndividualProfile;
+      onProfileUpdated(nextProfile);
+      setSaveMessage('Profil bilgileri güncellendi.');
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -178,13 +275,35 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
           <UserIcon className="profile-info-card-icon" />
           <CardTitle className="profile-info-card-title">Kişisel Bilgiler</CardTitle>
         </div>
-        <Button
-          variant="default"
-          className="profile-info-card-edit-btn"
-          onClick={handleEdit}
-        >
-          <PencilLine className="profile-info-card-edit-icon" />
-        </Button>
+        {isEditing ? (
+          <div className="profile-info-header-actions">
+            <Button
+              variant="default"
+              className="profile-info-save-btn"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
+            </Button>
+            <button
+              type="button"
+              className="profile-info-card-edit-btn"
+              aria-label="İptal"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
+              <X className="profile-info-card-edit-icon" />
+            </button>
+          </div>
+        ) : (
+          <Button
+            variant="default"
+            className="profile-info-card-edit-btn"
+            onClick={handleEdit}
+          >
+            <PencilLine className="profile-info-card-edit-icon" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="profile-info-card-content">
         <div className="profile-info-form">
@@ -218,7 +337,7 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                disabled={!isEditing}
+                disabled
                 className="profile-info-form-input"
               />
             </div>
@@ -239,8 +358,8 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
               <label className="profile-info-form-label">ŞEHİR</label>
               <Input
                 type="text"
-                value={formData.cityCountry}
-                onChange={(e) => handleInputChange('cityCountry', e.target.value)}
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
                 disabled={!isEditing}
                 className="profile-info-form-input"
               />
@@ -259,19 +378,10 @@ function ProfileInfoCard({ user, profile }: { user: SupabaseUser; profile: Indiv
             </div>
           </div>
 
-          <div className="profile-info-form-row profile-info-form-row--full">
-            <div className="profile-info-form-field">
-              <label className="profile-info-form-label">HAKKINDA</label>
-              <textarea
-                value={formData.about}
-                onChange={(e) => handleInputChange('about', e.target.value)}
-                disabled={!isEditing}
-                className="profile-info-form-textarea"
-                rows={4}
-              />
-            </div>
-          </div>
         </div>
+        {saveMessage ? (
+          <p style={{ marginTop: 12, fontSize: 14, color: '#52525b' }}>{saveMessage}</p>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -483,7 +593,7 @@ export default function ProfilePage() {
         if (resolvedUsersRow?.id) {
           const { data: profileData, error: profileError } = await supabase
             .from('individual_profiles')
-            .select('user_id, name, surname, email, birth_date')
+            .select('user_id, name, surname, email, phone, city, age, bio, birth_date')
             .eq('user_id', resolvedUsersRow.id)
             .maybeSingle();
 
@@ -526,7 +636,12 @@ export default function ProfilePage() {
         <ProfileSidebar user={user} profile={profile} />
         <div className="profile-page-main">
           <div id="profile-info">
-            <ProfileInfoCard user={user} profile={profile} />
+            <ProfileInfoCard
+              user={user}
+              profile={profile}
+              usersRowId={usersRow?.id ?? null}
+              onProfileUpdated={setProfile}
+            />
           </div>
           <div id="favorites">
             <FavoritesSection />
