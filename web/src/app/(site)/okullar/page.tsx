@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { Heart, Phone, Search, X } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import LoginModal from '@/components/LoginModal';
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from '@/lib/favorites/favoritesClient';
+import { getInstitutionDetailHref } from '@/lib/institutions/getInstitutionDetailHref';
 
 const PAGE_SIZE = 50;
 
@@ -105,7 +107,7 @@ export default function OkullarPage() {
         setLoading(true);
         setError(null);
         const supabase = createSupabaseBrowserClient();
-        const selectCols = `id, ${COLS.join(', ')}`;
+        const selectCols = `id, source, ${COLS.join(', ')}`;
         const from = (page - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
         const searchTerm = debouncedSearchText.trim();
@@ -558,8 +560,13 @@ export default function OkullarPage() {
                         {COLS.map((col) => {
                           const val = row[col];
                           const display = val == null ? '-' : String(val);
+                          const institutionId = Number(row.id);
+                          const institutionIdRaw = row.id;
+                          const institutionIdString = institutionIdRaw == null ? '' : String(institutionIdRaw).trim();
+                          const institutionSource = String(row.source ?? '');
                           const isAddress = col === 'address';
                           const isCategory = col === 'type';
+                          const isInstitutionName = col === 'institution_name';
                           const isPhone = col === 'official_phone';
                           const isTruncate = col === 'city' || col === 'district';
                           const tdClass = [
@@ -576,6 +583,13 @@ export default function OkullarPage() {
                                 <span className="okullar-category-badge" title={display}>
                                   {display}
                                 </span>
+                              ) : isInstitutionName && display !== '-' && institutionIdString ? (
+                                <Link
+                                  href={getInstitutionDetailHref({ id: institutionIdString, source: institutionSource })}
+                                  className="okullar-table-link"
+                                >
+                                  {display}
+                                </Link>
                               ) : isPhone && display !== '-' ? (
                                 <span className="okullar-table-phone">
                                   <Phone className="okullar-table-phone-icon" size={12} aria-hidden />

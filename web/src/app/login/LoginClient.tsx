@@ -33,10 +33,6 @@ function LoginPageContent() {
         return;
       }
 
-      if (data?.user?.email) {
-        console.log(data.user.email);
-      }
-
       window.location.href = '/';
     } catch (err) {
       setError('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');

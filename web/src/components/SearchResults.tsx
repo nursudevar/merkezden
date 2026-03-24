@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart } from "lucide-react";
+import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
 import "@/styles/pages/home.scss";
 
 interface SearchResult {
@@ -15,6 +16,7 @@ interface SearchResult {
   reviewCount: number;
   imageUrl: string;
   slug: string;
+  source?: string | null;
   badge: {
     icon: string;
     label: string;
@@ -173,7 +175,11 @@ export default function SearchResults({
             return (
             <Link
               key={result.id}
-              href={`/institutions/${result.slug}`}
+              href={getInstitutionDetailHref({
+                id: result.id,
+                slug: result.slug,
+                source: result.source ?? null,
+              })}
               className="featured-institution-card"
               aria-label={`${result.name} detayları`}
               onClick={onResultClick}

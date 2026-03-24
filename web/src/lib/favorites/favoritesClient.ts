@@ -3,13 +3,6 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
-const DEBUG_FAVORITES = process.env.NEXT_PUBLIC_DEBUG_FAVORITES === 'true';
-function debugLog(...args: unknown[]) {
-  if (!DEBUG_FAVORITES) return;
-  // eslint-disable-next-line no-console
-  console.log('[favorites]', ...args);
-}
-
 export type AppUserType = 'individual' | 'institution';
 
 export interface AppUserRow {
@@ -74,22 +67,16 @@ export class FavoritesError extends Error {
 
 export async function getCurrentAuthUser(): Promise<SupabaseAuthUser | null> {
   const supabase = createSupabaseBrowserClient();
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError) {
-    debugLog('getSession error', sessionError);
-  }
+  const { data: sessionData } = await supabase.auth.getSession();
   const sessionUser = sessionData?.session?.user ?? null;
   if (sessionUser) {
-    debugLog('session user found', { userId: sessionUser.id });
     return sessionUser;
   }
 
   const { data, error } = await supabase.auth.getUser();
   if (error) {
-    debugLog('getUser error', error);
     return null;
   }
-  debugLog('getUser user', { userId: data.user?.id ?? null });
   return data.user ?? null;
 }
 
@@ -100,11 +87,6 @@ async function getCurrentAppUserRequired(): Promise<AppUserRow> {
   }
 
   const supabase = createSupabaseBrowserClient();
-  const { data: s } = await supabase.auth.getSession();
-  debugLog('before users query', {
-    hasSession: Boolean(s.session),
-    userId: authUser.id,
-  });
 
   const { data, error } = await supabase
     .from('users')
@@ -131,8 +113,6 @@ async function getCurrentIndividualProfileIdRequired(): Promise<number> {
   }
 
   const supabase = createSupabaseBrowserClient();
-  const { data: s } = await supabase.auth.getSession();
-  debugLog('before individual_profiles query', { hasSession: Boolean(s.session), appUserId: appUser.id });
 
   const { data, error } = await supabase
     .from('individual_profiles')
@@ -162,8 +142,6 @@ async function tryGetCurrentIndividualProfileId(): Promise<number | null> {
   if (!authUser) return null;
 
   const supabase = createSupabaseBrowserClient();
-  const { data: s } = await supabase.auth.getSession();
-  debugLog('try resolve profile start', { hasSession: Boolean(s.session), userId: authUser.id });
 
   const { data: u, error: uErr } = await supabase
     .from('users')
@@ -172,7 +150,6 @@ async function tryGetCurrentIndividualProfileId(): Promise<number | null> {
     .maybeSingle();
 
   if (uErr) {
-    debugLog('users lookup failed', uErr);
     throw new FavoritesError('APP_USER_NOT_FOUND', 'Kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.');
   }
   if (!u?.id) return null;
@@ -185,7 +162,6 @@ async function tryGetCurrentIndividualProfileId(): Promise<number | null> {
     .maybeSingle();
 
   if (pErr) {
-    debugLog('individual_profiles lookup failed', pErr);
     throw new FavoritesError(
       'INDIVIDUAL_PROFILE_NOT_FOUND',
       'Bireysel profil bulunamadı. Lütfen profil bilgilerinizi kontrol edin.'
@@ -199,9 +175,6 @@ export async function getMyFavoriteInstitutionIds(): Promise<number[]> {
   const individualProfileId = await tryGetCurrentIndividualProfileId();
   if (!individualProfileId) return [];
   const supabase = createSupabaseBrowserClient();
-
-  const { data: s } = await supabase.auth.getSession();
-  debugLog('before user_favorites ids query', { hasSession: Boolean(s.session), individualProfileId });
 
   const { data, error } = await supabase
     .from('user_favorites')
@@ -245,9 +218,6 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
   const individualProfileId = await tryGetCurrentIndividualProfileId();
   if (!individualProfileId) return [];
   const supabase = createSupabaseBrowserClient();
-
-  const { data: s } = await supabase.auth.getSession();
-  debugLog('before user_favorites join query', { hasSession: Boolean(s.session), individualProfileId });
 
   const { data, error } = await supabase
     .from('user_favorites')

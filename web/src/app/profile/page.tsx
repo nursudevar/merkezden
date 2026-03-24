@@ -502,11 +502,6 @@ export default function ProfilePage() {
     loadProfile();
   }, [user]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    console.log('Profile gate:', { isAuthReady, userId: user?.id });
-  }, [isAuthReady, user?.id]);
-
   // Do not redirect while auth is not ready; show skeleton
   if (!isAuthReady || (user && loading)) {
     return (

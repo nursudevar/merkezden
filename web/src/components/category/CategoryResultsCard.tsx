@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Clock, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui";
+import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
 
 interface CategoryResultsCardProps {
   id: string;
@@ -19,6 +20,7 @@ interface CategoryResultsCardProps {
   logoColor?: string;
   imageUrl?: string;
   slug?: string;
+  source?: string | null;
 }
 
 export default function CategoryResultsCard({
@@ -35,6 +37,7 @@ export default function CategoryResultsCard({
   logoColor = "#6d5dfc",
   imageUrl,
   slug,
+  source,
 }: CategoryResultsCardProps) {
   const priceText = typeof price === "number" ? `${price.toLocaleString("tr-TR")} ₺ / ay` : price;
   
@@ -121,7 +124,11 @@ export default function CategoryResultsCard({
 
   if (institutionSlug) {
     return (
-      <Link href={`/institutions/${institutionSlug}`} className="category-results-card" aria-label={`${name} detayları`}>
+      <Link
+        href={getInstitutionDetailHref({ id, slug: institutionSlug, source: source ?? null })}
+        className="category-results-card"
+        aria-label={`${name} detayları`}
+      >
         {cardContent}
       </Link>
     );

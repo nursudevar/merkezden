@@ -12,6 +12,7 @@ import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
+import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -497,7 +498,7 @@ function FeaturedInstitutions({
             return (
               <Link
                 key={institution.id}
-                href={`/institutions/${institution.slug}`}
+                href={getInstitutionDetailHref({ id: institution.id, slug: institution.slug })}
                 className="featured-institution-card"
                 aria-label={`${institution.name} detayları`}
               >
@@ -1154,7 +1155,12 @@ export default function Home() {
                 {serviceCards
                   .filter((card) => selectedMainCategory === "Tümü")
                   .map((card) => (
-                    <Link key={card.id} href={`/institutions/${card.slug}`} className="service-card" aria-label={`${card.title} detayları`}>
+                    <Link
+                      key={card.id}
+                      href={getInstitutionDetailHref({ id: card.id, slug: card.slug })}
+                      className="service-card"
+                      aria-label={`${card.title} detayları`}
+                    >
                       <div className="service-card-image-wrapper">
                         <img
                           src={card.imageUrl}

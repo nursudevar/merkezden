@@ -683,6 +683,28 @@
   }
 }
 
+.institution-logo--meb-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(109, 93, 252, 0.12);
+  color: $purple-main;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+}
+
+.institution-meb-type-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $purple-main;
+  background: rgba(109, 93, 252, 0.1);
+  border: 1px solid rgba(109, 93, 252, 0.2);
+}
+
 
 
 .institution-loading-skeleton {

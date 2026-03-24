@@ -103,10 +103,6 @@ export default function HeaderWithSearch({
     };
   }, [user?.id, userType]);
 
-  useEffect(() => {
-    console.log('Header role:', { authUid: user?.id, userType });
-  }, [user?.id, userType]);
-
   const displayUser = isAuthReady ? user : null;
   const displayUserType = isAuthReady ? userType : null;
 
