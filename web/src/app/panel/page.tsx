@@ -247,6 +247,7 @@ export default function PanelPage() {
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
   const [isSavingInstitutionProfile, setIsSavingInstitutionProfile] = useState(false);
   const [institutionProfileMessage, setInstitutionProfileMessage] = useState<string | null>(null);
+  const [institutionIsVerified, setInstitutionIsVerified] = useState<boolean>(false);
   const [institutionFormData, setInstitutionFormData] = useState({
     institutionName: "",
     email: "",
@@ -511,7 +512,7 @@ interface InstitutionDetailPreparedData {
       const { data, error } = await supabase
         .from("institutions")
         .select(
-          "id, institution_name, official_email, official_phone, website, city, district, address, about, logo"
+          "id, institution_name, official_email, official_phone, website, city, district, address, about, logo, is_verified"
         )
         .eq("owner_auth_id", userId)
         .maybeSingle();
@@ -534,6 +535,7 @@ interface InstitutionDetailPreparedData {
         address?: string | null;
         about?: string | null;
         logo?: string | null;
+        is_verified?: boolean | null;
       } | null;
   
       if (!row) {
@@ -544,6 +546,7 @@ interface InstitutionDetailPreparedData {
       setInstitutionRecordMissing(false);
   
       setInstitutionId(String(row.id));
+      setInstitutionIsVerified(Boolean(row.is_verified));
   
       const logoUrl = row.logo
         ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
@@ -1204,6 +1207,19 @@ interface InstitutionDetailPreparedData {
             setInstitutionFeatureEntryChoices([]);
           }
         }
+
+        // Trigger ile güncellenen `institutions.is_verified` değerini anlık yansıt.
+        const { data: instRow, error: instError } = await supabase
+          .from("institutions")
+          .select("is_verified")
+          .eq("owner_auth_id", user.id)
+          .maybeSingle();
+
+        if (instError) {
+          console.error("Institution is_verified refresh error:", instError);
+        } else {
+          setInstitutionIsVerified(Boolean(instRow?.is_verified));
+        }
       }
     } catch (error) {
       console.error("Institution features save error:", error);
@@ -1547,7 +1563,9 @@ interface InstitutionDetailPreparedData {
               </div>
               <h2 className="panel-sidebar-institution-name">{institutionName || "Yükleniyor…"}</h2>
               <p className="panel-sidebar-institution-role">Kurumsal Üye</p>
-              <span className="panel-sidebar-institution-badge">Onaylı Hesap</span>
+              {institutionIsVerified ? (
+                <span className="panel-sidebar-institution-badge">Doğrulanmış Hesap</span>
+              ) : null}
             </div>
             <nav className="panel-sidebar-nav">
               {PANEL_TABS.map((tab) => (
