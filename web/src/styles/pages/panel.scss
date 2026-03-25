@@ -447,7 +447,7 @@
 }
 
 .panel-institutions-section {
-  background: $bg-white;
+  background: rgba(250, 250, 250, 0.6);
   border: 1px solid $border-light;
   border-radius: 18px;
   padding: 18px;
@@ -458,6 +458,67 @@
   font-size: $text-lg;
   font-weight: $font-semibold;
   color: $text-zinc-900;
+}
+
+.panel-institutions-type-picker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-institutions-type-picker-disabled {
+  opacity: 0.55;
+}
+
+.panel-institutions-type-picker-disabled .panel-institutions-feature-select--button {
+  cursor: not-allowed;
+}
+
+.panel-institutions-type-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-institutions-type-picker-title {
+  margin: 0 0 10px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-zinc-800;
+}
+
+.panel-institutions-type-picker-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panel-institutions-type-picker-option {
+  appearance: none;
+  border: 1px solid $border-light;
+  background: $bg-white;
+  color: $text-zinc-800;
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: $text-sm;
+  line-height: 1;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    background: $bg-zinc-50;
+  }
+}
+
+.panel-institutions-type-picker-option--selected {
+  border-color: rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.08);
+  color: $purple-primary;
 }
 
 .panel-institutions-empty {
@@ -1273,6 +1334,7 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1687,6 +1749,7 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .panel-announcements-desc-clamp {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
