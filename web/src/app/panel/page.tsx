@@ -20,6 +20,10 @@ import {
   X,
   Check,
   Shapes,
+  Images,
+  Image,
+  Film,
+  CloudUpload,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -34,9 +38,9 @@ type PanelTabId =
   | "overview"
   | "institution-profile"
   | "institutions"
+  | "media-management"
   | "announcements"
-  | "subscription"
-  | "requests";
+  | "subscription";
 
 const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
   { id: "overview", label: "Genel Bakış", placeholder: "Özet metrikler burada görünecek." },
@@ -51,6 +55,11 @@ const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
     placeholder: "Kurum özellikleri burada yönetilecek.",
   },
   {
+    id: "media-management",
+    label: "Medya Yönetimi",
+    placeholder: "Görsel ve medya içerikleri burada yönetilecek.",
+  },
+  {
     id: "announcements",
     label: "Duyurular",
     placeholder: "Duyurular ve içerikler burada yönetilecek.",
@@ -60,7 +69,6 @@ const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
     label: "Abonelik",
     placeholder: "Plan ve faturalandırma burada yönetilecek.",
   },
-  { id: "requests", label: "Talepler", placeholder: "Gelen talepler burada listelenecek." },
 ];
 
 type SubscriptionPlan = {
@@ -320,18 +328,7 @@ export default function PanelPage() {
   });
   const [announcementFormErrors, setAnnouncementFormErrors] = useState<{ title?: string; content?: string }>({});
 
-  type RequestStatus = "pending" | "approved" | "rejected";
-  type RequestStatusFilter = "all" | "pending" | "approved" | "rejected";
-  interface RequestRow {
-    id: string;
-    type: string;
-    institutionName: string;
-    createdAt: string;
-    status: RequestStatus;
-    description: string;
-    adminNote: string;
-    updatedAt: string;
-  }
+  // Talepler sekmesi kaldırıldı.
 
 interface InstitutionFeatureGroupRow {
   id: number;
@@ -378,6 +375,19 @@ interface InstitutionFeatureEntryChoiceRow {
   choice_id: number;
 }
 
+type InstitutionMediaRow = {
+  id: string | number;
+  institution_id: number;
+  media_type: "photo" | "video" | string;
+  file_name: string | null;
+  file_path: string | null;
+  file_url: string | null;
+  mime_type: string | null;
+  file_size: number | null;
+  title: string | null;
+  created_at?: string | null;
+};
+
 interface InstitutionDetailChipItem {
   groupId: number;
   groupName: string;
@@ -396,42 +406,7 @@ interface InstitutionDetailPreparedData {
   }>;
 }
 
-  const REQUESTS_MOCK: RequestRow[] = [
-    {
-      id: "r1",
-      type: "Kurum Oluşturma",
-      institutionName: "Örnek Kurum A.Ş.",
-      createdAt: "10.01.2025",
-      status: "approved",
-      description: "Yeni kurum kaydı oluşturulması talebi.",
-      adminNote: "İnceleme tamamlandı, onaylandı.",
-      updatedAt: "12.01.2025",
-    },
-    {
-      id: "r2",
-      type: "Profil Güncelleme",
-      institutionName: "Demo Eğitim Merkezi",
-      createdAt: "05.02.2025",
-      status: "pending",
-      description: "Kurum iletişim bilgilerinin güncellenmesi.",
-      adminNote: "",
-      updatedAt: "05.02.2025",
-    },
-    {
-      id: "r3",
-      type: "Duyuru Yayınlama",
-      institutionName: "Örnek Kurum A.Ş.",
-      createdAt: "28.01.2025",
-      status: "rejected",
-      description: "Duyuru metninin yayına alınması talebi.",
-      adminNote: "İçerik kurallara uygun değildir.",
-      updatedAt: "30.01.2025",
-    },
-  ];
-
-  const [requestsList] = useState<RequestRow[]>(REQUESTS_MOCK);
-  const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>("all");
-  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  // Talepler sekmesi kaldırıldı.
   const [institutionRecordMissing, setInstitutionRecordMissing] = useState(false);
   const [institutionFeaturesLoading, setInstitutionFeaturesLoading] = useState(false);
   const [institutionFeaturesError, setInstitutionFeaturesError] = useState<string | null>(null);
@@ -448,6 +423,13 @@ interface InstitutionDetailPreparedData {
   const [institutionFeaturesSaving, setInstitutionFeaturesSaving] = useState(false);
   const [institutionFeaturesSaveMessage, setInstitutionFeaturesSaveMessage] = useState<string | null>(null);
   const [openInstitutionSelectId, setOpenInstitutionSelectId] = useState<number | null>(null);
+
+  const [mediaItems, setMediaItems] = useState<InstitutionMediaRow[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaMessage, setMediaMessage] = useState<string | null>(null);
+  const [mediaUploadingPhoto, setMediaUploadingPhoto] = useState(false);
+  const [mediaUploadingVideo, setMediaUploadingVideo] = useState(false);
+  const [mediaDeletingId, setMediaDeletingId] = useState<string | number | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -470,6 +452,171 @@ interface InstitutionDetailPreparedData {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const formatBytes = (bytes: number | null | undefined) => {
+    if (!bytes || !Number.isFinite(bytes)) return "—";
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(1)} MB`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(1)} GB`;
+  };
+
+  const safeStorageFileName = (name: string) => {
+    return name
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9._-]/g, "");
+  };
+
+  const loadInstitutionMedia = async (supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>) => {
+    if (!institutionId) {
+      setMediaItems([]);
+      return;
+    }
+    const instId = Number(institutionId);
+    if (!Number.isFinite(instId)) {
+      setMediaItems([]);
+      return;
+    }
+    const supabase = supabaseArg ?? createSupabaseBrowserClient();
+    setMediaLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("institution_media")
+        .select("id, institution_id, media_type, file_name, file_path, file_url, mime_type, file_size, title, created_at")
+        .eq("institution_id", instId)
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("Institution media load error:", error);
+        setMediaItems([]);
+        return;
+      }
+      setMediaItems((data as InstitutionMediaRow[] | null) ?? []);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const handleMediaUpload = async (file: File, mediaType: "photo" | "video") => {
+    if (!user?.id || !institutionId) return;
+    const instId = Number(institutionId);
+    if (!Number.isFinite(instId)) return;
+
+    const maxBytes = mediaType === "photo" ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setMediaMessage(mediaType === "photo" ? "Maksimum 10MB fotoğraf yükleyebilirsiniz." : "Maksimum 100MB video yükleyebilirsiniz.");
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
+    const timestamp = Date.now();
+    const folder = mediaType === "photo" ? "photos" : "videos";
+    const cleanName = safeStorageFileName(file.name) || `${timestamp}.${mediaType === "photo" ? "jpg" : "mp4"}`;
+    const path = `institutions/${instId}/${folder}/${timestamp}-${cleanName}`;
+
+    setMediaMessage(null);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("institution-media")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (uploadError) {
+        console.error("Institution media upload error:", uploadError);
+        setMediaMessage("Yükleme sırasında bir hata oluştu.");
+        return;
+      }
+
+      const publicUrl = supabase.storage.from("institution-media").getPublicUrl(path).data.publicUrl;
+
+      const { error: insertError } = await supabase.from("institution_media").insert({
+        institution_id: instId,
+        media_type: mediaType,
+        file_name: file.name,
+        file_path: path,
+        file_url: publicUrl,
+        mime_type: file.type,
+        file_size: file.size,
+        title: null,
+      });
+
+      if (insertError) {
+        console.error("Institution media insert error:", insertError);
+        setMediaMessage("Kayıt eklenirken bir hata oluştu.");
+        // Storage'da yetim dosya kalmasın
+        await supabase.storage.from("institution-media").remove([path]);
+        return;
+      }
+
+      await loadInstitutionMedia(supabase);
+    } catch (e) {
+      console.error("Institution media upload unexpected error:", e);
+      setMediaMessage("Yükleme sırasında bir hata oluştu.");
+    }
+  };
+
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMediaMessage("Lütfen geçerli bir görsel dosyası seçin.");
+      return;
+    }
+    setMediaUploadingPhoto(true);
+    await handleMediaUpload(file, "photo");
+    setMediaUploadingPhoto(false);
+  };
+
+  const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      setMediaMessage("Lütfen geçerli bir video dosyası seçin.");
+      return;
+    }
+    setMediaUploadingVideo(true);
+    await handleMediaUpload(file, "video");
+    setMediaUploadingVideo(false);
+  };
+
+  const handleMediaDelete = async (item: InstitutionMediaRow) => {
+    if (!institutionId) return;
+    const instId = Number(institutionId);
+    if (!Number.isFinite(instId)) return;
+    if (!item?.id) return;
+
+    const supabase = createSupabaseBrowserClient();
+    setMediaDeletingId(item.id);
+    setMediaMessage(null);
+    try {
+      const filePath = (item.file_path ?? "").trim();
+      if (filePath) {
+        const { error: removeError } = await supabase.storage.from("institution-media").remove([filePath]);
+        if (removeError) {
+          console.error("Institution media storage delete error:", removeError);
+          setMediaMessage("Dosya silinirken bir hata oluştu.");
+          return;
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from("institution_media")
+        .delete()
+        .eq("id", item.id)
+        .eq("institution_id", instId);
+      if (deleteError) {
+        console.error("Institution media row delete error:", deleteError);
+        setMediaMessage("Kayıt silinirken bir hata oluştu.");
+        return;
+      }
+
+      await loadInstitutionMedia(supabase);
+    } finally {
+      setMediaDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthReady || user !== null) return;
@@ -878,6 +1025,15 @@ interface InstitutionDetailPreparedData {
     };
   }, []);
 
+  useEffect(() => {
+    if (activeTab !== "media-management") return;
+    if (!institutionId) {
+      setMediaItems([]);
+      return;
+    }
+    loadInstitutionMedia();
+  }, [activeTab, institutionId]);
+
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
       <div className="panel-page">
@@ -899,9 +1055,9 @@ interface InstitutionDetailPreparedData {
     overview: <LayoutDashboard className="panel-sidebar-nav-icon" aria-hidden />,
     "institution-profile": <Building2 className="panel-sidebar-nav-icon" aria-hidden />,
     institutions: <Building className="panel-sidebar-nav-icon" aria-hidden />,
+    "media-management": <Images className="panel-sidebar-nav-icon" aria-hidden />,
     announcements: <Megaphone className="panel-sidebar-nav-icon" aria-hidden />,
     subscription: <CreditCard className="panel-sidebar-nav-icon" aria-hidden />,
-    requests: <Inbox className="panel-sidebar-nav-icon" aria-hidden />,
   };
 
   const handleInstitutionFormChange = (field: keyof typeof institutionFormData, value: string) => {
@@ -1049,10 +1205,11 @@ interface InstitutionDetailPreparedData {
 
   const isInstitutionProfileTab = activeTab === "institution-profile";
   const isInstitutionsTab = activeTab === "institutions";
+  const isMediaManagementTab = activeTab === "media-management";
   const isAnnouncementsTab = activeTab === "announcements";
-  const isRequestsTab = activeTab === "requests";
   const isSubscriptionTab = activeTab === "subscription";
   const isOverviewTab = activeTab === "overview";
+
   const handleSaveBooleanFeatures = async () => {
     if (!institutionId) {
       setInstitutionFeaturesSaveMessage("Kurum özellikleri kaydedilirken bir hata oluştu.");
@@ -1577,14 +1734,7 @@ interface InstitutionDetailPreparedData {
     },
   ];
 
-  const filteredRequests = requestsList.filter((r) => {
-    if (requestStatusFilter === "all") return true;
-    return r.status === requestStatusFilter;
-  });
-
-  const toggleRequestDetail = (id: string) => {
-    setExpandedRequestId((prev) => (prev === id ? null : id));
-  };
+  // Talepler sekmesi kaldırıldı.
 
   const openNewAnnouncementModal = () => {
     setEditingAnnouncementId(null);
@@ -1811,11 +1961,12 @@ interface InstitutionDetailPreparedData {
             <div className="panel-main-card-header">
               <div className="panel-main-card-header-left">
                 {isAnnouncementsTab ? <Megaphone className="panel-main-card-icon" aria-hidden /> : null}
-                {isRequestsTab ? <Inbox className="panel-main-card-icon" aria-hidden /> : null}
                 {isSubscriptionTab ? <CreditCard className="panel-main-card-icon" aria-hidden /> : null}
                 {isInstitutionProfileTab ? <Building2 className="panel-main-card-icon" aria-hidden /> : null}
+                {isMediaManagementTab ? <Images className="panel-main-card-icon" aria-hidden /> : null}
+                {isInstitutionsTab ? <Building className="panel-main-card-icon" aria-hidden /> : null}
                 <h2 id="panel-card-title" className="panel-main-card-title">
-                  {isAnnouncementsTab ? "İçerikler & Duyurular" : isRequestsTab ? "Talepler" : activeTabConfig.label}
+                  {isAnnouncementsTab ? "İçerikler & Duyurular" : activeTabConfig.label}
                 </h2>
               </div>
               {isInstitutionProfileTab ? (
@@ -1859,25 +2010,7 @@ interface InstitutionDetailPreparedData {
                   <Plus className="panel-announcements-add-btn-icon" aria-hidden />
                   Yeni Duyuru
                 </Button>
-              ) : isRequestsTab ? (
-                <div className="panel-requests-filter-wrap">
-                  <label htmlFor="panel-requests-status-filter" className="panel-requests-filter-label">
-                    Durum
-                  </label>
-                  <select
-                    id="panel-requests-status-filter"
-                    value={requestStatusFilter}
-                    onChange={(e) => setRequestStatusFilter(e.target.value as RequestStatusFilter)}
-                    className="panel-requests-filter-select"
-                    aria-label="Talep durumu filtrele"
-                  >
-                    <option value="all">Tümü</option>
-                    <option value="pending">Beklemede</option>
-                    <option value="approved">Onaylandı</option>
-                    <option value="rejected">Reddedildi</option>
-                  </select>
-                </div>
-              ) : isSubscriptionTab ? null : (
+              ) : isSubscriptionTab || isInstitutionsTab || isMediaManagementTab ? null : (
                 <button
                   type="button"
                   className="panel-main-card-edit-btn"
@@ -2091,68 +2224,149 @@ interface InstitutionDetailPreparedData {
                   </table>
                 </div>
               </div>
-            ) : isRequestsTab ? (
-              <div className="panel-requests-content">
-                {filteredRequests.length === 0 ? (
-                  <div className="panel-requests-empty">
-                    <p className="panel-requests-empty-text">
-                      {requestStatusFilter === "all" ? "Henüz talep bulunmuyor." : "Bu filtrede sonuç yok."}
+            ) : isMediaManagementTab ? (
+              <div className="panel-media-management">
+                <div className="panel-media-header">
+                  <p className="panel-media-desc">
+                    Kurumunuza ait görsel ve video içeriklerini buradan yükleyebilir, görüntüleyebilir ve
+                    yönetebilirsiniz.
+                  </p>
+                </div>
+
+                {mediaMessage ? <p className="panel-institutions-save-message">{mediaMessage}</p> : null}
+
+                <div className="panel-media-upload-grid">
+                  <div className="panel-media-upload-card">
+                    <div className="panel-media-upload-head">
+                      <div className="panel-media-upload-head-text">
+                        <h4 className="panel-media-upload-title">Fotoğraf Yükle</h4>
+                        <p className="panel-media-upload-subtitle">PNG, JPG veya WEBP (Maks 10MB)</p>
+                      </div>
+                      <div className="panel-media-upload-icon-wrap" aria-hidden>
+                        <Image className="panel-media-upload-icon" />
+                      </div>
+                    </div>
+                    <label className="panel-media-dropzone">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        onChange={handlePhotoFileChange}
+                        disabled={mediaUploadingPhoto || mediaUploadingVideo}
+                      />
+                      <div className="panel-media-dropzone-inner">
+                        <CloudUpload className="panel-media-dropzone-icon" aria-hidden />
+                        <p className="panel-media-dropzone-title">
+                          {mediaUploadingPhoto ? "Yükleniyor..." : "Dosyaları buraya sürükleyin"}
+                        </p>
+                        <p className="panel-media-dropzone-subtitle">Veya bilgisayarınızdan seçin</p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="panel-media-upload-card">
+                    <div className="panel-media-upload-head">
+                      <div className="panel-media-upload-head-text">
+                        <h4 className="panel-media-upload-title">Video Yükle</h4>
+                        <p className="panel-media-upload-subtitle">MP4, MOV veya WebM (Maks 100MB)</p>
+                      </div>
+                      <div className="panel-media-upload-icon-wrap" aria-hidden>
+                        <Film className="panel-media-upload-icon" />
+                      </div>
+                    </div>
+                    <label className="panel-media-dropzone">
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime"
+                        onChange={handleVideoFileChange}
+                        disabled={mediaUploadingPhoto || mediaUploadingVideo}
+                      />
+                      <div className="panel-media-dropzone-inner">
+                        <CloudUpload className="panel-media-dropzone-icon" aria-hidden />
+                        <p className="panel-media-dropzone-title">
+                          {mediaUploadingVideo ? "Yükleniyor..." : "Video dosyasını sürükleyin"}
+                        </p>
+                        <p className="panel-media-dropzone-subtitle">Veya bilgisayarınızdan seçin</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="panel-media-list-card">
+                  <div className="panel-media-list-head">
+                    <h4 className="panel-media-list-title">Medya Listesi</h4>
+                    <p className="panel-media-list-subtitle">
+                      Yüklediğiniz medya içerikleri burada listelenir.
                     </p>
                   </div>
-                ) : (
-                  <div className="panel-requests-list">
-                    {filteredRequests.map((row) => (
-                      <div key={row.id} className="panel-requests-item">
-                        <div className="panel-requests-item-row">
-                          <div className="panel-requests-item-main">
-                            <span className="panel-requests-item-type">{row.type}</span>
-                            <span className="panel-requests-item-institution">{row.institutionName}</span>
-                            <span className="panel-requests-item-date">{row.createdAt}</span>
-                          </div>
-                          <div className="panel-requests-item-meta">
-                            <span
-                              className={
-                                row.status === "approved"
-                                  ? "panel-requests-badge panel-requests-badge--approved"
-                                  : row.status === "rejected"
-                                    ? "panel-requests-badge panel-requests-badge--rejected"
-                                    : "panel-requests-badge panel-requests-badge--pending"
-                              }
-                            >
-                              {row.status === "approved" ? "Onaylandı" : row.status === "rejected" ? "Reddedildi" : "Beklemede"}
-                            </span>
-                            <button
-                              type="button"
-                              className="panel-requests-detail-btn"
-                              onClick={() => toggleRequestDetail(row.id)}
-                              aria-expanded={expandedRequestId === row.id}
-                            >
-                              {expandedRequestId === row.id ? "Gizle" : "Detay"}
-                            </button>
-                          </div>
+
+                  {mediaLoading ? (
+                    <div className="panel-media-empty">
+                      <p className="panel-media-empty-text">Yükleniyor...</p>
+                    </div>
+                  ) : mediaItems.length === 0 ? (
+                    <div className="panel-media-empty">
+                      <p className="panel-media-empty-text">Henüz medya yüklemesi yapılmamıştır.</p>
+                    </div>
+                  ) : (
+                    <div className="panel-media-table-wrap">
+                      <div className="panel-media-table">
+                        <div className="panel-media-row panel-media-row--head">
+                          <div className="panel-media-cell panel-media-cell--media">Medya</div>
+                          <div className="panel-media-cell panel-media-cell--title">Başlık</div>
+                          <div className="panel-media-cell panel-media-cell--type">Medya Türü</div>
+                          <div className="panel-media-cell panel-media-cell--size">Boyut</div>
+                          <div className="panel-media-cell panel-media-cell--actions">Sil</div>
                         </div>
-                        {expandedRequestId === row.id && (
-                          <div className="panel-requests-detail">
-                            <div className="panel-requests-detail-row">
-                              <span className="panel-requests-detail-label">Talep açıklaması</span>
-                              <p className="panel-requests-detail-value">{row.description}</p>
+                        {mediaItems.map((item) => (
+                          <div key={item.id} className="panel-media-row">
+                            <div className="panel-media-cell panel-media-cell--media">
+                              {item.media_type === "photo" && (item.file_url ?? "").trim() ? (
+                                <img
+                                  src={String(item.file_url)}
+                                  alt={String(item.title || item.file_name || "Medya")}
+                                  className="panel-media-thumb panel-media-thumb--image"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="panel-media-thumb panel-media-thumb--fallback" aria-hidden>
+                                  <Film className="panel-media-thumb-icon" aria-hidden />
+                                </div>
+                              )}
                             </div>
-                            {(row.status === "approved" || row.status === "rejected") && row.adminNote && (
-                              <div className="panel-requests-detail-row">
-                                <span className="panel-requests-detail-label">Admin notu</span>
-                                <p className="panel-requests-detail-value">{row.adminNote}</p>
-                              </div>
-                            )}
-                            <div className="panel-requests-detail-row">
-                              <span className="panel-requests-detail-label">Son güncelleme</span>
-                              <p className="panel-requests-detail-value">{row.updatedAt}</p>
+                            <div className="panel-media-cell panel-media-cell--title">
+                              {item.title?.trim() || item.file_name?.trim() || "—"}
+                            </div>
+                            <div className="panel-media-cell panel-media-cell--type">
+                              <span
+                                className={`panel-media-badge ${
+                                  item.media_type === "video"
+                                    ? "panel-media-badge--video"
+                                    : "panel-media-badge--image"
+                                }`}
+                              >
+                                {item.media_type === "video" ? "Video" : "Görsel"}
+                              </span>
+                            </div>
+                            <div className="panel-media-cell panel-media-cell--size">
+                              {formatBytes(item.file_size)}
+                            </div>
+                            <div className="panel-media-cell panel-media-cell--actions">
+                              <button
+                                type="button"
+                                className="panel-media-delete-btn"
+                                aria-label="Sil"
+                                onClick={() => handleMediaDelete(item)}
+                                disabled={mediaDeletingId === item.id}
+                              >
+                                <Trash2 className="panel-media-delete-icon" aria-hidden />
+                              </button>
                             </div>
                           </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : isInstitutionsTab ? (
               <div className="panel-institutions-content">
