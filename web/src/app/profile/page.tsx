@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -392,6 +392,22 @@ function FavoritesSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingIds, setActionLoadingIds] = useState<Set<number>>(() => new Set());
+  const [brokenLogoIds, setBrokenLogoIds] = useState<Set<number>>(() => new Set());
+
+  const normalizedFavorites = useMemo(() => {
+    const supabase = createSupabaseBrowserClient();
+    return favorites.map((inst) => {
+      const rawLogo = String(inst.logo ?? '').trim();
+      if (!rawLogo) {
+        return { ...inst, logoUrl: null as string | null };
+      }
+      if (/^https?:\/\//i.test(rawLogo)) {
+        return { ...inst, logoUrl: rawLogo };
+      }
+      const publicUrl = supabase.storage.from('institution-logos').getPublicUrl(rawLogo).data.publicUrl;
+      return { ...inst, logoUrl: publicUrl || null };
+    });
+  }, [favorites]);
 
   useEffect(() => {
     let cancelled = false;
@@ -479,19 +495,31 @@ function FavoritesSection() {
             </CardContent>
           </Card>
         ) : (
-          favorites.map((inst) => {
+          normalizedFavorites.map((inst) => {
             const title = inst.institution_name ?? 'Kurum';
             const desc = inst.address || inst.about || `${inst.city ?? ''}${inst.district ? ` / ${inst.district}` : ''}` || '—';
             const category = (inst.type ?? '').trim();
             const city = (inst.city ?? '').trim();
             const district = (inst.district ?? '').trim();
             const locationLabel = [city, district].filter(Boolean).join(' / ');
+            const canRenderLogo = Boolean(inst.logoUrl) && !brokenLogoIds.has(inst.id);
             return (
               <Card key={inst.id} className="favorite-card">
                 <CardContent className="favorite-card-content">
                   <div className="favorite-card-image-wrapper">
-                    {inst.logo ? (
-                      <img src={inst.logo} alt={title} className="favorite-card-logo" />
+                    {canRenderLogo ? (
+                      <img
+                        src={inst.logoUrl ?? ''}
+                        alt={title}
+                        className="favorite-card-logo"
+                        onError={() =>
+                          setBrokenLogoIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(inst.id);
+                            return next;
+                          })
+                        }
+                      />
                     ) : (
                       <div className="favorite-card-placeholder" aria-label="Logo bulunmuyor">
                         <Building2 size={28} />

@@ -107,6 +107,19 @@
   }
 }
 
+.panel-sidebar-below-menu {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid $border-light;
+  @include rounded-24;
+  box-shadow: 0 4px 6px -1px #0000001a, 0 2px 4px -1px #0000000f;
+  padding: 20px;
+}
+
+.panel-sidebar-below-menu .panel-institutions-verification-badge {
+  margin-top: 0;
+}
+
 .panel-sidebar-institution {
   display: flex;
   flex-direction: column;
@@ -198,6 +211,59 @@
   font-weight: $font-medium;
   background-color: $green-bg;
   color: $green-main;
+}
+
+.panel-institutions-verification-badge {
+  margin-top: 16px;
+  background-color: rgba($green-bg, 0.65);
+  border: 1px solid rgba($green-main, 0.2);
+  border-radius: 18px;
+  padding: 16px 14px;
+  display: flex;
+  align-items: center;
+}
+
+.panel-institutions-verification-text {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.panel-institutions-verification-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-institutions-verification-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  background-color: rgba($green-main, 0.08);
+  color: $green-main;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.panel-institutions-verification-title {
+  margin: 0;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $green-main;
+  line-height: 1.25;
+}
+
+.panel-institutions-verification-desc {
+  margin: 10px 0 0;
+  font-size: $text-sm;
+  color: $green-main;
+  line-height: 1.5;
+  opacity: 0.9;
+  text-align: left;
+  padding-left: 10px;
 }
 
 .panel-sidebar-nav {
@@ -600,9 +666,9 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   border: 1px solid $border-light;
   background: $bg-white;
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px;
   font-size: $text-sm;
-  color: $text-zinc-800;
+  color: $text-zinc-800; 
   outline: none;
   @include transition;
 
