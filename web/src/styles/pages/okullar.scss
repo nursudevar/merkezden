@@ -395,6 +395,40 @@
   }
 }
 
+// Favoriler kolonu olmayan görünüm (kurumsal kullanıcı)
+.okullar-table.okullar-table--no-fav {
+  // 1) Kurum Adı
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 28%;
+  }
+  // 2) Alt Kategori
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 18%;
+  }
+  // 3) Şehir
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 8%;
+  }
+  // 4) İlçe
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 12%;
+  }
+  // 5) Telefon
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 12%;
+  }
+  // 6) Adres
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 22%;
+  }
+}
+
 .okullar-table-empty {
   padding: 32px 16px;
   text-align: center;

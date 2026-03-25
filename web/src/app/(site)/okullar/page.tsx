@@ -9,6 +9,7 @@ import type { User } from '@supabase/supabase-js';
 import LoginModal from '@/components/LoginModal';
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from '@/lib/favorites/favoritesClient';
 import { getInstitutionDetailHref } from '@/lib/institutions/getInstitutionDetailHref';
+import { resolveUserTypeFromUsersClient } from '@/lib/auth/resolveUserTypeFromUsersClient';
 
 const PAGE_SIZE = 50;
 
@@ -23,11 +24,19 @@ const COLS = [
 
 const COL_LABELS: Record<(typeof COLS)[number], string> = {
   institution_name: 'Kurum Adı',
-  type: 'Kategori',
+  type: 'Alt Kategori',
   city: 'Şehir',
   district: 'İlçe',
   official_phone: 'Telefon',
   address: 'Adres',
+};
+
+type InstitutionCategoryRow = { id: number; name: string | null; is_active?: boolean | null };
+type InstitutionTypeRow = {
+  id: number;
+  name: string | null;
+  category_id: number;
+  is_active?: boolean | null;
 };
 
 export default function OkullarPage() {
@@ -42,6 +51,8 @@ export default function OkullarPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [appUserType, setAppUserType] = useState<string | null>(null);
+  const [appUserTypeLoading, setAppUserTypeLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
@@ -50,16 +61,20 @@ export default function OkullarPage() {
 
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categoryRows, setCategoryRows] = useState<Array<{ id: number; name: string }>>([]);
+  const [typeRows, setTypeRows] = useState<Array<{ id: number; name: string; category_id: number }>>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isSubcategoryMenuOpen, setIsSubcategoryMenuOpen] = useState(false);
   const [isCityMenuOpen, setIsCityMenuOpen] = useState(false);
   const [isDistrictMenuOpen, setIsDistrictMenuOpen] = useState(false);
   const categoryMenuRef = useRef<HTMLDivElement | null>(null);
+  const subcategoryMenuRef = useRef<HTMLDivElement | null>(null);
   const cityMenuRef = useRef<HTMLDivElement | null>(null);
   const districtMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -83,16 +98,35 @@ export default function OkullarPage() {
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const [categoryRes, cityRes, districtRes] = await Promise.all([
-        supabase.from('institutions').select('type').limit(5000),
+      const [categoryRes, typeRes, cityRes, districtRes] = await Promise.all([
+        supabase
+          .from('institution_categories')
+          .select('id, name, is_active')
+          .eq('is_active', true)
+          .order('name', { ascending: true }),
+        supabase
+          .from('institution_types')
+          .select('id, name, category_id, is_active')
+          .eq('is_active', true)
+          .order('name', { ascending: true }),
         supabase.from('institutions').select('city').limit(5000),
         supabase.from('institutions').select('district').limit(5000),
       ]);
       if (cancelled) return;
-      const categoryList = [...new Set((categoryRes.data ?? []).map((r) => r.type).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'tr'));
+      const cats = (categoryRes.data as InstitutionCategoryRow[] | null) ?? [];
+      const types = (typeRes.data as InstitutionTypeRow[] | null) ?? [];
+      const nextCats = cats
+        .map((c) => ({ id: c.id, name: String(c.name ?? '').trim() }))
+        .filter((c) => Boolean(c.name))
+        .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+      const nextTypes = types
+        .map((t) => ({ id: t.id, name: String(t.name ?? '').trim(), category_id: t.category_id }))
+        .filter((t) => Boolean(t.name))
+        .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
       const cityList = [...new Set((cityRes.data ?? []).map((r) => r.city).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'tr'));
       const districtList = [...new Set((districtRes.data ?? []).map((r) => r.district).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'tr'));
-      setCategories(categoryList);
+      setCategoryRows(nextCats);
+      setTypeRows(nextTypes);
       setCities(cityList);
       setDistricts(districtList);
     })();
@@ -123,8 +157,21 @@ export default function OkullarPage() {
         if (selectedDistrict) {
           dataQuery = dataQuery.eq('district', selectedDistrict);
         }
-        if (selectedCategory) {
-          dataQuery = dataQuery.eq('type', selectedCategory);
+        if (selectedSubcategoryId) {
+          const typeId = Number(selectedSubcategoryId);
+          if (Number.isFinite(typeId)) {
+            dataQuery = dataQuery.eq('institution_type_id', typeId);
+          }
+        } else if (selectedCategoryId) {
+          const catId = Number(selectedCategoryId);
+          const ids = Number.isFinite(catId) ? typeRows.filter((t) => t.category_id === catId).map((t) => t.id) : [];
+          if (ids.length === 0) {
+            setTotalCount(0);
+            setRows([]);
+            setLoading(false);
+            return;
+          }
+          dataQuery = dataQuery.in('institution_type_id', ids);
         }
         if (searchTerm) {
           const q = `%${searchTerm}%`;
@@ -168,7 +215,7 @@ export default function OkullarPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [page, selectedCity, selectedDistrict, selectedCategory, debouncedSearchText]);
+  }, [page, selectedCity, selectedDistrict, selectedCategoryId, selectedSubcategoryId, typeRows, debouncedSearchText]);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -186,6 +233,35 @@ export default function OkullarPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthReady) return;
+    if (!user?.id) {
+      setAppUserType(null);
+      setAppUserTypeLoading(false);
+      return;
+    }
+    setAppUserTypeLoading(true);
+    resolveUserTypeFromUsersClient(user.id)
+      .then((t) => {
+        if (cancelled) return;
+        setAppUserType(t);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        console.error('User type resolve error:', e);
+        setAppUserType(null);
+      })
+      .finally(() => {
+        if (!cancelled) setAppUserTypeLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, user?.id]);
+
+  const showFavoriteColumn = !user || appUserTypeLoading || appUserType === 'individual';
 
   useEffect(() => {
     let cancelled = false;
@@ -302,14 +378,21 @@ export default function OkullarPage() {
   const handleClearSearch = () => setSearchText('');
   const handleClearAll = () => {
     setSearchText('');
-    setSelectedCategory('');
+    setSelectedCategoryId('');
+    setSelectedSubcategoryId('');
     setSelectedCity('');
     setSelectedDistrict('');
     setPage(1);
   };
   const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
+    setSelectedCategoryId(value);
+    setSelectedSubcategoryId('');
     setIsCategoryMenuOpen(false);
+    setPage(1);
+  };
+  const handleSubcategoryChange = (value: string) => {
+    setSelectedSubcategoryId(value);
+    setIsSubcategoryMenuOpen(false);
     setPage(1);
   };
   const handleCityChange = (value: string) => {
@@ -328,6 +411,9 @@ export default function OkullarPage() {
       if (!categoryMenuRef.current) return;
       if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
         setIsCategoryMenuOpen(false);
+      }
+      if (subcategoryMenuRef.current && !subcategoryMenuRef.current.contains(event.target as Node)) {
+        setIsSubcategoryMenuOpen(false);
       }
       if (cityMenuRef.current && !cityMenuRef.current.contains(event.target as Node)) {
         setIsCityMenuOpen(false);
@@ -384,10 +470,13 @@ export default function OkullarPage() {
                   onClick={() => setIsCategoryMenuOpen((prev) => !prev)}
                   aria-haspopup="listbox"
                   aria-expanded={isCategoryMenuOpen}
-                  aria-label="Kategoriler"
+                  aria-label="Kategori"
                 >
-                  <span className="okullar-category-dropdown-label" title={selectedCategory || 'Kategoriler'}>
-                    {selectedCategory || 'Kategoriler'}
+                  <span
+                    className="okullar-category-dropdown-label"
+                    title={categoryRows.find((c) => String(c.id) === selectedCategoryId)?.name || 'Kategori'}
+                  >
+                    {categoryRows.find((c) => String(c.id) === selectedCategoryId)?.name || 'Kategori'}
                   </span>
                 </button>
                 {isCategoryMenuOpen && (
@@ -395,25 +484,75 @@ export default function OkullarPage() {
                     <button
                       type="button"
                       role="option"
-                      aria-selected={selectedCategory === ''}
-                      className={`okullar-category-dropdown-option ${selectedCategory === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
+                      aria-selected={selectedCategoryId === ''}
+                      className={`okullar-category-dropdown-option ${selectedCategoryId === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
                       onClick={() => handleCategoryChange('')}
                     >
                       Tüm Kategoriler
                     </button>
-                    {categories.map((category) => (
+                    {categoryRows.map((cat) => (
                       <button
-                        key={category}
+                        key={cat.id}
                         type="button"
                         role="option"
-                        aria-selected={selectedCategory === category}
-                        className={`okullar-category-dropdown-option ${selectedCategory === category ? 'okullar-category-dropdown-option--selected' : ''}`}
-                        onClick={() => handleCategoryChange(category)}
-                        title={category}
+                        aria-selected={selectedCategoryId === String(cat.id)}
+                        className={`okullar-category-dropdown-option ${selectedCategoryId === String(cat.id) ? 'okullar-category-dropdown-option--selected' : ''}`}
+                        onClick={() => handleCategoryChange(String(cat.id))}
+                        title={cat.name}
                       >
-                        {category}
+                        {cat.name}
                       </button>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="okullar-category-dropdown" ref={subcategoryMenuRef}>
+                <button
+                  type="button"
+                  className={`okullar-filter-select okullar-filter-select--category ${isSubcategoryMenuOpen ? 'okullar-filter-select--open' : ''}`}
+                  onClick={() => {
+                    if (!selectedCategoryId) return;
+                    setIsSubcategoryMenuOpen((prev) => !prev);
+                  }}
+                  aria-haspopup="listbox"
+                  aria-expanded={isSubcategoryMenuOpen}
+                  aria-label="Alt Kategori"
+                  disabled={!selectedCategoryId}
+                >
+                  <span
+                    className="okullar-category-dropdown-label"
+                    title={typeRows.find((t) => String(t.id) === selectedSubcategoryId)?.name || 'Alt Kategori'}
+                  >
+                    {typeRows.find((t) => String(t.id) === selectedSubcategoryId)?.name || 'Alt Kategori'}
+                  </span>
+                </button>
+                {isSubcategoryMenuOpen && (
+                  <div className="okullar-category-dropdown-menu" role="listbox" aria-label="Alt kategori seçenekleri">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selectedSubcategoryId === ''}
+                      className={`okullar-category-dropdown-option ${selectedSubcategoryId === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
+                      onClick={() => handleSubcategoryChange('')}
+                    >
+                      Tüm Alt Kategoriler
+                    </button>
+                    {typeRows
+                      .filter((t) => String(t.category_id) === selectedCategoryId)
+                      .map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedSubcategoryId === String(t.id)}
+                          className={`okullar-category-dropdown-option ${selectedSubcategoryId === String(t.id) ? 'okullar-category-dropdown-option--selected' : ''}`}
+                          onClick={() => handleSubcategoryChange(String(t.id))}
+                          title={t.name}
+                        >
+                          {t.name}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
@@ -498,17 +637,17 @@ export default function OkullarPage() {
                   </div>
                 )}
               </div>
-              {(searchText || selectedCategory || selectedCity || selectedDistrict) && (
+              {(searchText || selectedCategoryId || selectedSubcategoryId || selectedCity || selectedDistrict) && (
                 <button type="button" className="okullar-filter-temizle" onClick={handleClearAll}>
                   Temizle
                 </button>
               )}
             </div>
             <div className="okullar-table-wrap">
-              <table className="okullar-table">
+              <table className={`okullar-table ${showFavoriteColumn ? '' : 'okullar-table--no-fav'}`}>
                 <thead>
                   <tr>
-                    <th className="okullar-table-fav-col" aria-label="Favoriler" />
+                    {showFavoriteColumn ? <th className="okullar-table-fav-col" aria-label="Favoriler" /> : null}
                     {COLS.map((col) => (
                       <th key={col}>{COL_LABELS[col]}</th>
                     ))}
@@ -517,7 +656,7 @@ export default function OkullarPage() {
                 <tbody>
                   {filteredRows.length === 0 ? (
                     <tr>
-                      <td colSpan={COLS.length + 1} className="okullar-table-empty">
+                      <td colSpan={COLS.length + (showFavoriteColumn ? 1 : 0)} className="okullar-table-empty">
                         {rows.length === 0
                           ? 'Henüz okul kaydı bulunmamaktadır.'
                           : 'Sonuç bulunamadı.'}
@@ -542,35 +681,37 @@ export default function OkullarPage() {
                           router.push(rowHref);
                         }}
                       >
-                        <td className="okullar-favorite-cell">
-                          {(() => {
-                            const isFavorite = Number.isFinite(institutionId) ? favoriteIds.has(institutionId) : false;
-                            const isActionLoading = Number.isFinite(institutionId)
-                              ? favoriteActionLoadingIds.has(institutionId)
-                              : false;
-                            return (
-                              <motion.button
-                                type="button"
-                                aria-label={isFavorite ? 'Favorilerden kaldır' : 'Favorilere ekle'}
-                                className="featured-institution-favorite"
-                                whileTap={{ scale: 0.9 }}
-                                disabled={isActionLoading || (Boolean(user) && !favoritesEnabled) || !Number.isFinite(institutionId)}
-                                onClick={(e) => handleFavoriteToggle(institutionId, e)}
-                              >
-                                <motion.div
-                                  animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
-                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        {showFavoriteColumn ? (
+                          <td className="okullar-favorite-cell">
+                            {(() => {
+                              const isFavorite = Number.isFinite(institutionId) ? favoriteIds.has(institutionId) : false;
+                              const isActionLoading = Number.isFinite(institutionId)
+                                ? favoriteActionLoadingIds.has(institutionId)
+                                : false;
+                              return (
+                                <motion.button
+                                  type="button"
+                                  aria-label={isFavorite ? 'Favorilerden kaldır' : 'Favorilere ekle'}
+                                  className="featured-institution-favorite"
+                                  whileTap={{ scale: 0.9 }}
+                                  disabled={isActionLoading || (Boolean(user) && !favoritesEnabled) || !Number.isFinite(institutionId)}
+                                  onClick={(e) => handleFavoriteToggle(institutionId, e)}
                                 >
-                                  <Heart
-                                    className={
-                                      isFavorite ? 'heart-favorite-icon heart-favorite-icon--active' : 'heart-favorite-icon'
-                                    }
-                                  />
-                                </motion.div>
-                              </motion.button>
-                            );
-                          })()}
-                        </td>
+                                  <motion.div
+                                    animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                  >
+                                    <Heart
+                                      className={
+                                        isFavorite ? 'heart-favorite-icon heart-favorite-icon--active' : 'heart-favorite-icon'
+                                      }
+                                    />
+                                  </motion.div>
+                                </motion.button>
+                              );
+                            })()}
+                          </td>
+                        ) : null}
                         {COLS.map((col) => {
                           const val = row[col];
                           const display = val == null ? '-' : String(val);

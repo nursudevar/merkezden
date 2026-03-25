@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
-import { GraduationCap, MapPin, MapPinned, Phone } from "lucide-react";
+import { BadgeCheck, GraduationCap, MapPin, MapPinned, Phone } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution } from "@/lib/institutions/isMebInstitution";
 
@@ -12,6 +12,15 @@ type InstitutionRow = {
   id: number;
   institution_name: string | null;
   type: string | null;
+  institution_type_id?: number | null;
+  institution_type?: {
+    id: number;
+    name: string | null;
+    category?: {
+      id: number;
+      name: string | null;
+    } | null;
+  } | null;
   city: string | null;
   district: string | null;
   address: string | null;
@@ -58,7 +67,9 @@ export default function MebInstitutionDetailPage() {
 
       const { data, error } = await supabase
         .from("institutions")
-        .select("id, institution_name, type, city, district, address, official_phone, source")
+        .select(
+          "id, institution_name, type, institution_type_id, city, district, address, official_phone, source, institution_type:institution_types(id, name, category:institution_categories(id, name))"
+        )
         .eq("id", parsedId)
         .maybeSingle();
 
@@ -121,6 +132,11 @@ export default function MebInstitutionDetailPage() {
     );
   }
 
+  const subcategoryBadgeText =
+    institution.institution_type?.name?.trim() || institution.type?.trim() || "";
+  const categoryBadgeText =
+    institution.institution_type?.category?.name?.trim() || "";
+
   return (
     <div className="institution-detail-page institution-detail-page--meb">
       <div className="institution-detail-container">
@@ -156,8 +172,21 @@ export default function MebInstitutionDetailPage() {
                   <h1 className="institution-name">{institution.institution_name ?? "Kurum"}</h1>
                 </div>
 
-                {institution.type ? (
-                  <div className="institution-meb-type-badge">{institution.type}</div>
+                {categoryBadgeText || subcategoryBadgeText ? (
+                  <div className="institution-meb-badges">
+                    {categoryBadgeText ? (
+                      <div className="institution-meb-type-badge">{categoryBadgeText}</div>
+                    ) : null}
+                    {subcategoryBadgeText ? (
+                      <div className="institution-meb-type-badge">{subcategoryBadgeText}</div>
+                    ) : null}
+                    {isMebInstitution(institution.source) ? (
+                      <div className="institution-meb-approval-badge">
+                        <BadgeCheck size={16} aria-hidden />
+                        Meb Onaylı
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 {institution.city || institution.district ? (

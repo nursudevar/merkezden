@@ -10,7 +10,7 @@ export default function InstitutionNotFound() {
           Aradığınız kurum bulunamadı veya kaldırılmış olabilir.
         </p>
         <Link href="/">
-          <Button variant="default">Ana Sayfaya Dön</Button>
+          <Button className="button-primary btn-gradient-primary" variant="default" >Ana Sayfaya Dön</Button>
         </Link>
       </div>
     </div>

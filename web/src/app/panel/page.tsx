@@ -996,9 +996,9 @@ interface InstitutionDetailPreparedData {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (announcementModalOpen) {
-          setAnnouncementModalOpen(false);
-          setEditingAnnouncementId(null);
-          setAnnouncementFormErrors({});
+        setAnnouncementModalOpen(false);
+        setEditingAnnouncementId(null);
+        setAnnouncementFormErrors({});
         }
         if (subscriptionModalOpen) {
           setSubscriptionModalOpen(false);
@@ -1972,15 +1972,15 @@ interface InstitutionDetailPreparedData {
               {isInstitutionProfileTab ? (
                 isEditingInstitutionProfile ? (
                   <div className="panel-institution-header-actions">
-                    <Button
-                      type="button"
-                      variant="default"
-                      className="panel-institution-save-btn"
-                      onClick={handleInstitutionProfileSave}
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="panel-institution-save-btn"
+                    onClick={handleInstitutionProfileSave}
                       disabled={isSavingInstitutionProfile}
-                    >
+                  >
                       {isSavingInstitutionProfile ? "Kaydediliyor..." : "Kaydet"}
-                    </Button>
+                  </Button>
                     <button
                       type="button"
                       className="panel-main-card-edit-btn panel-institution-cancel-btn"
@@ -2070,25 +2070,25 @@ interface InstitutionDetailPreparedData {
                       )}
                     </div>
                     <div className="panel-institution-form-first-fields">
-                      <div className="panel-institution-form-field">
+                    <div className="panel-institution-form-field">
                         <label className="panel-institution-form-label">Kurum Adı</label>
-                        <Input
-                          type="text"
-                          value={institutionFormData.institutionName}
-                          onChange={(e) => handleInstitutionFormChange("institutionName", e.target.value)}
-                          disabled={!isEditingInstitutionProfile}
-                          className="panel-institution-form-input"
-                        />
-                      </div>
-                      <div className="panel-institution-form-field">
+                      <Input
+                        type="text"
+                        value={institutionFormData.institutionName}
+                        onChange={(e) => handleInstitutionFormChange("institutionName", e.target.value)}
+                        disabled={!isEditingInstitutionProfile}
+                        className="panel-institution-form-input"
+                      />
+                    </div>
+                    <div className="panel-institution-form-field">
                         <label className="panel-institution-form-label">Resmi E-posta</label>
-                        <Input
-                          type="email"
-                          value={institutionFormData.email}
-                          onChange={(e) => handleInstitutionFormChange("email", e.target.value)}
+                      <Input
+                        type="email"
+                        value={institutionFormData.email}
+                        onChange={(e) => handleInstitutionFormChange("email", e.target.value)}
                           disabled
-                          className="panel-institution-form-input"
-                        />
+                        className="panel-institution-form-input"
+                      />
                       </div>
                     </div>
                   </div>
@@ -2306,8 +2306,8 @@ interface InstitutionDetailPreparedData {
                   ) : mediaItems.length === 0 ? (
                     <div className="panel-media-empty">
                       <p className="panel-media-empty-text">Henüz medya yüklemesi yapılmamıştır.</p>
-                    </div>
-                  ) : (
+                  </div>
+                ) : (
                     <div className="panel-media-table-wrap">
                       <div className="panel-media-table">
                         <div className="panel-media-row panel-media-row--head">
@@ -2316,7 +2316,7 @@ interface InstitutionDetailPreparedData {
                           <div className="panel-media-cell panel-media-cell--type">Medya Türü</div>
                           <div className="panel-media-cell panel-media-cell--size">Boyut</div>
                           <div className="panel-media-cell panel-media-cell--actions">Sil</div>
-                        </div>
+                          </div>
                         {mediaItems.map((item) => (
                           <div key={item.id} className="panel-media-row">
                             <div className="panel-media-cell panel-media-cell--media">
@@ -2337,7 +2337,7 @@ interface InstitutionDetailPreparedData {
                               {item.title?.trim() || item.file_name?.trim() || "—"}
                             </div>
                             <div className="panel-media-cell panel-media-cell--type">
-                              <span
+                            <span
                                 className={`panel-media-badge ${
                                   item.media_type === "video"
                                     ? "panel-media-badge--video"
@@ -2436,12 +2436,12 @@ interface InstitutionDetailPreparedData {
                                   {institutionCategories.find(
                                     (c) => String(c.id) === (institutionCategoryId ?? "")
                                   )?.name || "Seçiniz"}
-                                </span>
+                            </span>
                               </button>
                               {openInstitutionTypePickerSelect === "category" && (
                                 <div className="panel-institutions-feature-select-menu" role="listbox">
-                                  <button
-                                    type="button"
+                            <button
+                              type="button"
                                     role="option"
                                     aria-selected={(institutionCategoryId ?? "") === ""}
                                     className={`panel-institutions-feature-select-option ${
@@ -2456,7 +2456,7 @@ interface InstitutionDetailPreparedData {
                                     }}
                                   >
                                     Seçiniz
-                                  </button>
+                            </button>
                                   {institutionCategories.map((c) => (
                                     <button
                                       key={c.id}
@@ -2477,10 +2477,10 @@ interface InstitutionDetailPreparedData {
                                       {c.name}
                                     </button>
                                   ))}
-                                </div>
-                              )}
-                            </div>
                           </div>
+                              )}
+                        </div>
+                            </div>
 
                           <div
                             className={`panel-institutions-feature-input-wrap ${
@@ -2560,11 +2560,11 @@ interface InstitutionDetailPreparedData {
                                         {t.name}
                                       </button>
                                     ))}
-                                </div>
-                              )}
+                              </div>
+                            )}
+                            </div>
                             </div>
                           </div>
-                        </div>
                       )}
                     </section>
 
@@ -2614,8 +2614,8 @@ interface InstitutionDetailPreparedData {
                                     }
                                     placeholder={feature.placeholder || "Bilgi giriniz"}
                                   />
-                                )}
-                              </div>
+                        )}
+                      </div>
                             ) : feature.input_type === "number" ? (
                               <div className="panel-institutions-feature-input-wrap">
                                 <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
