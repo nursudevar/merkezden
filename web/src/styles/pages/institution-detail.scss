@@ -433,7 +433,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin: 0;
+  margin-bottom: 30px;
 
   &::before {
     content: '';
@@ -462,6 +462,109 @@
   border: 1px solid $border-light;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.institution-features-card {
+  margin-top: 1.25rem;
+}
+
+.institution-features-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.institution-features-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.institution-features-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.institution-features-group-title {
+  margin: 0;
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $default-text-color;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid $border-light;
+  padding-bottom: 0.4rem;
+}
+
+.institution-features-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.institution-features-academic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.institution-features-academic-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.institution-features-academic-label {
+  color: $default-text-color;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  line-height: 1.4;
+}
+
+.institution-features-academic-value {
+  color: $text-zinc-700;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  line-height: 1.4;
+}
+
+.institution-features-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(109, 93, 252, 0.10);
+  background: rgba(109, 93, 252, 0.06);
+  color: $text-zinc-700;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  line-height: 1.35;
+}
+
+.institution-features-badge--answer {
+  align-self: center;
+}
+
+.institution-features-empty {
+  min-height: 90px;
+  border-radius: 12px;
+  border: 1px dashed rgba(109, 93, 252, 0.24);
+  background: rgba(109, 93, 252, 0.06);
+  color: $purple-main;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
 }
 
 .institution-about-text {

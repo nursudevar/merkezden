@@ -52,6 +52,58 @@ type InstitutionMediaImageRow = {
   created_at?: string | null;
 };
 
+type InstitutionFeatureGroupRow = {
+  id: number;
+  name: string;
+  display_order: number | null;
+  is_active: boolean;
+};
+
+type InstitutionFeatureDefinitionRow = {
+  id: number;
+  group_id: number;
+  name: string;
+  slug: string | null;
+  input_type: "boolean" | "text" | "number" | "single_select" | "multi_select" | string;
+  unit: string | null;
+  display_order: number | null;
+  is_active: boolean;
+};
+
+type InstitutionFeatureChoiceRow = {
+  id: number;
+  feature_definition_id: number;
+  name: string | null;
+  display_order: number | null;
+  is_active: boolean;
+};
+
+type InstitutionFeatureEntryRow = {
+  id: number;
+  feature_definition_id: number;
+  boolean_answer: boolean | null;
+  text_answer: string | null;
+  number_answer: number | null;
+  selected_choice_id: number | null;
+};
+
+type InstitutionFeatureEntryChoiceRow = {
+  institution_feature_entry_id: number;
+  choice_id: number;
+};
+
+type PublicFeatureGroupSection = {
+  id: number;
+  name: string;
+  badges: string[];
+};
+
+type AcademicFeatureLine = {
+  label: string;
+  value: string | string[];
+  isBadgeList?: boolean;
+};
+
 const FALLBACK_LOGO_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' rx='28' fill='%23F1EEFF'/%3E%3Cpath d='M95 144c0-7.18 5.82-13 13-13h104c7.18 0 13 5.82 13 13v66c0 7.18-5.82 13-13 13H108c-7.18 0-13-5.82-13-13v-66z' fill='%236D5DFC' fill-opacity='.12'/%3E%3Cpath d='M120 176l22-22 20 20 36-36 22 22v38H120v-22z' fill='%236D5DFC' fill-opacity='.45'/%3E%3Ccircle cx='136' cy='156' r='10' fill='%236D5DFC' fill-opacity='.55'/%3E%3C/svg%3E";
 
@@ -71,6 +123,7 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
+  const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,6 +220,7 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
     activeViewerIndex >= 0 &&
     activeViewerIndex < filteredModalItems.length;
   const activeViewerItem = isViewerMode ? filteredModalItems[activeViewerIndex] : null;
+  const [academicLines, setAcademicLines] = useState<AcademicFeatureLine[]>([]);
 
   useEffect(() => {
     setLogoLoadFailed(false);
@@ -228,6 +282,241 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
         .filter((item): item is { id: string; mediaType: "photo" | "video"; url: string } => Boolean(item?.url));
 
       setMediaItems(mappedItems);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [row?.id]);
+
+  useEffect(() => {
+    if (!row?.id) {
+      setPublicFeatureSections([]);
+      return;
+    }
+
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+    const institutionId = Number(row.id);
+
+    (async () => {
+      const [
+        { data: groupsData, error: groupsError },
+        { data: definitionsData, error: definitionsError },
+        { data: choicesData, error: choicesError },
+        { data: entriesData, error: entriesError },
+      ] = await Promise.all([
+        supabase
+          .from("institution_feature_groups")
+          .select("id, name, display_order, is_active")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true }),
+        supabase
+          .from("institution_feature_definitions")
+          .select("id, group_id, name, slug, input_type, unit, display_order, is_active")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true }),
+        supabase
+          .from("institution_feature_choices")
+          .select("id, feature_definition_id, name, display_order, is_active")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true }),
+        supabase
+          .from("institution_feature_entries")
+          .select("id, feature_definition_id, boolean_answer, text_answer, number_answer, selected_choice_id")
+          .eq("institution_id", institutionId),
+      ]);
+
+      if (cancelled) return;
+
+      if (groupsError || definitionsError || choicesError || entriesError) {
+        console.error("[institutions][detail][features][query-error]", {
+          groupsError,
+          definitionsError,
+          choicesError,
+          entriesError,
+        });
+        setPublicFeatureSections([]);
+        return;
+      }
+
+      const entries = (entriesData as InstitutionFeatureEntryRow[] | null) ?? [];
+      const entryIds = entries.map((entry) => entry.id);
+      let entryChoices: InstitutionFeatureEntryChoiceRow[] = [];
+
+      if (entryIds.length > 0) {
+        const { data: entryChoicesData, error: entryChoicesError } = await supabase
+          .from("institution_feature_entry_choices")
+          .select("institution_feature_entry_id, choice_id")
+          .in("institution_feature_entry_id", entryIds);
+
+        if (!cancelled && entryChoicesError) {
+          console.error("[institutions][detail][features][entry-choices-error]", entryChoicesError);
+        }
+        entryChoices = (entryChoicesData as InstitutionFeatureEntryChoiceRow[] | null) ?? [];
+      }
+
+      if (cancelled) return;
+
+      const groups = (groupsData as InstitutionFeatureGroupRow[] | null) ?? [];
+      const definitions = (definitionsData as InstitutionFeatureDefinitionRow[] | null) ?? [];
+      const choices = (choicesData as InstitutionFeatureChoiceRow[] | null) ?? [];
+
+      const targetGroupNames = new Set([
+        "Akademik İmkanlar",
+        "Okul İmkanları",
+        "Fiziki İmkanlar",
+      ]);
+
+      const filteredGroups = groups.filter((group) => targetGroupNames.has((group.name ?? "").trim()));
+      const entriesByFeatureId = new Map<number, InstitutionFeatureEntryRow>();
+      entries.forEach((entry) => entriesByFeatureId.set(entry.feature_definition_id, entry));
+
+      const choicesByFeatureId = new Map<number, InstitutionFeatureChoiceRow[]>();
+      choices.forEach((choice) => {
+        const current = choicesByFeatureId.get(choice.feature_definition_id) ?? [];
+        current.push(choice);
+        choicesByFeatureId.set(choice.feature_definition_id, current);
+      });
+
+      const choiceNameById = new Map<number, string>();
+      choices.forEach((choice) => {
+        const label = (choice.name ?? "").trim();
+        if (label) choiceNameById.set(choice.id, label);
+      });
+
+      const selectedChoiceIdsByEntryId = new Map<number, number[]>();
+      entryChoices.forEach((rowChoice) => {
+        const current = selectedChoiceIdsByEntryId.get(rowChoice.institution_feature_entry_id) ?? [];
+        if (!current.includes(rowChoice.choice_id)) current.push(rowChoice.choice_id);
+        selectedChoiceIdsByEntryId.set(rowChoice.institution_feature_entry_id, current);
+      });
+
+      const sections: PublicFeatureGroupSection[] = filteredGroups
+        .map((group) => {
+          const groupFeatures = definitions
+            .filter((feature) => feature.group_id === group.id)
+            .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
+
+          const badges: string[] = [];
+
+          groupFeatures.forEach((feature) => {
+            const entry = entriesByFeatureId.get(feature.id);
+            if (!entry) return;
+
+            if (feature.input_type === "boolean") {
+              if (entry.boolean_answer === true) badges.push(feature.name);
+              return;
+            }
+
+            if (feature.input_type === "single_select") {
+              const selectedChoiceId = entry.selected_choice_id ?? null;
+              if (!selectedChoiceId) return;
+              const label = choiceNameById.get(selectedChoiceId);
+              if (label) badges.push(label);
+              return;
+            }
+
+            if (feature.input_type === "multi_select") {
+              const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
+              selectedIds.forEach((choiceId) => {
+                const label = choiceNameById.get(choiceId);
+                if (label) badges.push(label);
+              });
+              return;
+            }
+
+            if (feature.input_type === "text") {
+              const value = (entry.text_answer ?? "").trim();
+              if (!value) return;
+              badges.push(`${feature.name}: ${value}`);
+              return;
+            }
+
+            if (feature.input_type === "number") {
+              if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return;
+              const unit = (feature.unit ?? "").trim();
+              badges.push(`${feature.name}: ${entry.number_answer}${unit ? ` ${unit}` : ""}`);
+            }
+          });
+
+          return {
+            id: group.id,
+            name: group.name,
+            badges: Array.from(new Set(badges)),
+          };
+        })
+        .filter((section) => section.badges.length > 0);
+
+      setPublicFeatureSections(sections);
+
+      const normalize = (v: string) =>
+        v
+          .toLowerCase()
+          .replace(/ı/g, "i")
+          .replace(/ğ/g, "g")
+          .replace(/ş/g, "s")
+          .replace(/ö/g, "o")
+          .replace(/ü/g, "u")
+          .replace(/ç/g, "c");
+      const hasAny = (...needles: string[]) => (text: string) =>
+        needles.some((needle) => text.includes(needle));
+      const academicGroup = filteredGroups.find(
+        (group) => normalize(group.name) === normalize("Akademik İmkanlar")
+      );
+      const nextAcademicLines: AcademicFeatureLine[] = [];
+      if (academicGroup) {
+        const academicFeatures = definitions.filter((feature) => feature.group_id === academicGroup.id);
+        const extractFeatureValue = (feature: InstitutionFeatureDefinitionRow): string | string[] | null => {
+          const entry = entriesByFeatureId.get(feature.id);
+          if (!entry) return null;
+          if (feature.input_type === "boolean") return entry.boolean_answer === true ? "Evet" : null;
+          if (feature.input_type === "single_select") {
+            const choiceId = entry.selected_choice_id ?? null;
+            if (!choiceId) return null;
+            return choiceNameById.get(choiceId) ?? null;
+          }
+          if (feature.input_type === "multi_select") {
+            const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
+            const labels = selectedIds
+              .map((id) => choiceNameById.get(id) ?? "")
+              .filter((label) => Boolean(label));
+            return labels.length > 0 ? labels : null;
+          }
+          if (feature.input_type === "number") {
+            if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return null;
+            return `${entry.number_answer}${feature.unit ? ` ${feature.unit}` : ""}`.trim();
+          }
+          if (feature.input_type === "text") {
+            const value = (entry.text_answer ?? "").trim();
+            return value || null;
+          }
+          return null;
+        };
+        const findBy = (matcher: (text: string) => boolean) =>
+          academicFeatures.find((feature) => {
+            const text = normalize(`${feature.slug ?? ""} ${feature.name ?? ""}`);
+            return matcher(text);
+          });
+        const pull = (label: string, matcher: (text: string) => boolean, isBadgeList?: boolean) => {
+          const feature = findBy(matcher);
+          if (!feature) return;
+          const value = extractFeatureValue(feature);
+          if (!value || (Array.isArray(value) && value.length === 0)) return;
+          nextAcademicLines.push({ label, value, isBadgeList });
+        };
+        pull("Okul Türü", hasAny("okul durumu", "okul turu", "okul_turu", "kurum turu"));
+        pull("Eğitim Türü", hasAny("egitim turu", "egitim_turu"));
+        pull("Eğitim Dili", hasAny("egitim dili", "egitim_dili"));
+        pull("Okul Saatleri", hasAny("okul saatleri", "okul_saatleri", "saat"));
+        pull("Öğrenci Yaşı", hasAny("ogrenci yasi", "yas araligi", "yas", "ogrenci_yasi"));
+        pull("Ortalama Sınıf Mevcudu", hasAny("ortalama sinif mevcudu", "sinif mevcudu", "mevcud"));
+        pull("Yabancı Diller", hasAny("yabanci diller", "yabanci dil"), true);
+      }
+      setAcademicLines(nextAcademicLines);
     })();
 
     return () => {
@@ -544,6 +833,59 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
             </div>
           </aside>
         </div>
+
+        <section className="institution-section">
+          <Card className="institution-section-card institution-features-card">
+            <CardContent>
+              <div className="institution-features-head">
+                <h2 className="institution-section-title">Kurum Özellikleri</h2>
+              </div>
+              {publicFeatureSections.length > 0 ? (
+                <div className="institution-features-groups">
+                  {publicFeatureSections.map((section) => (
+                    <div key={section.id} className="institution-features-group">
+                      <h3 className="institution-features-group-title">{section.name}</h3>
+                  {section.name === "Akademik İmkanlar" && academicLines.length > 0 ? (
+                    <div className="institution-features-academic-list">
+                      {academicLines.map((line) => (
+                        <div key={line.label} className="institution-features-academic-row">
+                          <span className="institution-features-academic-label">{line.label} :</span>
+                          {line.isBadgeList && Array.isArray(line.value) ? (
+                            <div className="institution-features-badges">
+                              {line.value.map((badge) => (
+                                <span key={`${line.label}-${badge}`} className="institution-features-badge">
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="institution-features-badges">
+                              <span className="institution-features-badge institution-features-badge--answer">
+                                {Array.isArray(line.value) ? line.value.join(", ") : line.value}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="institution-features-badges">
+                      {section.badges.map((badge) => (
+                        <span key={`${section.id}-${badge}`} className="institution-features-badge">
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="institution-features-empty">{emptyText}</div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
         {isGalleryModalOpen ? (
           <div
