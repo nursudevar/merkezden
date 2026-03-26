@@ -479,7 +479,7 @@
 .institution-features-groups {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 50px;
 }
 
 .institution-features-group {
@@ -498,6 +498,7 @@
   gap: 0.75rem;
   border-bottom: 1px solid $border-light;
   padding-bottom: 0.4rem;
+  margin-bottom: 20px;
 }
 
 .institution-features-badges {
@@ -507,30 +508,58 @@
 }
 
 .institution-features-academic-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 30px;
+  row-gap: 30px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    row-gap: 0.9rem;
+  }
 }
 
 .institution-features-academic-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  column-gap: 0.65rem;
+  min-width: 0;
+}
+
+.institution-features-academic-icon {
+  color: rgba(109, 93, 252, 0.8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+.institution-features-academic-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
 .institution-features-academic-label {
-  color: $default-text-color;
+  color: rgba(109, 93, 252, 0.9);
   font-size: $text-sm;
-  font-weight: $font-semibold;
+  font-weight: $font-extrabold;
+  letter-spacing: 0.02em;
   line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .institution-features-academic-value {
-  color: $text-zinc-700;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  line-height: 1.4;
+  color: $text-zinc-800;
+  font-size: 16px;
+  font-weight: $font-semibold;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .institution-features-badge {
@@ -540,8 +569,8 @@
   min-height: 38px;
   padding: 0px 20px;
   border-radius: 18px;
-  border: 1px solid rgba(109, 93, 252, 0.10);
-  background: rgba(109, 93, 252, 0.06);
+  border: 1px solid $purple-main;
+  background: rgba(109, 93, 252, 0.01);
   color: $text-zinc-700;
   font-size: $text-sm;
   font-weight: $font-semibold;

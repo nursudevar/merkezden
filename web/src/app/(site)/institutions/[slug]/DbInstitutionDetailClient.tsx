@@ -19,6 +19,7 @@ import {
   ChevronRight,
   ArrowLeft,
   Play,
+  GitCommitVertical,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution } from "@/lib/institutions/isMebInstitution";
@@ -968,22 +969,15 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     <div className="institution-features-academic-list">
                       {academicLines.map((line) => (
                         <div key={line.label} className="institution-features-academic-row">
-                          <span className="institution-features-academic-label">{line.label} :</span>
-                          {line.isBadgeList && Array.isArray(line.value) ? (
-                            <div className="institution-features-badges">
-                              {line.value.map((badge) => (
-                                <span key={`${line.label}-${badge}`} className="institution-features-badge">
-                                  {badge}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="institution-features-badges">
-                              <span className="institution-features-badge institution-features-badge--answer">
-                                {Array.isArray(line.value) ? line.value.join(", ") : line.value}
-                              </span>
-                            </div>
-                          )}
+                          <span className="institution-features-academic-icon" aria-hidden>
+                            <GitCommitVertical size={25} strokeWidth={2.2} />
+                          </span>
+                          <div className="institution-features-academic-content">
+                            <span className="institution-features-academic-label">{line.label}</span>
+                            <span className="institution-features-academic-value">
+                              {Array.isArray(line.value) ? line.value.join(", ") : line.value}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
