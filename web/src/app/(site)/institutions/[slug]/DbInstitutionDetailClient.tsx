@@ -15,6 +15,11 @@ import {
   Phone,
   Globe,
   Clock,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  Play,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution } from "@/lib/institutions/isMebInstitution";
@@ -36,6 +41,17 @@ type DbInstitutionRow = {
   source: string | null;
 };
 
+type InstitutionMediaImageRow = {
+  id: number | string;
+  media_type: string | null;
+  file_url: string | null;
+  file_path: string | null;
+  mime_type?: string | null;
+  file_name?: string | null;
+  sort_order?: number | null;
+  created_at?: string | null;
+};
+
 const FALLBACK_LOGO_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' rx='28' fill='%23F1EEFF'/%3E%3Cpath d='M95 144c0-7.18 5.82-13 13-13h104c7.18 0 13 5.82 13 13v66c0 7.18-5.82 13-13 13H108c-7.18 0-13-5.82-13-13v-66z' fill='%236D5DFC' fill-opacity='.12'/%3E%3Cpath d='M120 176l22-22 20 20 36-36 22 22v38H120v-22z' fill='%236D5DFC' fill-opacity='.45'/%3E%3Ccircle cx='136' cy='156' r='10' fill='%236D5DFC' fill-opacity='.55'/%3E%3C/svg%3E";
 
@@ -45,6 +61,16 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [logoLoadFailed, setLogoLoadFailed] = useState(false);
+  const [mediaItems, setMediaItems] = useState<
+    Array<{
+      id: string;
+      mediaType: "photo" | "video";
+      url: string;
+    }>
+  >([]);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
+  const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,10 +149,109 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
   const website = (row?.website ?? "").trim();
   const emptyText = "Henüz içerik girilmedi.";
   const hasLogo = Boolean((row?.logo ?? "").trim()) && Boolean(logoUrl) && !logoLoadFailed;
+  const photoMediaItems = useMemo(
+    () => mediaItems.filter((item) => item.mediaType === "photo"),
+    [mediaItems]
+  );
+  const galleryImages = useMemo(
+    () => photoMediaItems.map((item) => item.url),
+    [photoMediaItems]
+  );
+  const filteredModalItems = useMemo(() => {
+    if (galleryFilter === "photo") return mediaItems.filter((item) => item.mediaType === "photo");
+    if (galleryFilter === "video") return mediaItems.filter((item) => item.mediaType === "video");
+    return mediaItems;
+  }, [galleryFilter, mediaItems]);
+  const isViewerMode =
+    activeViewerIndex !== null &&
+    activeViewerIndex >= 0 &&
+    activeViewerIndex < filteredModalItems.length;
+  const activeViewerItem = isViewerMode ? filteredModalItems[activeViewerIndex] : null;
 
   useEffect(() => {
     setLogoLoadFailed(false);
   }, [row?.logo]);
+
+  useEffect(() => {
+    if (!row?.id) {
+      setMediaItems([]);
+      return;
+    }
+
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    (async () => {
+      const { data, error: mediaError } = await supabase
+        .from("institution_media")
+        .select("id, media_type, file_url, file_path, mime_type, file_name, sort_order, created_at")
+        .eq("institution_id", Number(row.id))
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (mediaError) {
+        console.error("[institutions][detail][gallery][query-error]", mediaError);
+        setMediaItems([]);
+        return;
+      }
+
+      const mediaRows = (data as InstitutionMediaImageRow[] | null) ?? [];
+      const mappedItems = mediaRows
+        .map((item) => {
+          const normalizedMediaType = String(item.media_type ?? "").toLowerCase();
+          const mediaType: "photo" | "video" =
+            normalizedMediaType === "video" || (item.mime_type ?? "").toLowerCase().startsWith("video/")
+              ? "video"
+              : "photo";
+          const rawUrl = (item.file_url ?? "").trim();
+          if (rawUrl) {
+            return {
+              id: String(item.id),
+              mediaType,
+              url: rawUrl,
+            };
+          }
+
+          const rawPath = (item.file_path ?? "").trim().replace(/^\/+/, "");
+          if (!rawPath) return null;
+          const resolvedUrl =
+            supabase.storage.from("institution-media").getPublicUrl(rawPath).data.publicUrl || "";
+          if (!resolvedUrl) return null;
+          return {
+            id: String(item.id),
+            mediaType,
+            url: resolvedUrl,
+          };
+        })
+        .filter((item): item is { id: string; mediaType: "photo" | "video"; url: string } => Boolean(item?.url));
+
+      setMediaItems(mappedItems);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [row?.id]);
+
+  useEffect(() => {
+    if (!isGalleryModalOpen) {
+      setGalleryFilter("all");
+      setActiveViewerIndex(null);
+    }
+  }, [isGalleryModalOpen]);
+
+  useEffect(() => {
+    if (activeViewerIndex === null) return;
+    if (filteredModalItems.length === 0) {
+      setActiveViewerIndex(null);
+      return;
+    }
+    if (activeViewerIndex >= filteredModalItems.length) {
+      setActiveViewerIndex(0);
+    }
+  }, [activeViewerIndex, filteredModalItems]);
 
   if (loading) {
     return (
@@ -253,31 +378,91 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
             </section>
 
             <section id="gallery" className="institution-section">
-              <h2 className="institution-section-title">Kurum Galerisi</h2>
+              <div className="institution-section-header">
+                <h2 className="institution-section-title">Kurum Galerisi</h2>
+                <button
+                  type="button"
+                  className="institution-section-link institution-gallery-view-all-btn"
+                  onClick={() => setIsGalleryModalOpen(true)}
+                >
+                  tümünü gör
+                </button>
+              </div>
               <div className="institution-gallery-grid">
-                <div className="institution-gallery-item institution-gallery-main">
-                  <div className="institution-gallery-fallback">
-                    <div className="institution-gallery-fallback-icon">
-                      <GraduationCap size={34} />
+                <div
+                  className="institution-gallery-item institution-gallery-main"
+                  onClick={() => {
+                    if (!galleryImages[0]) return;
+                    setIsGalleryModalOpen(true);
+                  }}
+                >
+                  {galleryImages[0] ? (
+                    <Image
+                      src={galleryImages[0]}
+                      alt={`${name} galeri görseli`}
+                      fill
+                      className="institution-gallery-image"
+                      sizes="(max-width: 768px) 100vw, 66vw"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="institution-gallery-fallback">
+                      <div className="institution-gallery-fallback-icon">
+                        <GraduationCap size={34} />
+                      </div>
+                      <p className="institution-gallery-fallback-text">{emptyText}</p>
                     </div>
-                    <p className="institution-gallery-fallback-text">{emptyText}</p>
-                  </div>
+                  )}
                 </div>
-                <div className="institution-gallery-item">
-                  <div className="institution-gallery-fallback">
-                    <div className="institution-gallery-fallback-icon">
-                      <GraduationCap size={30} />
+                <div
+                  className="institution-gallery-item"
+                  onClick={() => {
+                    if (!galleryImages[1]) return;
+                    setIsGalleryModalOpen(true);
+                  }}
+                >
+                  {galleryImages[1] ? (
+                    <Image
+                      src={galleryImages[1]}
+                      alt={`${name} galeri görseli`}
+                      fill
+                      className="institution-gallery-image"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="institution-gallery-fallback">
+                      <div className="institution-gallery-fallback-icon">
+                        <GraduationCap size={30} />
+                      </div>
+                      <p className="institution-gallery-fallback-text">{emptyText}</p>
                     </div>
-                    <p className="institution-gallery-fallback-text">{emptyText}</p>
-                  </div>
+                  )}
                 </div>
-                <div className="institution-gallery-item">
-                  <div className="institution-gallery-fallback">
-                    <div className="institution-gallery-fallback-icon">
-                      <GraduationCap size={30} />
+                <div
+                  className="institution-gallery-item"
+                  onClick={() => {
+                    if (!galleryImages[2]) return;
+                    setIsGalleryModalOpen(true);
+                  }}
+                >
+                  {galleryImages[2] ? (
+                    <Image
+                      src={galleryImages[2]}
+                      alt={`${name} galeri görseli`}
+                      fill
+                      className="institution-gallery-image"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="institution-gallery-fallback">
+                      <div className="institution-gallery-fallback-icon">
+                        <GraduationCap size={30} />
+                      </div>
+                      <p className="institution-gallery-fallback-text">{emptyText}</p>
                     </div>
-                    <p className="institution-gallery-fallback-text">{emptyText}</p>
-                  </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -359,6 +544,169 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
             </div>
           </aside>
         </div>
+
+        {isGalleryModalOpen ? (
+          <div
+            className="institution-gallery-modal-backdrop"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                setIsGalleryModalOpen(false);
+              }
+            }}
+          >
+            <div className="institution-gallery-modal">
+              <div className="institution-gallery-modal-header">
+                <div>
+                  <h3 className="institution-gallery-modal-title">Kurum Galerisi</h3>
+                  <p className="institution-gallery-modal-subtitle">
+                    Kurumunuza ait yüklenen medya içeriklerini görüntüleyin.
+                  </p>
+                </div>
+                <div className="institution-gallery-modal-header-actions">
+                  {isViewerMode ? (
+                    <>
+                      <button
+                        type="button"
+                        className="institution-gallery-viewer-back"
+                        onClick={() => setActiveViewerIndex(null)}
+                      >
+                        <ArrowLeft size={16} />
+                        Galeriye dön
+                      </button>
+                      <span className="institution-gallery-viewer-counter">
+                        {activeViewerIndex + 1} / {filteredModalItems.length}
+                      </span>
+                    </>
+                  ) : (
+                    <div className="institution-gallery-modal-filters" role="tablist" aria-label="Galeri filtreleri">
+                      <button
+                        type="button"
+                        className={`institution-gallery-modal-filter ${galleryFilter === "all" ? "institution-gallery-modal-filter--active" : ""}`}
+                        onClick={() => setGalleryFilter("all")}
+                      >
+                        Tümü
+                      </button>
+                      <button
+                        type="button"
+                        className={`institution-gallery-modal-filter ${galleryFilter === "photo" ? "institution-gallery-modal-filter--active" : ""}`}
+                        onClick={() => setGalleryFilter("photo")}
+                      >
+                        Fotoğraf
+                      </button>
+                      <button
+                        type="button"
+                        className={`institution-gallery-modal-filter ${galleryFilter === "video" ? "institution-gallery-modal-filter--active" : ""}`}
+                        onClick={() => setGalleryFilter("video")}
+                      >
+                        Video
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="institution-gallery-modal-close"
+                    aria-label="Galeri modalını kapat"
+                    onClick={() => setIsGalleryModalOpen(false)}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+              {filteredModalItems.length > 0 ? (
+                isViewerMode && activeViewerItem ? (
+                  <div className="institution-gallery-viewer">
+                    <div className="institution-gallery-viewer-media-wrap">
+                      {activeViewerItem.mediaType === "video" ? (
+                        <video
+                          className="institution-gallery-viewer-video"
+                          src={activeViewerItem.url}
+                          controls
+                          autoPlay
+                          preload="metadata"
+                        />
+                      ) : (
+                        <div className="institution-gallery-viewer-image-wrap">
+                          <Image
+                            src={activeViewerItem.url}
+                            alt={`${name} galeri görseli ${activeViewerIndex + 1}`}
+                            fill
+                            className="institution-gallery-viewer-image"
+                            sizes="(max-width: 768px) 100vw, 90vw"
+                            unoptimized
+                          />
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        className="institution-gallery-viewer-nav institution-gallery-viewer-nav--prev"
+                        aria-label="Önceki medya"
+                        onClick={() =>
+                          setActiveViewerIndex((prev) => {
+                            if (prev === null || filteredModalItems.length === 0) return null;
+                            return (prev - 1 + filteredModalItems.length) % filteredModalItems.length;
+                          })
+                        }
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+
+                      <button
+                        type="button"
+                        className="institution-gallery-viewer-nav institution-gallery-viewer-nav--next"
+                        aria-label="Sonraki medya"
+                        onClick={() =>
+                          setActiveViewerIndex((prev) => {
+                            if (prev === null || filteredModalItems.length === 0) return null;
+                            return (prev + 1) % filteredModalItems.length;
+                          })
+                        }
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="institution-gallery-modal-grid">
+                    {filteredModalItems.map((item, index) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`institution-gallery-modal-item institution-gallery-modal-item--${item.mediaType}`}
+                        onClick={() => setActiveViewerIndex(index)}
+                      >
+                        {item.mediaType === "video" ? (
+                          <>
+                            <video
+                              className="institution-gallery-modal-video"
+                              src={item.url}
+                              preload="metadata"
+                              muted
+                            />
+                            <div className="institution-gallery-modal-video-overlay" aria-hidden>
+                              <Play size={46}  />
+                            </div>
+                          </>
+                        ) : (
+                          <Image
+                            src={item.url}
+                            alt={`${name} galeri görseli ${index + 1}`}
+                            fill
+                            className="institution-gallery-image"
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            unoptimized
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )
+              ) : (
+                <div className="institution-gallery-modal-empty">{emptyText}</div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -547,6 +547,252 @@
   font-weight: $font-semibold;
 }
 
+.institution-gallery-view-all-btn {
+  text-transform: lowercase;
+  color: $purple-primary;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  align-self: flex-end;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.institution-gallery-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(24, 24, 27, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.institution-gallery-modal {
+  width: 100%;
+  max-width: 1380px;
+  max-height: 90vh;
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  overflow: auto;
+  padding: 1rem;
+}
+
+.institution-gallery-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.institution-gallery-modal-title {
+  margin: 0;
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: $default-text-color;
+}
+
+.institution-gallery-modal-subtitle {
+  margin: 0.2rem 0 0;
+  color: $text-zinc-600;
+  font-size: $text-xs;
+}
+
+.institution-gallery-modal-header-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.institution-gallery-modal-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: $bg-zinc-50;
+  border: 1px solid $border-light;
+  border-radius: 999px;
+  padding: 0.25rem;
+}
+
+.institution-gallery-modal-filter {
+  height: 30px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: $text-zinc-600;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  cursor: pointer;
+}
+
+.institution-gallery-modal-filter--active {
+  background: $bg-white;
+  color: $purple-main;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.institution-gallery-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid $border-light;
+  background: $bg-zinc-50;
+  color: $text-zinc-700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.institution-gallery-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.institution-gallery-modal-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #eee;
+  border: 1px solid $border-light;
+  cursor: pointer;
+  padding: 0;
+}
+
+.institution-gallery-modal-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #111827;
+}
+
+.institution-gallery-modal-video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.28);
+  color: $text-zinc-800;
+  pointer-events: none;
+
+  svg {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+}
+
+.institution-gallery-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.institution-gallery-viewer-back {
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.08);
+  color: $purple-main;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  cursor: pointer;
+}
+
+.institution-gallery-viewer-counter {
+  color: $text-zinc-500;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+}
+
+.institution-gallery-viewer-media-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid $border-light;
+  background: #eef2ff;
+  aspect-ratio: 16 / 10;
+}
+
+.institution-gallery-viewer-image-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.institution-gallery-viewer-image,
+.institution-gallery-viewer-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #111827;
+}
+
+.institution-gallery-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(17, 24, 39, 0.55);
+  color: $bg-white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.institution-gallery-viewer-nav--prev {
+  left: 10px;
+}
+
+.institution-gallery-viewer-nav--next {
+  right: 10px;
+}
+
+.institution-gallery-modal-empty {
+  min-height: 160px;
+  border-radius: 12px;
+  border: 1px dashed rgba(109, 93, 252, 0.26);
+  background: rgba(109, 93, 252, 0.08);
+  color: $purple-main;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+}
+
 .institution-gallery-image {
   object-fit: cover;
   transition: transform 0.5s ease;
