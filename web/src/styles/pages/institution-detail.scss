@@ -131,6 +131,24 @@
   }
 }
 
+.institution-logo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(109, 93, 252, 0.08);
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  color: $purple-main;
+  text-align: center;
+  padding: 0.75rem;
+
+  p {
+    margin: 0;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    line-height: 1.4;
+  }
+}
+
 .institution-share-button {
   width: 40px;
   height: 40px;
@@ -226,6 +244,8 @@
   font-size: $text-lg;
   margin: 0;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   @media (max-width: 768px) {
     font-size: $text-base;
@@ -254,8 +274,43 @@
   }
 }
 
+.institution-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(109, 93, 252, 0.24);
+  background: rgba(109, 93, 252, 0.08);
+  color: $purple-main;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  gap: 0.4rem;
+}
+
+.institution-meta-badge--category {
+  background: rgba(100, 116, 139, 0.06);
+  border-color: rgba(100, 116, 139, 0.28);
+  color: #475569;
+}
+
+.institution-meta-badge--subcategory {
+  background: rgba(109, 93, 252, 0.08);
+  border-color: rgba(109, 93, 252, 0.24);
+}
+
 .institution-meta-verified {
   color: $green-main;
+  background: $green-bg;
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 999px;
+  width: fit-content;
+  padding: 0.3rem 0.75rem;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 0.4rem;
 
   svg {
     color: $green-main;
@@ -415,6 +470,8 @@
     color: $text-zinc-700;
     line-height: 1.7;
     font-size: $text-base;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
     &:last-child {
       margin-bottom: 0;
@@ -460,6 +517,34 @@
   cursor: pointer;
   background: #eee;
   height: 100%;
+}
+
+.institution-gallery-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 1rem;
+  text-align: center;
+  background: rgba(109, 93, 252, 0.04);
+  border: 1px solid rgba(109, 93, 252, 0.14);
+}
+
+.institution-gallery-fallback-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $purple-main;
+}
+
+.institution-gallery-fallback-text {
+  margin: 0;
+  color: $purple-main;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
 }
 
 .institution-gallery-image {
@@ -625,6 +710,25 @@
   object-fit: cover;
 }
 
+.institution-map-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(109, 93, 252, 0.08);
+  color: $purple-main;
+  text-align: center;
+  padding: 0.75rem;
+
+  p {
+    margin: 0;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    line-height: 1.4;
+  }
+}
+
 .institution-contact-list {
   display: flex;
   flex-direction: column;
@@ -703,6 +807,12 @@
   color: $purple-main;
   background: rgba(109, 93, 252, 0.1);
   border: 1px solid rgba(109, 93, 252, 0.2);
+}
+
+.institution-meb-type-badge--category {
+  background: rgba(100, 116, 139, 0.06);
+  border-color: rgba(100, 116, 139, 0.28);
+  color: #475569;
 }
 
 .institution-meb-badges {

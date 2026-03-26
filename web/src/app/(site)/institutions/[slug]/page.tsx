@@ -6,6 +6,7 @@ import { Button, Card, CardContent } from "@/components/ui";
 import { MapPin, GraduationCap, CheckCircle2, Star, Clock, Users, Mail, Phone, Globe, Calendar, Share2, BookOpen, Image as ImageIcon } from "lucide-react";
 import "@/styles/pages/institution-detail.scss";
 import ShareButton from "./ShareButton";
+import DbInstitutionDetailClient from "./DbInstitutionDetailClient";
 
 type FeaturedInstitution = {
   id: number;
@@ -337,6 +338,24 @@ type InstitutionViewModel = {
   }>;
 };
 
+type DbInstitutionRow = {
+  id: number;
+  institution_name: string | null;
+  type: string | null; // alt kategori text (mevcut UI)
+  city: string | null;
+  district: string | null;
+  address: string | null;
+  official_phone: string | null;
+  website: string | null;
+  about: string | null;
+  logo: string | null;
+  is_verified: boolean | null;
+  source: string | null;
+};
+
+const FALLBACK_LOGO_SVG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' rx='28' fill='%23F1EEFF'/%3E%3Cpath d='M95 144c0-7.18 5.82-13 13-13h104c7.18 0 13 5.82 13 13v66c0 7.18-5.82 13-13 13H108c-7.18 0-13-5.82-13-13v-66z' fill='%236D5DFC' fill-opacity='.12'/%3E%3Cpath d='M120 176l22-22 20 20 36-36 22 22v38H120v-22z' fill='%236D5DFC' fill-opacity='.45'/%3E%3Ccircle cx='136' cy='156' r='10' fill='%236D5DFC' fill-opacity='.55'/%3E%3C/svg%3E";
+
 function adaptInstitution(institution: FeaturedInstitution): InstitutionViewModel {
   const locationParts = institution.location.split(", ");
   const city = locationParts[1] || locationParts[0];
@@ -429,14 +448,14 @@ function adaptInstitution(institution: FeaturedInstitution): InstitutionViewMode
   };
 }
 
+// DB kurumları için data yükleme client-side yapılır.
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const institution = featuredInstitutions.find((inst) => inst.slug === slug);
 
   if (!institution) {
-    return {
-      title: "Kurum Bulunamadı | Merkezden",
-    };
+    return { title: "Kurum Bulunamadı | Merkezden" };
   }
 
   return {
@@ -455,7 +474,11 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
   const institution = featuredInstitutions.find((inst) => inst.slug === slug);
 
   if (!institution) {
-    notFound();
+    const parsedId = Number(String(slug ?? "").trim());
+    if (!Number.isFinite(parsedId)) {
+      notFound();
+    }
+    return <DbInstitutionDetailClient id={parsedId} />;
   }
 
   const viewModel = adaptInstitution(institution);
@@ -494,11 +517,13 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               <div className="institution-info">
                 <div className="institution-title-row">
                   <h1 className="institution-name">{viewModel.name}</h1>
-                  <div className="institution-rating-badge">
-                    <Star className="institution-rating-icon" size={16} fill="currentColor" />
-                    <span>{viewModel.rating}</span>
-                    <span className="institution-rating-count">({viewModel.reviewCount}+ Değerlendirme)</span>
-                  </div>
+                  {viewModel.rating > 0 && viewModel.reviewCount > 0 ? (
+                    <div className="institution-rating-badge">
+                      <Star className="institution-rating-icon" size={16} fill="currentColor" />
+                      <span>{viewModel.rating}</span>
+                      <span className="institution-rating-count">({viewModel.reviewCount}+ Değerlendirme)</span>
+                    </div>
+                  ) : null}
                 </div>
                 <p className="institution-description">{viewModel.description}</p>
                 <div className="institution-meta">
@@ -557,77 +582,81 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               </Card>
             </section>
 
-            <section id="gallery" className="institution-section">
-              <h2 className="institution-section-title">Kurum Galerisi</h2>
-              <div className="institution-gallery-grid">
-                <div className="institution-gallery-item institution-gallery-main">
-                  <Image
-                    src={viewModel.gallery[0]}
-                    alt="Kurum görseli"
-                    fill
-                    className="institution-gallery-image"
-                    sizes="(max-width: 768px) 100vw, 66vw"
-                  />
+            {viewModel.gallery.length >= 3 ? (
+              <section id="gallery" className="institution-section">
+                <h2 className="institution-section-title">Kurum Galerisi</h2>
+                <div className="institution-gallery-grid">
+                  <div className="institution-gallery-item institution-gallery-main">
+                    <Image
+                      src={viewModel.gallery[0]}
+                      alt="Kurum görseli"
+                      fill
+                      className="institution-gallery-image"
+                      sizes="(max-width: 768px) 100vw, 66vw"
+                    />
+                  </div>
+                  <div className="institution-gallery-item">
+                    <Image
+                      src={viewModel.gallery[1]}
+                      alt="Kurum görseli"
+                      fill
+                      className="institution-gallery-image"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                  </div>
+                  <div className="institution-gallery-item">
+                    <Image
+                      src={viewModel.gallery[2]}
+                      alt="Kurum görseli"
+                      fill
+                      className="institution-gallery-image"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                  </div>
                 </div>
-                <div className="institution-gallery-item">
-                  <Image
-                    src={viewModel.gallery[1]}
-                    alt="Kurum görseli"
-                    fill
-                    className="institution-gallery-image"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-                <div className="institution-gallery-item">
-                  <Image
-                    src={viewModel.gallery[2]}
-                    alt="Kurum görseli"
-                    fill
-                    className="institution-gallery-image"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-              </div>
-            </section>
+              </section>
+            ) : null}
 
-            <section id="reviews" className="institution-section">
-              <div className="institution-section-header">
-                <h2 className="institution-section-title">Öğrenci Yorumları</h2>
-                <Button variant="default" size="sm" className="institution-review-button">
-                  Yorum Yap
-                </Button>
-              </div>
-              <div className="institution-reviews-list">
-                {viewModel.reviews.map((review) => (
-                  <Card key={review.id} className="institution-review-card">
-                    <CardContent>
-                      <div className="institution-review-header">
-                        <div className="institution-review-user">
-                          <div className="institution-review-avatar">
-                            {review.initials}
+            {viewModel.reviews.length > 0 ? (
+              <section id="reviews" className="institution-section">
+                <div className="institution-section-header">
+                  <h2 className="institution-section-title">Öğrenci Yorumları</h2>
+                  <Button variant="default" size="sm" className="institution-review-button">
+                    Yorum Yap
+                  </Button>
+                </div>
+                <div className="institution-reviews-list">
+                  {viewModel.reviews.map((review) => (
+                    <Card key={review.id} className="institution-review-card">
+                      <CardContent>
+                        <div className="institution-review-header">
+                          <div className="institution-review-user">
+                            <div className="institution-review-avatar">
+                              {review.initials}
+                            </div>
+                            <div>
+                              <div className="institution-review-name">{review.userName}</div>
+                              <div className="institution-review-role">{review.role}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="institution-review-name">{review.userName}</div>
-                            <div className="institution-review-role">{review.role}</div>
+                          <div className="institution-review-stars">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={18}
+                                className={i < review.rating ? "institution-star-filled" : "institution-star-empty"}
+                                fill={i < review.rating ? "currentColor" : "none"}
+                              />
+                            ))}
                           </div>
                         </div>
-                        <div className="institution-review-stars">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={18}
-                              className={i < review.rating ? "institution-star-filled" : "institution-star-empty"}
-                              fill={i < review.rating ? "currentColor" : "none"}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="institution-review-comment">"{review.comment}"</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
+                        <p className="institution-review-comment">"{review.comment}"</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
 
           <aside className="institution-sidebar">

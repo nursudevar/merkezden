@@ -175,10 +175,14 @@ export default function MebInstitutionDetailPage() {
                 {categoryBadgeText || subcategoryBadgeText ? (
                   <div className="institution-meb-badges">
                     {categoryBadgeText ? (
-                      <div className="institution-meb-type-badge">{categoryBadgeText}</div>
+                      <div className="institution-meb-type-badge institution-meb-type-badge--category">
+                        {categoryBadgeText}
+                      </div>
                     ) : null}
                     {subcategoryBadgeText ? (
-                      <div className="institution-meb-type-badge">{subcategoryBadgeText}</div>
+                      <div className="institution-meb-type-badge institution-meb-type-badge--subcategory">
+                        {subcategoryBadgeText}
+                      </div>
                     ) : null}
                     {isMebInstitution(institution.source) ? (
                       <div className="institution-meb-approval-badge">
