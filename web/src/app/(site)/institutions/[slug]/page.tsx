@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -471,14 +470,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function InstitutionDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  console.info("[institutions][detail][debug]", {
+    routeSlug: slug,
+    queriedColumn: "public.institutions.slug",
+    queriedValue: slug,
+  });
   const institution = featuredInstitutions.find((inst) => inst.slug === slug);
 
   if (!institution) {
-    const parsedId = Number(String(slug ?? "").trim());
-    if (!Number.isFinite(parsedId)) {
-      notFound();
-    }
-    return <DbInstitutionDetailClient id={parsedId} />;
+    return <DbInstitutionDetailClient slug={slug} />;
   }
 
   const viewModel = adaptInstitution(institution);

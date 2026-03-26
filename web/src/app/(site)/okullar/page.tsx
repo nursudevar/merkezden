@@ -140,7 +140,7 @@ export default function OkullarPage() {
         setLoading(true);
         setError(null);
         const supabase = createSupabaseBrowserClient();
-        const selectCols = `id, source, ${COLS.join(', ')}`;
+        const selectCols = `id, slug, source, ${COLS.join(', ')}`;
         const from = (page - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
         const searchTerm = debouncedSearchText.trim();
@@ -667,9 +667,10 @@ export default function OkullarPage() {
                       const institutionIdRaw = row.id;
                       const institutionIdString = institutionIdRaw == null ? '' : String(institutionIdRaw).trim();
                       const institutionId = Number(institutionIdRaw);
+                      const institutionSlug = String(row.slug ?? '').trim();
                       const institutionSource = String(row.source ?? '');
-                      const rowHref = institutionIdString
-                        ? getInstitutionDetailHref({ id: institutionIdString, source: institutionSource })
+                      const rowHref = institutionSlug
+                        ? getInstitutionDetailHref({ slug: institutionSlug, source: institutionSource })
                         : '';
 
                       return (

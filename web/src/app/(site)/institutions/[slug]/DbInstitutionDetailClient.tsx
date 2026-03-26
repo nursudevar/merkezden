@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Button, Card, CardContent } from "@/components/ui";
 import {
   MapPin,
@@ -27,6 +26,7 @@ import ShareButton from "./ShareButton";
 
 type DbInstitutionRow = {
   id: number;
+  slug: string | null;
   institution_name: string | null;
   type: string | null;
   institution_type: { name: string | null; category: { name: string | null } | null } | Array<{ name: string | null; category: { name: string | null } | null }> | null;
@@ -104,11 +104,12 @@ type AcademicFeatureLine = {
   isBadgeList?: boolean;
 };
 
+type DetailBranch = "meb" | "auto" | "default";
+
 const FALLBACK_LOGO_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' rx='28' fill='%23F1EEFF'/%3E%3Cpath d='M95 144c0-7.18 5.82-13 13-13h104c7.18 0 13 5.82 13 13v66c0 7.18-5.82 13-13 13H108c-7.18 0-13-5.82-13-13v-66z' fill='%236D5DFC' fill-opacity='.12'/%3E%3Cpath d='M120 176l22-22 20 20 36-36 22 22v38H120v-22z' fill='%236D5DFC' fill-opacity='.45'/%3E%3Ccircle cx='136' cy='156' r='10' fill='%236D5DFC' fill-opacity='.55'/%3E%3C/svg%3E";
 
-export default function DbInstitutionDetailClient({ id }: { id: number }) {
-  const router = useRouter();
+export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [row, setRow] = useState<DbInstitutionRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +125,7 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
   const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
   const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
+  const [detailBranch, setDetailBranch] = useState<DetailBranch>("default");
 
   useEffect(() => {
     let cancelled = false;
@@ -135,9 +137,15 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
 
       const { data, error: qErr } = await supabase
         .from("institutions")
-        .select("id, institution_name, type, city, district, address, official_phone, website, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name))")
-        .eq("id", id)
+        .select("id, slug, institution_name, type, city, district, address, official_phone, website, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name))")
+        .eq("slug", slug)
         .maybeSingle();
+
+      console.info("[institutions][detail][debug]", {
+        routeSlug: slug,
+        queriedColumn: "public.institutions.slug",
+        queriedValue: slug,
+      });
 
       if (cancelled) return;
 
@@ -151,16 +159,29 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
 
       const r = (data as DbInstitutionRow | null) ?? null;
       if (!r) {
+        console.info("[institutions][detail][debug]", {
+          matchedInstitutionId: null,
+          matchedInstitutionSlug: null,
+          matchedInstitutionSource: null,
+          selectedBranch: "default",
+        });
         setRow(null);
         setError("Kurum kaydı bulunamadı.");
         setLoading(false);
         return;
       }
-
-      if (isMebInstitution(r.source)) {
-        router.replace(`/institutions/meb/${r.id}`);
-        return;
-      }
+      const nextBranch: DetailBranch = isMebInstitution(r.source)
+        ? "meb"
+        : r.source === "auto"
+          ? "auto"
+          : "default";
+      setDetailBranch(nextBranch);
+      console.info("[institutions][detail][debug]", {
+        matchedInstitutionId: r.id,
+        matchedInstitutionSlug: r.slug,
+        matchedInstitutionSource: r.source,
+        selectedBranch: nextBranch,
+      });
 
       setRow(r);
       setLoading(false);
@@ -169,7 +190,7 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
     return () => {
       cancelled = true;
     };
-  }, [id, router]);
+  }, [slug]);
 
   const logoUrl = useMemo(() => {
     const supabase = createSupabaseBrowserClient();
@@ -563,6 +584,104 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
     );
   }
 
+  if (detailBranch === "meb") {
+    const subcategoryBadgeText =
+      institutionTypeRow?.name?.trim() || row.type?.trim() || "";
+    const categoryBadgeText =
+      institutionTypeRow?.category?.name?.trim() || "";
+
+    return (
+      <div className="institution-detail-page institution-detail-page--meb">
+        <div className="institution-detail-container">
+          <nav className="institution-breadcrumb" aria-label="Breadcrumb">
+            <div className="institution-breadcrumb-container">
+              <Link href="/" className="institution-breadcrumb-link">
+                Ana Sayfa
+              </Link>
+              <span className="institution-breadcrumb-separator"> &gt; </span>
+              <Link href="/okullar" className="institution-breadcrumb-link">
+                Kurumlar
+              </Link>
+              <span className="institution-breadcrumb-separator"> &gt; </span>
+              <span className="institution-breadcrumb-current">{name}</span>
+            </div>
+          </nav>
+
+          <Card className="institution-hero">
+            <CardContent className="institution-hero-content">
+              <div className="institution-hero-main">
+                <div className="institution-logo-section">
+                  <div className="institution-logo-wrapper">
+                    <div className="institution-logo institution-logo--meb-fallback">
+                      <GraduationCap size={56} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="institution-info">
+                  <div className="institution-title-row">
+                    <h1 className="institution-name">{name}</h1>
+                  </div>
+
+                  {categoryBadgeText || subcategoryBadgeText ? (
+                    <div className="institution-meb-badges">
+                      {categoryBadgeText ? (
+                        <div className="institution-meb-type-badge institution-meb-type-badge--category">
+                          {categoryBadgeText}
+                        </div>
+                      ) : null}
+                      {subcategoryBadgeText ? (
+                        <div className="institution-meb-type-badge institution-meb-type-badge--subcategory">
+                          {subcategoryBadgeText}
+                        </div>
+                      ) : null}
+                      <div className="institution-meb-approval-badge">
+                        <CheckCircle2 size={16} aria-hidden />
+                        Meb Onaylı
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {row.city || row.district ? (
+                    <div className="institution-meta">
+                      <div className="institution-meta-item">
+                        <MapPin size={18} />
+                        <span>{[row.city, row.district].filter(Boolean).join(" / ")}</span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {row.official_phone ? (
+                    <div className="institution-meta">
+                      <div className="institution-meta-item">
+                        <Phone size={18} />
+                        <a
+                          href={`tel:${row.official_phone}`}
+                          className="institution-contact-value institution-contact-link"
+                        >
+                          {row.official_phone}
+                        </a>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {row.address ? (
+                    <div className="institution-meta">
+                      <div className="institution-meta-item">
+                        <MapPin size={18} />
+                        <span>{row.address}</span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="institution-detail-page">
       <div className="institution-detail-container">
@@ -631,7 +750,7 @@ export default function DbInstitutionDetailClient({ id }: { id: number }) {
                   ) : null}
                 </div>
                 <div className="institution-actions">
-                  <ShareButton slug={String(row.id)} />
+                  <ShareButton slug={String(row.slug ?? "").trim()} />
                 </div>
               </div>
             </div>

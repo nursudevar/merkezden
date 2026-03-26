@@ -41,15 +41,7 @@ export default function CategoryResultsCard({
 }: CategoryResultsCardProps) {
   const priceText = typeof price === "number" ? `${price.toLocaleString("tr-TR")} ₺ / ay` : price;
   
-  const institutionSlug = slug || name.toLowerCase()
-    .replace(/ş/g, "s")
-    .replace(/ğ/g, "g")
-    .replace(/ü/g, "u")
-    .replace(/ö/g, "o")
-    .replace(/ç/g, "c")
-    .replace(/ı/g, "i")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  const institutionSlug = String(slug ?? "").trim();
 
   const cardContent = (
     <>
