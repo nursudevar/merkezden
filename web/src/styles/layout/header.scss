@@ -349,7 +349,7 @@
   right: 0;
   margin-top: 8px;
   min-width: 280px;
-  padding: 8px 0 0 0;
+  padding: 0 0 0 0;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.99);
   border: 1px solid rgba(110, 86, 207, 0.08);
@@ -368,6 +368,19 @@
   padding: 14px 16px;
   border-bottom: 1px solid rgba($border-default, 0.35);
   background: linear-gradient(180deg, rgba($bg-white, 0.98) 0%, rgba($bg-zinc-50, 0.98) 100%);
+}
+
+.header-hamburger-welcome-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  @include transition-colors;
+  border-radius: 0 0 12px 12px;
+
+  &:hover {
+    border-radius: 12px 12px 0 0;
+    background: rgba($color: $purple-main, $alpha: 0.06);
+  }
 }
 
 .header-hamburger-welcome-avatar {

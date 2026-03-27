@@ -35,7 +35,7 @@
   border: 1px solid $border-light;
   border-radius: 16px;
   @include shadow-sm;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .okullar-filter-bar {
@@ -46,6 +46,8 @@
   background: $bg-white;
   border-bottom: 1px solid $border-light;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 30;
 }
 
 .okullar-filter-loading {

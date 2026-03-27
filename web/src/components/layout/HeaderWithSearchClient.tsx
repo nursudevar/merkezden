@@ -13,6 +13,7 @@ interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
   userType: 'individual' | 'institution' | null;
   institutionName?: string | null;
+  institutionSlug?: string | null;
   individualName?: string | null;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
@@ -25,6 +26,7 @@ export default function HeaderWithSearchClient({
   user,
   userType,
   institutionName,
+  institutionSlug,
   individualName,
   searchValue = '',
   onSearchChange,
@@ -44,6 +46,9 @@ export default function HeaderWithSearchClient({
   };
 
   const shouldShowCTA = !!user;
+  const institutionDetailHref = institutionSlug
+    ? `/institutions/${institutionSlug}`
+    : '/panel';
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
@@ -130,17 +135,35 @@ export default function HeaderWithSearchClient({
               {menuOpen && (
                 <div className="header-hamburger-dropdown">
                   {user && (userType === 'institution' || userType === 'individual') && (
-                    <div className="header-hamburger-welcome">
-                      <div className="header-hamburger-welcome-avatar" aria-hidden>
-                        <User className="header-hamburger-welcome-avatar-icon" />
+                    userType === 'institution' ? (
+                      <Link
+                        href={institutionDetailHref}
+                        className="header-hamburger-welcome header-hamburger-welcome-link"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <div className="header-hamburger-welcome-avatar" aria-hidden>
+                          <User className="header-hamburger-welcome-avatar-icon" />
+                        </div>
+                        <div className="header-hamburger-welcome-text">
+                          <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
+                          <span className="header-hamburger-welcome-name">
+                            {welcomeName}
+                          </span>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="header-hamburger-welcome">
+                        <div className="header-hamburger-welcome-avatar" aria-hidden>
+                          <User className="header-hamburger-welcome-avatar-icon" />
+                        </div>
+                        <div className="header-hamburger-welcome-text">
+                          <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
+                          <span className="header-hamburger-welcome-name">
+                            {welcomeName}
+                          </span>
+                        </div>
                       </div>
-                      <div className="header-hamburger-welcome-text">
-                        <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
-                        <span className="header-hamburger-welcome-name">
-                          {welcomeName}
-                        </span>
-                      </div>
-                    </div>
+                    )
                   )}
                   {user && userType === 'individual' && shouldShowCTA && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
@@ -247,17 +270,35 @@ export default function HeaderWithSearchClient({
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
                   {user && (userType === 'institution' || userType === 'individual') && (
-                    <div className="header-hamburger-welcome">
-                      <div className="header-hamburger-welcome-avatar" aria-hidden>
-                        <User className="header-hamburger-welcome-avatar-icon" />
+                    userType === 'institution' ? (
+                      <Link
+                        href={institutionDetailHref}
+                        className="header-hamburger-welcome header-hamburger-welcome-link"
+                        onClick={() => setDesktopMenuOpen(false)}
+                      >
+                        <div className="header-hamburger-welcome-avatar" aria-hidden>
+                          <User className="header-hamburger-welcome-avatar-icon" />
+                        </div>
+                        <div className="header-hamburger-welcome-text">
+                          <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
+                          <span className="header-hamburger-welcome-name">
+                            {welcomeName}
+                          </span>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="header-hamburger-welcome">
+                        <div className="header-hamburger-welcome-avatar" aria-hidden>
+                          <User className="header-hamburger-welcome-avatar-icon" />
+                        </div>
+                        <div className="header-hamburger-welcome-text">
+                          <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
+                          <span className="header-hamburger-welcome-name">
+                            {welcomeName}
+                          </span>
+                        </div>
                       </div>
-                      <div className="header-hamburger-welcome-text">
-                        <span className="header-hamburger-welcome-title">Hoşgeldiniz</span>
-                        <span className="header-hamburger-welcome-name">
-                          {welcomeName}
-                        </span>
-                      </div>
-                    </div>
+                    )
                   )}
                   {user && userType === 'individual' && shouldShowCTA && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>

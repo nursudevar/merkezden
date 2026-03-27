@@ -6,6 +6,7 @@ interface HeaderClientProps {
   initialUser: { id: string; email?: string } | null;
   initialUserType: 'individual' | 'institution' | null;
   initialInstitutionName?: string | null;
+  initialInstitutionSlug?: string | null;
   initialIndividualName?: string | null;
 }
 
@@ -13,6 +14,7 @@ export default function HeaderClient({
   initialUser,
   initialUserType,
   initialInstitutionName,
+  initialInstitutionSlug,
   initialIndividualName,
 }: HeaderClientProps) {
   return (
@@ -20,6 +22,7 @@ export default function HeaderClient({
       user={initialUser}
       userType={initialUserType}
       institutionName={initialInstitutionName}
+      institutionSlug={initialInstitutionSlug}
       individualName={initialIndividualName}
     />
   );

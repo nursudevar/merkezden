@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveUserTypeFromUsersClient } from '@/lib/auth/resolveUserTypeFromUsersClient';
 import { resolveInstitutionNameFromUsersClient } from '@/lib/auth/resolveInstitutionNameFromUsersClient';
+import { resolveInstitutionSlugFromUsersClient } from '@/lib/auth/resolveInstitutionSlugFromUsersClient';
 import { resolveIndividualNameFromUsersClient } from '@/lib/auth/resolveIndividualNameFromUsersClient';
 import HeaderWithSearchClient from './HeaderWithSearchClient';
 
@@ -25,6 +26,7 @@ export default function HeaderWithSearch({
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<'individual' | 'institution' | null>(null);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
+  const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -38,6 +40,7 @@ export default function HeaderWithSearch({
       if (!authUser) {
         setUserType(null);
         setInstitutionName(null);
+        setInstitutionSlug(null);
         setIndividualName(null);
       }
       setIsAuthReady(true);
@@ -51,6 +54,7 @@ export default function HeaderWithSearch({
       if (!authUser) {
         setUserType(null);
         setInstitutionName(null);
+        setInstitutionSlug(null);
         setIndividualName(null);
       }
     });
@@ -90,6 +94,20 @@ export default function HeaderWithSearch({
   }, [user?.id, userType]);
 
   useEffect(() => {
+    if (!user?.id || userType !== 'institution') {
+      setInstitutionSlug(null);
+      return;
+    }
+    let cancelled = false;
+    resolveInstitutionSlugFromUsersClient(user.id).then((slug) => {
+      if (!cancelled) setInstitutionSlug(slug);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, userType]);
+
+  useEffect(() => {
     if (!user?.id || userType !== 'individual') {
       setIndividualName(null);
       return;
@@ -111,6 +129,7 @@ export default function HeaderWithSearch({
       user={displayUser}
       userType={displayUserType}
       institutionName={displayUserType === 'institution' ? institutionName : null}
+      institutionSlug={displayUserType === 'institution' ? institutionSlug : null}
       individualName={displayUserType === 'individual' ? individualName : null}
       searchValue={searchValue}
       onSearchChange={onSearchChange}
