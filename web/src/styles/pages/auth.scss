@@ -462,6 +462,11 @@
   margin-bottom: 24px;
 }
 
+.auth-social-row--single {
+  grid-template-columns: minmax(220px, 280px);
+  justify-content: center;
+}
+
 .auth-social-button {
   display: flex;
   align-items: center;
@@ -538,6 +543,29 @@
     color: $purple-dark;
     text-decoration: underline;
   }
+}
+
+.auth-feedback {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  line-height: 1.5;
+  border: 1px solid rgba($purple-main, 0.18);
+  background: rgba($purple-main, 0.08);
+  color: $text-zinc-800;
+}
+
+.auth-feedback--error {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.auth-feedback--success {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
 }
 
 .signup-card {
