@@ -136,17 +136,37 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
   }, []);
 
   const particles = useMemo(() => {
-    const count = 10;
-    const radius = 60;
-    return Array.from({ length: count }).map((_, index) => {
-      const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
+    const baseOffsets = [
+      { x: -74, y: -56 },
+      { x: -36, y: -84 },
+      { x: 14, y: -76 },
+      { x: 66, y: -58 },
+      { x: 82, y: -10 },
+      { x: 58, y: 44 },
+      { x: 12, y: 80 },
+      { x: -44, y: 68 },
+      { x: -82, y: 22 },
+      { x: -10, y: 18 },
+    ];
+
+    // Hafif tohumlu rastgelelik: dağınık ama dengeli görünüm.
+    let seed = (burstId + 1) * 9973;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967295;
+    };
+
+    return baseOffsets.map((base, index) => {
+      const jitterX = (rand() - 0.5) * 18;
+      const jitterY = (rand() - 0.5) * 18;
+      const scale = 0.9 + rand() * 0.24;
+      const delay = rand() * 0.22 + index * 0.012;
+
       return {
         id: `${burstId}-${index}`,
-        x,
-        y,
-        delay: index * 0.04,
+        x: (base.x + jitterX) * scale,
+        y: (base.y + jitterY) * scale,
+        delay,
       };
     });
   }, [burstId]);
@@ -177,7 +197,7 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
         type="button"
         variant="default"
         onClick={toggleChat}
-        className={cn("expandable-chat-toggle", className)}
+        className={cn("expandable-chat-toggle", isOpen && "expandable-chat-toggle--open", className)}
         aria-label={isOpen ? "Sohbeti kapat" : "Sohbeti aç"}
         aria-expanded={isOpen}
         {...props}

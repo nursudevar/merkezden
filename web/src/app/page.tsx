@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, MessageCircle, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound   } from "lucide-react";
 import { motion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
@@ -1410,12 +1410,37 @@ export default function Home() {
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
 
-      <ExpandableChat size="lg" position="bottom-right" icon={<MessageCircle aria-hidden />}>
+      <ExpandableChat
+        size="lg"
+        position="bottom-right"
+        icon={(
+          <video
+            className="expandable-chat-toggle-video"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden
+          >
+            <source src="/gifs/meko_soru.mp4" type="video/mp4" />
+          </video>
+        )}
+      >
         <ExpandableChatHeader>
           <h2 className="expandable-chat-header-title">Bize ulaşın</h2>
         </ExpandableChatHeader>
         <ExpandableChatBody>
-          <p className="expandable-chat-welcome">Sorularınız için buradan yazabilirsiniz.</p>
+          <div className="expandable-chat-starter">
+            <div className="expandable-chat-starter-avatar" aria-hidden>
+              <UserRound size={16} />
+            </div>
+            <div className="expandable-chat-starter-bubble">
+              <p className="expandable-chat-starter-text">
+                Sorularınız için bize iletişim sayfamız üzerinden ulaşabilirsiniz!
+              </p>
+            </div>
+          </div>
         </ExpandableChatBody>
         <ExpandableChatFooter>
           <form

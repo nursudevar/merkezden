@@ -52,7 +52,7 @@ function LoginPageContent() {
             <div className="auth-visual">
                 <video
                   className="auth-visual-video"
-                  src="/gifs/login-meko.mp4"
+                  src="/gifs/meko_giris.mp4"
                   autoPlay
                   muted
                   loop
