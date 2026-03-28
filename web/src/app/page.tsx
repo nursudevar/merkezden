@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound   } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X } from "lucide-react";
 import { motion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
@@ -596,6 +596,7 @@ export default function Home() {
   const [selectedSchoolStatus, setSelectedSchoolStatus] = useState<string | null>(null);
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
   const [premiumPicksPage, setPremiumPicksPage] = useState(0);
+  const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
 
   const handleFavoriteToggle = async (institutionId: number, e: React.MouseEvent) => {
@@ -738,7 +739,19 @@ export default function Home() {
       .catch(() => {});
   }, [selectedDistrict]);
 
-
+  useEffect(() => {
+    if (!showInstitutionMapModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowInstitutionMapModal(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showInstitutionMapModal]);
 
   const handlePriceInput = (index: number, value: string) => {
     const numeric = Math.max(0, Math.min(10000, Number(value) || 0));
@@ -809,14 +822,23 @@ export default function Home() {
             </CardHeader>
             <CardContent className="filter-sidebar-content">
               <div className="filter-section filter-section-map">
-                <div className="filter-section-title">
-                  <Image
-                    src="/images/map.svg"
-                    alt="Kurum Haritası"
-                    width={20}
-                    height={20}
-                  />
-                  <span>Kurum Haritası</span>
+                <div className="filter-section-map-heading">
+                  <div className="filter-section-title filter-section-title--map-row">
+                    <Image
+                      src="/images/map.svg"
+                      alt="Kurum Haritası"
+                      width={20}
+                      height={20}
+                    />
+                    <span>Kurum Haritası</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="institution-map-detail-link"
+                    onClick={() => setShowInstitutionMapModal(true)}
+                  >
+                    Detaylı incele
+                  </button>
                 </div>
                 <InstitutionLocationsMap />
               </div>
@@ -1427,6 +1449,41 @@ export default function Home() {
         </div>
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+      {showInstitutionMapModal ? (
+        <div className="institution-map-modal-root" role="presentation">
+          <button
+            type="button"
+            className="institution-map-modal-backdrop"
+            aria-label="Haritayı kapat"
+            onClick={() => setShowInstitutionMapModal(false)}
+          />
+          <div
+            className="institution-map-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="institution-map-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="institution-map-modal-header">
+              <h2 id="institution-map-modal-title" className="institution-map-modal-title">
+                Kurum Haritası
+              </h2>
+              <button
+                type="button"
+                className="institution-map-modal-close"
+                onClick={() => setShowInstitutionMapModal(false)}
+                aria-label="Kapat"
+              >
+                <X size={22} strokeWidth={2} />
+              </button>
+            </div>
+            <div className="institution-map-modal-body">
+              <InstitutionLocationsMap variant="modal" />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ExpandableChat
         size="lg"

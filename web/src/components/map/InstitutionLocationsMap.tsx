@@ -2,11 +2,42 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapContainer, Marker, TileLayer, Tooltip } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
+
+/** Inline SVG building — avoids broken Leaflet default PNG paths in Next.js bundler */
+const BUILDING_MARKER_SVG = `
+<div class="institution-map-pin-inner" aria-hidden="true">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 22V9.5l6-4 6 4V22" />
+    <path d="M10 22v-5h4v5" />
+    <path d="M9 13h.01" /><path d="M15 13h.01" />
+    <path d="M9 17h.01" /><path d="M15 17h.01" />
+  </svg>
+</div>
+`;
+
+function createBuildingMarkerIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "institution-map-marker-leaflet",
+    html: BUILDING_MARKER_SVG,
+    iconSize: [40, 40],
+    iconAnchor: [20, 38],
+    tooltipAnchor: [0, -34],
+  });
+}
+
+function createClusterIcon(cluster: { getChildCount: () => number }): L.DivIcon {
+  const count = cluster.getChildCount();
+  return L.divIcon({
+    className: "institution-map-cluster-leaflet",
+    html: `<div class="institution-map-cluster-inner"><span class="institution-map-cluster-count">${count}</span></div>`,
+    iconSize: [44, 44],
+  });
+}
 
 type InstitutionLocationRow = {
   institution_id: number;
@@ -35,19 +66,24 @@ type MarkerItem = {
   longitude: number;
 };
 
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x.src,
-  iconUrl: markerIcon.src,
-  shadowUrl: markerShadow.src,
-});
-
 const DEFAULT_CENTER: [number, number] = [39.9334, 32.8597];
 
-export default function InstitutionLocationsMap() {
+function MapInvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+    return () => window.clearTimeout(id);
+  }, [map]);
+  return null;
+}
+
+export type InstitutionLocationsMapProps = {
+  variant?: "inline" | "modal";
+};
+
+export default function InstitutionLocationsMap({ variant = "inline" }: InstitutionLocationsMapProps) {
   const router = useRouter();
   const [markers, setMarkers] = useState<MarkerItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,35 +182,57 @@ export default function InstitutionLocationsMap() {
     return DEFAULT_CENTER;
   }, [markers]);
 
+  const buildingIcon = useMemo(() => createBuildingMarkerIcon(), []);
+
+  const wrapperClass =
+    variant === "modal"
+      ? "institution-locations-map-wrapper institution-locations-map-wrapper--modal"
+      : "institution-locations-map-wrapper";
+  const mapClass =
+    variant === "modal"
+      ? "institution-locations-map institution-locations-map--modal"
+      : "institution-locations-map";
+
   return (
-    <div className="institution-locations-map-wrapper">
+    <div className={wrapperClass}>
       {loading ? (
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : markers.length === 0 ? (
         <div className="institution-locations-map-state">Konum bilgisi olan kurum bulunamadı.</div>
       ) : (
-        <MapContainer center={center} zoom={10} scrollWheelZoom={false} className="institution-locations-map">
+        <MapContainer center={center} zoom={10} scrollWheelZoom className={mapClass}>
+          <MapInvalidateSize />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MarkerClusterGroup chunkedLoading>
+          <MarkerClusterGroup chunkedLoading iconCreateFunction={createClusterIcon}>
             {markers.map((item) => (
               <Marker
                 key={item.id}
                 position={[item.latitude, item.longitude]}
+                icon={buildingIcon}
                 eventHandlers={{
                   click: () => {
                     router.push(getInstitutionDetailHref({ slug: item.slug }));
                   },
                 }}
               >
-                <Tooltip direction="top" offset={[0, -12]} opacity={1}>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  opacity={1}
+                  className="institution-locations-tooltip-shell"
+                >
                   <div className="institution-locations-tooltip">
-                    <strong>{item.institution_name}</strong>
-                    <span>{item.address}</span>
-                    {item.official_phone ? <span>Tel: {item.official_phone}</span> : null}
-                    {item.official_email ? <span>E-posta: {item.official_email}</span> : null}
+                    <p className="institution-locations-tooltip-title">{item.institution_name}</p>
+                    <p className="institution-locations-tooltip-address">{item.address}</p>
+                    {item.official_phone ? (
+                      <p className="institution-locations-tooltip-meta">Tel: {item.official_phone}</p>
+                    ) : null}
+                    {item.official_email ? (
+                      <p className="institution-locations-tooltip-meta">E-posta: {item.official_email}</p>
+                    ) : null}
                   </div>
                 </Tooltip>
               </Marker>
