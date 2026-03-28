@@ -5,7 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
 import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
 import SearchResults from "@/components/SearchResults";
@@ -572,6 +572,18 @@ function FeaturedInstitutions({
   );
 }
 
+const premiumPicksMotionVariants = {
+  enter: (dir: 1 | -1) => ({
+    x: dir * 26,
+    opacity: 0,
+  }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: 1 | -1) => ({
+    x: dir * -26,
+    opacity: 0,
+  }),
+};
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -596,6 +608,8 @@ export default function Home() {
   const [selectedSchoolStatus, setSelectedSchoolStatus] = useState<string | null>(null);
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
   const [premiumPicksPage, setPremiumPicksPage] = useState(0);
+  const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
+  const reduceMotion = useReducedMotion();
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const categoriesScrollerRef = useRef<HTMLDivElement>(null);
 
@@ -840,7 +854,7 @@ export default function Home() {
                     Detaylı incele
                   </button>
                 </div>
-                <InstitutionLocationsMap />
+                <InstitutionLocationsMap key="institution-map-sidebar" />
               </div>
               <Separator />
               <div className="filter-section">
@@ -1333,7 +1347,10 @@ export default function Home() {
                   type="button"
                   className="premium-picks-nav-btn premium-picks-nav-btn--prev"
                   aria-label="Önceki"
-                  onClick={() => setPremiumPicksPage((p) => (p - 1 + 2) % 2)}
+                  onClick={() => {
+                    setPremiumPicksSlideDir(-1);
+                    setPremiumPicksPage((p) => (p - 1 + 2) % 2);
+                  }}
                 >
                   <ChevronLeft className="premium-picks-nav-icon" />
                 </button>
@@ -1341,33 +1358,53 @@ export default function Home() {
                   type="button"
                   className="premium-picks-nav-btn premium-picks-nav-btn--next"
                   aria-label="Sonraki"
-                  onClick={() => setPremiumPicksPage((p) => (p + 1) % 2)}
+                  onClick={() => {
+                    setPremiumPicksSlideDir(1);
+                    setPremiumPicksPage((p) => (p + 1) % 2);
+                  }}
                 >
                   <ChevronRight className="premium-picks-nav-icon" />
                 </button>
               </div>
             </div>
             <div className="premium-picks-cards">
-              {premiumPicks.slice(premiumPicksPage * 3, premiumPicksPage * 3 + 3).map((item) => (
-                <Link key={item.slug} href={`/okullar/${item.slug}`} className="premium-picks-card">
-                  <div
-                    className="premium-picks-card-media"
-                    style={{ backgroundImage: `url("${item.imageUrl}")` }}
-                  >
-                    <span className="premium-picks-card-badge">TOP PICK</span>
-                    <div className="premium-picks-card-overlay" />
-                    <div className="premium-picks-card-info">
-                      <h3 className="premium-picks-card-title">{item.name}</h3>
-                      <div className="premium-picks-card-rating">
-                        <Star className="premium-picks-card-star" fill="currentColor" aria-hidden />
-                        <span>{item.rating}</span>
-                        <span className="premium-picks-card-reviews">({item.reviewCount} Değerlendirme)</span>
+              <AnimatePresence mode="wait" initial={false} custom={premiumPicksSlideDir}>
+                <motion.div
+                  key={premiumPicksPage}
+                  custom={premiumPicksSlideDir}
+                  variants={premiumPicksMotionVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.16, ease: [0.4, 0, 0.2, 1] }
+                  }
+                  className="premium-picks-cards-track"
+                >
+                  {premiumPicks.slice(premiumPicksPage * 3, premiumPicksPage * 3 + 3).map((item) => (
+                    <Link key={item.slug} href={`/okullar/${item.slug}`} className="premium-picks-card">
+                      <div
+                        className="premium-picks-card-media"
+                        style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                      >
+                        <span className="premium-picks-card-badge">TOP PICK</span>
+                        <div className="premium-picks-card-overlay" />
+                        <div className="premium-picks-card-info">
+                          <h3 className="premium-picks-card-title">{item.name}</h3>
+                          <div className="premium-picks-card-rating">
+                            <Star className="premium-picks-card-star" fill="currentColor" aria-hidden />
+                            <span>{item.rating}</span>
+                            <span className="premium-picks-card-reviews">({item.reviewCount} Değerlendirme)</span>
+                          </div>
+                          <p className="premium-picks-card-location">{item.location}</p>
+                        </div>
                       </div>
-                      <p className="premium-picks-card-location">{item.location}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                    </Link>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </section>
 
@@ -1479,7 +1516,7 @@ export default function Home() {
               </button>
             </div>
             <div className="institution-map-modal-body">
-              <InstitutionLocationsMap variant="modal" />
+              <InstitutionLocationsMap key="institution-map-modal" variant="modal" />
             </div>
           </div>
         </div>

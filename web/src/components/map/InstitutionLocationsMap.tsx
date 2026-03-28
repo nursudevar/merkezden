@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -71,10 +71,16 @@ const DEFAULT_CENTER: [number, number] = [39.9334, 32.8597];
 function MapInvalidateSize() {
   const map = useMap();
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
-    return () => window.clearTimeout(id);
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => map.invalidateSize());
+    });
+    const t = window.setTimeout(() => map.invalidateSize(), 150);
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+      window.clearTimeout(t);
+    };
   }, [map]);
   return null;
 }
@@ -85,8 +91,15 @@ export type InstitutionLocationsMapProps = {
 
 export default function InstitutionLocationsMap({ variant = "inline" }: InstitutionLocationsMapProps) {
   const router = useRouter();
+  const mapInstanceId = useId().replace(/:/g, "");
   const [markers, setMarkers] = useState<MarkerItem[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Leaflet tek DOM konteyneri iki kez bağlamasın diye (Strict Mode / modal) haritayı yalnızca mount sonrası çiz */
+  const [domReady, setDomReady] = useState(false);
+
+  useEffect(() => {
+    setDomReady(true);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,8 +212,16 @@ export default function InstitutionLocationsMap({ variant = "inline" }: Institut
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : markers.length === 0 ? (
         <div className="institution-locations-map-state">Konum bilgisi olan kurum bulunamadı.</div>
+      ) : !domReady ? (
+        <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : (
-        <MapContainer center={center} zoom={10} scrollWheelZoom className={mapClass}>
+        <MapContainer
+          key={`institution-locations-leaflet-${mapInstanceId}-${variant}`}
+          center={center}
+          zoom={10}
+          scrollWheelZoom
+          className={mapClass}
+        >
           <MapInvalidateSize />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

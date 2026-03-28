@@ -3174,9 +3174,15 @@ a.featured-institution-card {
 }
 
 .premium-picks-cards {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-picks-cards-track {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+  width: 100%;
 }
 
 .premium-picks-card {
@@ -3285,7 +3291,7 @@ a.featured-institution-card {
 }
 
 @media (max-width: 1023px) {
-  .premium-picks-cards {
+  .premium-picks-cards-track {
     grid-template-columns: 1fr;
     gap: 16px;
   }
