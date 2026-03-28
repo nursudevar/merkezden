@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:meb": "node scripts/import-meb.js"
+    "import:meb": "node scripts/import-meb.js",
+    "geocode:institutions": "node scripts/geocode-institution-locations.js"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -21,10 +22,13 @@
     "@supabase/supabase-js": "^2.95.3",
     "dotenv": "^17.3.1",
     "framer-motion": "^11.0.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.552.0",
     "next": "16.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-leaflet": "^5.0.0",
+    "react-leaflet-cluster": "^4.0.0",
     "sass": "^1.94.0"
   },
   "devDependencies": {

@@ -17,6 +17,11 @@ import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 
+const InstitutionLocationsMap = dynamic(
+  () => import("@/components/map/InstitutionLocationsMap"),
+  { ssr: false }
+);
+
 
 const mainCategories = [
   "Tümü",
@@ -803,6 +808,19 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="filter-sidebar-content">
+              <div className="filter-section filter-section-map">
+                <div className="filter-section-title">
+                  <Image
+                    src="/images/map.svg"
+                    alt="Kurum Haritası"
+                    width={20}
+                    height={20}
+                  />
+                  <span>Kurum Haritası</span>
+                </div>
+                <InstitutionLocationsMap />
+              </div>
+              <Separator />
               <div className="filter-section">
                 <div className="filter-section-title">
                   <Image 
