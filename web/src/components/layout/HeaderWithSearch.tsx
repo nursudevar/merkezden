@@ -31,35 +31,44 @@ export default function HeaderWithSearch({
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const supabase = createSupabaseBrowserClient();
 
     async function initSession() {
       const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
       const authUser = session?.user ?? null;
-      setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
-      if (!authUser) {
-        setUserType(null);
-        setInstitutionName(null);
-        setInstitutionSlug(null);
-        setIndividualName(null);
-      }
-      setIsAuthReady(true);
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
+        if (!authUser) {
+          setUserType(null);
+          setInstitutionName(null);
+          setInstitutionSlug(null);
+          setIndividualName(null);
+        }
+        setIsAuthReady(true);
+      });
     }
 
-    initSession();
+    void initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const authUser = session?.user ?? null;
-      setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
-      if (!authUser) {
-        setUserType(null);
-        setInstitutionName(null);
-        setInstitutionSlug(null);
-        setIndividualName(null);
-      }
+      queueMicrotask(() => {
+        if (cancelled) return;
+        const authUser = session?.user ?? null;
+        setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
+        if (!authUser) {
+          setUserType(null);
+          setInstitutionName(null);
+          setInstitutionSlug(null);
+          setIndividualName(null);
+        }
+      });
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);

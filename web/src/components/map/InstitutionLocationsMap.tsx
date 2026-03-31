@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -97,7 +97,7 @@ export default function InstitutionLocationsMap({ variant = "inline" }: Institut
   /** Leaflet tek DOM konteyneri iki kez bağlamasın diye (Strict Mode / modal) haritayı yalnızca mount sonrası çiz */
   const [domReady, setDomReady] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setDomReady(true);
   }, []);
 

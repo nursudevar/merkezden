@@ -672,18 +672,26 @@ export default function Home() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     const supabase = createSupabaseBrowserClient();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsAuthReady(true);
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setUser(session?.user ?? null);
+        setIsAuthReady(true);
+      });
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setUser(session?.user ?? null);
+      });
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
