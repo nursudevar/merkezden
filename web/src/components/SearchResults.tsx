@@ -190,7 +190,7 @@ export default function SearchResults({
                   alt={result.name}
                   fill
                   className="featured-institution-image"
-                  sizes="220px"
+                  sizes="240px"
                   unoptimized
                 />
                 <div className="featured-institution-overlay" />

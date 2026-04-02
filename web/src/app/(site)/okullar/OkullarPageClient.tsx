@@ -31,6 +31,42 @@ const COL_LABELS: Record<(typeof COLS)[number], string> = {
   address: 'Adres',
 };
 
+const normalizeSearchText = (value: string) =>
+  value
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/[^a-z0-9\s]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const buildSearchVariants = (rawValue: string): string[] => {
+  const value = rawValue.trim();
+  if (!value) return [];
+
+  const normalized = normalizeSearchText(value);
+  const variants = [
+    value,
+    value.toLocaleLowerCase('tr-TR'),
+    value.toLocaleUpperCase('tr-TR'),
+    normalized,
+    normalized.toLocaleUpperCase('tr-TR'),
+  ]
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  return [...new Set(variants)];
+};
+
+const escapeLikeValue = (value: string) =>
+  value
+    // PostgREST `or` filtresini bozan karakterleri nötrleştir
+    .replace(/[(),]/g, ' ')
+    .replace(/[.%]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 type InstitutionCategoryRow = { id: number; name: string | null; is_active?: boolean | null };
 type InstitutionTypeRow = {
   id: number;
@@ -174,15 +210,39 @@ export default function OkullarPageClient() {
           dataQuery = dataQuery.in('institution_type_id', ids);
         }
         if (searchTerm) {
-          const q = `%${searchTerm}%`;
-          const or = [
-            `institution_name.ilike.${q}`,
-            `city.ilike.${q}`,
-            `district.ilike.${q}`,
-            `official_phone.ilike.${q}`,
-            `address.ilike.${q}`,
-          ].join(',');
-          dataQuery = dataQuery.or(or);
+          const searchVariants = buildSearchVariants(searchTerm)
+            .map(escapeLikeValue)
+            .filter(Boolean);
+
+          if (searchVariants.length > 0) {
+            const normalizedVariants = searchVariants.map((v) => normalizeSearchText(v));
+            const matchedTypeIds = typeRows
+              .filter((typeRow) => {
+                const name = String(typeRow.name ?? '').trim();
+                if (!name) return false;
+                const normalizedName = normalizeSearchText(name);
+                return normalizedVariants.some(
+                  (variant) =>
+                    normalizedName.includes(variant) ||
+                    variant.includes(normalizedName)
+                );
+              })
+              .map((typeRow) => typeRow.id)
+              .filter((id) => Number.isFinite(id));
+
+            const searchColumns = ['institution_name', 'city', 'district', 'official_phone', 'address'] as const;
+            const orParts = searchVariants
+              .flatMap((term) => {
+                const q = `%${term}%`;
+                return searchColumns.map((col) => `${col}.ilike.${q}`);
+              });
+
+            if (matchedTypeIds.length > 0) {
+              orParts.push(`institution_type_id.in.(${matchedTypeIds.join(',')})`);
+            }
+
+            dataQuery = dataQuery.or(orParts.join(','));
+          }
         }
 
         const dataRes = await dataQuery.range(from, to);

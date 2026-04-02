@@ -495,6 +495,24 @@
   box-shadow: 0 2px 4px rgba($purple-main, 0.2);
 }
 
+@media (max-width: 1023px) {
+  .pet-filter-row {
+    align-items: center;
+  }
+
+  .pet-filter-media {
+    flex: 0 0 38%;
+    min-width: 0;
+    height: clamp(160px, 22vw, 220px);
+  }
+
+  .pet-filter-media-video {
+    width: 100%;
+    height: 100%;
+    object-position: center center;
+  }
+}
+
 .filter-section {
   display: flex;
   flex-direction: column;
@@ -1700,6 +1718,24 @@
   }
 }
 
+@media (max-width: 640px) {
+  .home-main-categories-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .home-main-categories-header-nav {
+    position: static;
+    right: auto;
+    bottom: auto;
+    margin: 16px 0 0;
+    margin-right: 0;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
 
 .main-category-pill {
   padding: 10px 18px;
@@ -2366,16 +2402,16 @@ a.service-card {
   display: grid;
   grid-template-rows: 1fr;
   grid-auto-flow: column;
-  gap: 24px;
+  gap: 26px;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   width: 100%;
-  padding: 8px 4px 28px 4px;
+  padding: 8px 4px 30px 4px;
   scroll-padding-left: 0;
-  scroll-padding-right: 20px;
+  scroll-padding-right: 22px;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 
@@ -2389,7 +2425,7 @@ a.service-card {
   &::-webkit-scrollbar-track {
     background-color: rgba(0, 0, 0, 0.06);
     border-radius: 2px;
-    margin: 0 20px;
+    margin: 0 22px;
   }
 
   &::-webkit-scrollbar-thumb {
@@ -2402,24 +2438,24 @@ a.service-card {
   }
 
   @media (min-width: 640px) {
-    gap: 24px;
-    padding: 8px 30px 24px 0;
+    gap: 26px;
+    padding: 8px 33px 26px 0;
     scroll-padding-left: 0;
-    scroll-padding-right: 30px;
+    scroll-padding-right: 33px;
 
     &::-webkit-scrollbar-track {
-      margin: 0 30px;
+      margin: 0 33px;
     }
   }
 
   @media (min-width: 1024px) {
-    gap: 24px;
-    padding: 8px 40px 24px 0;
+    gap: 26px;
+    padding: 8px 44px 26px 0;
     scroll-padding-left: 0;
-    scroll-padding-right: 40px;
+    scroll-padding-right: 44px;
 
     &::-webkit-scrollbar-track {
-      margin: 0 40px;
+      margin: 0 44px;
     }
   }
 }
@@ -2450,19 +2486,9 @@ a.featured-institution-card {
   transition-property: transform, box-shadow;
   border: 1px solid $border-light;
   flex: 0 0 auto;
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   scroll-snap-align: start;
-
-  @media (min-width: 640px) {
-    width: 220px;
-    min-width: 220px;
-  }
-
-  @media (min-width: 1024px) {
-    width: 220px;
-    min-width: 220px;
-  }
 
   &:hover {
     transform: translateY(-4px);
@@ -2494,13 +2520,31 @@ a.featured-institution-card {
   object-position: center;
 }
 
+.featured-institution-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    to right,
+    rgba(109, 93, 252, 0.8),
+    rgba(127, 86, 217, 0.8),
+    rgba(148, 84, 255, 0.8)
+  );
+  color: $bg-white;
+}
+
 .featured-institution-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%);
+  background: linear-gradient(to bottom, rgba(188, 188, 188, 0) 0%, rgba(255, 255, 255, 0.1) 100%);
   pointer-events: none;
 }
 
@@ -2523,7 +2567,7 @@ a.featured-institution-card {
 .featured-institution-badge--purple,
 .featured-institution-badge--blue,
 .featured-institution-badge--green {
-  background-color: rgba(107, 114, 128, 0.5);
+  background-color: rgba(107, 114, 128, 0.414);
 }
 
 .featured-institution-badge-icon {
@@ -2532,7 +2576,7 @@ a.featured-institution-card {
 }
 
 .featured-institution-badge-label {
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
 }
 
@@ -2566,29 +2610,40 @@ a.featured-institution-card {
   }
 
   .heart-favorite-icon--active {
-    color: $red-error;
-    fill: $red-error;
+    color: $orange-primary;
+    fill: $orange-primary;
   }
 }
 
 .featured-institution-content {
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  gap: 12px;
+  gap: 10px;
+}
+
+.featured-institution-body-category {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 10px;
+  background-color: rgba($purple-primary, 0.7);
+  color: $bg-white;
+  font-size: 10px;
+  font-weight: $font-semibold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .featured-institution-location {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 7px;
+  font-size: 12px;
   font-weight: $font-medium;
-  color: $text-zinc-600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: $text-zinc-800;
   flex-shrink: 0;
 
   svg {
@@ -2600,13 +2655,13 @@ a.featured-institution-card {
 }
 
 .featured-institution-name {
-  font-size: $text-xl;
+  font-size: 14px;
   font-weight: $font-bold;
   color: $text-zinc-900;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.25;
   flex-shrink: 0;
-  min-height: 2.6em; /* 2 satır: line-height 1.3 × 2 */
+  min-height: 2.5em;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2614,62 +2669,21 @@ a.featured-institution-card {
   overflow: hidden;
 }
 
-.featured-institution-description {
-  font-size: $text-sm;
-  color: $text-zinc-600;
-  margin: 0;
-  line-height: 1.5;
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  width: 100%;
-  max-height: 3em; /* 2 satır: line-height 1.5 × 2 */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  text-overflow: ellipsis;
-  word-break: break-word;
-}
-
-.featured-institution-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 8px;
-  flex-shrink: 0;
-}
-
-.featured-institution-rating {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: $text-base;
+.featured-institution-subcategory {
+  font-size: 12px;
+  color: $purple-primary;
+  margin: 0 0 15px 0;
+  line-height: 1.4;
   font-weight: $font-semibold;
-  color: $yellow-rating;
-
-  svg {
-    width: 16px;
-    height: 16px;
-    color: $yellow-rating;
-    flex-shrink: 0;
-  }
+  flex-shrink: 0;
+  min-height: 0;
+  max-height: 1.4em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
-
-.featured-institution-link {
-  font-size: $text-base;
-  font-weight: $font-medium;
-  color: #5F2FD1;
-  text-decoration: none;
-  @include transition;
-
-  &:hover {
-    color: $purple-dark;
-    text-decoration: underline;
-  }
-}
-
 
 .cta-section {
   @include rounded-2xl;
@@ -3493,20 +3507,23 @@ a.featured-institution-card {
   .premium-picks-card-media {
     height: 280px;
   }
+}
 
+@media (max-width: 640px) {
   .premium-picks-header {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .premium-picks-nav {
-    align-self: flex-end;
-  }
-}
-
-@media (max-width: 640px) {
   .premium-picks-title {
     font-size: 20px;
+  }
+
+  .premium-picks-nav {
+    align-self: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 12px;
   }
 
   .premium-picks-card-media {

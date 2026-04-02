@@ -248,16 +248,12 @@ const blogPosts = [
 type FeaturedInstitution = {
   id: number;
   name: string;
-  location: string;
-  description: string;
-  rating: number;
   imageUrl: string;
   slug: string;
-  badge: {
-    icon: string;
-    label: string;
-    color: string;
-  };
+  source: string;
+  bodyMainCategory: string;
+  bodySubCategory: string;
+  bodyLocation: string;
 };
 
 type CategoryRow = {
@@ -280,121 +276,6 @@ type MainCategoryCard = {
   slug: string;
   subcategories: string[];
 };
-
-const featuredInstitutions: FeaturedInstitution[] = [
-  {
-    id: 1,
-    name: "Boğaziçi Koleji",
-    location: "İSTANBUL, BEŞİKTAŞ",
-    description: "Global vizyonu ve modern eğitim kampüsü ile geleceğin liderlerini yetiştiren prestijli bir kurum.",
-    rating: 4.9,
-    imageUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop",
-    slug: "bogazici-koleji",
-    badge: {
-      icon: "✓",
-      label: "%25 Burs",
-      color: "purple"
-    }
-  },
-  {
-    id: 2,
-    name: "Ankara Bilim Lisesi",
-    location: "ANKARA, ÇANKAYA",
-    description: "Teknoloji ve bilim odaklı müfredatıyla fark yaratan bir eğitim kurumu.",
-    rating: 4.7,
-    imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop",
-    slug: "ankara-bilim-lisesi",
-    badge: {
-      icon: "🎓",
-      label: "Fen Lisesi",
-      color: "blue"
-    }
-  },
-  {
-    id: 3,
-    name: "Ege Çağdaş Koleji",
-    location: "İZMİR, KONAK",
-    description: "Sanat ve spor aktiviteleriyle zenginleştirilmiş, bütünsel gelişim odaklı eğitim anlayışı.",
-    rating: 4.8,
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop",
-    slug: "ege-cagdas-koleji",
-    badge: {
-      icon: "🌿",
-      label: "Yeşil Kampüs",
-      color: "green"
-    }
-  },
-  {
-    id: 4,
-    name: "Nilüfer Akademi",
-    location: "BURSA, NİLÜFER",
-    description: "Uluslararası standartlarda yabancı dil eğitimi ve yurt dışı eğitim fırsatları sunan kurum.",
-    rating: 5.0,
-    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop",
-    slug: "nilufer-akademi",
-    badge: {
-      icon: "🌍",
-      label: "Çift Dil",
-      color: "purple"
-    }
-  },
-  {
-    id: 5,
-    name: "İstanbul Teknik Koleji",
-    location: "İSTANBUL, KADIKÖY",
-    description: "Mühendislik ve teknoloji alanında uzmanlaşmış, çağdaş eğitim yaklaşımıyla öne çıkan kurum.",
-    rating: 4.6,
-    imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop",
-    slug: "istanbul-teknik-koleji",
-    badge: {
-      icon: "🔧",
-      label: "Teknik",
-      color: "blue"
-    }
-  },
-  {
-    id: 6,
-    name: "Ankara Yabancı Dil Koleji",
-    location: "ANKARA, ÇANKAYA",
-    description: "Çok dilli eğitim programı ve uluslararası değişim fırsatlarıyla öğrencilerine global vizyon kazandıran kurum.",
-    rating: 4.7,
-    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop",
-    slug: "ankara-yabanci-dil-koleji",
-    badge: {
-      icon: "🗣️",
-      label: "Çok Dilli",
-      color: "blue"
-    }
-  },
-  {
-    id: 7,
-    name: "İzmir Sanat Akademisi",
-    location: "İZMİR, KONAK",
-    description: "Müzik, resim ve tiyatro alanlarında yetenekli öğrencileri keşfeden ve geliştiren sanat odaklı kurum.",
-    rating: 4.9,
-    imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=400&fit=crop",
-    slug: "izmir-sanat-akademisi",
-    badge: {
-      icon: "🎨",
-      label: "Sanat",
-      color: "purple"
-    }
-  },
-  {
-    id: 8,
-    name: "Ankara Spor Lisesi",
-    location: "ANKARA, ÇANKAYA",
-    description: "Profesyonel sporcu yetiştirme programı ve modern spor tesisleriyle öne çıkan kurum.",
-    rating: 4.8,
-    imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&h=400&fit=crop",
-    slug: "ankara-spor-lisesi",
-    badge: {
-      icon: "⚽",
-      label: "Spor",
-      color: "green"
-    }
-  }
-];
 
 const premiumPicks = [
   {
@@ -495,15 +376,116 @@ function FeaturedInstitutions({
   favoriteActionLoadingIds: Set<number>;
   isAuthenticated: boolean;
 }) {
-  const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState(featuredInstitutions);
+  const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState<FeaturedInstitution[]>([]);
+  const [brokenFeaturedImageIds, setBrokenFeaturedImageIds] = useState<Set<number>>(() => new Set());
+  const [featuredPinnedDeneme, setFeaturedPinnedDeneme] = useState<FeaturedInstitution | null>(null);
 
   useEffect(() => {
-    const shuffled = [...featuredInstitutions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    setShuffledFeaturedInstitutions(shuffled);
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: row, error } = await supabase
+        .from("institutions")
+        .select("id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))")
+        .eq("institution_name", "Deneme")
+        .maybeSingle();
+
+      if (cancelled || error || !row) return;
+
+      const r = row as Record<string, unknown>;
+      const id = Number(r.id);
+      const name = String(r.institution_name ?? "").trim();
+      if (!Number.isFinite(id) || !name) return;
+
+      const institutionType = r.institution_type as
+        | { name?: string | null; category?: { name?: string | null } | null }
+        | undefined;
+      const mainCategory = String(institutionType?.category?.name ?? "").trim();
+      const subCategory =
+        String(institutionType?.name ?? "").trim() || String(r.type ?? "").trim();
+      const city = String(r.city ?? "").trim();
+      const district = String(r.district ?? "").trim();
+      const location = [district, city].filter(Boolean).join(", ");
+      const logoPath = String(r.logo ?? "").trim();
+      const logoUrl = logoPath
+        ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
+        : "";
+
+      setFeaturedPinnedDeneme({
+        id,
+        name,
+        imageUrl: logoUrl,
+        slug: String(r.slug ?? "").trim(),
+        source: String(r.source ?? "").trim(),
+        bodyMainCategory: mainCategory || "Kategori",
+        bodySubCategory: subCategory || "Alt kategori belirtilmedi",
+        bodyLocation: location || "Konum bilgisi yok",
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("institutions")
+        .select("id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))")
+        .not("institution_name", "is", null)
+        .limit(180);
+
+      if (cancelled || error || !data) return;
+
+      const dynamicItems = (data as Array<Record<string, unknown>>)
+        .map((row) => {
+          const id = Number(row.id);
+          const name = String(row.institution_name ?? "").trim();
+          if (!Number.isFinite(id) || !name) return null;
+
+          const institutionType = row.institution_type as
+            | { name?: string | null; category?: { name?: string | null } | null }
+            | undefined;
+
+          const mainCategory = String(institutionType?.category?.name ?? "").trim();
+          const subCategory =
+            String(institutionType?.name ?? "").trim() || String(row.type ?? "").trim();
+          const city = String(row.city ?? "").trim();
+          const district = String(row.district ?? "").trim();
+          const location = [district, city].filter(Boolean).join(", ");
+          const logoPath = String(row.logo ?? "").trim();
+          const logoUrl = logoPath
+            ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
+            : "";
+
+          return {
+            id,
+            name,
+            imageUrl: logoUrl,
+            slug: String(row.slug ?? "").trim(),
+            source: String(row.source ?? "").trim(),
+            bodyMainCategory: mainCategory || "Kategori",
+            bodySubCategory: subCategory || "Alt kategori belirtilmedi",
+            bodyLocation: location || "Konum bilgisi yok",
+          };
+        })
+        .filter((item): item is FeaturedInstitution => item !== null);
+
+      if (dynamicItems.length > 0) {
+        const shuffled = [...dynamicItems];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        setShuffledFeaturedInstitutions(shuffled.slice(0, 8));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -516,25 +498,49 @@ function FeaturedInstitutions({
       </div>
       <div className="featured-institutions-slider">
         <div className="featured-institutions-scroller">
-          {shuffledFeaturedInstitutions.map((institution) => {
+          {(featuredPinnedDeneme
+            ? [
+                featuredPinnedDeneme,
+                ...shuffledFeaturedInstitutions.filter((i) => i.id !== featuredPinnedDeneme.id).slice(0, 7),
+              ]
+            : shuffledFeaturedInstitutions
+          ).map((institution) => {
             const isFavorite = favoriteIds.has(institution.id);
             const isActionLoading = favoriteActionLoadingIds.has(institution.id);
+            const canRenderImage = Boolean(institution.imageUrl) && !brokenFeaturedImageIds.has(institution.id);
             return (
               <Link
                 key={institution.id}
-                href={getInstitutionDetailHref({ id: institution.id, slug: institution.slug })}
+                href={getInstitutionDetailHref({
+                  id: institution.id,
+                  slug: institution.slug,
+                  source: (institution as { source?: string }).source || undefined,
+                })}
                 className="featured-institution-card"
                 aria-label={`${institution.name} detayları`}
               >
               <div className="featured-institution-image-wrapper">
-                <img 
-                  src={institution.imageUrl} 
-                  alt={institution.name}
-                  className="featured-institution-image"
-                />
+                {canRenderImage ? (
+                  <img
+                    src={institution.imageUrl}
+                    alt={institution.name}
+                    className="featured-institution-image"
+                    onError={() =>
+                      setBrokenFeaturedImageIds((prev) => {
+                        const next = new Set(prev);
+                        next.add(institution.id);
+                        return next;
+                      })
+                    }
+                  />
+                ) : (
+                  <div className="featured-institution-placeholder" aria-label="Logo bulunmuyor">
+                    <Building2 size={28} />
+                  </div>
+                )}
                 <div className="featured-institution-overlay" />
-                <div className={`featured-institution-badge featured-institution-badge--${institution.badge.color}`}>
-                  <span className="featured-institution-badge-label">{institution.badge.label}</span>
+                <div className="featured-institution-badge featured-institution-badge--purple">
+                  <span className="featured-institution-badge-label">{institution.bodyMainCategory}</span>
                 </div>
                 <motion.button
                   type="button"
@@ -557,24 +563,18 @@ function FeaturedInstitutions({
                 </motion.button>
               </div>
               <div className="featured-institution-content">
+                <span className="featured-institution-body-category">
+                  {institution.bodyMainCategory}
+                </span>
+                <h3 className="featured-institution-name">{institution.name}</h3>
+                <p className="featured-institution-subcategory">
+                  {institution.bodySubCategory}
+                </p>
                 <div className="featured-institution-location">
                   <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M6 0C2.69 0 0 2.69 0 6C0 10.5 6 14 6 14C6 14 12 10.5 12 6C12 2.69 9.31 0 6 0ZM6 8.25C4.76 8.25 3.75 7.24 3.75 6C3.75 4.76 4.76 3.75 6 3.75C7.24 3.75 8.25 4.76 8.25 6C8.25 7.24 7.24 8.25 6 8.25Z" fill="currentColor"/>
                   </svg>
-                  <span>{institution.location}</span>
-                </div>
-                <h3 className="featured-institution-name">{institution.name}</h3>
-                <p className="featured-institution-description" title={institution.description}>{institution.description}</p>
-                <div className="featured-institution-footer">
-                  <div className="featured-institution-rating">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 0L9.79611 5.52786L15.6085 5.52786L10.9062 8.94427L12.7023 14.4721L8 11.0557L3.29772 14.4721L5.09383 8.94427L0.391548 5.52786L6.20389 5.52786L8 0Z" fill="currentColor"/>
-                    </svg>
-                    <span>{institution.rating}</span>
-                  </div>
-                  <span className="featured-institution-link">
-                    İncele ›
-                  </span>
+                  <span>{institution.bodyLocation}</span>
                 </div>
               </div>
               </Link>

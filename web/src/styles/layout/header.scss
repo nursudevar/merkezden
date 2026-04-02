@@ -56,12 +56,6 @@
   text-decoration: none;
   cursor: pointer;
   max-width: 100%;
-  @include transition;
-
-  &:hover {
-    opacity: 0.8;
-  }
-
 }
 
 .header-logo {
