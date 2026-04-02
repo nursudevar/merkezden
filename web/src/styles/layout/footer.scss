@@ -9,36 +9,50 @@
   border-top: 1px solid rgba($border-default, 0.15);
 }
 
-.footer--with-wave {
-  border-top: none;
+.footer.footer--with-wave {
+  border: 0 !important;
+  border-top: 0 !important;
+  box-shadow: none;
+  background: transparent;
 }
 
 .homepage-footer {
   position: relative;
   width: 100%;
+  margin-top: -2px;
+  background-color: $bg-zinc-50;
 }
 
 .homepage-footer-wave-top {
-  background-color: #fafafa;
+  background-color: $bg-zinc-50;
   position: relative;
+  z-index: 0;
   width: 100%;
   line-height: 0;
   display: block;
   overflow: hidden;
-  margin-bottom: -1px;
+  margin-bottom: 0;
 
   svg {
     display: block;
     width: 100%;
     height: 140px;
     min-width: 100%;
+    shape-rendering: geometricPrecision;
+    transform: translate3d(0, 1px, 0);
+    backface-visibility: hidden;
   }
 }
 
 .homepage-footer-extension {
+  position: relative;
+  z-index: 1;
   width: 100%;
   background-color: $bg-footer;
-  margin-top: -1px;
+  /* Dalga altındaki 1px dikiş: koyu blok dalganın altına taşır */
+  margin-top: -10px;
+  padding-top: 10px;
+  margin-bottom: 0;
 }
 
 .homepage-footer-existing-content {
@@ -51,20 +65,23 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 32px 30px 28px;
+  text-align: center;
 }
 
 .homepage-footer-extension-title {
-  margin: 0 0 16px;
+  margin: 0 0 30px;
   font-size: 18px;
   font-weight: $font-bold;
   color: $bg-white;
   letter-spacing: -0.01em;
+  text-align: center;
 }
 
 .homepage-footer-extension-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 30px;
+  justify-content: center;
 }
 
 .homepage-footer-extension-tag {
@@ -78,6 +95,14 @@
   color: $text-secondary;
   font-size: $text-sm;
   font-weight: $font-medium;
+  text-decoration: none;
+  @include transition-colors;
+
+  &:hover {
+    background: rgba($bg-white, 0.1);
+    border-color: rgba($bg-white, 0.22);
+    color: $text-secondary;
+  }
 }
 
 .footer-container {

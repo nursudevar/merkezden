@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import HeaderBrandLogo from './HeaderBrandLogo';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import SearchBar from '@/components/SearchBar';
@@ -100,22 +100,7 @@ export default function HeaderWithSearchClient({
         <div className="header-container">
           <div className={`header-top-row navbar ${menuOpen ? 'is-open' : ''}`}>
             <div className="header-brand">
-              <Link href="/" className="header-title-link">
-                <div className="header-logo-wrapper">
-                  <Image
-                    src="/images/merkezden-logo.png"
-                    alt="Merkezden Logo"
-                    width={60}
-                    height={60}
-                    className="header-logo"
-                    priority
-                  />
-                  <div className="header-text-wrapper">
-                    <span className="header-title">MERKEZDEN.COM</span>
-                    <span className="header-subtitle">HAYATIN MERKEZİ</span>
-                  </div>
-                </div>
-              </Link>
+              <HeaderBrandLogo />
             </div>
             <div className="header-hamburger header-hamburger-mobile" ref={menuRef}>
               <button

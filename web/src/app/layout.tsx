@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   title: "MERKEZDEN - Hayatın Merkezi",
   description: "Ankara'da eğitim kurumları, kurslar ve hizmetleri bulun. AI destekli arama ile ihtiyacınız olan hizmeti kolayca keşfedin.",
   icons: {
-    icon: [{ url: "/images/merkezden-logo.png?v=3", type: "image/png", sizes: "any" }],
-    shortcut: ["/images/merkezden-logo.png?v=3"],
+    icon: [{ url: "/images/merkezden-logo.svg?v=1", type: "image/svg+xml", sizes: "any" }],
+    shortcut: ["/images/merkezden-logo.svg?v=1"],
   },
 };
 

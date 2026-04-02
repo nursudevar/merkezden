@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, Sparkle } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
@@ -13,6 +14,8 @@ import LoginModal from "@/components/LoginModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
+import { getCategoryHref } from "@/lib/categories/getCategoryHref";
+import { getCategoryIcon } from "@/lib/categories/getCategoryIcon";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -22,18 +25,6 @@ const InstitutionLocationsMap = dynamic(
   { ssr: false }
 );
 
-
-const mainCategories = [
-  "Tümü",
-  "Okul",
-  "Kurs & Sınava Hazırlık",
-  "Spor",
-  "Sanat",
-  "Yabancı Dil",
-  "Kişisel Gelişim",
-  "Mesleki Eğitim",
-  "Özel Eğitim",
-];
 
 const serviceCards = [
   {
@@ -196,7 +187,15 @@ const schoolStatusOptions = [
   { value: "public", label: "Devlet", icon: Landmark },
 ];
 
-const categoryGroups = [
+const petFilterGroup = {
+  id: "pets",
+  title: "Patili Dostlar",
+  icon: "🐾",
+  headerClassName: "category-header-pets",
+  items: ["Pet Otel/Kreş", "Köpek Eğitimi", "Pet Kuaför"],
+} as const;
+
+const sidebarCategoryGroups = [
   { id: "school", title: "Okul", icon: "🏫", headerClassName: "category-header-school", items: ["Anaokul/Kreş", "İlkokul", "Ortaokul", "Lise", "Yaz Okulu", "Oyun Grubu"] },
   { id: "exam", title: "Kurs & Sınava Hazırlık", icon: "📚", headerClassName: "category-header-exam", items: ["TUS", "DUS", "KPSS", "YKS", "LGS", "DGS"] },
   { id: "sport", title: "Spor", icon: "⚽", headerClassName: "category-header-sport", items: ["Futbol", "Voleybol", "Basketbol", "Tenis", "Masa Tenisi", "Yüzme"] },
@@ -205,7 +204,6 @@ const categoryGroups = [
   { id: "personal-dev", title: "Kişisel Gelişim", icon: "✨", headerClassName: "category-header-personal-dev", items: ["İletişim", "Duygusal Zeka", "Verimlilik", "Kariyer", "Dil ve İfade", "Teknoloji"] },
   { id: "professional", title: "Mesleki Eğitim", icon: "🎯", headerClassName: "category-header-professional", items: ["Ofis", "Bilişim", "Sağlık/Bakım", "Güzellik/Moda", "El Sanatları", "İnşaat"] },
   { id: "special", title: "Özel Eğitim", icon: "🧩", headerClassName: "category-header-special", items: ["Masal Terapisi", "Oyun Terapisi", "Dil ve Konuşma Terapisi", "ABA Terapi", "Kekemelik", "Afazi"] },
-  { id: "pets", title: "Patili Dostlar", icon: "🐾", headerClassName: "category-header-pets", items: ["Pet Otel/Kreş", "Köpek Eğitimi", "Pet Kuaför"] },
 ];
 
 const blogPosts = [
@@ -260,6 +258,27 @@ type FeaturedInstitution = {
     label: string;
     color: string;
   };
+};
+
+type CategoryRow = {
+  id: number;
+  name: string | null;
+  slug?: string | null;
+  is_active?: boolean | null;
+};
+
+type CategoryTypeRow = {
+  id: number;
+  name: string | null;
+  category_id: number;
+  is_active?: boolean | null;
+};
+
+type MainCategoryCard = {
+  id: number;
+  name: string;
+  slug: string;
+  subcategories: string[];
 };
 
 const featuredInstitutions: FeaturedInstitution[] = [
@@ -585,6 +604,7 @@ const premiumPicksMotionVariants = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -600,10 +620,9 @@ export default function Home() {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
   const [priceRange, setPriceRange] = useState<number[]>([0, 10000]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-  const [openCategoryId, setOpenCategoryId] = useState<string>(() => categoryGroups[0]?.id ?? "");
+  const [openCategoryId, setOpenCategoryId] = useState<string>(() => sidebarCategoryGroups[0]?.id ?? "");
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
-  const [selectedMainCategory, setSelectedMainCategory] = useState<string>("Tümü");
   const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null);
   const [selectedSchoolStatus, setSelectedSchoolStatus] = useState<string | null>(null);
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
@@ -611,7 +630,10 @@ export default function Home() {
   const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
   const reduceMotion = useReducedMotion();
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
-  const categoriesScrollerRef = useRef<HTMLDivElement>(null);
+  const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
+  const mainCategoriesScrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollMainCategoriesLeft, setCanScrollMainCategoriesLeft] = useState(false);
+  const [canScrollMainCategoriesRight, setCanScrollMainCategoriesRight] = useState(false);
 
   const handleFavoriteToggle = async (institutionId: number, e: React.MouseEvent) => {
     e.preventDefault();
@@ -697,6 +719,26 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const scroller = mainCategoriesScrollerRef.current;
+    if (!scroller) return;
+
+    const updateScrollState = () => {
+      const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
+      setCanScrollMainCategoriesLeft(scroller.scrollLeft > 1);
+      setCanScrollMainCategoriesRight(scroller.scrollLeft < maxScrollLeft - 1);
+    };
+
+    updateScrollState();
+    scroller.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+
+    return () => {
+      scroller.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [mainCategoryCards.length]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!isAuthReady || !user) {
       setFavoriteIds(new Set());
@@ -762,6 +804,62 @@ export default function Home() {
   }, [selectedDistrict]);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const [categoryRes, typeRes] = await Promise.all([
+        supabase
+          .from("institution_categories")
+          .select("id, name, slug, is_active")
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+        supabase
+          .from("institution_types")
+          .select("id, name, category_id, is_active")
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+      ]);
+
+      if (cancelled || categoryRes.error || typeRes.error) return;
+
+      const categories = ((categoryRes.data ?? []) as CategoryRow[])
+        .map((category) => {
+          const name = String(category.name ?? "").trim();
+          const slug = String(category.slug ?? "").trim();
+          if (!name) return null;
+          return {
+            id: category.id,
+            name,
+            slug,
+          };
+        })
+        .filter((category): category is { id: number; name: string; slug: string } => Boolean(category));
+
+      const types = (typeRes.data ?? []) as CategoryTypeRow[];
+
+      const cards = categories.map((category) => {
+        const subcategories = types
+          .filter((type) => type.category_id === category.id)
+          .map((type) => String(type.name ?? "").trim())
+          .filter(Boolean);
+
+        return {
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          subcategories,
+        };
+      });
+
+      setMainCategoryCards(cards);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!showInstitutionMapModal) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setShowInstitutionMapModal(false);
@@ -790,20 +888,20 @@ export default function Home() {
     });
   };
 
-  const scrollCategoriesByDelta = (direction: number) => {
-    if (!categoriesScrollerRef.current) return;
-    const scroller = categoriesScrollerRef.current;
-    const scrollAmount = scroller.clientWidth * 0.5;
-    scroller.scrollBy({
-      left: direction * scrollAmount,
-      behavior: "smooth",
-    });
-  };
-
   const toggleCategoryExpansion = (categoryId: string) => {
     setExpandedCategories((prev) =>
       prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
     );
+  };
+
+  const scrollMainCategories = (direction: 1 | -1) => {
+    const scroller = mainCategoriesScrollerRef.current;
+    if (!scroller) return;
+    const amount = Math.max(220, Math.floor(scroller.clientWidth * 0.8));
+    scroller.scrollBy({
+      left: direction * amount,
+      behavior: "smooth",
+    });
   };
 
   return (
@@ -1076,7 +1174,7 @@ export default function Home() {
                   <span>Kategori</span>
                 </div>
                 <Accordion type="single" value={openCategoryId} onValueChange={(v) => setOpenCategoryId(v ?? "")} collapsible>
-                  {categoryGroups.map((group) => {
+                  {sidebarCategoryGroups.map((group) => {
                     const isExpanded = expandedCategories.includes(group.id);
                     const hasMore = group.items.length > 4;
                     const itemsToShow = isExpanded ? group.items : group.items.slice(0, hasMore ? 4 : group.items.length);
@@ -1130,6 +1228,60 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="pet-filter-row">
+            <div className="pet-filter-media">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                className="pet-filter-media-video"
+              >
+                <source src="/gifs/meko_pet.mp4" type="video/mp4" />
+              </video>
+            </div>
+
+            <div className="pet-filter-card">
+              <div className="pet-filter-header">
+                <div className="pet-filter-header-row">
+                  <PawPrint className="pet-filter-icon" aria-hidden />
+                  <h2 className="pet-filter-title">Patili Dostlar</h2>
+                </div>
+              </div>
+              <div className="pet-filter-main">
+                <div className="pet-filter-body">
+                  <div className="pet-filter-options">
+                    {petFilterGroup.items.map((item) => {
+                      const itemKey = `${petFilterGroup.id}-${item}`;
+                      const isSelected = selectedCategoryItems.has(itemKey);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          className={`pet-filter-option ${isSelected ? "pet-filter-option--selected" : ""}`}
+                          onClick={() => {
+                            setSelectedCategoryItems((prev) => {
+                              const next = new Set(prev);
+                              if (isSelected) {
+                                next.delete(itemKey);
+                              } else {
+                                next.add(itemKey);
+                              }
+                              return next;
+                            });
+                          }}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </aside>
 
         <main className="main-content">
@@ -1149,115 +1301,93 @@ export default function Home() {
             <header className="home-main-categories-header">
               <h2 className="home-main-categories-title">Ana Kategoriler</h2>
               <p className="home-main-categories-subtitle">İhtiyacınıza uygun hizmetleri kolayca bulun</p>
+              <div className="home-main-categories-header-nav">
+                <button
+                  type="button"
+                  className="home-main-categories-nav-btn"
+                  aria-label="Ana kategorilerde sola kaydır"
+                  onClick={() => scrollMainCategories(-1)}
+                  disabled={!canScrollMainCategoriesLeft}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  className="home-main-categories-nav-btn"
+                  aria-label="Ana kategorilerde sağa kaydır"
+                  onClick={() => scrollMainCategories(1)}
+                  disabled={!canScrollMainCategoriesRight}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </header>
             
-            <div className="main-categories-pills">
-              {mainCategories.map((category) => {
-                const categoryRoutes: Record<string, string> = {
-                  "Okul": "/school",
-                  "Kurs & Sınava Hazırlık": "/courses",
-                  "Spor": "/sports",
-                  "Sanat": "/arts",
-                  "Yabancı Dil": "/languages",
-                  "Kişisel Gelişim": "/personal-development",
-                  "Mesleki Eğitim": "/vocational-training",
-                  "Özel Eğitim": "/special-education",
-                };
-
-                const route = categoryRoutes[category];
-                const isAll = category === "Tümü";
-
-                if (isAll) {
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      className={`main-category-pill ${selectedMainCategory === category ? "main-category-pill--active" : ""}`}
-                      onClick={() => setSelectedMainCategory(category)}
-                      aria-pressed={selectedMainCategory === category}
-                    >
-                      {category}
-                    </button>
-                  );
-                } else if (route) {
-                  return (
-                    <Link
-                      key={category}
-                      href={route}
-                      className={`main-category-pill ${selectedMainCategory === category ? "main-category-pill--active" : ""}`}
-                    >
-                      {category}
-                    </Link>
-                  );
-                } else {
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      className="main-category-pill"
-                      onClick={() => setSelectedMainCategory("Tümü")}
-                    >
-                      {category}
-                    </button>
-                  );
-                }
-              })}
-            </div>
 
             <div className="home-main-categories-slider">
-              <button
-                type="button"
-                className="categories-nav-btn categories-nav-btn--left"
-                aria-label="Önceki kartlar"
-                onClick={() => scrollCategoriesByDelta(-1)}
-              >
-                <img src="/images/left.svg" alt="Önceki" className="categories-nav-btn-icon" />
-              </button>
-              <div className="categories-scroller" ref={categoriesScrollerRef}>
-                {serviceCards
-                  .filter((card) => selectedMainCategory === "Tümü")
-                  .map((card) => (
-                    <Link
-                      key={card.id}
-                      href={getInstitutionDetailHref({ id: card.id, slug: card.slug })}
-                      className="service-card"
-                      aria-label={`${card.title} detayları`}
+              <div className="categories-scroller home-main-categories-grid" ref={mainCategoriesScrollerRef}>
+                {mainCategoryCards.map((category) => {
+                  const Icon = getCategoryIcon(category.name, category.slug);
+                  const categoryHref = getCategoryHref(category.name, category.slug);
+                  const cardKey = String(category.id);
+                  const isExpanded = Boolean(expandedCategoryCards[cardKey]);
+                  const hasMoreThanFour = category.subcategories.length > 4;
+                  const sortedSubcategories = [...category.subcategories].sort(
+                    (a, b) => a.length - b.length || a.localeCompare(b, "tr")
+                  );
+                  const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 4);
+                  return (
+                    <article
+                      key={category.id}
+                      className={`home-main-category-card ${categoryHref ? "home-main-category-card--clickable" : ""}`}
+                      onClick={() => {
+                        if (!categoryHref) return;
+                        router.push(categoryHref);
+                      }}
                     >
-                      <div className="service-card-image-wrapper">
-                        <img
-                          src={card.imageUrl}
-                          alt={card.title}
-                          className="service-card-image"
-                        />
-                      </div>
-                      <div className="service-card-content">
-                        <h3 className="service-card-title">{card.title}</h3>
-                        <p className="service-card-categories">{card.subCategories.join(", ")}</p>
-                        <div className="service-card-rating">
-                          <span className="service-card-star">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                              <path d="M8 0L9.79611 5.52786L15.6085 5.52786L10.9062 8.94427L12.7023 14.4721L8 11.0557L3.29772 14.4721L5.09383 8.94427L0.391548 5.52786L6.20389 5.52786L8 0Z" fill="currentColor"/>
-                            </svg>
-                          </span>
-                          <span className="service-card-rating-text">
-                            {card.rating} ({card.reviewCount} Değerlendirme)
-                          </span>
+                      <span className="home-main-category-card-icon" aria-hidden>
+                        <Icon size={15} />
+                      </span>
+                      <h3 className="home-main-category-card-title">{category.name.toLocaleUpperCase("tr-TR")}</h3>
+                      {category.subcategories.length > 0 ? (
+                        <div className={`home-main-category-card-list-wrap ${isExpanded ? "is-expanded" : ""}`}>
+                        <ul className="home-main-category-card-list">
+                          {visibleSubcategories.map((subcategory) => (
+                            <li key={`${category.id}-${subcategory}`} className="home-main-category-card-item">
+                              <Sparkle
+                                className="home-main-category-card-item-bullet"
+                                size={16}
+                                aria-hidden
+                                fill="currentColor"
+                                stroke="transparent"
+                                strokeWidth={0}
+                              />
+                              <span>{subcategory}</span>
+                            </li>
+                          ))}
+                        </ul>
                         </div>
-                        <div className="service-card-price">
-                          {card.price.toLocaleString("tr-TR")}₺ / Ay
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                      ) : null}
+                      {hasMoreThanFour ? (
+                        <button
+                          type="button"
+                          className="home-main-category-card-more-btn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setExpandedCategoryCards((prev) => ({
+                              ...prev,
+                              [cardKey]: !isExpanded,
+                            }));
+                          }}
+                        >
+                          {isExpanded ? "Daha Az Göster" : "Daha Fazla Gör"}
+                        </button>
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
-              <button
-                type="button"
-                className="categories-nav-btn categories-nav-btn--right"
-                aria-label="Sonraki kartlar"
-                onClick={() => scrollCategoriesByDelta(1)}
-              >
-                <img src="/images/right.svg" alt="Sonraki" className="categories-nav-btn-icon" />
-              </button>
             </div>
           </section>
 
@@ -1280,6 +1410,82 @@ export default function Home() {
                 <button className="cta-section-button cta-section-button-secondary">
                   YAKINIMDAKİ HİZMETLERİ GÖSTER
                 </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="announcements-section" aria-label="Duyurular">
+            <div className="announcements-header">
+              <h2 className="announcements-title">Duyurular</h2>
+              <Link href="/blog" className="announcements-view-all">
+                tümünü gör
+              </Link>
+            </div>
+
+            <div className="announcements-grid">
+              <Link href="/blog" className="announcement-featured">
+                <div
+                  className="announcement-featured-media"
+                  style={{
+                    backgroundImage:
+                      'url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&h=700&fit=crop")',
+                  }}
+                >
+                  <span className="announcement-badge">Yeni</span>
+                  <div className="announcement-featured-overlay" />
+                  <div className="announcement-featured-body">
+                    <h3 className="announcement-featured-title">Eğitimde Bahar Dönemi Kayıtları Başladı</h3>
+                    <p className="announcement-featured-desc">
+                      Yakınınızdaki kurumları karşılaştırın, fiyat ve hizmet detaylarını tek ekranda inceleyin.
+                    </p>
+                    <div className="announcement-featured-meta">
+                      <span className="announcement-meta-item">
+                        <CalendarDays className="announcement-meta-icon" />
+                        2 Mart 2026
+                      </span>
+                      <span className="announcement-meta-item">
+                        <MapPin className="announcement-meta-icon" />
+                        Ankara
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              <div className="announcements-side">
+                <Link href="/blog" className="announcement-small">
+                  <div
+                    className="announcement-small-thumb"
+                    style={{
+                      backgroundImage:
+                        'url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop")',
+                    }}
+                  />
+                  <div className="announcement-small-body">
+                    <div className="announcement-small-kicker">KAMPANYA</div>
+                    <h4 className="announcement-small-title">Üyeliğe Özel İlk Görüşme İndirimi</h4>
+                    <p className="announcement-small-desc">
+                      Seçili kurumlarda tanışma dersleri ve değerlendirme görüşmeleri avantajlı.
+                    </p>
+                  </div>
+                </Link>
+
+                <Link href="/blog" className="announcement-small">
+                  <div
+                    className="announcement-small-thumb"
+                    style={{
+                      backgroundImage:
+                        'url("https://images.unsplash.com/photo-1454165205744-3b78555e5572?w=600&h=400&fit=crop")',
+                    }}
+                  />
+                  <div className="announcement-small-body">
+                    <div className="announcement-small-kicker">BİLGİLENDİRME</div>
+                    <h4 className="announcement-small-title">Yeni Filtreler ve Arama Deneyimi</h4>
+                    <p className="announcement-small-desc">
+                      Lokasyon, fiyat ve kategori filtreleriyle en uygun seçeneklere daha hızlı ulaşın.
+                    </p>
+                  </div>
+                </Link>
               </div>
             </div>
           </section>
@@ -1416,81 +1622,6 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="announcements-section" aria-label="Duyurular">
-            <div className="announcements-header">
-              <h2 className="announcements-title">Duyurular</h2>
-              <Link href="/blog" className="announcements-view-all">
-                tümünü gör
-              </Link>
-            </div>
-
-            <div className="announcements-grid">
-              <Link href="/blog" className="announcement-featured">
-                <div
-                  className="announcement-featured-media"
-                  style={{
-                    backgroundImage:
-                      'url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&h=700&fit=crop")',
-                  }}
-                >
-                  <span className="announcement-badge">Yeni</span>
-                  <div className="announcement-featured-overlay" />
-                  <div className="announcement-featured-body">
-                    <h3 className="announcement-featured-title">Eğitimde Bahar Dönemi Kayıtları Başladı</h3>
-                    <p className="announcement-featured-desc">
-                      Yakınınızdaki kurumları karşılaştırın, fiyat ve hizmet detaylarını tek ekranda inceleyin.
-                    </p>
-                    <div className="announcement-featured-meta">
-                      <span className="announcement-meta-item">
-                        <CalendarDays className="announcement-meta-icon" />
-                        2 Mart 2026
-                      </span>
-                      <span className="announcement-meta-item">
-                        <MapPin className="announcement-meta-icon" />
-                        Ankara
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              <div className="announcements-side">
-                <Link href="/blog" className="announcement-small">
-                  <div
-                    className="announcement-small-thumb"
-                    style={{
-                      backgroundImage:
-                        'url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop")',
-                    }}
-                  />
-                  <div className="announcement-small-body">
-                    <div className="announcement-small-kicker">KAMPANYA</div>
-                    <h4 className="announcement-small-title">Üyeliğe Özel İlk Görüşme İndirimi</h4>
-                    <p className="announcement-small-desc">
-                      Seçili kurumlarda tanışma dersleri ve değerlendirme görüşmeleri avantajlı.
-                    </p>
-                  </div>
-                </Link>
-
-                <Link href="/blog" className="announcement-small">
-                  <div
-                    className="announcement-small-thumb"
-                    style={{
-                      backgroundImage:
-                        'url("https://images.unsplash.com/photo-1454165205744-3b78555e5572?w=600&h=400&fit=crop")',
-                    }}
-                  />
-                  <div className="announcement-small-body">
-                    <div className="announcement-small-kicker">BİLGİLENDİRME</div>
-                    <h4 className="announcement-small-title">Yeni Filtreler ve Arama Deneyimi</h4>
-                    <p className="announcement-small-desc">
-                      Lokasyon, fiyat ve kategori filtreleriyle en uygun seçeneklere daha hızlı ulaşın.
-                    </p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />

@@ -73,9 +73,21 @@ function MapInvalidateSize() {
   useEffect(() => {
     let raf2 = 0;
     const raf1 = window.requestAnimationFrame(() => {
-      raf2 = window.requestAnimationFrame(() => map.invalidateSize());
+      raf2 = window.requestAnimationFrame(() => {
+        try {
+          map.invalidateSize();
+        } catch {
+          /* map teardown */
+        }
+      });
     });
-    const t = window.setTimeout(() => map.invalidateSize(), 150);
+    const t = window.setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch {
+        /* map teardown */
+      }
+    }, 150);
     return () => {
       window.cancelAnimationFrame(raf1);
       window.cancelAnimationFrame(raf2);
@@ -96,10 +108,32 @@ export default function InstitutionLocationsMap({ variant = "inline" }: Institut
   const [loading, setLoading] = useState(true);
   /** Leaflet tek DOM konteyneri iki kez bağlamasın diye (Strict Mode / modal) haritayı yalnızca mount sonrası çiz */
   const [domReady, setDomReady] = useState(false);
+  /** Bir sonraki frame'de MapContainer aç: paneller hazır olsun, appendChild / container reuse hatalarını önler */
+  const [leafletMountReady, setLeafletMountReady] = useState(false);
 
   useLayoutEffect(() => {
     setDomReady(true);
   }, []);
+
+  useEffect(() => {
+    if (loading || markers.length === 0 || !domReady) {
+      setLeafletMountReady(false);
+      return;
+    }
+    let cancelled = false;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        if (!cancelled) setLeafletMountReady(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+      setLeafletMountReady(false);
+    };
+  }, [loading, markers.length, domReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,7 +246,7 @@ export default function InstitutionLocationsMap({ variant = "inline" }: Institut
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : markers.length === 0 ? (
         <div className="institution-locations-map-state">Konum bilgisi olan kurum bulunamadı.</div>
-      ) : !domReady ? (
+      ) : !domReady || !leafletMountReady ? (
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : (
         <MapContainer

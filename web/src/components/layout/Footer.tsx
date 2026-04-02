@@ -1,26 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Linkedin, ChevronDown } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCategoryHref } from "@/lib/categories/getCategoryHref";
+
+type FooterCategoryRow = { id: number; name: string; slug: string };
 
 export default function Footer() {
-  const footerCategories = [
-    "Okul",
-    "Kurs & Sınava Hazırlık",
-    "Spor",
-    "Sanat",
-    "Yabancı Dil",
-    "Kişisel Gelişim",
-    "Mesleki Eğitim",
-    "Özel Eğitim",
-  ];
+  const [footerCategories, setFooterCategories] = useState<FooterCategoryRow[]>([]);
   const [openKurumsal, setOpenKurumsal] = useState(false);
   const [openDestek, setOpenDestek] = useState(false);
   const [openKategoriler, setOpenKategoriler] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
+
+  useEffect(() => {
+    if (!isHome) return;
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("institution_categories")
+        .select("id, name, slug, is_active")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      if (cancelled || error) return;
+      const rows = (data ?? [])
+        .map((row: { id: number; name: string | null; slug: string | null }) => {
+          const name = String(row.name ?? "").trim();
+          const slug = String(row.slug ?? "").trim();
+          if (!name) return null;
+          return { id: row.id, name, slug };
+        })
+        .filter((row): row is FooterCategoryRow => Boolean(row));
+      setFooterCategories(rows);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHome]);
 
   const footerInner = (
       <div className="footer-container">
@@ -187,11 +208,19 @@ export default function Footer() {
                 Popüler Kategoriler
               </h3>
               <div className="homepage-footer-extension-tags">
-                {footerCategories.map((category) => (
-                  <span key={category} className="homepage-footer-extension-tag">
-                    {category}
-                  </span>
-                ))}
+                {footerCategories.map((category) => {
+                  const href =
+                    getCategoryHref(category.name, category.slug) ?? "/okullar";
+                  return (
+                    <Link
+                      key={category.id}
+                      href={href}
+                      className="homepage-footer-extension-tag"
+                    >
+                      {category.name}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import HeaderBrandLogo from "@/components/layout/HeaderBrandLogo";
 import { Button } from "@/components/ui";
 import Footer from "@/components/layout/Footer";
 import AuthModal from "@/components/AuthModal";
@@ -167,18 +168,17 @@ export default function SignupClient() {
       <div className="top-bar" />
       <header className="header">
         <div className="header-container">
-          <div className="header-brand">
-            <Link href="/" className="header-title-link">
-              <span className="header-title">MERKEZDEN.COM</span>
-            </Link>
-            <span className="header-subtitle">HAYATIN MERKEZİ</span>
-          </div>
-          <div className="header-actions">
-            <Link href="/login">
-              <Button className="button-primary btn-gradient-primary" variant="default">
-                GİRİŞ YAP
-              </Button>
-            </Link>
+          <div className="header-top-row navbar">
+            <div className="header-brand">
+              <HeaderBrandLogo />
+            </div>
+            <div className="header-actions">
+              <Link href="/login">
+                <Button className="button-primary btn-gradient-primary" variant="default">
+                  GİRİŞ YAP
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>

@@ -106,6 +106,13 @@ button,
   cursor: pointer;
 }
 
+/* Global: remove default black focus visuals */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 // Utility Classes
 .page-container {
   min-height: 100vh;
@@ -130,7 +137,7 @@ button,
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 35px;
   padding: 0;
   overflow-x: hidden;
   width: 100%;
