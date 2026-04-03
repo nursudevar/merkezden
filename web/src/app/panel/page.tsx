@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -24,13 +24,28 @@ import {
   Image,
   Film,
   CloudUpload,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
+  List,
+  Tags,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveUserTypeFromUsersClient } from "@/lib/auth/resolveUserTypeFromUsersClient";
 import { resolveInstitutionNameFromUsersClient } from "@/lib/auth/resolveInstitutionNameFromUsersClient";
+import { loadInstitutionRowForAuthUserClient } from "@/lib/auth/loadInstitutionRowForAuthUserClient";
 import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
-import { Button, Input } from "@/components/ui";
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui";
 import "@/styles/main.scss";
 import "@/styles/pages/panel.scss";
 
@@ -41,6 +56,22 @@ type PanelTabId =
   | "media-management"
   | "announcements"
   | "subscription";
+
+type OverviewMissingFieldId =
+  | "institution_name"
+  | "phone"
+  | "email"
+  | "logo"
+  | "category"
+  | "sub_type"
+  | "address"
+  | "about";
+
+type OverviewMissingField = {
+  id: OverviewMissingFieldId;
+  label: string;
+  tab: PanelTabId;
+};
 
 const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
   { id: "overview", label: "Genel Bakış", placeholder: "Özet metrikler burada görünecek." },
@@ -82,6 +113,30 @@ type SubscriptionPlan = {
   ctaText: string;
   isFeatured?: boolean;
 };
+
+const OVERVIEW_MISSING_FIELD_ICON_CLASS = "panel-overview-missing-info-mini-icon-svg";
+
+function renderOverviewMissingFieldIcon(id: OverviewMissingFieldId) {
+  const c = OVERVIEW_MISSING_FIELD_ICON_CLASS;
+  switch (id) {
+    case "institution_name":
+      return <Building2 className={c} aria-hidden />;
+    case "phone":
+      return <Phone className={c} aria-hidden />;
+    case "email":
+      return <Mail className={c} aria-hidden />;
+    case "logo":
+      return <Image className={c} aria-hidden />;
+    case "category":
+      return <Tags className={c} aria-hidden />;
+    case "sub_type":
+      return <List className={c} aria-hidden />;
+    case "address":
+      return <MapPin className={c} aria-hidden />;
+    case "about":
+      return <FileText className={c} aria-hidden />;
+  }
+}
 
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
@@ -156,6 +211,30 @@ function ScrollingNumber({ value }: { value: number }) {
         <AnimatedDigit key={`${value}-${index}`} digit={digit} index={index} />
       ))}
     </div>
+  );
+}
+
+function AnnouncementTableThumbCell({ url }: { url: string | null }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
+  const trimmed = (url ?? "").trim();
+  if (!trimmed || failed) {
+    return (
+      <div className="panel-media-thumb panel-media-thumb--fallback" aria-hidden>
+        <Image className="panel-media-thumb-icon" aria-hidden />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={trimmed}
+      alt=""
+      className="panel-media-thumb panel-media-thumb--image"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -293,40 +372,68 @@ export default function PanelPage() {
     logoUrl: "",
   });
 
-  type AnnouncementStatus = "draft" | "published";
   interface AnnouncementRow {
     id: string;
     title: string;
     content: string;
+    preview: string;
     date: string;
-    status: AnnouncementStatus;
+    isActive: boolean;
+    imageUrl: string | null;
+    linkUrl: string | null;
   }
 
-  const [announcementsList, setAnnouncementsList] = useState<AnnouncementRow[]>([
-    {
-      id: "a1",
-      title: "Örnek Duyuru",
-      content: "Bu duyuru metni örnek olarak gösterilmektedir. İçerik burada yer alır.",
-      date: "15.01.2025",
-      status: "published",
-    },
-    {
-      id: "a2",
-      title: "Taslak Başlık",
-      content: "Henüz yayına alınmamış taslak içerik.",
-      date: "—",
-      status: "draft",
-    },
-  ]);
+  const [announcementsList, setAnnouncementsList] = useState<AnnouncementRow[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [announcementsError, setAnnouncementsError] = useState<string | null>(null);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [announcementForm, setAnnouncementForm] = useState({
     title: "",
     content: "",
-    status: "draft" as AnnouncementStatus,
+    linkUrl: "",
+    isActive: true,
   });
-  const [announcementFormErrors, setAnnouncementFormErrors] = useState<{ title?: string; content?: string }>({});
+  const [announcementFormErrors, setAnnouncementFormErrors] = useState<{
+    title?: string;
+    content?: string;
+  }>({});
+  const [announcementSaving, setAnnouncementSaving] = useState(false);
+  const [announcementImageFile, setAnnouncementImageFile] = useState<File | null>(null);
+  const [announcementImageRemovePending, setAnnouncementImageRemovePending] = useState(false);
+  const [announcementImageObjectUrl, setAnnouncementImageObjectUrl] = useState<string | null>(null);
+  const announcementImageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!announcementImageFile) {
+      setAnnouncementImageObjectUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(announcementImageFile);
+    setAnnouncementImageObjectUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [announcementImageFile]);
+
+  const editingAnnouncementDbImageUrl = useMemo(() => {
+    if (!editingAnnouncementId) return null;
+    const raw = announcementsList.find((r) => r.id === editingAnnouncementId)?.imageUrl ?? "";
+    const t = raw.trim();
+    return t || null;
+  }, [editingAnnouncementId, announcementsList]);
+
+  const announcementPreviewSrc = useMemo(() => {
+    if (announcementImageObjectUrl) return announcementImageObjectUrl;
+    if (announcementImageRemovePending) return null;
+    return editingAnnouncementDbImageUrl;
+  }, [
+    announcementImageObjectUrl,
+    announcementImageRemovePending,
+    editingAnnouncementDbImageUrl,
+  ]);
+  const announcementShowImagePreview = Boolean(announcementPreviewSrc);
 
   // Talepler sekmesi kaldırıldı.
 
@@ -468,6 +575,118 @@ interface InstitutionDetailPreparedData {
       .trim()
       .replace(/\s+/g, "-")
       .replace(/[^a-zA-Z0-9._-]/g, "");
+  };
+
+  const INSTITUTION_MEDIA_PUBLIC_MARKER = "/object/public/institution-media/";
+
+  const tryGetInstitutionMediaPathFromUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    const i = url.indexOf(INSTITUTION_MEDIA_PUBLIC_MARKER);
+    if (i === -1) return null;
+    const path = url.slice(i + INSTITUTION_MEDIA_PUBLIC_MARKER.length).split("?")[0];
+    return path.trim() || null;
+  };
+
+  const formatAnnouncementDate = (iso: string | null | undefined): string => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  const buildAnnouncementPreview = (text: string, maxLen = 120): string => {
+    const t = text.replace(/\s+/g, " ").trim();
+    if (t.length <= maxLen) return t;
+    return `${t.slice(0, maxLen)}…`;
+  };
+
+  const mapAnnouncementDbRow = (row: {
+    id: string;
+    title: string | null;
+    content: string | null;
+    announcement_image_url: string | null;
+    link_url: string | null;
+    created_at: string | null;
+    is_active: boolean | null;
+  }): AnnouncementRow => {
+    const content = String(row.content ?? "");
+    const linkRaw = row.link_url;
+    const linkTrimmed = typeof linkRaw === "string" ? linkRaw.trim() : "";
+    return {
+      id: row.id,
+      title: String(row.title ?? ""),
+      content,
+      preview: buildAnnouncementPreview(content),
+      date: formatAnnouncementDate(row.created_at),
+      isActive: row.is_active === true,
+      imageUrl: row.announcement_image_url,
+      linkUrl: linkTrimmed || null,
+    };
+  };
+
+  const loadAnnouncements = useCallback(
+    async (supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>) => {
+      if (!institutionId) {
+        setAnnouncementsList([]);
+        return;
+      }
+      const instId = Number(institutionId);
+      if (!Number.isFinite(instId)) {
+        setAnnouncementsList([]);
+        return;
+      }
+      const supabase = supabaseArg ?? createSupabaseBrowserClient();
+      setAnnouncementsLoading(true);
+      setAnnouncementsError(null);
+      try {
+        const { data, error } = await supabase
+          .from("announcements")
+          .select("id, title, content, announcement_image_url, link_url, created_at, is_active")
+          .eq("institution_id", instId)
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Announcements load error:", error);
+          setAnnouncementsError("Duyurular yüklenemedi.");
+          setAnnouncementsList([]);
+          return;
+        }
+        const rows = (data ?? []) as Array<{
+          id: string;
+          title: string | null;
+          content: string | null;
+          announcement_image_url: string | null;
+          link_url: string | null;
+          created_at: string | null;
+          is_active: boolean | null;
+        }>;
+        setAnnouncementsList(rows.map(mapAnnouncementDbRow));
+      } finally {
+        setAnnouncementsLoading(false);
+      }
+    },
+    [institutionId]
+  );
+
+  const uploadAnnouncementImage = async (
+    file: File,
+    supabase: ReturnType<typeof createSupabaseBrowserClient>,
+    instId: number
+  ): Promise<{ url: string } | { error: string }> => {
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) return { error: "Görsel en fazla 10MB olabilir." };
+    if (!file.type.startsWith("image/")) return { error: "Lütfen geçerli bir görsel seçin." };
+    const timestamp = Date.now();
+    const cleanName = safeStorageFileName(file.name) || `${timestamp}.jpg`;
+    const path = `institutions/${instId}/announcements/${timestamp}-${cleanName}`;
+    const { error: uploadError } = await supabase.storage
+      .from("institution-media")
+      .upload(path, file, { upsert: false, contentType: file.type });
+    if (uploadError) {
+      console.error("Announcement image upload error:", uploadError);
+      return { error: "Görsel yüklenemedi." };
+    }
+    const publicUrl = supabase.storage.from("institution-media").getPublicUrl(path).data.publicUrl;
+    return { url: publicUrl };
   };
 
   const loadInstitutionMedia = async (supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>) => {
@@ -670,55 +889,34 @@ interface InstitutionDetailPreparedData {
     const supabase = createSupabaseBrowserClient();
   
     async function loadInstitutionProfile() {
-      const { data, error } = await supabase
-        .from("institutions")
-        .select(
-          "id, institution_name, official_email, official_phone, website, city, district, address, about, logo, is_verified, institution_type_id"
-        )
-        .eq("owner_auth_id", userId)
-        .maybeSingle();
-  
+      const { row, error } = await loadInstitutionRowForAuthUserClient(userId, supabase);
+
       if (cancelled) return;
-  
+
       if (error) {
         console.error("Institution profile load error:", error);
         return;
       }
-  
-      const row = data as {
-        id: number;
-        institution_name?: string | null;
-        official_email?: string | null;
-        official_phone?: string | null;
-        website?: string | null;
-        city?: string | null;
-        district?: string | null;
-        address?: string | null;
-        about?: string | null;
-        logo?: string | null;
-        is_verified?: boolean | null;
-        institution_type_id?: number | null;
-      } | null;
-  
+
       if (!row) {
         setInstitutionRecordMissing(true);
         setInstitutionId(null);
         return;
       }
       setInstitutionRecordMissing(false);
-  
+
       setInstitutionId(String(row.id));
       setInstitutionIsVerified(Boolean(row.is_verified));
       setInstitutionTypeId(
         typeof row.institution_type_id === "number" ? String(row.institution_type_id) : ""
       );
-  
+
       const logoUrl = row.logo
         ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
         : "";
-  
+
       setInstitutionName(row.institution_name || "");
-  
+
       setInstitutionFormData({
         institutionName: row.institution_name || "",
         email: row.official_email || "",
@@ -751,7 +949,16 @@ interface InstitutionDetailPreparedData {
   }, [user?.id, userType]);
 
   useEffect(() => {
-    if (activeTab !== "institutions") return;
+    if (!institutionId || userType !== "institution") {
+      setAnnouncementsList([]);
+      setAnnouncementsError(null);
+      return;
+    }
+    void loadAnnouncements();
+  }, [institutionId, userType, loadAnnouncements]);
+
+  useEffect(() => {
+    if (activeTab !== "institutions" && activeTab !== "overview") return;
     if (!user?.id || userType !== "institution") return;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
@@ -813,7 +1020,7 @@ interface InstitutionDetailPreparedData {
   }, [activeTab, user?.id, userType]);
 
   useEffect(() => {
-    if (activeTab !== "institutions") return;
+    if (activeTab !== "institutions" && activeTab !== "overview") return;
     const typeId = Number((institutionTypeId ?? "").trim());
     if (!Number.isFinite(typeId) || !typeId) return;
     if ((institutionCategoryId ?? "").trim()) return;
@@ -996,9 +1203,11 @@ interface InstitutionDetailPreparedData {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (announcementModalOpen) {
-        setAnnouncementModalOpen(false);
-        setEditingAnnouncementId(null);
-        setAnnouncementFormErrors({});
+          setAnnouncementModalOpen(false);
+          setEditingAnnouncementId(null);
+          setAnnouncementFormErrors({});
+          setAnnouncementImageFile(null);
+          setAnnouncementImageRemovePending(false);
         }
         if (subscriptionModalOpen) {
           setSubscriptionModalOpen(false);
@@ -1026,13 +1235,64 @@ interface InstitutionDetailPreparedData {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== "media-management") return;
+    if (activeTab !== "media-management" && activeTab !== "overview") return;
     if (!institutionId) {
       setMediaItems([]);
       return;
     }
-    loadInstitutionMedia();
+    void loadInstitutionMedia();
   }, [activeTab, institutionId]);
+
+  const overviewMissingFields = useMemo((): OverviewMissingField[] => {
+    const items: OverviewMissingField[] = [];
+    if (!(institutionFormData.institutionName ?? "").trim()) {
+      items.push({ id: "institution_name", label: "Kurum Adı", tab: "institution-profile" });
+    }
+    if (!(institutionFormData.phone ?? "").trim()) {
+      items.push({ id: "phone", label: "Telefon", tab: "institution-profile" });
+    }
+    if (!(institutionFormData.email ?? "").trim()) {
+      items.push({ id: "email", label: "E-posta", tab: "institution-profile" });
+    }
+    if (!(institutionFormData.logoUrl ?? "").trim()) {
+      items.push({ id: "logo", label: "Logo", tab: "institution-profile" });
+    }
+    const overviewTypeIdNum = Number((institutionTypeId ?? "").trim());
+    const overviewSelectedType =
+      Number.isFinite(overviewTypeIdNum) && overviewTypeIdNum > 0
+        ? institutionTypes.find((t) => t.id === overviewTypeIdNum)
+        : undefined;
+    const overviewHasCategory = Boolean(
+      (institutionCategoryId ?? "").trim() ||
+        (overviewSelectedType ? String(overviewSelectedType.category_id) : "")
+    );
+    const overviewHasType = Boolean((institutionTypeId ?? "").trim());
+    const overviewCanEvaluateCategory =
+      institutionTypes.length > 0 || Boolean((institutionCategoryId ?? "").trim());
+    if ((!overviewHasType || overviewCanEvaluateCategory) && !overviewHasCategory) {
+      items.push({ id: "category", label: "Kategori", tab: "institutions" });
+    }
+    if (!overviewHasType) {
+      items.push({ id: "sub_type", label: "Alt Kategori", tab: "institutions" });
+    }
+    if (!(institutionFormData.address ?? "").trim()) {
+      items.push({ id: "address", label: "Adres", tab: "institution-profile" });
+    }
+    if (!(institutionFormData.about ?? "").trim()) {
+      items.push({ id: "about", label: "Kurum Açıklaması", tab: "institution-profile" });
+    }
+    return items;
+  }, [
+    institutionFormData.institutionName,
+    institutionFormData.phone,
+    institutionFormData.email,
+    institutionFormData.logoUrl,
+    institutionFormData.address,
+    institutionFormData.about,
+    institutionTypeId,
+    institutionCategoryId,
+    institutionTypes,
+  ]);
 
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
@@ -1099,7 +1359,7 @@ interface InstitutionDetailPreparedData {
     const { error: updateError } = await supabase
       .from("institutions")
       .update({ logo: path })
-      .eq("owner_auth_id", user.id);
+      .eq("id", Number(institutionId));
     if (updateError) {
       setLogoUploading(false);
       setLogoUploadError(updateError.message || "Kayıt güncellenemedi.");
@@ -1113,6 +1373,10 @@ interface InstitutionDetailPreparedData {
   const handleInstitutionProfileSave = async () => {
     if (!user?.id) {
       setInstitutionProfileMessage("Kurum profili kaydedilirken bir hata oluştu.");
+      return;
+    }
+    if (!institutionId || !Number.isFinite(Number(institutionId))) {
+      setInstitutionProfileMessage("Kurum kaydı bulunamadı.");
       return;
     }
 
@@ -1137,10 +1401,12 @@ interface InstitutionDetailPreparedData {
     setInstitutionProfileMessage(null);
 
     try {
+      const instNumericId = Number(institutionId);
+
       const { data, error } = await supabase
         .from("institutions")
         .update(payload)
-        .eq("owner_auth_id", user.id)
+        .eq("id", instNumericId)
         .select(
           "id, institution_name, official_email, official_phone, website, city, district, address, about, logo"
         )
@@ -1210,6 +1476,13 @@ interface InstitutionDetailPreparedData {
   const isSubscriptionTab = activeTab === "subscription";
   const isOverviewTab = activeTab === "overview";
 
+  const overviewMediaCountDisplay =
+    !institutionId || !Number.isFinite(Number(institutionId))
+      ? "0"
+      : mediaLoading && (activeTab === "overview" || activeTab === "media-management")
+        ? "…"
+        : String(mediaItems.length);
+
   const handleSaveBooleanFeatures = async () => {
     if (!institutionId) {
       setInstitutionFeaturesSaveMessage("Kurum özellikleri kaydedilirken bir hata oluştu.");
@@ -1236,8 +1509,7 @@ interface InstitutionDetailPreparedData {
             institution_type_id: parsedTypeId,
             ...(selectedTypeName ? { type: selectedTypeName } : {}),
           })
-          .eq("id", Number(institutionId))
-          .eq("owner_auth_id", user.id);
+          .eq("id", Number(institutionId));
 
         if (typeUpdateError) {
           console.error("Institution type save error:", typeUpdateError);
@@ -1492,16 +1764,19 @@ interface InstitutionDetailPreparedData {
         }
 
         // Trigger ile güncellenen `institutions.is_verified` değerini anlık yansıt.
-        const { data: instRow, error: instError } = await supabase
-          .from("institutions")
-          .select("is_verified")
-          .eq("owner_auth_id", user.id)
-          .maybeSingle();
+        const refreshId = Number(institutionId);
+        if (Number.isFinite(refreshId)) {
+          const { data: instRow, error: instError } = await supabase
+            .from("institutions")
+            .select("is_verified")
+            .eq("id", refreshId)
+            .maybeSingle();
 
-        if (instError) {
-          console.error("Institution is_verified refresh error:", instError);
-        } else {
-          setInstitutionIsVerified(Boolean(instRow?.is_verified));
+          if (instError) {
+            console.error("Institution is_verified refresh error:", instError);
+          } else {
+            setInstitutionIsVerified(Boolean(instRow?.is_verified));
+          }
         }
       }
     } catch (error) {
@@ -1707,39 +1982,15 @@ interface InstitutionDetailPreparedData {
     };
   })();
 
-  const OVERVIEW_ANNOUNCEMENTS = [
-    {
-      id: "o1",
-      title: "Sistem Bakım Çalışması Hakkında",
-      description: "24 Mayıs 2024 tarihinde saat 02:00 - 04:00 arasında planlı bakım çalışması gerçekleştirilecektir.",
-      timeLabel: "2 Saat Önce",
-      icon: Megaphone,
-      iconBg: "orange",
-    },
-    {
-      id: "o2",
-      title: "Yeni Şube Kayıt Özelliği Aktif Edildi",
-      description: "Artık panel üzerinden birden fazla şubenizi tek bir hesapla kolayca yönetebilirsiniz.",
-      timeLabel: "Dün",
-      icon: Info,
-      iconBg: "blue",
-    },
-    {
-      id: "o3",
-      title: "Aylık Performans Raporu Yayınlandı",
-      description: "Nisan ayı kurum içi büyüme ve kullanıcı etkileşim verilerini içeren raporunuz hazır.",
-      timeLabel: "2 Gün Önce",
-      icon: Star,
-      iconBg: "purple",
-    },
-  ];
-
   // Talepler sekmesi kaldırıldı.
 
   const openNewAnnouncementModal = () => {
     setEditingAnnouncementId(null);
-    setAnnouncementForm({ title: "", content: "", status: "draft" });
+    setAnnouncementForm({ title: "", content: "", linkUrl: "", isActive: true });
     setAnnouncementFormErrors({});
+    setAnnouncementImageFile(null);
+    setAnnouncementImageRemovePending(false);
+    if (announcementImageInputRef.current) announcementImageInputRef.current.value = "";
     setAnnouncementModalOpen(true);
   };
 
@@ -1748,9 +1999,13 @@ interface InstitutionDetailPreparedData {
     setAnnouncementForm({
       title: item.title,
       content: item.content,
-      status: item.status,
+      linkUrl: item.linkUrl ?? "",
+      isActive: item.isActive,
     });
     setAnnouncementFormErrors({});
+    setAnnouncementImageFile(null);
+    setAnnouncementImageRemovePending(false);
+    if (announcementImageInputRef.current) announcementImageInputRef.current.value = "";
     setAnnouncementModalOpen(true);
   };
 
@@ -1758,19 +2013,62 @@ interface InstitutionDetailPreparedData {
     setAnnouncementModalOpen(false);
     setEditingAnnouncementId(null);
     setAnnouncementFormErrors({});
+    setAnnouncementImageFile(null);
+    setAnnouncementImageRemovePending(false);
+    if (announcementImageInputRef.current) announcementImageInputRef.current.value = "";
   };
 
   const handleAnnouncementFormChange = (
     field: keyof typeof announcementForm,
-    value: string | AnnouncementStatus
+    value: string | boolean
   ) => {
     setAnnouncementForm((prev) => ({ ...prev, [field]: value }));
     setAnnouncementFormErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleAnnouncementSave = () => {
+  const handleAnnouncementImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setAnnouncementImageRemovePending(false);
+    setAnnouncementImageFile(file);
+  };
+
+  const handleAnnouncementImageDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleAnnouncementImageDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (announcementSaving) return;
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 10 * 1024 * 1024) return;
+    setAnnouncementImageRemovePending(false);
+    setAnnouncementImageFile(file);
+  };
+
+  const handleAnnouncementImagePickClick = () => {
+    if (announcementSaving) return;
+    announcementImageInputRef.current?.click();
+  };
+
+  const handleAnnouncementImageClearOrRemove = () => {
+    if (announcementSaving) return;
+    if (announcementImageFile) {
+      setAnnouncementImageFile(null);
+      if (announcementImageInputRef.current) announcementImageInputRef.current.value = "";
+      return;
+    }
+    if (editingAnnouncementDbImageUrl) {
+      setAnnouncementImageRemovePending(true);
+    }
+  };
+
+  const handleAnnouncementSave = async () => {
     const title = announcementForm.title.trim();
     const content = announcementForm.content.trim();
+    const link_url = announcementForm.linkUrl.trim() || null;
     const errors: { title?: string; content?: string } = {};
     if (!title) errors.title = "Başlık zorunludur.";
     if (!content) errors.content = "İçerik zorunludur.";
@@ -1778,31 +2076,180 @@ interface InstitutionDetailPreparedData {
       setAnnouncementFormErrors(errors);
       return;
     }
-    if (editingAnnouncementId) {
-      setAnnouncementsList((prev) =>
-        prev.map((row) =>
-          row.id === editingAnnouncementId
-            ? { ...row, title, content, status: announcementForm.status }
-            : row
-        )
-      );
-    } else {
-      setAnnouncementsList((prev) => [
-        {
-          id: String(Date.now()),
+    if (!user?.id || !institutionId) {
+      setAnnouncementsError("Kurum bilgisi bulunamadı.");
+      return;
+    }
+    const instId = Number(institutionId);
+    if (!Number.isFinite(instId)) {
+      setAnnouncementsError("Kurum bilgisi bulunamadı.");
+      return;
+    }
+    if (announcementSaving) return;
+
+    const supabase = createSupabaseBrowserClient();
+    setAnnouncementSaving(true);
+    setAnnouncementsError(null);
+
+    try {
+      const existingRow = editingAnnouncementId
+        ? announcementsList.find((r) => r.id === editingAnnouncementId)
+        : null;
+
+      const is_active = announcementForm.isActive;
+
+      if (editingAnnouncementId) {
+        if (announcementImageFile) {
+          const up = await uploadAnnouncementImage(announcementImageFile, supabase, instId);
+          if ("error" in up) {
+            setAnnouncementsError(up.error);
+            return;
+          }
+          const newUrl = up.url;
+          const newPath = tryGetInstitutionMediaPathFromUrl(newUrl);
+
+          const { error: updateError } = await supabase
+            .from("announcements")
+            .update({
+              title,
+              content,
+              link_url,
+              is_active,
+              announcement_image_url: newUrl,
+            })
+            .eq("id", editingAnnouncementId)
+            .eq("institution_id", instId);
+
+          if (updateError) {
+            console.error("Announcement update error:", updateError);
+            setAnnouncementsError("Duyuru güncellenemedi.");
+            if (newPath) {
+              const { error: rollbackErr } = await supabase.storage.from("institution-media").remove([newPath]);
+              if (rollbackErr) console.error("Announcement new image rollback error:", rollbackErr);
+            }
+            return;
+          }
+
+          if (existingRow?.imageUrl) {
+            const oldPath = tryGetInstitutionMediaPathFromUrl(existingRow.imageUrl);
+            if (oldPath && oldPath !== newPath) {
+              const { error: removeError } = await supabase.storage.from("institution-media").remove([oldPath]);
+              if (removeError) console.error("Announcement old image storage delete error:", removeError);
+            }
+          }
+        } else if (announcementImageRemovePending) {
+          const { error: updateError } = await supabase
+            .from("announcements")
+            .update({
+              title,
+              content,
+              link_url,
+              is_active,
+              announcement_image_url: null,
+            })
+            .eq("id", editingAnnouncementId)
+            .eq("institution_id", instId);
+
+          if (updateError) {
+            console.error("Announcement update error:", updateError);
+            setAnnouncementsError("Duyuru güncellenemedi.");
+            return;
+          }
+
+          if (existingRow?.imageUrl) {
+            const oldPath = tryGetInstitutionMediaPathFromUrl(existingRow.imageUrl);
+            if (oldPath) {
+              const { error: removeError } = await supabase.storage.from("institution-media").remove([oldPath]);
+              if (removeError) console.error("Announcement image storage delete error:", removeError);
+            }
+          }
+        } else {
+          const { error: updateError } = await supabase
+            .from("announcements")
+            .update({
+              title,
+              content,
+              link_url,
+              is_active,
+            })
+            .eq("id", editingAnnouncementId)
+            .eq("institution_id", instId);
+
+          if (updateError) {
+            console.error("Announcement update error:", updateError);
+            setAnnouncementsError("Duyuru güncellenemedi.");
+            return;
+          }
+        }
+      } else {
+        let imageUrl: string | null = null;
+        if (announcementImageFile) {
+          const up = await uploadAnnouncementImage(announcementImageFile, supabase, instId);
+          if ("error" in up) {
+            setAnnouncementsError(up.error);
+            return;
+          }
+          imageUrl = up.url;
+        }
+
+        const { error: insertError } = await supabase.from("announcements").insert({
+          institution_id: instId,
           title,
           content,
-          date: "—",
-          status: announcementForm.status,
-        },
-        ...prev,
-      ]);
+          link_url,
+          is_active,
+          announcement_image_url: imageUrl,
+        });
+
+        if (insertError) {
+          console.error("Announcement insert error:", insertError);
+          setAnnouncementsError("Duyuru kaydedilemedi.");
+          if (imageUrl) {
+            const p = tryGetInstitutionMediaPathFromUrl(imageUrl);
+            if (p) await supabase.storage.from("institution-media").remove([p]);
+          }
+          return;
+        }
+      }
+
+      await loadAnnouncements(supabase);
+      closeAnnouncementModal();
+    } finally {
+      setAnnouncementSaving(false);
     }
-    closeAnnouncementModal();
   };
 
-  const handleAnnouncementDelete = (id: string) => {
-    setAnnouncementsList((prev) => prev.filter((row) => row.id !== id));
+  const handleAnnouncementDelete = async (id: string) => {
+    if (!window.confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
+    if (!institutionId) return;
+    const instId = Number(institutionId);
+    if (!Number.isFinite(instId)) return;
+
+    const row = announcementsList.find((r) => r.id === id);
+    const supabase = createSupabaseBrowserClient();
+    setAnnouncementsError(null);
+
+    const { error: deleteError } = await supabase
+      .from("announcements")
+      .delete()
+      .eq("id", id)
+      .eq("institution_id", instId);
+
+    if (deleteError) {
+      console.error("Announcement delete error:", deleteError);
+      setAnnouncementsError("Duyuru silinemedi.");
+      return;
+    }
+
+    if (row?.imageUrl) {
+      const path = tryGetInstitutionMediaPathFromUrl(row.imageUrl);
+      if (path) {
+        const { error: removeError } = await supabase.storage.from("institution-media").remove([path]);
+        if (removeError) console.error("Announcement image storage delete error:", removeError);
+      }
+    }
+
+    await loadAnnouncements(supabase);
   };
 
   const handleTabSelect = (tabId: PanelTabId) => {
@@ -1896,62 +2343,114 @@ interface InstitutionDetailPreparedData {
                     Genel Bakış
                   </h2>
                   <p className="panel-overview-subtitle">
-                    Profil durumunuzu ve duyuruları buradan takip edebilirsiniz.
+                    Kurum özetiniz ve panel kullanım rehberi.
                   </p>
                 </div>
                 <div className="panel-overview-content">
                   <div className="panel-overview-cards">
-                    <div className="panel-overview-summary-card panel-overview-summary-card--progress">
-                      <div className="panel-overview-summary-card-text">
-                        <span className="panel-overview-card-label">HESAP DURUMU</span>
-                        <h3 className="panel-overview-card-title">Profil Tamamlanma Yüzdesi</h3>
-                        <p className="panel-overview-card-desc">
-                          Profilinizi %100 yaparak daha fazla özelliğe erişim sağlayın.
+                    <div className="panel-overview-media-status-card">
+                      <div className="panel-overview-media-status-body">
+                        <span className="panel-overview-media-status-label">MEDYA DURUMU</span>
+                        <h3 className="panel-overview-media-status-heading">Toplam Medya Sayısı</h3>
+                        <p className="panel-overview-media-status-desc">
+                          Yüklenen fotoğraf/video adedi.
                         </p>
                       </div>
-                      <div className="panel-overview-progress-wrap">
-                        <div className="panel-overview-progress-ring" aria-hidden>
-                          <span className="panel-overview-progress-value">85%</span>
-                        </div>
+                      <div className="panel-overview-media-status-count" aria-live="polite">
+                        <span className="panel-overview-media-status-count-value">
+                          {overviewMediaCountDisplay}
+                        </span>
                       </div>
                     </div>
-                    <div className="panel-overview-summary-card">
-                      <span className="panel-overview-card-label">KURUMSAL ONAY</span>
-                      <h3 className="panel-overview-card-title">Onay Durumu</h3>
-                      <div className="panel-overview-status-row">
-                        <span className="panel-overview-status-chip">
-                          <span className="panel-overview-status-dot" aria-hidden />
-                          YAYINDA
-                        </span>
-                        <div className="panel-overview-status-icon" aria-hidden>
-                          <CheckCircle className="panel-overview-status-check" />
+                    <div className="panel-overview-missing-info-card">
+                      <span className="panel-overview-missing-info-label">EKSİK BİLGİLER</span>
+                      <h3 className="panel-overview-missing-info-heading">Eksik Bilgiler Uyarısı</h3>
+                      {overviewMissingFields.length === 0 ? (
+                        <p className="panel-overview-missing-info-ok">Eksik önemli bilgi bulunmuyor.</p>
+                      ) : (
+                        <div
+                          className="panel-overview-missing-info-scroll"
+                          role="list"
+                          aria-label="Eksik alanlar"
+                        >
+                          {overviewMissingFields.map((field) => (
+                            <div
+                              key={field.id}
+                              className="panel-overview-missing-info-mini"
+                              role="listitem"
+                            >
+                              <div className="panel-overview-missing-info-mini-icon" aria-hidden>
+                                {renderOverviewMissingFieldIcon(field.id)}
+                              </div>
+                              <div className="panel-overview-missing-info-mini-body">
+                                <span className="panel-overview-missing-info-mini-title">
+                                  {field.label}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="panel-overview-missing-info-mini-action"
+                                  onClick={() => handleTabSelect(field.tab)}
+                                >
+                                  Şimdi Düzenle
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
-                  <div className="panel-overview-announcements">
-                    <div className="panel-overview-announcements-header">
-                      <h3 className="panel-overview-announcements-title">Yaklaşan Duyurular</h3>
-                      <span className="panel-overview-announcements-pill">SON DUYURULAR</span>
-                    </div>
-                    <ul className="panel-overview-announcements-list">
-                      {OVERVIEW_ANNOUNCEMENTS.map((item) => (
-                        <li key={item.id} className="panel-overview-announcements-item">
-                          <div className={`panel-overview-announcements-icon panel-overview-announcements-icon--${item.iconBg}`}>
-                            <item.icon className="panel-overview-announcements-icon-svg" aria-hidden />
-                          </div>
-                          <div className="panel-overview-announcements-body">
-                            <span className="panel-overview-announcements-item-title">{item.title}</span>
-                            <p className="panel-overview-announcements-item-desc">{item.description}</p>
-                          </div>
-                          <span className="panel-overview-announcements-time">{item.timeLabel}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="panel-overview-announcements-footer">
-                      <button type="button" className="panel-overview-announcements-link">
-                        Tüm Duyuruları Gör &gt;
-                      </button>
+                  <div className="panel-overview-announcements panel-overview-welcome-card">
+                    <h3 className="panel-overview-announcements-title">Hoş Geldiniz</h3>
+                    <div className="panel-overview-welcome-body">
+                      <p>
+                        Bu panel üzerinden kurumunuza ait tüm bilgileri tek bir yerden yönetebilirsiniz.{" "}
+                      </p>
+                      <p className="panel-overview-welcome-row">
+                        <span className="panel-overview-welcome-row-icon" aria-hidden>
+                          <Building2 className="panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="panel-overview-welcome-row-text">
+                          <strong>Kurum Profili</strong> sekmesinden kurum adı, iletişim bilgileri, adres ve açıklama
+                          gibi temel bilgilerinizi eksiksiz doldurmanız önemlidir.
+                        </span>
+                      </p>
+                      <p className="panel-overview-welcome-row">
+                        <span className="panel-overview-welcome-row-icon" aria-hidden>
+                          <Tags className="panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="panel-overview-welcome-row-text">
+                          <strong>Kurum Özellikleri</strong> bölümünde seçeceğiniz kategori, alt kategori ve diğer
+                          kurum özellikleri, kurum sayfanızda ziyaretçilere gösterilir. Aynı zamanda bu bilgiler
+                          filtreleme alanlarında da kullanılacağı için, kurumunuzun daha kolay bulunması ve öne
+                          çıkması adına tüm alanları doğru ve eksiksiz doldurmanızı öneririz.
+                        </span>
+                      </p>
+                      <p className="panel-overview-welcome-row">
+                        <span className="panel-overview-welcome-row-icon" aria-hidden>
+                          <Images className="panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="panel-overview-welcome-row-text">
+                          <strong>Medya Yönetimi</strong> alanından yüklediğiniz görseller kurum sayfanızda albüm
+                          olarak listelenir ve kurumunuzu daha güçlü şekilde tanıtmanıza yardımcı olur.
+                        </span>
+                      </p>
+                      <p className="panel-overview-welcome-row">
+                        <span className="panel-overview-welcome-row-icon" aria-hidden>
+                          <Megaphone className="panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="panel-overview-welcome-row-text">
+                          <strong>Duyurular</strong> bölümünde ise bursluluk sınavı tarihi, etkinlik, yarışma, kayıt
+                          dönemi veya bilgilendirme içerikleri gibi paylaşmak istediğiniz duyuruları
+                          yayınlayabilirsiniz. Her duyuru için aktiflik durumunu belirleyebilir, süresi geçen
+                          duyurularınızı pasif hale getirseniz bile ziyaretçiler bunları süresi doldu bilgisiyle
+                          görmeye devam edebilir.
+                        </span>
+                      </p>
+                      <p>
+                        Kurum sayfanızın daha güçlü görünmesi için bilgilerinizi düzenli olarak güncel tutmanızı
+                        öneririz.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -2006,6 +2505,7 @@ interface InstitutionDetailPreparedData {
                   variant="default"
                   className="panel-announcements-add-btn"
                   onClick={openNewAnnouncementModal}
+                  disabled={!institutionId || announcementSaving}
                 >
                   <Plus className="panel-announcements-add-btn-icon" aria-hidden />
                   Yeni Duyuru
@@ -2168,61 +2668,92 @@ interface InstitutionDetailPreparedData {
               </div>
             ) : isAnnouncementsTab ? (
               <div className="panel-announcements-content">
-                <div className="panel-announcements-table-wrap">
-                  <table className="panel-announcements-table">
-                    <thead>
-                      <tr>
-                        <th className="panel-announcements-th">Başlık</th>
-                        <th className="panel-announcements-th">Kısa açıklama</th>
-                        <th className="panel-announcements-th">Tarih</th>
-                        <th className="panel-announcements-th">Durum</th>
-                        <th className="panel-announcements-th panel-announcements-th-actions">İşlemler</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {announcementsList.map((row) => (
-                        <tr key={row.id} className="panel-announcements-tr">
-                          <td className="panel-announcements-td panel-announcements-td-title">
-                            {row.title}
-                          </td>
-                          <td className="panel-announcements-td panel-announcements-td-desc">
-                            <span className="panel-announcements-desc-clamp">{row.content}</span>
-                          </td>
-                          <td className="panel-announcements-td">{row.date}</td>
-                          <td className="panel-announcements-td">
-                            <span
-                              className={
-                                row.status === "published"
-                                  ? "panel-announcements-badge panel-announcements-badge--published"
-                                  : "panel-announcements-badge panel-announcements-badge--draft"
-                              }
-                            >
-                              {row.status === "published" ? "Yayında" : "Taslak"}
-                            </span>
-                          </td>
-                          <td className="panel-announcements-td panel-announcements-td-actions">
-                            <button
-                              type="button"
-                              className="panel-announcements-action-btn"
-                              aria-label="Düzenle"
-                              onClick={() => openEditAnnouncementModal(row)}
-                            >
-                              <PencilLine className="panel-announcements-action-icon" aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              className="panel-announcements-action-btn"
-                              aria-label="Sil"
-                              onClick={() => handleAnnouncementDelete(row.id)}
-                            >
-                              <Trash2 className="panel-announcements-action-icon" aria-hidden />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {!institutionId ? (
+                  <p className="panel-main-card-placeholder">Kurum kaydı bulunamadı. Duyuruları yönetmek için kurum profilinizin tanımlı olması gerekir.</p>
+                ) : (
+                  <>
+                    {announcementsError ? (
+                      <p className="panel-institutions-save-message" role="alert">
+                        {announcementsError}
+                      </p>
+                    ) : null}
+                    <div className="panel-announcements-table-wrap">
+                      <table className="panel-announcements-table">
+                        <thead>
+                          <tr>
+                            <th className="panel-announcements-th panel-announcements-th-image">Görsel</th>
+                            <th className="panel-announcements-th">Başlık</th>
+                            <th className="panel-announcements-th">İçerik</th>
+                            <th className="panel-announcements-th">Tarih</th>
+                            <th className="panel-announcements-th">Aktiflik Durumu</th>
+                            <th className="panel-announcements-th panel-announcements-th-actions">İşlemler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {announcementsLoading ? (
+                            <tr className="panel-announcements-tr">
+                              <td className="panel-announcements-td" colSpan={6}>
+                                Yükleniyor…
+                              </td>
+                            </tr>
+                          ) : announcementsList.length === 0 ? (
+                            <tr className="panel-announcements-tr">
+                              <td className="panel-announcements-td" colSpan={6}>
+                                Henüz duyuru yok. Yeni duyuru eklemek için üstteki düğmeyi kullanın.
+                              </td>
+                            </tr>
+                          ) : (
+                            announcementsList.map((row) => (
+                              <tr key={row.id} className="panel-announcements-tr">
+                                <td className="panel-announcements-td panel-announcements-td-image">
+                                  <AnnouncementTableThumbCell url={row.imageUrl} />
+                                </td>
+                                <td className="panel-announcements-td panel-announcements-td-title">
+                                  {row.title}
+                                </td>
+                                <td className="panel-announcements-td panel-announcements-td-desc">
+                                  <span className="panel-announcements-desc-clamp">{row.preview}</span>
+                                </td>
+                                <td className="panel-announcements-td">{row.date}</td>
+                                <td className="panel-announcements-td">
+                                  <span
+                                    className={
+                                      row.isActive
+                                        ? "panel-announcements-badge panel-announcements-badge--published"
+                                        : "panel-announcements-badge panel-announcements-badge--draft"
+                                    }
+                                  >
+                                    {row.isActive ? "Yayında" : "Aktif Değil"}
+                                  </span>
+                                </td>
+                                <td className="panel-announcements-td panel-announcements-td-actions">
+                                  <button
+                                    type="button"
+                                    className="panel-announcements-action-btn"
+                                    aria-label="Düzenle"
+                                    onClick={() => openEditAnnouncementModal(row)}
+                                    disabled={announcementSaving}
+                                  >
+                                    <PencilLine className="panel-announcements-action-icon" aria-hidden />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="panel-announcements-action-btn"
+                                    aria-label="Sil"
+                                    onClick={() => handleAnnouncementDelete(row.id)}
+                                    disabled={announcementSaving}
+                                  >
+                                    <Trash2 className="panel-announcements-action-icon" aria-hidden />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             ) : isMediaManagementTab ? (
               <div className="panel-media-management">
@@ -3057,17 +3588,122 @@ interface InstitutionDetailPreparedData {
                   )}
                 </div>
                 <div className="panel-institution-form-field">
-                  <label className="panel-institution-form-label">DURUM</label>
-                  <select
-                    value={announcementForm.status}
-                    onChange={(e) =>
-                      handleAnnouncementFormChange("status", e.target.value as AnnouncementStatus)
+                  <label className="panel-institution-form-label" htmlFor="announcement-link-url-input">
+                    BAĞLANTI LİNKİ
+                  </label>
+                  <Input
+                    id="announcement-link-url-input"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="url"
+                    placeholder="https://"
+                    value={announcementForm.linkUrl}
+                    onChange={(e) => handleAnnouncementFormChange("linkUrl", e.target.value)}
+                    className="panel-institution-form-input"
+                    disabled={announcementSaving}
+                  />
+                </div>
+                <div className="panel-institution-form-field">
+                  <label className="panel-institution-form-label" htmlFor="announcement-status-select">
+                    DUYURUNUN AKTİFLİK DURUMU
+                  </label>
+                  <Select
+                    value={announcementForm.isActive ? "active" : "inactive"}
+                    onValueChange={(v) =>
+                      handleAnnouncementFormChange("isActive", v === "active")
                     }
-                    className="panel-announcement-status-select"
+                    disabled={announcementSaving}
                   >
-                    <option value="draft">Taslak</option>
-                    <option value="published">Yayında</option>
-                  </select>
+                    <SelectTrigger
+                      id="announcement-status-select"
+                      className="panel-announcement-status-select"
+                      aria-label="Duyuru durumu"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      align="start"
+                      sideOffset={4}
+                      className="select-content panel-announcement-status-dropdown"
+                    >
+                      <SelectItem value="active" className="select-item">
+                        Aktif
+                      </SelectItem>
+                      <SelectItem value="inactive" className="select-item">
+                        Aktif Değil
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="panel-institution-form-field panel-announcement-image-field">
+                  <input
+                    id="panel-announcement-image-input"
+                    ref={announcementImageInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    className="panel-announcement-image-file-input"
+                    aria-label="Duyuru görseli seç"
+                    onChange={handleAnnouncementImageInputChange}
+                    disabled={announcementSaving}
+                  />
+                  <div className="panel-media-upload-card panel-media-upload-card--announcement-modal">
+                    <div className="panel-media-upload-head">
+                      <div className="panel-media-upload-head-text">
+                        <h4 className="panel-media-upload-title">Fotoğraf Yükle</h4>
+                        <p className="panel-media-upload-subtitle">PNG, JPG veya WEBP (Maks 10MB)</p>
+                      </div>
+                      <div className="panel-media-upload-icon-wrap" aria-hidden>
+                        <Image className="panel-media-upload-icon" />
+                      </div>
+                    </div>
+                    {announcementShowImagePreview ? (
+                      <div
+                        className="panel-media-dropzone panel-media-dropzone--announcement-preview"
+                        onDragOver={handleAnnouncementImageDragOver}
+                        onDrop={handleAnnouncementImageDrop}
+                      >
+                        <img
+                          src={announcementPreviewSrc!}
+                          alt=""
+                          className="panel-announcement-dropzone-preview-img"
+                        />
+                        <div className="panel-announcement-image-preview-overlay">
+                          <button
+                            type="button"
+                            className="panel-announcement-image-preview-btn"
+                            onClick={handleAnnouncementImagePickClick}
+                            disabled={announcementSaving}
+                          >
+                            Görseli değiştir
+                          </button>
+                          <button
+                            type="button"
+                            className="panel-announcement-image-preview-btn panel-announcement-image-preview-btn--muted"
+                            onClick={handleAnnouncementImageClearOrRemove}
+                            disabled={announcementSaving}
+                          >
+                            Görseli kaldır
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label
+                        className="panel-media-dropzone"
+                        htmlFor="panel-announcement-image-input"
+                        onDragOver={handleAnnouncementImageDragOver}
+                        onDrop={handleAnnouncementImageDrop}
+                      >
+                        <div className="panel-media-dropzone-inner">
+                          <CloudUpload className="panel-media-dropzone-icon" aria-hidden />
+                          <p className="panel-media-dropzone-title">
+                            {announcementSaving ? "Kaydediliyor…" : "Dosyaları buraya sürükleyin"}
+                          </p>
+                          <p className="panel-media-dropzone-subtitle">Veya bilgisayarınızdan seçin</p>
+                        </div>
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -3077,6 +3713,7 @@ interface InstitutionDetailPreparedData {
                 variant="outline"
                 className="panel-announcement-modal-btn panel-announcement-modal-btn--cancel"
                 onClick={closeAnnouncementModal}
+                disabled={announcementSaving}
               >
                 İptal
               </Button>
@@ -3084,9 +3721,10 @@ interface InstitutionDetailPreparedData {
                 type="button"
                 variant="default"
                 className="panel-announcement-modal-btn panel-announcement-modal-btn--submit"
-                onClick={handleAnnouncementSave}
+                onClick={() => void handleAnnouncementSave()}
+                disabled={announcementSaving}
               >
-                Kaydet
+                {announcementSaving ? "Kaydediliyor…" : "Kaydet"}
               </Button>
             </div>
           </div>

@@ -1,10 +1,11 @@
 'use client';
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { loadInstitutionRowForAuthUserClient } from '@/lib/auth/loadInstitutionRowForAuthUserClient';
 
 /**
  * Fetches the current institution's display name from public.users.
- * First tries institutions.owner_auth_id (same source used in panel profile),
+ * Uses the same institution resolution as the panel (owner_auth_id + users FK fallbacks),
  * then falls back to public.users.
  * @param authUid - Supabase auth user.id (uuid)
  * @returns Institution name string
@@ -15,17 +16,9 @@ export async function resolveInstitutionNameFromUsersClient(
   try {
     const supabase = createSupabaseBrowserClient();
 
-    // Primary source: institutions table (matches panel profile source).
-    const { data: instData, error: instError } = await supabase
-      .from('institutions')
-      .select('institution_name')
-      .eq('owner_auth_id', authUid)
-      .maybeSingle();
-
-    if (!instError) {
-      const institutionName = (instData as { institution_name?: string } | null)?.institution_name;
-      if (institutionName && String(institutionName).trim()) return String(institutionName).trim();
-    }
+    const { row: instRow } = await loadInstitutionRowForAuthUserClient(authUid, supabase);
+    const fromInst = instRow?.institution_name;
+    if (fromInst && String(fromInst).trim()) return String(fromInst).trim();
 
     const { data, error } = await supabase
       .from('users')

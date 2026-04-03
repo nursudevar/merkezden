@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "patch-package",
     "lint": "eslint",
     "import:meb": "node scripts/import-meb.js",
     "geocode:institutions": "node scripts/geocode-institution-locations.js"
@@ -38,6 +39,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
+    "patch-package": "^8.0.1",
     "sharp": "^0.34.5",
     "typescript": "^5"
   }

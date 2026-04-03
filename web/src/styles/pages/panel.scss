@@ -144,7 +144,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: rgba($purple-main, 0.15);
+  background-color: rgba($orange-primary, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,7 +153,7 @@
 .panel-sidebar-institution-avatar-icon {
   width: 40px;
   height: 40px;
-  color: $purple-main;
+  color: $orange-primary;
   flex-shrink: 0;
 }
 
@@ -1319,61 +1319,68 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 .panel-overview-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 20px;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
-  @media (max-width: 720px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 640px) {
     gap: 16px;
     margin-bottom: 20px;
   }
 }
 
-.panel-overview-summary-card {
+/* Genel Bakış — medya durumu kutusu (stilleri eksik bilgiler kutusundan bağımsız) */
+.panel-overview-media-status-card {
   background-color: $bg-white;
   border: 1px solid $border-light;
   @include rounded-24;
   @include shadow-md;
-  padding: 24px;
-  position: relative;
-  min-height: 140px;
+  padding: 30px;
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  height: 140px;
+  min-height: 140px;
+  max-height: 140px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 
   @media (max-width: 640px) {
     padding: 20px;
-    min-height: 120px;
+    height: 140px;
+    min-height: 140px;
+    max-height: 140px;
   }
 }
 
-/* HESAP DURUMU card: vertical stack up to 1200px to prevent progress overlap */
-.panel-overview-summary-card--progress {
-  @media (max-width: 1200px) {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-}
-
-.panel-overview-summary-card-text {
+.panel-overview-media-status-body {
+  flex: 1;
   min-width: 0;
-
-  @media (max-width: 1200px) {
-    flex: 0 0 auto;
-  }
+  min-height: 0;
+  align-self: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.panel-overview-card-label {
+.panel-overview-media-status-label {
   display: block;
   font-size: $text-xs;
   font-weight: $font-semibold;
-  color: $text-zinc-600;
+  color: rgba($orange-primary, 1);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
 
-.panel-overview-card-title {
+.panel-overview-media-status-heading {
   font-size: $text-lg;
   font-weight: $font-bold;
   color: $text-zinc-900;
@@ -1382,130 +1389,243 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   word-wrap: break-word;
 }
 
-.panel-overview-card-desc {
+.panel-overview-media-status-desc {
   font-size: $text-sm;
   color: $text-zinc-600;
   margin: 0;
   line-height: 1.45;
-  max-width: 220px;
-
-  @media (max-width: 1200px) {
-    max-width: none;
-  }
 }
 
-.panel-overview-progress-wrap {
-  position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
+.panel-overview-media-status-count {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.panel-overview-media-status-count-value {
+  font-size: 36px;
+  font-weight: $font-bold;
+  color: $purple-main;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 
   @media (max-width: 1200px) {
-    position: static;
-    transform: none;
-    margin-top: 16px;
-    align-self: center;
-    flex-shrink: 0;
+    font-size: 30px;
   }
 }
 
-.panel-overview-progress-ring {
-  position: relative;
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, $purple-main 0deg 306deg, $border-light 306deg 360deg);
+/* Genel Bakış — eksik bilgiler kutusu (medya kutusuyla ortak sınıf kullanmaz) */
+.panel-overview-missing-info-card {
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  @include rounded-24;
+  @include shadow-md;
+  padding: 30px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 140px;
+  overflow-x: hidden;
+  overflow-y: visible;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.panel-overview-missing-info-label {
+  display: block;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  color: rgba($orange-primary, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.panel-overview-missing-info-heading {
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0 0 20px 0;
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.panel-overview-missing-info-ok {
+  margin: 0;
+  font-size: $text-sm;
+  color: $green-main;
+  font-weight: $font-semibold;
+  line-height: 1.5;
+}
+
+.panel-overview-missing-info-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 10px;
+  margin: 20px 0 0 0;
+  padding: 2px 2px 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  color: rgba($text-zinc-600, 0.35);
+  &::-webkit-scrollbar {
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba($purple-main, 0.35);
+    border-radius: 999px;
+  }
+}
+
+.panel-overview-missing-info-mini {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 150px;
+  max-width: 200px;
+  padding: 30px 20px;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.panel-overview-missing-info-mini-icon {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: rgba($purple-main, 0.08);
+  color: $purple-main;
+}
 
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 8px;
-    background: $bg-white;
-    border-radius: 50%;
+.panel-overview-missing-info-mini-icon-svg {
+  width: 18px;
+  height: 18px;
+}
+
+.panel-overview-missing-info-mini-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+}
+
+.panel-overview-missing-info-mini-title {
+  font-size: $text-sm;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  line-height: 1.25;
+  word-wrap: break-word;
+  width: 100%;
+}
+
+.panel-overview-missing-info-mini-action {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 10px;
+  font-weight: $font-semibold;
+  color: $purple-main;
+  cursor: pointer;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: darken($purple-main, 6%);
+    text-decoration: underline;
   }
 
-  @media (max-width: 1200px) {
-    width: 72px;
-    height: 72px;
+  &:focus-visible {
+    outline: 2px solid rgba($purple-main, 0.45);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
 
-    &::after {
-      inset: 6px;
+.panel-overview-welcome-card {
+  .panel-overview-announcements-title {
+    margin-bottom: 14px;
+  }
+}
+
+.panel-overview-welcome-body {
+  font-size: 16px;
+  color: $text-zinc-600;
+  line-height: 1.65;
+
+  strong {
+    font-weight: $font-bold;
+    color: $text-zinc-900;
+  }
+
+  p {
+    margin: 0 0 25px 0;
+
+    &:last-child {
+      margin-bottom: 0;
     }
   }
 }
 
-.panel-overview-progress-value {
-  position: relative;
-  z-index: 1;
-  font-size: $text-lg;
-  font-weight: $font-bold;
-  color: $text-zinc-900;
-
-  @media (max-width: 1200px) {
-    font-size: $text-base;
-  }
-}
-
-.panel-overview-status-row {
+.panel-overview-welcome-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
+  align-items: flex-start;
+  gap: 14px;
 }
 
-.panel-overview-status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  background-color: $green-bg;
-  color: $green-main;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.panel-overview-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: $green-main;
+.panel-overview-welcome-row-icon {
   flex-shrink: 0;
-}
-
-.panel-overview-status-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: $green-bg;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  margin-top: 2px;
+  border-radius: 99999px;
+  background-color: rgba($purple-main, 0.09);
+  color: $purple-main;
 }
 
-.panel-overview-status-check {
-  width: 22px;
-  height: 22px;
-  color: $green-main;
+.panel-overview-welcome-icon-svg {
+  width: 15px;
+  height: 15px;
+}
+
+.panel-overview-welcome-row-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .panel-overview-announcements {
   background-color: $bg-white;
   border: 1px solid $border-light;
+  padding: 30px;
   @include rounded-24;
   @include shadow-md;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-overview-announcements-header {
@@ -1523,9 +1643,9 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 }
 
 .panel-overview-announcements-title {
-  font-size: $text-xl;
+  font-size: 24px;
   font-weight: $font-bold;
-  color: $text-zinc-900;
+  color: rgba($orange-primary, 1);
   margin: 0;
   line-height: 1.3;
 }
@@ -1997,6 +2117,11 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     width: 100px;
     text-align: right;
   }
+
+  &.panel-announcements-th-image {
+    width: 88px;
+    text-align: center;
+  }
 }
 
 .panel-announcements-tr {
@@ -2011,6 +2136,18 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   padding: 14px 16px;
   color: $text-zinc-900;
   vertical-align: top;
+
+  &.panel-announcements-td-image {
+    width: 88px;
+    padding: 14px 10px;
+    vertical-align: middle;
+    text-align: center;
+
+    .panel-media-thumb {
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
 
   &.panel-announcements-td-title {
     font-weight: $font-medium;
@@ -2116,7 +2253,9 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   @include rounded-2xl;
   @include shadow-lg;
   width: 100%;
-  max-width: 480px;
+  max-width: 550px;
+  max-height: calc(100vh - 40px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2141,16 +2280,26 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   margin: 0;
   padding: 24px 24px 0;
   line-height: 1.3;
+  flex-shrink: 0;
 }
 
 .panel-announcement-modal-body {
   padding: 20px 24px 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .panel-announcement-modal-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  .panel-institution-form-textarea {
+    resize: none;
+  }
 }
 
 .panel-announcement-modal-error {
@@ -2159,34 +2308,326 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   margin-top: 2px;
 }
 
+.panel-announcement-image-field {
+  position: relative;
+}
+
+.panel-announcement-image-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.panel-media-dropzone--announcement-preview {
+  position: relative;
+  display: block;
+  cursor: default;
+  padding: 8px;
+}
+
+.panel-announcement-dropzone-preview-img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 1);
+}
+
+.panel-announcement-image-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.5);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.panel-media-dropzone--announcement-preview:hover .panel-announcement-image-preview-overlay,
+.panel-media-dropzone--announcement-preview:focus-within .panel-announcement-image-preview-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel-announcement-image-preview-btn {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  @include transition;
+  background-color: $bg-white;
+  color: $text-zinc-800;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  &:hover:not(:disabled) {
+    background-color: $bg-zinc-50;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--muted {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.65);
+    color: $bg-white;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+  }
+}
+
+/* Duyuru modalı: medya sekmesi ile aynı kart/dropzone; dar alanda biraz sıkı */
+.panel-media-upload-card--announcement-modal {
+  .panel-media-dropzone-inner {
+    min-height: 100px;
+  }
+}
+
+.panel-announcement-modal-file-hint {
+  margin: 8px 0 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: 1.4;
+}
+
+/* Duyuru modalı: Radix SelectTrigger + select-trigger-default ile birleşir */
 .panel-announcement-status-select {
   width: 100%;
-  height: 44px;
+  min-height: 44px;
+  height: 44px !important;
   padding: 0 16px;
-  border-radius: 12px;
+  border-radius: 12px !important;
   border: 1px solid $border-light;
   background-color: $bg-white;
   font-size: $text-base;
   color: $text-zinc-900;
-  @include transition;
-  outline: none;
   box-sizing: border-box;
-  cursor: pointer;
+  white-space: nowrap;
 
-  &:focus {
+  &:focus,
+  &[data-state="open"] {
     border-color: $purple-main;
     box-shadow: 0 0 0 3px rgba($purple-main, 0.1);
+  }
+
+  &[data-disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+/* Panel’de home.scss yok; shadcn Select için taban stiller (ana sayfa / kategori ile uyumlu) */
+.select-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 6px 32px 6px 8px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $default-text-color;
+  outline: none;
+  user-select: none;
+  @include transition-colors;
+
+  &[data-disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+}
+
+.select-item-indicator {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-item-check-icon {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.select-trigger-default,
+.select-trigger-sm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 6px;
+  border: 1px solid $border-light;
+  background-color: transparent;
+  padding: 0 12px;
+  font-size: $text-sm;
+  white-space: nowrap;
+  @include shadow-sm;
+  @include transition;
+  outline: none;
+  cursor: pointer;
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.select-trigger-default {
+  height: 36px;
+}
+
+.select-trigger-sm {
+  height: 32px;
+}
+
+.select-trigger-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.select-content {
+  position: relative;
+  z-index: 10050;
+  max-height: var(--radix-select-content-available-height);
+  min-width: var(--radix-select-trigger-width);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  @include shadow-lg;
+  background-color: $bg-white;
+  padding: 8px;
+  @include transition;
+}
+
+.select-content-popper {
+  &[data-side="bottom"] {
+    transform: translateY(4px);
+  }
+  &[data-side="left"] {
+    transform: translateX(-4px);
+  }
+  &[data-side="right"] {
+    transform: translateX(4px);
+  }
+  &[data-side="top"] {
+    transform: translateY(-4px);
+  }
+}
+
+.select-viewport {
+  padding: 4px;
+}
+
+.select-content-popper .select-viewport {
+  height: var(--radix-select-trigger-height);
+  width: 100%;
+  min-width: var(--radix-select-trigger-width);
+}
+
+.select-scroll-button {
+  display: flex;
+  cursor: default;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.select-scroll-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Duyuru durumu Select — Portal’da olduğu için kök sınıf (form altında değil) */
+.select-content-popper.panel-announcement-status-dropdown {
+  width: var(--radix-select-trigger-width);
+  min-width: var(--radix-select-trigger-width);
+  max-width: var(--radix-select-trigger-width);
+  box-sizing: border-box;
+  padding: 6px;
+  overflow: hidden;
+}
+
+/* Global kural viewport’u tetikleyici yüksekliğine kilitliyor; 2+ satırda taşma/kayma yapıyor */
+.select-content-popper.panel-announcement-status-dropdown .select-viewport {
+  min-width: 0 !important;
+  width: 100%;
+  height: auto !important;
+  max-height: var(--radix-select-content-available-height);
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.panel-announcement-status-dropdown .select-item {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 8px;
+  padding: 10px 36px 10px 10px;
+  overflow: hidden;
+
+  &:hover,
+  &[data-highlighted] {
+    background-color: rgba(109, 93, 252, 0.08);
+    color: $purple-main;
+  }
+
+  &[data-state="checked"] {
+    background-color: rgba(109, 93, 252, 0.1);
+    color: $purple-main;
+    font-weight: $font-semibold;
+  }
+
+  .select-item-indicator {
+    right: 10px;
+  }
+
+  .select-item-check-icon {
+    color: $purple-main;
   }
 }
 
 .panel-announcement-modal-footer {
+  flex-shrink: 0;
   padding: 16px 24px 24px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
   border-top: 1px solid $border-light;
-  margin-top: 8px;
+  margin-top: 0;
+  background-color: $bg-white;
 }
 
 .panel-announcement-modal-btn {
