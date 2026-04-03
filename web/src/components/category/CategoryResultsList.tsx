@@ -24,55 +24,7 @@ interface CategoryResultsListProps {
   }>;
 }
 
-const mockResults = [
-  {
-    id: "1",
-    name: "Montessori Çocuk Akademisi",
-    description: "Çocuk merkezli eğitim yaklaşımı ile uluslararası standartlarda Montessori eğitimi. Geniş bahçe ve doğal materyaller.",
-    location: "Kadıköy, İstanbul",
-    price: 8500,
-    ageRange: "3-6 Yaş",
-    rating: 4.9,
-    reviewCount: 120,
-    badges: ["ÖZEL OKUL", "ANAOKULU"],
-    logoInitial: "M",
-    logoColor: "#6d5dfc",
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=200&h=200&fit=crop",
-    slug: "montessori-cocuk-akademisi",
-  },
-  {
-    id: "2",
-    name: "Waldorf Doğa Koleji",
-    description: "Sanat ve zanaat odaklı, doğa ile iç içe, bütünsel bir eğitim modeli. Bireysel yetenekleri keşfetme odaklı.",
-    location: "Beşiktaş, İstanbul",
-    price: 12000,
-    ageRange: "7-11 Yaş",
-    rating: 4.8,
-    reviewCount: 85,
-    badges: ["ÖZEL OKUL", "İLKOKUL"],
-    logoInitial: "W",
-    logoColor: "#10b981",
-    imageUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=200&h=200&fit=crop",
-    slug: "waldorf-doga-koleji",
-  },
-  {
-    id: "3",
-    name: "Galata Fen Lisesi",
-    description: "Sayısal alanda uzmanlaşmış köklü eğitim kadrosu ve modern laboratuvar imkanları ile geleceğin bilim insanlarını yetiştiriyoruz.",
-    location: "Beyoğlu, İstanbul",
-    price: "Ücretsiz",
-    ageRange: "14-18 Yaş",
-    rating: 4.7,
-    reviewCount: 210,
-    badges: ["DEVLET", "LİSE"],
-    logoInitial: "G",
-    logoColor: "#f97316",
-    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=200&h=200&fit=crop",
-    slug: "galata-fen-lisesi",
-  },
-];
-
-export default function CategoryResultsList({ categoryName, subtitle, results = mockResults }: CategoryResultsListProps) {
+export default function CategoryResultsList({ categoryName, subtitle, results = [] }: CategoryResultsListProps) {
   return (
     <div className="category-results-list">
       <div className="category-results-header">

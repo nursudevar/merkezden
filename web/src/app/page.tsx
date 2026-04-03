@@ -26,141 +26,6 @@ const InstitutionLocationsMap = dynamic(
 );
 
 
-const serviceCards = [
-  {
-    id: 1,
-    title: "Gelecek Spor Akademisi",
-    category: "Spor",
-    subCategories: ["Futbol", "Basketbol"],
-    imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=400&h=300&fit=crop",
-    rating: 4.8,
-    reviewCount: 125,
-    price: 1200,
-    slug: "gelecek-spor-akademisi",
-  },
-  {
-    id: 2,
-    title: "Aqua Yüzme Kulübü",
-    category: "Spor",
-    subCategories: ["Yüzme"],
-    imageUrl: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=400&h=300&fit=crop",
-    rating: 4.9,
-    reviewCount: 210,
-    price: 950,
-    slug: "aqua-yuzme-kulubu",
-  },
-  {
-    id: 3,
-    title: "Raket Tenis Okulu",
-    category: "Spor",
-    subCategories: ["Tenis"],
-    imageUrl: "https://images.unsplash.com/photo-1534158914592-062992fbe900?w=400&h=300&fit=crop",
-    rating: 4.7,
-    reviewCount: 88,
-    price: 1500,
-    slug: "raket-tenis-okulu",
-  },
-  {
-    id: 4,
-    title: "Modern Sanat Atölyesi",
-    category: "Sanat",
-    subCategories: ["Resim", "Heykel"],
-    imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-    rating: 4.6,
-    reviewCount: 92,
-    price: 800,
-    slug: "modern-sanat-atolyesi",
-  },
-  {
-    id: 5,
-    title: "Dil Akademisi",
-    category: "Dil",
-    subCategories: ["İngilizce", "Almanca"],
-    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&h=300&fit=crop",
-    rating: 4.9,
-    reviewCount: 156,
-    price: 1100,
-    slug: "dil-akademisi",
-  },
-  {
-    id: 6,
-    title: "Müzik Okulu",
-    category: "Müzik",
-    subCategories: ["Piyano", "Gitar"],
-    imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
-    rating: 4.8,
-    reviewCount: 203,
-    price: 1300,
-    slug: "muzik-okulu",
-  },
-  {
-    id: 7,
-    title: "Bale ve Dans Stüdyosu",
-    category: "Dans",
-    subCategories: ["Bale", "Modern Dans"],
-    imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop",
-    rating: 4.7,
-    reviewCount: 145,
-    price: 900,
-    slug: "bale-ve-dans-studyosu",
-  },
-  {
-    id: 8,
-    title: "Kodlama Akademisi",
-    category: "Yazılım",
-    subCategories: ["Web Geliştirme", "Mobil Uygulama"],
-    imageUrl: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop",
-    rating: 4.9,
-    reviewCount: 312,
-    price: 1800,
-    slug: "kodlama-akademisi",
-  },
-  {
-    id: 9,
-    title: "Kişisel Gelişim Merkezi",
-    category: "Kişisel Gelişim",
-    subCategories: ["Koçluk", "Liderlik"],
-    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop",
-    rating: 4.8,
-    reviewCount: 178,
-    price: 1400,
-    slug: "kisisel-gelisim-merkezi",
-  },
-  {
-    id: 10,
-    title: "Özel Okul",
-    category: "Okul",
-    subCategories: ["İlkokul", "Ortaokul"],
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop",
-    rating: 4.9,
-    reviewCount: 267,
-    price: 2500,
-    slug: "ozel-okul",
-  },
-  {
-    id: 11,
-    title: "Teknoloji Kursu",
-    category: "Teknoloji",
-    subCategories: ["Robotik", "Yapay Zeka"],
-    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop",
-    rating: 4.7,
-    reviewCount: 189,
-    price: 1600,
-    slug: "teknoloji-kursu",
-  },
-  {
-    id: 12,
-    title: "Sağlık ve Wellness",
-    category: "Sağlık",
-    subCategories: ["Yoga", "Pilates"],
-    imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=300&fit=crop",
-    rating: 4.8,
-    reviewCount: 134,
-    price: 1000,
-    slug: "saglik-ve-wellness",
-  },
-];
-
 const categories = [
   { name: "OKUL", icon: "🏫", items: ["Anaokul", "Kreş", "İlkokul", "Ortaokul", "Lise", "Yaz Okulu"], className: "category-card" },
   { name: "SINAVA HAZIRLIK", icon: "📚", items: ["LGS", "Matematik", "Bilgisayar", "TUS"], className: "category-card" },
@@ -277,91 +142,67 @@ type MainCategoryCard = {
   subcategories: string[];
 };
 
-const premiumPicks = [
-  {
-    name: "Ankara İstek Koleji",
-    imageUrl: "https://images.unsplash.com/photo-1562774053-701939374585?w=800&h=600&fit=crop",
-    rating: 4.9,
-    reviewCount: "120+",
-    location: "İncek, Ankara",
-    slug: "ankara-istek-koleji",
-  },
-  {
-    name: "Özel Bilkent Lisesi",
-    imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&h=600&fit=crop",
-    rating: 4.8,
-    reviewCount: "95+",
-    location: "Çankaya, Ankara",
-    slug: "ozel-bilkent-lisesi",
-  },
-  {
-    name: "Ankara Bilfen Koleji",
-    imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop",
-    rating: 4.9,
-    reviewCount: "140+",
-    location: "Bilkent, Ankara",
-    slug: "ankara-bilfen-koleji",
-  },
-  {
-    name: "TED Ankara Koleji",
-    imageUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&h=600&fit=crop",
-    rating: 4.8,
-    reviewCount: "180+",
-    location: "Çankaya, Ankara",
-    slug: "ted-ankara-koleji",
-  },
-  {
-    name: "Çankaya Üniversitesi Koleji",
-    imageUrl: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=600&fit=crop",
-    rating: 4.7,
-    reviewCount: "88+",
-    location: "Yıldız, Ankara",
-    slug: "cankaya-universitesi-koleji",
-  },
-  {
-    name: "Ankara Fen Lisesi",
-    imageUrl: "https://images.unsplash.com/photo-1498243691587-b319d71d3eb4?w=800&h=600&fit=crop",
-    rating: 4.9,
-    reviewCount: "210+",
-    location: "Çankaya, Ankara",
-    slug: "ankara-fen-lisesi",
-  },
+/** Ankara'nın En İyileri — `institutions.institution_name` ile eşleşme (alternatif yazımlar dahil). */
+const HOME_PREMIUM_PICK_NAME_GROUPS: readonly (readonly string[])[] = [
+  ["ANKARA ÖZEL TEVFİK FİKRET ANADOLU LİSESİ"],
+  ["ANKARA ÜNİVERSİTESİ GELİŞTİRME VAKFI OKULLARI ÖZEL ANADOLU LİSESİ"],
+  [
+    "İHSAN DOĞRAMACI VAKFI ÖZEL BİLKENT LABORATUAR LİSESİ",
+    "İHSAN DOĞRAMACI VAKFI ÖZEL  BİLKENT LABORATUAR LİSESİ",
+  ],
+  ["İHSAN DOĞRAMACI VAKFI ÖZEL BİLKENT LİSESİ"],
 ];
 
-const purpleFeatured = [
-  {
-    id: "ozel-ders",
-    badge: "ÖNE ÇIKAN",
-    title: "Birebir Özel Ders",
-    location: "Çankaya, Ankara",
-    cta: "Detayları Gör",
-    imageUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=900&h=650&fit=crop",
-  },
-  {
-    id: "yabanci-dil",
-    badge: "POPÜLER",
-    title: "Yabancı Dil Kursları",
-    location: "Kızılay, Ankara",
-    cta: "Detayları Gör",
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=900&h=650&fit=crop",
-  },
-  {
-    id: "sinav",
-    badge: "TAVSİYE",
-    title: "Sınava Hazırlık",
-    location: "Bilkent, Ankara",
-    cta: "Detayları Gör",
-    imageUrl: "https://images.unsplash.com/photo-1454165205744-3b78555e5572?w=900&h=650&fit=crop",
-  },
-  {
-    id: "spor",
-    badge: "YENİ",
-    title: "Spor Akademileri",
-    location: "Ümitköy, Ankara",
-    cta: "Detayları Gör",
-    imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=900&h=650&fit=crop",
-  },
+/** Dil Eğitiminde Fark Yaratanlar — aynı şekilde isim eşlemesi (ilk sıra: veritabanındaki "Deneme"). */
+const HOME_PURPLE_FEATURED_NAME_GROUPS: readonly (readonly string[])[] = [
+  ["Deneme"],
+  ["İSTEK ÖZEL ANKARA FEN LİSESİ"],
+  ["ODTÜ GELİŞTİRME VAKFI ÖZEL LİSESİ"],
+  ["ANKARA ÖZEL TEVFİK FİKRET ANADOLU LİSESİ"],
 ];
+
+type HomeCuratedRow = {
+  id: number;
+  slug: string | null;
+  source: string | null;
+  institution_name: string | null;
+  city: string | null;
+  district: string | null;
+  logo: string | null;
+};
+
+type PremiumPickItem = {
+  id: number;
+  name: string;
+  imageUrl: string;
+  slug: string;
+  source: string;
+  location: string;
+  rating: number | null;
+  reviewCount: string | null;
+};
+
+type PurpleFeaturedCard = {
+  id: string;
+  badge: string;
+  title: string;
+  location: string;
+  cta: string;
+  imageUrl: string;
+  slug: string;
+  source: string;
+};
+
+function normalizeInstitutionNameKey(name: string): string {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function buildHomeSchoolLocation(district: string | null, city: string | null): string {
+  const d = String(district ?? "").trim();
+  const c = String(city ?? "").trim();
+  if (d && c) return `${d}, ${c}`;
+  return d || c || "Ankara";
+}
 
 function FeaturedInstitutions({
   onToggleFavorite,
@@ -628,12 +469,104 @@ export default function Home() {
   const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
   const [premiumPicksPage, setPremiumPicksPage] = useState(0);
   const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
-  const reduceMotion = useReducedMotion();
+  const [premiumPicks, setPremiumPicks] = useState<PremiumPickItem[]>([]);
+  const [purpleFeatured, setPurpleFeatured] = useState<PurpleFeaturedCard[]>([]);
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const mainCategoriesScrollerRef = useRef<HTMLDivElement | null>(null);
   const [canScrollMainCategoriesLeft, setCanScrollMainCategoriesLeft] = useState(false);
   const [canScrollMainCategoriesRight, setCanScrollMainCategoriesRight] = useState(false);
+  const reduceMotion = useReducedMotion();
+
+  const premiumPicksPageCount = Math.max(1, Math.ceil(premiumPicks.length / 3));
+
+  useEffect(() => {
+    const maxPage = Math.max(0, premiumPicksPageCount - 1);
+    setPremiumPicksPage((p) => (p > maxPage ? maxPage : p));
+  }, [premiumPicksPageCount]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const allQueryNames = Array.from(
+        new Set([...HOME_PREMIUM_PICK_NAME_GROUPS, ...HOME_PURPLE_FEATURED_NAME_GROUPS].flat() as string[])
+      );
+      const { data, error } = await supabase
+        .from("institutions")
+        .select("id, slug, source, institution_name, city, district, logo")
+        .in("institution_name", allQueryNames);
+
+      if (cancelled) return;
+      if (error) {
+        console.error("Home curated schools load error:", error);
+        return;
+      }
+
+      const rows = (data ?? []) as HomeCuratedRow[];
+      const byNorm = new Map<string, HomeCuratedRow>();
+      for (const row of rows) {
+        const nm = String(row.institution_name ?? "").trim();
+        if (nm) byNorm.set(normalizeInstitutionNameKey(nm), row);
+      }
+
+      const resolveRow = (aliases: readonly string[]): HomeCuratedRow | null => {
+        for (const a of aliases) {
+          const r = byNorm.get(normalizeInstitutionNameKey(a));
+          if (r) return r;
+        }
+        return null;
+      };
+
+      const toLogoUrl = (logoPath: string) =>
+        logoPath ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl : "";
+
+      const premium: PremiumPickItem[] = [];
+      for (const group of HOME_PREMIUM_PICK_NAME_GROUPS) {
+        const row = resolveRow(group);
+        if (!row) continue;
+        const slug = String(row.slug ?? "").trim();
+        if (!slug) continue;
+        premium.push({
+          id: row.id,
+          name: String(row.institution_name ?? "").trim() || slug,
+          imageUrl: toLogoUrl(String(row.logo ?? "").trim()),
+          slug,
+          source: String(row.source ?? "").trim(),
+          location: buildHomeSchoolLocation(row.district, row.city),
+          rating: null,
+          reviewCount: null,
+        });
+      }
+
+      const purpleBadges = ["ÖNE ÇIKAN", "POPÜLER", "TAVSİYE"];
+      const purple: PurpleFeaturedCard[] = [];
+      let bi = 0;
+      for (const group of HOME_PURPLE_FEATURED_NAME_GROUPS) {
+        const row = resolveRow(group);
+        if (!row) continue;
+        const slug = String(row.slug ?? "").trim();
+        if (!slug) continue;
+        purple.push({
+          id: `purple-${row.id}`,
+          badge: purpleBadges[bi % purpleBadges.length] ?? "ÖNE ÇIKAN",
+          title: String(row.institution_name ?? "").trim() || slug,
+          location: buildHomeSchoolLocation(row.district, row.city),
+          cta: "Detayları Gör",
+          imageUrl: toLogoUrl(String(row.logo ?? "").trim()),
+          slug,
+          source: String(row.source ?? "").trim(),
+        });
+        bi += 1;
+      }
+
+      setPremiumPicks(premium);
+      setPurpleFeatured(purple);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleFavoriteToggle = async (institutionId: number, e: React.MouseEvent) => {
     e.preventDefault();
@@ -1529,10 +1462,21 @@ export default function Home() {
               </div>
 
               <div className="purple-featured-cards">
-                {purpleFeatured.map((card, idx) => (
-                  <Link key={card.id} href="/okullar" className="purple-featured-card" aria-label={card.title}>
+                {purpleFeatured.map((card) => (
+                  <Link
+                    key={card.id}
+                    href={getInstitutionDetailHref({ slug: card.slug })}
+                    className="purple-featured-card"
+                    aria-label={card.title}
+                  >
                     <div className="purple-featured-card-media">
-                      <img className="purple-featured-card-img" src={card.imageUrl} alt={card.title} />
+                      {card.imageUrl ? (
+                        <img className="purple-featured-card-img" src={card.imageUrl} alt="" />
+                      ) : (
+                        <div className="purple-featured-card-img purple-featured-card-img--empty" aria-hidden>
+                          <Building2 size={40} strokeWidth={1.25} />
+                        </div>
+                      )}
                       <span className="purple-featured-card-badge">{card.badge}</span>
                     </div>
                     <div className="purple-featured-card-body">
@@ -1556,30 +1500,34 @@ export default function Home() {
                 <h2 className="premium-picks-title">Ankara'nın En İyileri</h2>
                 <p className="premium-picks-desc">Başkentin en prestijli eğitim kurumlarını keşfedin.</p>
               </div>
-              <div className="premium-picks-nav" aria-hidden>
-                <button
-                  type="button"
-                  className="premium-picks-nav-btn premium-picks-nav-btn--prev"
-                  aria-label="Önceki"
-                  onClick={() => {
-                    setPremiumPicksSlideDir(-1);
-                    setPremiumPicksPage((p) => (p - 1 + 2) % 2);
-                  }}
-                >
-                  <ChevronLeft className="premium-picks-nav-icon" />
-                </button>
-                <button
-                  type="button"
-                  className="premium-picks-nav-btn premium-picks-nav-btn--next"
-                  aria-label="Sonraki"
-                  onClick={() => {
-                    setPremiumPicksSlideDir(1);
-                    setPremiumPicksPage((p) => (p + 1) % 2);
-                  }}
-                >
-                  <ChevronRight className="premium-picks-nav-icon" />
-                </button>
-              </div>
+              {premiumPicksPageCount > 1 ? (
+                <div className="premium-picks-nav" aria-hidden>
+                  <button
+                    type="button"
+                    className="premium-picks-nav-btn premium-picks-nav-btn--prev"
+                    aria-label="Önceki"
+                    onClick={() => {
+                      setPremiumPicksSlideDir(-1);
+                      setPremiumPicksPage(
+                        (p) => (p - 1 + premiumPicksPageCount) % premiumPicksPageCount
+                      );
+                    }}
+                  >
+                    <ChevronLeft className="premium-picks-nav-icon" />
+                  </button>
+                  <button
+                    type="button"
+                    className="premium-picks-nav-btn premium-picks-nav-btn--next"
+                    aria-label="Sonraki"
+                    onClick={() => {
+                      setPremiumPicksSlideDir(1);
+                      setPremiumPicksPage((p) => (p + 1) % premiumPicksPageCount);
+                    }}
+                  >
+                    <ChevronRight className="premium-picks-nav-icon" />
+                  </button>
+                </div>
+              ) : null}
             </div>
             <div className="premium-picks-cards">
               <AnimatePresence mode="wait" initial={false} custom={premiumPicksSlideDir}>
@@ -1598,20 +1546,41 @@ export default function Home() {
                   className="premium-picks-cards-track"
                 >
                   {premiumPicks.slice(premiumPicksPage * 3, premiumPicksPage * 3 + 3).map((item) => (
-                    <Link key={item.slug} href={`/okullar/${item.slug}`} className="premium-picks-card">
+                    <Link
+                      key={item.id}
+                      href={getInstitutionDetailHref({ slug: item.slug })}
+                      className="premium-picks-card"
+                    >
                       <div
-                        className="premium-picks-card-media"
-                        style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                        className={`premium-picks-card-media${item.imageUrl ? "" : " premium-picks-card-media--empty"}`}
+                        style={
+                          item.imageUrl
+                            ? { backgroundImage: `url("${item.imageUrl}")` }
+                            : {
+                                backgroundImage: "none",
+                                background:
+                                  "linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff)",
+                              }
+                        }
                       >
+                        {!item.imageUrl ? (
+                          <div className="premium-picks-card-placeholder-zone" aria-hidden>
+                            <Building2 className="premium-picks-card-placeholder-svg" strokeWidth={1.25} />
+                          </div>
+                        ) : null}
                         <span className="premium-picks-card-badge">TOP PICK</span>
                         <div className="premium-picks-card-overlay" />
                         <div className="premium-picks-card-info">
                           <h3 className="premium-picks-card-title">{item.name}</h3>
-                          <div className="premium-picks-card-rating">
-                            <Star className="premium-picks-card-star" fill="currentColor" aria-hidden />
-                            <span>{item.rating}</span>
-                            <span className="premium-picks-card-reviews">({item.reviewCount} Değerlendirme)</span>
-                          </div>
+                          {item.rating != null && item.reviewCount != null ? (
+                            <div className="premium-picks-card-rating">
+                              <Star className="premium-picks-card-star" fill="currentColor" aria-hidden />
+                              <span>{item.rating}</span>
+                              <span className="premium-picks-card-reviews">
+                                ({item.reviewCount} Değerlendirme)
+                              </span>
+                            </div>
+                          ) : null}
                           <p className="premium-picks-card-location">{item.location}</p>
                         </div>
                       </div>

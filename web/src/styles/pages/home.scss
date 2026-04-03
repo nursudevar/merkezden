@@ -3158,7 +3158,7 @@ a.featured-institution-card {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 18px;
-  align-items: end;
+  align-items: stretch;
 }
 
 .purple-featured-card {
@@ -3172,6 +3172,7 @@ a.featured-institution-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
 }
 
 .purple-featured-card-media {
@@ -3185,6 +3186,18 @@ a.featured-institution-card {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.purple-featured-card-img--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba($purple-main, 0.12),
+    rgba($purple-main, 0.24)
+  );
+  color: rgba($purple-main, 0.75);
 }
 
 .purple-featured-card-badge {
@@ -3207,6 +3220,8 @@ a.featured-institution-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
 }
 
 .purple-featured-card-title {
@@ -3215,6 +3230,12 @@ a.featured-institution-card {
   font-weight: $font-bold;
   color: $text-zinc-900;
   line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+  min-height: calc(1.25em * 2);
 }
 
 .purple-featured-card-location {
@@ -3232,7 +3253,8 @@ a.featured-institution-card {
 }
 
 .purple-featured-card-cta {
-  margin-top: 2px;
+  margin-top: auto;
+  flex-shrink: 0;
   width: 100%;
   height: 38px;
   @include rounded-xl;
@@ -3409,6 +3431,24 @@ a.featured-institution-card {
   background-color: $bg-zinc-50;
   @include shadow-md;
   border: 1px solid $border-light;
+}
+
+.premium-picks-card-placeholder-zone {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.92);
+  padding-bottom: 35px;
+}
+
+.premium-picks-card-placeholder-svg {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
 .premium-picks-card-badge {
