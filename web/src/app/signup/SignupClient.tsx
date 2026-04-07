@@ -1,14 +1,16 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import HeaderBrandLogo from "@/components/layout/HeaderBrandLogo";
+import { HeaderBrandLogo } from "@/components/layout/header.client";
 import { Button } from "@/components/ui";
 import Footer from "@/components/layout/Footer";
 import AuthModal from "@/components/AuthModal";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+const supabase = createSupabaseBrowserClient();
 
 export default function SignupClient() {
   const router = useRouter();

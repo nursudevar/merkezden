@@ -1,6 +1,6 @@
-import { unstable_noStore as noStore } from 'next/cache';
-import { getCurrentUserRole } from '@/lib/auth/getCurrentUserRole';
-import HeaderWithSearchClient from './HeaderWithSearchClient';
+import { unstable_noStore as noStore } from "next/cache";
+import { getCurrentUserRole } from "@/lib/auth/authServer";
+import { HeaderWithSearchClient } from "./header.client";
 
 export default async function Header() {
   noStore();

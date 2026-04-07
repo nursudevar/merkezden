@@ -1,4 +1,4 @@
-import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
+import { HeaderClientWrapper } from '@/components/layout/header.client';
 import UpdatePasswordClient from './UpdatePasswordClient';
 
 export default function UpdatePasswordPage() {

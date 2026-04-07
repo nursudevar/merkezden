@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui";
-import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
+import { HeaderClientWrapper } from "@/components/layout/header.client";
 import "@/styles/main.scss";
 import "@/styles/pages/contact.scss";
 

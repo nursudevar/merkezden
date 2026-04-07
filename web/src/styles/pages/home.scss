@@ -3067,7 +3067,7 @@ a.featured-institution-card {
   right: 0;
   bottom: -2px;
   left: 0;
-  background: $purple-violet-dark;
+  background: linear-gradient(to right, rgb(109, 93, 252), rgb(127, 86, 217), rgb(148, 84, 255));
 }
 
 .purple-featured-bg::before {

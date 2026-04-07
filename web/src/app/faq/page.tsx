@@ -2,7 +2,7 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
-import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
+import { HeaderClientWrapper } from "@/components/layout/header.client";
 import "@/styles/main.scss";
 import "@/styles/pages/faq.scss";
 

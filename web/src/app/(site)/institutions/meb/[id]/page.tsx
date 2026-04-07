@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { BadgeCheck, GraduationCap, MapPin, MapPinned, Phone } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { isMebInstitution } from "@/lib/institutions/isMebInstitution";
+import { isMebInstitution } from "@/lib/institutionHelpers";
 
 type InstitutionRow = {
   id: number;

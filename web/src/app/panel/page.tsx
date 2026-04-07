@@ -33,10 +33,11 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveUserTypeFromUsersClient } from "@/lib/auth/resolveUserTypeFromUsersClient";
-import { resolveInstitutionNameFromUsersClient } from "@/lib/auth/resolveInstitutionNameFromUsersClient";
-import { loadInstitutionRowForAuthUserClient } from "@/lib/auth/loadInstitutionRowForAuthUserClient";
-import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
+import {
+  loadInstitutionRowForAuthUserClient,
+  resolveUserTypeFromUsersClient,
+} from "@/lib/auth/authBrowserClient";
+import { HeaderClientWrapper } from "@/components/layout/header.client";
 import {
   Button,
   Input,
@@ -871,36 +872,30 @@ interface InstitutionDetailPreparedData {
 
   useEffect(() => {
     if (!user?.id || userType !== "institution") return;
-    let cancelled = false;
-    resolveInstitutionNameFromUsersClient(user.id).then((name) => {
-      if (!cancelled) setInstitutionName(name);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, userType]);
 
- 
-  useEffect(() => {
-    if (!user?.id || userType !== "institution") return;
-  
     const userId = user.id;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
-  
+
     async function loadInstitutionProfile() {
-      const { row, error } = await loadInstitutionRowForAuthUserClient(userId, supabase);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authEmail = sessionData?.session?.user?.email ?? null;
+      const { row, error } = await loadInstitutionRowForAuthUserClient(userId, supabase, {
+        authEmail,
+      });
 
       if (cancelled) return;
 
       if (error) {
         console.error("Institution profile load error:", error);
+        setInstitutionName("");
         return;
       }
 
       if (!row) {
         setInstitutionRecordMissing(true);
         setInstitutionId(null);
+        setInstitutionName("");
         return;
       }
       setInstitutionRecordMissing(false);

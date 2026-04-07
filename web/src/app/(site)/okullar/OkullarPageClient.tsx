@@ -8,8 +8,8 @@ import { Heart, Phone, Search, X } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import LoginModal from '@/components/LoginModal';
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from '@/lib/favorites/favoritesClient';
-import { getInstitutionDetailHref } from '@/lib/institutions/getInstitutionDetailHref';
-import { resolveUserTypeFromUsersClient } from '@/lib/auth/resolveUserTypeFromUsersClient';
+import { getInstitutionDetailHref } from '@/lib/institutionHelpers';
+import { resolveUserTypeFromUsersClient } from '@/lib/auth/authBrowserClient';
 
 const PAGE_SIZE = 50;
 

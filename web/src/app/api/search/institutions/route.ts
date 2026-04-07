@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { matchesSearch } from "@/lib/utils/search";
+import { matchesSearch } from "@/lib/utils";
 
 type Institution = {
   id: number;

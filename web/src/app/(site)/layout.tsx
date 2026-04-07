@@ -1,4 +1,4 @@
-import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
+import { HeaderClientWrapper } from '@/components/layout/header.client';
 
 export default function SiteLayout({
   children,

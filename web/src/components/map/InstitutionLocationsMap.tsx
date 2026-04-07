@@ -6,7 +6,7 @@ import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet"
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
+import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 
 /** Inline SVG building — avoids broken Leaflet default PNG paths in Next.js bundler */
 const BUILDING_MARKER_SVG = `

@@ -32,7 +32,6 @@ export async function GET(request: Request) {
             user_type: normalizedSignupType,
           };
           if (normalizedSignupType === 'institution' && institutionName && institutionName.trim()) {
-            usersUpdatePayload.institution_name = institutionName.trim();
             usersUpdatePayload.company_name = institutionName.trim();
           }
 

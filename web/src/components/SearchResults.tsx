@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart } from "lucide-react";
-import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
+import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import "@/styles/pages/home.scss";
 
 interface SearchResult {

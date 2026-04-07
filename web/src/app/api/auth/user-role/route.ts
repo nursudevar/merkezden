@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUserRole } from '@/lib/auth/getCurrentUserRole';
+import { getCurrentUserRole } from '@/lib/auth/authServer';
 
 export async function GET() {
   try {

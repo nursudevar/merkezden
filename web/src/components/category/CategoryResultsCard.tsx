@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Clock, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui";
-import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
+import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 
 interface CategoryResultsCardProps {
   id: string;

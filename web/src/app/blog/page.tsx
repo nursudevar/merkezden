@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Grid3x3, List } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
-import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
+import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { allBlogPosts } from "@/lib/data/blog";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";

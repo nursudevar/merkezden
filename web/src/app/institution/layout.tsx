@@ -1,6 +1,6 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getCurrentUserRole } from '@/lib/auth/getCurrentUserRole';
+import { getCurrentUserRole } from '@/lib/auth/authServer';
 
 export default async function InstitutionLayout({
   children,

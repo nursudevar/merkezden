@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Linkedin, ChevronDown } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getCategoryHref } from "@/lib/categories/getCategoryHref";
+import { getCategoryHref } from "@/lib/categoryHelpers";
 
 type FooterCategoryRow = { id: number; name: string; slug: string };
 

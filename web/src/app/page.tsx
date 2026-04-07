@@ -8,14 +8,13 @@ import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Sli
 import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, Sparkle } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
-import HeaderWithSearch from "@/components/layout/HeaderWithSearch";
+import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
-import { getInstitutionDetailHref } from "@/lib/institutions/getInstitutionDetailHref";
-import { getCategoryHref } from "@/lib/categories/getCategoryHref";
-import { getCategoryIcon } from "@/lib/categories/getCategoryIcon";
+import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import { getCategoryHref, getCategoryIcon } from "@/lib/categoryHelpers";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -142,7 +141,6 @@ type MainCategoryCard = {
   subcategories: string[];
 };
 
-/** Ankara'nın En İyileri — `institutions.institution_name` ile eşleşme (alternatif yazımlar dahil). */
 const HOME_PREMIUM_PICK_NAME_GROUPS: readonly (readonly string[])[] = [
   ["ANKARA ÖZEL TEVFİK FİKRET ANADOLU LİSESİ"],
   ["ANKARA ÜNİVERSİTESİ GELİŞTİRME VAKFI OKULLARI ÖZEL ANADOLU LİSESİ"],
@@ -153,7 +151,6 @@ const HOME_PREMIUM_PICK_NAME_GROUPS: readonly (readonly string[])[] = [
   ["İHSAN DOĞRAMACI VAKFI ÖZEL BİLKENT LİSESİ"],
 ];
 
-/** Dil Eğitiminde Fark Yaratanlar — aynı şekilde isim eşlemesi (ilk sıra: veritabanındaki "Deneme"). */
 const HOME_PURPLE_FEATURED_NAME_GROUPS: readonly (readonly string[])[] = [
   ["Deneme"],
   ["İSTEK ÖZEL ANKARA FEN LİSESİ"],

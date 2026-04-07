@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import HeaderClientWrapper from '@/components/layout/HeaderClientWrapper';
+import { HeaderClientWrapper } from '@/components/layout/header.client';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { FavoritesError, getMyFavoriteInstitutions, removeFavorite, type FavoriteInstitution } from '@/lib/favorites/favoritesClient';
 import '@/styles/main.scss';

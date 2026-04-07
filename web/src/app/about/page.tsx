@@ -2,7 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import HeaderClientWrapper from "@/components/layout/HeaderClientWrapper";
+import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { Target, Eye, GraduationCap, Building, BookOpen } from "lucide-react";
 import { useInViewAnimation } from "@/hooks/useInViewAnimation";
 import "@/styles/main.scss";

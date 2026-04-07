@@ -22,7 +22,7 @@ import {
   GitCommitVertical,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { isMebInstitution } from "@/lib/institutions/isMebInstitution";
+import { isMebInstitution } from "@/lib/institutionHelpers";
 import ShareButton from "./ShareButton";
 
 type DbInstitutionRow = {
