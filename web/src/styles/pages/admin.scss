@@ -1,0 +1,564 @@
+@import "../colors";
+@import "../mixins";
+@import "../typography";
+
+.admin-page {
+  min-height: 100vh;
+  width: 100%;
+  background-color: $bg-zinc-50;
+  overflow-x: hidden;
+}
+
+.admin-page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 0;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px 20px;
+  }
+
+  @media (max-width: 720px) {
+    gap: 20px;
+    padding: 20px 16px;
+  }
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 40px;
+  align-self: start;
+  height: fit-content;
+
+  @media (max-width: 1024px) {
+    position: static;
+  }
+}
+
+.admin-sidebar-content {
+  background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-md;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+
+  @media (max-width: 1024px) {
+    flex-direction: row;
+    padding: 20px;
+    gap: 16px;
+    overflow-x: auto;
+  }
+
+  @media (max-width: 640px) {
+    padding: 16px;
+    gap: 12px;
+  }
+}
+
+.admin-sidebar-avatar {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+
+  @media (max-width: 1024px) {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+.admin-sidebar-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  @include rounded-full;
+  @include flex-center;
+  background: rgba($purple-main, 0.08);
+}
+
+.admin-sidebar-avatar-icon {
+  width: 30px;
+  height: 30px;
+  color: $purple-main;
+}
+
+.admin-sidebar-name {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+  text-align: center;
+  line-height: 1.3;
+
+  @media (max-width: 1024px) {
+    font-size: $text-lg;
+    text-align: left;
+  }
+}
+
+.admin-sidebar-nav {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+
+  @media (max-width: 1024px) {
+    flex-direction: row;
+    gap: 12px;
+    margin-top: 0;
+    overflow-x: auto;
+  }
+}
+
+.admin-sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: transparent;
+  border: none;
+  color: $text-zinc-700;
+  font-size: $text-base;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+  text-align: left;
+  width: 90%;
+
+  @media (max-width: 1024px) {
+    white-space: nowrap;
+    width: auto;
+    padding: 10px 14px;
+    font-size: $text-sm;
+  }
+
+  &:hover {
+    background-color: $bg-zinc-50;
+    color: $text-zinc-900;
+  }
+
+  &--active {
+    background-color: rgba($purple-main, 0.1);
+    color: $purple-main;
+    font-weight: $font-semibold;
+  }
+
+  &--logout {
+    color: $text-zinc-600;
+  }
+}
+
+.admin-sidebar-nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.admin-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-main-card {
+  background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-md;
+  border: 1px solid $border-light;
+  overflow: hidden;
+}
+
+.admin-main-card-content {
+  padding: 30px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.admin-main-card-content--institutions {
+  padding: 0px 0 20px;
+
+  .admin-main-card-header {
+    padding: 0 30px;
+  }
+
+  .admin-institutions-pagination {
+    padding: 0 30px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 20px 0 16px;
+
+    .admin-main-card-header,
+    .admin-institutions-pagination {
+      padding: 0 20px;
+    }
+  }
+}
+
+.admin-main-card-header {
+  margin-bottom: 20px;
+}
+
+.admin-main-card-title {
+  margin: 0;
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+}
+
+.admin-main-card-subtitle {
+  margin: 8px 0 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+}
+
+.admin-overview-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-overview-metric-card {
+  position: relative;
+  border: 1px solid $border-light;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(18, 18, 45, 0.06);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+  }
+}
+
+.admin-overview-metric-card-content {
+  padding: 16px;
+}
+
+.admin-overview-metric-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.admin-overview-metric-icon {
+  width: 18px;
+  height: 18px;
+  color: $purple-main;
+  flex-shrink: 0;
+}
+
+.admin-overview-metric-title {
+  font-size: 16px;
+  font-weight: $font-semibold;
+  color: $text-light;
+  line-height: 1.35;
+}
+
+.admin-overview-metric-value {
+  font-size: 28px;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  line-height: 1;
+}
+
+.admin-overview-metric-error {
+  font-size: 13px;
+  color: $text-zinc-600;
+}
+
+.admin-overview-metric-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: $text-zinc-500;
+  line-height: 1.35;
+}
+
+.admin-main-card-header--institutions {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-institutions-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-institutions-total-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba($purple-main, 0.12);
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  letter-spacing: 0.04em;
+}
+
+.admin-institutions-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-institutions-header-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-institutions-header-action-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @include transition;
+
+  &:hover {
+    color: $text-zinc-700;
+    background: rgba(lightgray, 0.9);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-main-card-header--institutions {
+    flex-wrap: wrap;
+  }
+
+  .admin-institutions-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.admin-institutions-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid $border-light;
+
+  th,
+  td {
+    padding: 12px 30px;
+    border-bottom: 1px solid $border-light;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: $font-semibold;
+    color: $text-zinc-600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: rgba($text-light, 0.07);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  @media (max-width: 640px) {
+    th,
+    td {
+      padding: 10px 20px;
+    }
+  }
+}
+
+.admin-institutions-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+}
+
+.admin-institutions-category-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: rgba($purple-main, 0.1);
+  color: $purple-primary;
+  font-size: 12px;
+  font-weight: $font-medium;
+  line-height: 1.2;
+}
+
+.admin-institutions-category-cell {
+  text-align: center !important;
+}
+
+.admin-institutions-action-btn--danger {
+  &:hover {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+}
+
+.admin-institutions-pagination {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.admin-institutions-pagination-info {
+  margin: 0;
+  font-size: 13px;
+  color: $text-zinc-600;
+}
+
+.admin-institutions-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-institutions-page-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-700;
+  cursor: pointer;
+  @include transition;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.admin-institutions-page-indicator {
+  min-width: 64px;
+  text-align: center;
+  font-size: 13px;
+  color: $text-zinc-700;
+}
+
+.admin-institutions-page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+
+.admin-institutions-page-jump-label {
+  font-size: 12px;
+  color: $text-zinc-600;
+}
+
+.admin-institutions-page-jump-input {
+  width: 64px;
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: $text-zinc-700;
+  background: #fff;
+}
+
+.admin-institutions-page-search-input {
+  width: 140px;
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: $text-zinc-700;
+  background: #fff;
+}
+
+.admin-institutions-page-jump-btn {
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: $font-medium;
+  color: $text-zinc-700;
+  background: #fff;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+}
+
+.admin-institutions-empty {
+  border: 1px dashed $border-light;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: $text-zinc-600;
+  font-size: 14px;
+}
+

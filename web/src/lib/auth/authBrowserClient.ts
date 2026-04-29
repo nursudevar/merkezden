@@ -188,3 +188,37 @@ export async function resolveIndividualNameFromUsersClient(authUid: string): Pro
     return "Kullanıcı";
   }
 }
+
+export async function resolveIsAdminFromUserRolesClient(authUid: string): Promise<boolean> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+
+    const queryByColumn = async (column: "user_id" | "auth_user_id"): Promise<boolean | null> => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq(column, authUid)
+        .eq("role", "admin")
+        .limit(1);
+
+      if (error) {
+        if (isLikelyMissingColumnError({ message: error.message, code: error.code })) {
+          return null;
+        }
+        console.warn(`[authBrowserClient] resolveIsAdmin (${column})`, error);
+        return false;
+      }
+
+      return Array.isArray(data) && data.length > 0;
+    };
+
+    const byUserId = await queryByColumn("user_id");
+    if (byUserId !== null) return byUserId;
+
+    const byAuthUserId = await queryByColumn("auth_user_id");
+    return byAuthUserId ?? false;
+  } catch (err) {
+    console.warn("[authBrowserClient] resolveIsAdmin", err);
+    return false;
+  }
+}

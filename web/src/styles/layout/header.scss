@@ -126,6 +126,21 @@
   }
 }
 
+.header-actions-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+// .header-actions yalnızca md+ görünür; .header-actions-nav gibi bu sınıf masaüstünde gizlenmez (Giriş ile aynı gradient buton).
+.header-actions-how {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 @media (min-width: 768px) {
   .header-actions-nav {
     display: none;
@@ -412,4 +427,29 @@
 
 .header-hamburger-link--logout .header-hamburger-icon {
   color: $purple-primary;
+}
+
+.header-hamburger-link--auth-register {
+  color: $bg-white;
+  font-weight: 600;
+  background-image: linear-gradient(90deg, #6a75f6, #a95fd4, #e9878d, #ff9807);
+  background-size: 100% 100%;
+  margin: 0 12px 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(106, 117, 246, 0.25);
+
+  &::after {
+    display: none;
+  }
+
+  .header-hamburger-icon {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  &:hover {
+    background-color: transparent;
+    background-image: linear-gradient(90deg, #6a75f6, #a95fd4, #e9878d, #ff9807);
+    filter: brightness(1.05);
+  }
 }

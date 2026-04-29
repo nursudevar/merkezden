@@ -5,17 +5,103 @@ import { HeaderBrandLogo } from "@/components/layout/header.client";
 import { Button } from "@/components/ui";
 import Footer from "@/components/layout/Footer";
 import AuthModal from "@/components/AuthModal";
+import {
+  ClipboardList,
+  FileText,
+  Grid2x2,
+  ImagePlus,
+  MapPinned,
+  Megaphone,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { ComponentType } from "react";
 
 const supabase = createSupabaseBrowserClient();
+
+type SignupFeatureItem = {
+  title: string;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+const INDIVIDUAL_FEATURES: SignupFeatureItem[] = [
+  {
+    title: "Haritada Ara",
+    description: "Konumunuza uygun kurumları harita üzerinden bulun.",
+    icon: MapPinned,
+  },
+  {
+    title: "Kritere Gore Listeleme",
+    description: "Kriterlerinize gore hizli ve detayli filtreleme yapin.",
+    icon: ClipboardList,
+  },
+  {
+    title: "Akilli Asistan",
+    description: "AI destekli oneriler ile dogru kurumlari kesfedin.",
+    icon: Sparkles,
+  },
+  {
+    title: "Karsilastirma Tablosu",
+    description: "Kurumlari yan yana karsilastirin.",
+    icon: Grid2x2,
+  },
+];
+
+const CORPORATE_FEATURES: SignupFeatureItem[] = [
+  {
+    title: "Detayli Kurum Sayfasi",
+    description: "Kurumunuzu detayli tanitin.",
+    icon: FileText,
+  },
+  {
+    title: "Fotograf / Video Ekleme",
+    description: "Kurumunuza ait fotograf ve videolar ekleyin.",
+    icon: ImagePlus,
+  },
+  {
+    title: "SEO Avantajlari",
+    description: "Merkezden.com sayesinde Google gorunurlugunuzu artirin.",
+    icon: Search,
+  },
+  {
+    title: "Duyuru / Etkinlik Paylasma",
+    description: "Duyuru ve etkinliklerinizi yayinlayin.",
+    icon: Megaphone,
+  },
+];
+
+function SignupFeatureCard({
+  item,
+  accent,
+}: {
+  item: SignupFeatureItem;
+  accent: "purple" | "orange";
+}) {
+  const Icon = item.icon;
+
+  return (
+    <article className={`signup-feature-card signup-feature-card--${accent}`}>
+      <span className={`signup-feature-icon-wrap signup-feature-icon-wrap--${accent}`} aria-hidden>
+        <Icon className="signup-feature-icon" />
+      </span>
+      <h3 className="signup-feature-title">{item.title}</h3>
+      <p className="signup-feature-description">{item.description}</p>
+    </article>
+  );
+}
 
 export default function SignupClient() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<"bireysel" | "kurumsal">("bireysel");
+  const isIndividualTab = activeTab === "bireysel";
+  const activeFeatures = isIndividualTab ? INDIVIDUAL_FEATURES : CORPORATE_FEATURES;
+  const activeFeatureAccent: "purple" | "orange" = isIndividualTab ? "purple" : "orange";
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -170,11 +256,11 @@ export default function SignupClient() {
       <div className="top-bar" />
       <header className="header">
         <div className="header-container">
-          <div className="header-top-row navbar">
+          <div className="header-top-row navbar signup-header-row">
             <div className="header-brand">
               <HeaderBrandLogo />
             </div>
-            <div className="header-actions">
+            <div className="header-actions signup-header-actions">
               <Link href="/login">
                 <Button className="button-primary btn-gradient-primary" variant="default">
                   GİRİŞ YAP
@@ -186,7 +272,15 @@ export default function SignupClient() {
       </header>
 
       <div className="auth-content-wrapper">
-        <div className="signup-card">
+        <div className="signup-layout signup-layout--with-features">
+          <aside className="signup-feature-column signup-feature-column--left">
+            {activeFeatures.slice(0, 2).map((item) => (
+              <SignupFeatureCard key={item.title} item={item} accent={activeFeatureAccent} />
+            ))}
+          </aside>
+
+          <div className="signup-form-center">
+            <div className="signup-card">
           <h1 className="signup-title">Hesap Oluşturun</h1>
           <p className="signup-subtitle">
             Aramıza katılın ve öğrenme yolculuğunuza başlayın.
@@ -210,8 +304,9 @@ export default function SignupClient() {
           </div>
 
           <form className="signup-form" onSubmit={handleSubmit}>
-            {activeTab === "bireysel" ? (
-              <>
+            <div className="signup-tab-content" key={activeTab}>
+              {activeTab === "bireysel" ? (
+                <>
                 <div className="signup-field">
                   <label htmlFor="signup-firstname" className="signup-label">
                     Ad
@@ -290,9 +385,9 @@ export default function SignupClient() {
                     required
                   />
                 </div>
-              </>
-            ) : (
-              <>
+                </>
+              ) : (
+                <>
                 <div className="signup-field">
                   <label htmlFor="signup-company" className="signup-label">
                     Kurum Adınız
@@ -355,8 +450,9 @@ export default function SignupClient() {
                     onChange={handleChange}
                   />
                 </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
 
             <label className="signup-checkbox">
               <input
@@ -390,6 +486,14 @@ export default function SignupClient() {
               Giriş Yapın
             </Link>
           </p>
+            </div>
+          </div>
+
+          <aside className="signup-feature-column signup-feature-column--right">
+            {activeFeatures.slice(2).map((item) => (
+              <SignupFeatureCard key={item.title} item={item} accent={activeFeatureAccent} />
+            ))}
+          </aside>
         </div>
       </div>
 

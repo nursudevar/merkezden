@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -331,94 +331,100 @@ function FeaturedInstitutions({
       <div className="featured-institutions-header">
         <div className="featured-institutions-header-left">
           <h2 className="featured-institutions-title">Öne Çıkanlar</h2>
-          <p className="featured-institutions-subtitle">Eğitim hayatınızı şekillendirecek en prestijli kurumları keşfedin.</p>
         </div>
       </div>
       <div className="featured-institutions-slider">
-        <div className="featured-institutions-scroller">
-          {(featuredPinnedDeneme
+        {(() => {
+          const featuredList = featuredPinnedDeneme
             ? [
                 featuredPinnedDeneme,
                 ...shuffledFeaturedInstitutions.filter((i) => i.id !== featuredPinnedDeneme.id).slice(0, 7),
               ]
-            : shuffledFeaturedInstitutions
-          ).map((institution) => {
-            const isFavorite = favoriteIds.has(institution.id);
-            const isActionLoading = favoriteActionLoadingIds.has(institution.id);
-            const canRenderImage = Boolean(institution.imageUrl) && !brokenFeaturedImageIds.has(institution.id);
-            return (
-              <Link
-                key={institution.id}
-                href={getInstitutionDetailHref({
-                  id: institution.id,
-                  slug: institution.slug,
-                  source: (institution as { source?: string }).source || undefined,
-                })}
-                className="featured-institution-card"
-                aria-label={`${institution.name} detayları`}
-              >
-              <div className="featured-institution-image-wrapper">
-                {canRenderImage ? (
-                  <img
-                    src={institution.imageUrl}
-                    alt={institution.name}
-                    className="featured-institution-image"
-                    onError={() =>
-                      setBrokenFeaturedImageIds((prev) => {
-                        const next = new Set(prev);
-                        next.add(institution.id);
-                        return next;
-                      })
-                    }
-                  />
-                ) : (
-                  <div className="featured-institution-placeholder" aria-label="Logo bulunmuyor">
-                    <Building2 size={28} />
-                  </div>
-                )}
-                <div className="featured-institution-overlay" />
-                <div className="featured-institution-badge featured-institution-badge--purple">
-                  <span className="featured-institution-badge-label">{institution.bodyMainCategory}</span>
-                </div>
-                <motion.button
-                  type="button"
-                  aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
-                  className="featured-institution-favorite"
-                  whileTap={{ scale: 0.9 }}
-                  disabled={isActionLoading || (isAuthenticated && !favoritesEnabled)}
-                  onClick={(e) => {
-                    onToggleFavorite(institution.id, e);
-                  }}
-                >
-                  <motion.div
-                    animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
+            : shuffledFeaturedInstitutions;
+          const marqueeList = [...featuredList, ...featuredList];
+
+          return (
+            <div className="featured-institutions-scroller">
+              {marqueeList.map((institution, index) => {
+                const isDuplicate = index >= featuredList.length;
+                const key = `${institution.id}-${index}`;
+                const isFavorite = favoriteIds.has(institution.id);
+                const isActionLoading = favoriteActionLoadingIds.has(institution.id);
+                const canRenderImage = Boolean(institution.imageUrl) && !brokenFeaturedImageIds.has(institution.id);
+                return (
+                  <Link
+                    key={key}
+                    href={getInstitutionDetailHref({
+                      id: institution.id,
+                      slug: institution.slug,
+                      source: (institution as { source?: string }).source || undefined,
+                    })}
+                    className="featured-institution-card"
+                    aria-label={`${institution.name} detayları`}
+                    aria-hidden={isDuplicate}
+                    tabIndex={isDuplicate ? -1 : undefined}
                   >
-                    <Heart
-                      className={isFavorite ? "heart-favorite-icon heart-favorite-icon--active" : "heart-favorite-icon"}
-                    />
-                  </motion.div>
-                </motion.button>
-              </div>
-              <div className="featured-institution-content">
-                <span className="featured-institution-body-category">
-                  {institution.bodyMainCategory}
-                </span>
-                <h3 className="featured-institution-name">{institution.name}</h3>
-                <p className="featured-institution-subcategory">
-                  {institution.bodySubCategory}
-                </p>
-                <div className="featured-institution-location">
-                  <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 0C2.69 0 0 2.69 0 6C0 10.5 6 14 6 14C6 14 12 10.5 12 6C12 2.69 9.31 0 6 0ZM6 8.25C4.76 8.25 3.75 7.24 3.75 6C3.75 4.76 4.76 3.75 6 3.75C7.24 3.75 8.25 4.76 8.25 6C8.25 7.24 7.24 8.25 6 8.25Z" fill="currentColor"/>
-                  </svg>
-                  <span>{institution.bodyLocation}</span>
-                </div>
-              </div>
-              </Link>
-            );
-          })}
-        </div>
+                  <div className="featured-institution-image-wrapper">
+                    {canRenderImage ? (
+                      <img
+                        src={institution.imageUrl}
+                        alt={institution.name}
+                        className="featured-institution-image"
+                        onError={() =>
+                          setBrokenFeaturedImageIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(institution.id);
+                            return next;
+                          })
+                        }
+                      />
+                    ) : (
+                      <div className="featured-institution-placeholder" aria-label="Logo bulunmuyor">
+                        <Building2 size={28} />
+                      </div>
+                    )}
+                    <div className="featured-institution-overlay" />
+                    <motion.button
+                      type="button"
+                      aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
+                      className="featured-institution-favorite"
+                      whileTap={{ scale: 0.9 }}
+                      disabled={isActionLoading || (isAuthenticated && !favoritesEnabled)}
+                      onClick={(e) => {
+                        onToggleFavorite(institution.id, e);
+                      }}
+                    >
+                      <motion.div
+                        animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
+                        <Heart
+                          className={isFavorite ? "heart-favorite-icon heart-favorite-icon--active" : "heart-favorite-icon"}
+                        />
+                      </motion.div>
+                    </motion.button>
+                  </div>
+                  <div className="featured-institution-content">
+                    <span className="featured-institution-body-category">
+                      {institution.bodyMainCategory}
+                    </span>
+                    <h3 className="featured-institution-name">{institution.name}</h3>
+                    <p className="featured-institution-subcategory">
+                      {institution.bodySubCategory}
+                    </p>
+                    <div className="featured-institution-location">
+                      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 0C2.69 0 0 2.69 0 6C0 10.5 6 14 6 14C6 14 12 10.5 12 6C12 2.69 9.31 0 6 0ZM6 8.25C4.76 8.25 3.75 7.24 3.75 6C3.75 4.76 4.76 3.75 6 3.75C7.24 3.75 8.25 4.76 8.25 6C8.25 7.24 7.24 8.25 6 8.25Z" fill="currentColor"/>
+                      </svg>
+                      <span>{institution.bodyLocation}</span>
+                    </div>
+                  </div>
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
       <div className="featured-institutions-view-all">
         <Link href="/okullar">
@@ -470,9 +476,6 @@ export default function Home() {
   const [purpleFeatured, setPurpleFeatured] = useState<PurpleFeaturedCard[]>([]);
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
-  const mainCategoriesScrollerRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollMainCategoriesLeft, setCanScrollMainCategoriesLeft] = useState(false);
-  const [canScrollMainCategoriesRight, setCanScrollMainCategoriesRight] = useState(false);
   const reduceMotion = useReducedMotion();
 
   const premiumPicksPageCount = Math.max(1, Math.ceil(premiumPicks.length / 3));
@@ -649,26 +652,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const scroller = mainCategoriesScrollerRef.current;
-    if (!scroller) return;
-
-    const updateScrollState = () => {
-      const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
-      setCanScrollMainCategoriesLeft(scroller.scrollLeft > 1);
-      setCanScrollMainCategoriesRight(scroller.scrollLeft < maxScrollLeft - 1);
-    };
-
-    updateScrollState();
-    scroller.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
-
-    return () => {
-      scroller.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
-    };
-  }, [mainCategoryCards.length]);
-
-  useEffect(() => {
     let cancelled = false;
     if (!isAuthReady || !user) {
       setFavoriteIds(new Set());
@@ -763,7 +746,12 @@ export default function Home() {
             slug,
           };
         })
-        .filter((category): category is { id: number; name: string; slug: string } => Boolean(category));
+        .filter((category): category is { id: number; name: string; slug: string } => Boolean(category))
+        .filter((category) => {
+          const normalizedName = category.name.toLocaleLowerCase("tr-TR");
+          const normalizedSlug = category.slug.toLocaleLowerCase("tr-TR");
+          return normalizedName !== "patili dostlar" && normalizedSlug !== "patili-dostlar";
+        });
 
       const types = (typeRes.data ?? []) as CategoryTypeRow[];
 
@@ -824,16 +812,6 @@ export default function Home() {
     );
   };
 
-  const scrollMainCategories = (direction: 1 | -1) => {
-    const scroller = mainCategoriesScrollerRef.current;
-    if (!scroller) return;
-    const amount = Math.max(220, Math.floor(scroller.clientWidth * 0.8));
-    scroller.scrollBy({
-      left: direction * amount,
-      behavior: "smooth",
-    });
-  };
-
   return (
     <div className="page-container">
       <HeaderWithSearch 
@@ -887,7 +865,7 @@ export default function Home() {
                     className="institution-map-detail-link"
                     onClick={() => setShowInstitutionMapModal(true)}
                   >
-                    Detaylı incele
+                    Haritada Ara
                   </button>
                 </div>
                 <InstitutionLocationsMap key="institution-map-sidebar" />
@@ -1230,42 +1208,21 @@ export default function Home() {
           <section className="home-main-categories">
             <header className="home-main-categories-header">
               <h2 className="home-main-categories-title">Ana Kategoriler</h2>
-              <p className="home-main-categories-subtitle">İhtiyacınıza uygun hizmetleri kolayca bulun</p>
-              <div className="home-main-categories-header-nav">
-                <button
-                  type="button"
-                  className="home-main-categories-nav-btn"
-                  aria-label="Ana kategorilerde sola kaydır"
-                  onClick={() => scrollMainCategories(-1)}
-                  disabled={!canScrollMainCategoriesLeft}
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <button
-                  type="button"
-                  className="home-main-categories-nav-btn"
-                  aria-label="Ana kategorilerde sağa kaydır"
-                  onClick={() => scrollMainCategories(1)}
-                  disabled={!canScrollMainCategoriesRight}
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
             </header>
             
 
             <div className="home-main-categories-slider">
-              <div className="categories-scroller home-main-categories-grid" ref={mainCategoriesScrollerRef}>
+              <div className="categories-scroller home-main-categories-grid">
                 {mainCategoryCards.map((category) => {
                   const Icon = getCategoryIcon(category.name, category.slug);
                   const categoryHref = getCategoryHref(category.name, category.slug);
                   const cardKey = String(category.id);
                   const isExpanded = Boolean(expandedCategoryCards[cardKey]);
-                  const hasMoreThanFour = category.subcategories.length > 4;
+                  const hasMoreThanThree = category.subcategories.length > 3;
                   const sortedSubcategories = [...category.subcategories].sort(
                     (a, b) => a.length - b.length || a.localeCompare(b, "tr")
                   );
-                  const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 4);
+                  const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 3);
                   return (
                     <article
                       key={category.id}
@@ -1298,7 +1255,7 @@ export default function Home() {
                         </ul>
                         </div>
                       ) : null}
-                      {hasMoreThanFour ? (
+                      {hasMoreThanThree ? (
                         <button
                           type="button"
                           className="home-main-category-card-more-btn"

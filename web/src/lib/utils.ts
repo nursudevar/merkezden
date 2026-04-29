@@ -11,23 +11,21 @@ export function cn(...args: (string | undefined | false | null)[]): string {
  */
 export function normalizeTurkish(text: string): string {
   return text
-    .toLowerCase()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/ı/g, "i")
-    .replace(/İ/g, "i")
     .replace(/ö/g, "o")
-    .replace(/Ö/g, "o")
     .replace(/ü/g, "u")
-    .replace(/Ü/g, "u")
     .replace(/ş/g, "s")
-    .replace(/Ş/g, "s")
     .replace(/ç/g, "c")
-    .replace(/Ç/g, "c")
     .replace(/ğ/g, "g")
-    .replace(/Ğ/g, "g");
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function matchesSearch(text: string, query: string): boolean {
-  if (!query || query.length === 0) return false;
+  if (!query || query.trim().length === 0) return false;
 
   const normalizedText = normalizeTurkish(text);
   const normalizedQuery = normalizeTurkish(query);

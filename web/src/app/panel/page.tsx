@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
@@ -35,6 +35,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   loadInstitutionRowForAuthUserClient,
+  resolveIsAdminFromUserRolesClient,
   resolveUserTypeFromUsersClient,
 } from "@/lib/auth/authBrowserClient";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
@@ -323,9 +324,11 @@ function SubscriptionPricingTable({ plans }: { plans: SubscriptionPlan[] }) {
 
 export default function PanelPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [userType, setUserType] = useState<"individual" | "institution" | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTabId>("overview");
   const [institutionName, setInstitutionName] = useState<string>("");
@@ -538,6 +541,7 @@ interface InstitutionDetailPreparedData {
   const [mediaUploadingPhoto, setMediaUploadingPhoto] = useState(false);
   const [mediaUploadingVideo, setMediaUploadingVideo] = useState(false);
   const [mediaDeletingId, setMediaDeletingId] = useState<string | number | null>(null);
+  const targetInstitutionIdParam = (searchParams.get("institutionId") ?? "").trim();
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -855,13 +859,18 @@ interface InstitutionDetailPreparedData {
   useEffect(() => {
     if (!user?.id) {
       setRoleLoaded(false);
+      setIsAdmin(false);
       return;
     }
     let cancelled = false;
     setRoleLoaded(false);
-    resolveUserTypeFromUsersClient(user.id).then((type) => {
+    Promise.all([
+      resolveUserTypeFromUsersClient(user.id),
+      resolveIsAdminFromUserRolesClient(user.id),
+    ]).then(([type, adminFlag]) => {
       if (!cancelled) {
         setUserType(type);
+        setIsAdmin(adminFlag);
         setRoleLoaded(true);
       }
     });
@@ -871,18 +880,45 @@ interface InstitutionDetailPreparedData {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user?.id || userType !== "institution") return;
+    if (!user?.id || (!isAdmin && userType !== "institution")) return;
 
     const userId = user.id;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
 
     async function loadInstitutionProfile() {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const authEmail = sessionData?.session?.user?.email ?? null;
-      const { row, error } = await loadInstitutionRowForAuthUserClient(userId, supabase, {
-        authEmail,
-      });
+      let row: Awaited<ReturnType<typeof loadInstitutionRowForAuthUserClient>>["row"] = null;
+      let error: { message: string } | null = null;
+
+      if (isAdmin && targetInstitutionIdParam) {
+        const numericId = Number(targetInstitutionIdParam);
+        if (!Number.isFinite(numericId) || numericId <= 0) {
+          setInstitutionRecordMissing(true);
+          setInstitutionId(null);
+          setInstitutionName("");
+          return;
+        }
+
+        const { data: adminRow, error: adminErr } = await supabase
+          .from("institutions")
+          .select("id, slug, institution_name, official_email, official_phone, website, city, district, address, about, logo, is_verified, institution_type_id")
+          .eq("id", numericId)
+          .maybeSingle();
+
+        if (adminErr) {
+          error = { message: adminErr.message };
+        } else {
+          row = (adminRow as typeof row) ?? null;
+        }
+      } else {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const authEmail = sessionData?.session?.user?.email ?? null;
+        const ownerRes = await loadInstitutionRowForAuthUserClient(userId, supabase, {
+          authEmail,
+        });
+        row = ownerRes.row;
+        error = ownerRes.error;
+      }
 
       if (cancelled) return;
 
@@ -935,26 +971,26 @@ interface InstitutionDetailPreparedData {
         logoUrl,
       });
     }
-  
-    loadInstitutionProfile();
-  
+
+    void loadInstitutionProfile();
+
     return () => {
       cancelled = true;
     };
-  }, [user?.id, userType]);
+  }, [user?.id, userType, isAdmin, targetInstitutionIdParam]);
 
   useEffect(() => {
-    if (!institutionId || userType !== "institution") {
+    if (!institutionId || (!isAdmin && userType !== "institution")) {
       setAnnouncementsList([]);
       setAnnouncementsError(null);
       return;
     }
     void loadAnnouncements();
-  }, [institutionId, userType, loadAnnouncements]);
+  }, [institutionId, userType, isAdmin, loadAnnouncements]);
 
   useEffect(() => {
     if (activeTab !== "institutions" && activeTab !== "overview") return;
-    if (!user?.id || userType !== "institution") return;
+    if (!user?.id || (!isAdmin && userType !== "institution")) return;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
     setInstitutionTypeLoading(true);
@@ -1012,7 +1048,7 @@ interface InstitutionDetailPreparedData {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, user?.id, userType]);
+  }, [activeTab, user?.id, userType, isAdmin]);
 
   useEffect(() => {
     if (activeTab !== "institutions" && activeTab !== "overview") return;
@@ -1184,10 +1220,10 @@ interface InstitutionDetailPreparedData {
 
   useEffect(() => {
     if (!isAuthReady || !user || !roleLoaded) return;
-    if (userType !== "institution") {
+    if (userType !== "institution" && !isAdmin) {
       router.replace("/");
     }
-  }, [isAuthReady, user, roleLoaded, userType, router]);
+  }, [isAuthReady, user, roleLoaded, userType, isAdmin, router]);
 
   useEffect(() => {
     if (!announcementModalOpen && !subscriptionModalOpen) {
@@ -1302,7 +1338,7 @@ interface InstitutionDetailPreparedData {
 
   if (!user) return null;
 
-  if (userType !== "institution") return null;
+  if (userType !== "institution" && !isAdmin) return null;
 
   const activeTabConfig = PANEL_TABS.find((t) => t.id === activeTab) ?? PANEL_TABS[0];
 

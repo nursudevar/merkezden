@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   resolveIndividualNameFromUsersClient,
+  resolveIsAdminFromUserRolesClient,
   resolveInstitutionNameFromUsersClient,
   resolveInstitutionSlugFromUsersClient,
   resolveUserTypeFromUsersClient,
@@ -21,8 +22,13 @@ import {
   LogIn,
   LogOut,
   LayoutDashboard,
+  Shield,
   User,
+  UserPlus,
+  ListOrdered,
 } from "lucide-react";
+
+const NASIL_CALISIR_HREF = "/nasil-calisir";
 
 /** Ana sayfa header ile birebir aynı logo (src, boyut, sınıflar). */
 export const HEADER_BRAND_LOGO_WIDTH = 440;
@@ -57,6 +63,7 @@ export function HeaderBrandLogo() {
 interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
   userType: "individual" | "institution" | null;
+  isAdmin?: boolean;
   institutionName?: string | null;
   institutionSlug?: string | null;
   individualName?: string | null;
@@ -70,6 +77,7 @@ interface HeaderWithSearchClientProps {
 export function HeaderWithSearchClient({
   user,
   userType,
+  isAdmin = false,
   institutionName,
   institutionSlug,
   individualName,
@@ -201,9 +209,23 @@ export function HeaderWithSearchClient({
                       <span>{getCTALabel()}</span>
                     </Link>
                   )}
+                  {user && isAdmin && (
+                    <Link href="/admin" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                      <Shield className="header-hamburger-icon" aria-hidden />
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                     <GraduationCap className="header-hamburger-icon" aria-hidden />
                     <span>Tüm Okullar</span>
+                  </Link>
+                  <Link
+                    href={NASIL_CALISIR_HREF}
+                    className="header-hamburger-link"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <ListOrdered className="header-hamburger-icon" aria-hidden />
+                    <span>Nasıl Çalışır?</span>
                   </Link>
                   <Link href="/about" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                     <Info className="header-hamburger-icon" aria-hidden />
@@ -235,10 +257,20 @@ export function HeaderWithSearchClient({
                       </button>
                     </>
                   ) : (
-                    <Link href="/login" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                      <LogIn className="header-hamburger-icon" aria-hidden />
-                      <span>Giriş Yap</span>
-                    </Link>
+                    <>
+                      <Link href="/login" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                        <LogIn className="header-hamburger-icon" aria-hidden />
+                        <span>Giriş Yap</span>
+                      </Link>
+                      <Link
+                        href="/signup"
+                        className="header-hamburger-link header-hamburger-link--auth-register"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <UserPlus className="header-hamburger-icon" aria-hidden />
+                        <span>Kayıt Ol</span>
+                      </Link>
+                    </>
                   )}
                 </div>
               )}
@@ -263,17 +295,39 @@ export function HeaderWithSearchClient({
             </Link>
             {user ? (
               <>
+                <Link href={NASIL_CALISIR_HREF} className="header-actions-how">
+                  <Button className="button-primary btn-gradient-primary" variant="default">
+                    NASIL ÇALIŞIR?
+                  </Button>
+                </Link>
                 <Link href={getCTAHref()} className="header-actions-nav header-actions-profile">
                   <Button className="button-primary btn-gradient-primary" variant="default">
                     {getCTALabel()}
                   </Button>
                 </Link>
+                {isAdmin ? (
+                  <Link href="/admin" className="header-actions-nav header-actions-profile">
+                    <Button className="button-primary btn-gradient-primary" variant="default">
+                      ADMIN PANEL
+                    </Button>
+                  </Link>
+                ) : null}
               </>
             ) : (
               <div className="header-actions-auth">
                 <Link href="/login">
                   <Button className="button-primary btn-gradient-primary" variant="default">
                     GİRİŞ YAP
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button className="button-primary btn-gradient-signup" variant="default">
+                    KAYIT OL
+                  </Button>
+                </Link>
+                <Link href={NASIL_CALISIR_HREF} className="header-actions-how">
+                  <Button className="button-primary btn-gradient-primary" variant="default">
+                    NASIL ÇALIŞIR?
                   </Button>
                 </Link>
               </div>
@@ -341,9 +395,27 @@ export function HeaderWithSearchClient({
                       <span>{getCTALabel()}</span>
                     </Link>
                   )}
+                  {user && isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="header-hamburger-link"
+                      onClick={() => setDesktopMenuOpen(false)}
+                    >
+                      <Shield className="header-hamburger-icon" aria-hidden />
+                      <span>ADMIN PANEL</span>
+                    </Link>
+                  )}
                   <Link href="/okullar" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
                     <GraduationCap className="header-hamburger-icon" aria-hidden />
                     <span>OKULLAR</span>
+                  </Link>
+                  <Link
+                    href={NASIL_CALISIR_HREF}
+                    className="header-hamburger-link"
+                    onClick={() => setDesktopMenuOpen(false)}
+                  >
+                    <ListOrdered className="header-hamburger-icon" aria-hidden />
+                    <span>NASIL ÇALIŞIR?</span>
                   </Link>
                   <Link href="/about" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
                     <Info className="header-hamburger-icon" aria-hidden />
@@ -390,6 +462,7 @@ export function HeaderWithSearchClient({
 interface HeaderClientProps {
   initialUser: { id: string; email?: string } | null;
   initialUserType: "individual" | "institution" | null;
+  initialIsAdmin?: boolean;
   initialInstitutionName?: string | null;
   initialInstitutionSlug?: string | null;
   initialIndividualName?: string | null;
@@ -398,6 +471,7 @@ interface HeaderClientProps {
 export function HeaderClient({
   initialUser,
   initialUserType,
+  initialIsAdmin = false,
   initialInstitutionName,
   initialInstitutionSlug,
   initialIndividualName,
@@ -406,6 +480,7 @@ export function HeaderClient({
     <HeaderWithSearchClient
       user={initialUser}
       userType={initialUserType}
+      isAdmin={initialIsAdmin}
       institutionName={initialInstitutionName}
       institutionSlug={initialInstitutionSlug}
       individualName={initialIndividualName}
@@ -430,6 +505,7 @@ export function HeaderWithSearch({
 }: HeaderWithSearchProps) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<"individual" | "institution" | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
@@ -450,6 +526,7 @@ export function HeaderWithSearch({
         setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
         if (!authUser) {
           setUserType(null);
+          setIsAdmin(false);
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
@@ -469,6 +546,7 @@ export function HeaderWithSearch({
         setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
         if (!authUser) {
           setUserType(null);
+          setIsAdmin(false);
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
@@ -481,6 +559,20 @@ export function HeaderWithSearch({
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    resolveIsAdminFromUserRolesClient(user.id).then((value) => {
+      if (!cancelled) setIsAdmin(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -546,6 +638,7 @@ export function HeaderWithSearch({
     <HeaderWithSearchClient
       user={displayUser}
       userType={displayUserType}
+      isAdmin={isAdmin}
       institutionName={displayUserType === "institution" ? institutionName : null}
       institutionSlug={displayUserType === "institution" ? institutionSlug : null}
       individualName={displayUserType === "individual" ? individualName : null}
@@ -561,6 +654,7 @@ export function HeaderWithSearch({
 export function HeaderClientWrapper() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<"individual" | "institution" | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
@@ -581,6 +675,7 @@ export function HeaderClientWrapper() {
         setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
         if (!authUser) {
           setUserType(null);
+          setIsAdmin(false);
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
@@ -600,6 +695,7 @@ export function HeaderClientWrapper() {
         setUser(authUser ? { id: authUser.id, email: authUser.email } : null);
         if (!authUser) {
           setUserType(null);
+          setIsAdmin(false);
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
@@ -612,6 +708,20 @@ export function HeaderClientWrapper() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    resolveIsAdminFromUserRolesClient(user.id).then((value) => {
+      if (!cancelled) setIsAdmin(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -677,6 +787,7 @@ export function HeaderClientWrapper() {
     <HeaderClient
       initialUser={displayUser}
       initialUserType={displayUserType}
+      initialIsAdmin={isAdmin}
       initialInstitutionName={displayUserType === "institution" ? institutionName : null}
       initialInstitutionSlug={displayUserType === "institution" ? institutionSlug : null}
       initialIndividualName={displayUserType === "individual" ? individualName : null}

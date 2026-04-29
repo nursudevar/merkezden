@@ -5,7 +5,7 @@
 .auth-content-wrapper {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 60px 0px;
+  padding: 60px 30px;
   box-sizing: border-box;
 
   @media (max-width: 900px) {
@@ -15,6 +15,17 @@
   @media (max-width: 640px) {
     padding: 30px 20px;
   }
+}
+
+// Signup header'da butonlarin saga dayali durmasi icin satiri tam genislikte tut.
+.signup-header-row {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.signup-header-actions {
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .auth-main-container {
@@ -581,6 +592,141 @@
     max-width: 100%;
     padding: 30px 24px;
     @include rounded-xl;
+  }
+}
+
+.signup-layout {
+  display: flex;
+  justify-content: center;
+}
+
+.signup-layout--with-features {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(0, 480px) minmax(210px, 1fr);
+  column-gap: 20px;
+  align-items: start;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+.signup-form-center {
+  min-width: 0;
+  display: flex;
+}
+
+.signup-layout--with-features .signup-card {
+  max-width: 100%;
+}
+
+.signup-feature-column {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+  min-width: 0;
+}
+
+.signup-feature-column--left {
+  justify-items: start;
+}
+
+.signup-feature-column--right {
+  justify-items: end;
+}
+
+.signup-feature-card {
+  background: linear-gradient(180deg, rgba(122, 95, 255, 0.12) 0%, rgba(122, 95, 255, 0.06) 100%);
+  border-radius: 18px;
+  padding: 12px 10px;
+  border: 1px solid rgba(122, 95, 255, 0.18);
+  box-shadow: 0 10px 24px rgba(53, 45, 112, 0.06);
+  text-align: center;
+  min-height: 270px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+  max-width: 270px;
+  animation: signup-tab-fade-in 920ms ease;
+}
+
+.signup-feature-card--orange {
+  background: linear-gradient(180deg, rgba(255, 152, 7, 0.14) 0%, rgba(255, 152, 7, 0.07) 80%);
+  border-color: rgba(255, 152, 7, 0.18);
+}
+
+.signup-feature-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  margin-bottom: 10px;
+  background: rgba(106, 117, 246, 0.14);
+  color: #5f4ff4;
+}
+
+.signup-feature-icon-wrap--orange {
+  background: rgba(255, 152, 7, 0.14);
+  color: #f07f11;
+}
+
+.signup-feature-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.signup-feature-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #22252d;
+}
+
+.signup-feature-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7a8091;
+}
+
+.signup-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: signup-tab-fade-in 220ms ease;
+}
+
+@keyframes signup-tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1280px) {
+  .signup-layout--with-features {
+    grid-template-columns: minmax(0, 480px);
+    row-gap: 14px;
+  }
+
+  .signup-feature-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .signup-feature-column {
+    grid-template-columns: 1fr;
   }
 }
 

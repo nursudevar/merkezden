@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Facebook, Twitter, Instagram, Linkedin, ChevronDown } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getCategoryHref } from "@/lib/categoryHelpers";
@@ -13,7 +14,7 @@ export default function Footer() {
   const [footerCategories, setFooterCategories] = useState<FooterCategoryRow[]>([]);
   const [openKurumsal, setOpenKurumsal] = useState(false);
   const [openDestek, setOpenDestek] = useState(false);
-  const [openKategoriler, setOpenKategoriler] = useState(false);
+  const [openTakip, setOpenTakip] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
 
@@ -48,27 +49,17 @@ export default function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <Link href="/" className="footer-brand-title-link">
-              <span className="footer-brand-title">
-                MERKEZDEN<span className="footer-brand-title-accent">.COM</span>
-              </span>
+              <Image
+                src="/images/merkezden-logo.svg"
+                alt="Merkezden"
+                width={440}
+                height={88}
+                className="footer-brand-logo"
+              />
             </Link>
             <p className="footer-brand-subtitle">
               Hayatın merkezi, hizmetin adresi. Eğitimden sanata, spordan kariyere uzanan geniş yelpazede aradığınız her şey tek bir platformda.
             </p>
-            <div className="footer-social">
-              <a href="#" className="footer-social-link" aria-label="Facebook">
-                <Facebook size={18} />
-              </a>
-              <a href="#" className="footer-social-link" aria-label="Twitter">
-                <Twitter size={18} />
-              </a>
-              <a href="#" className="footer-social-link" aria-label="Instagram">
-                <Instagram size={18} />
-              </a>
-              <a href="#" className="footer-social-link" aria-label="LinkedIn">
-                <Linkedin size={18} />
-              </a>
-            </div>
           </div>
 
           <div className={`footer-section footer-section-accordion ${openKurumsal ? "is-open" : ""}`}>
@@ -90,9 +81,6 @@ export default function Footer() {
               className="footer-section-content"
             >
               <ul className="footer-section-list">
-                <li className="footer-section-item">
-                  <Link href="/okullar">Tüm Okullar</Link>
-                </li>
                 <li className="footer-section-item">
                   <Link href="/about">Hakkımızda</Link>
                 </li>
@@ -141,45 +129,46 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className={`footer-section footer-section-accordion ${openKategoriler ? "is-open" : ""}`}>
+          <div className={`footer-section footer-section-accordion ${openTakip ? "is-open" : ""}`}>
             <button
               type="button"
               className="footer-section-header"
-              aria-expanded={openKategoriler}
-              aria-controls="footer-kategoriler"
-              id="footer-kategoriler-btn"
-              onClick={() => setOpenKategoriler(!openKategoriler)}
+              aria-expanded={openTakip}
+              aria-controls="footer-takip"
+              id="footer-takip-btn"
+              onClick={() => setOpenTakip(!openTakip)}
             >
-              <span className="footer-section-title">Kategoriler</span>
+              <span className="footer-section-title">Bizi Takip Edin</span>
               <ChevronDown className="footer-section-chevron" aria-hidden size={20} />
             </button>
             <div
-              id="footer-kategoriler"
+              id="footer-takip"
               role="region"
-              aria-labelledby="footer-kategoriler-btn"
+              aria-labelledby="footer-takip-btn"
               className="footer-section-content"
             >
-              <ul className="footer-section-list">
-                <li className="footer-section-item">
-                  <Link href="/school">Okul</Link>
-                </li>
-                <li className="footer-section-item">
-                  <Link href="/courses">Kurs</Link>
-                </li>
-                <li className="footer-section-item">
-                  <Link href="/sports">Spor</Link>
-                </li>
-                <li className="footer-section-item">
-                  <Link href="/arts">Sanat</Link>
-                </li>
-              </ul>
+              <div className="footer-social footer-social--section">
+                <a href="#" className="footer-social-link" aria-label="Facebook">
+                  <Facebook size={18} />
+                </a>
+                <a href="#" className="footer-social-link" aria-label="Twitter">
+                  <Twitter size={18} />
+                </a>
+                <a href="#" className="footer-social-link" aria-label="Instagram">
+                  <Instagram size={18} />
+                </a>
+                <a href="#" className="footer-social-link" aria-label="LinkedIn">
+                  <Linkedin size={18} />
+                </a>
+              </div>
             </div>
           </div>
+
         </div>
         <div className="footer-divider" />
         <div className="footer-bottom">
           <div className="footer-copyright-row">
-            <span className="footer-copyright">© 2024 MERKEZDEN.COM</span>
+            <span className="footer-copyright">© 2023 MERKEZDEN.COM</span>
             <span className="footer-copyright footer-copyright-right">Tüm Hakları Saklıdır.</span>
           </div>
         </div>
@@ -204,9 +193,6 @@ export default function Footer() {
           </div>
           <div className="homepage-footer-extension">
             <div className="homepage-footer-extension-inner">
-              <h3 className="homepage-footer-extension-title">
-                Popüler Kategoriler
-              </h3>
               <div className="homepage-footer-extension-tags">
                 {footerCategories.map((category) => {
                   const href =

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { matchesSearch } from "@/lib/utils";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Institution = {
   id: number;
@@ -9,6 +10,7 @@ type Institution = {
   rating: number;
   imageUrl: string;
   slug: string;
+  source: string | null;
   badge?: {
     icon: string;
     label: string;
@@ -16,7 +18,17 @@ type Institution = {
   };
 };
 
-const allInstitutions: Institution[] = [];
+type InstitutionRow = {
+  id: number | null;
+  institution_name: string | null;
+  city: string | null;
+  district: string | null;
+  type: string | null;
+  address: string | null;
+  logo: string | null;
+  slug: string | null;
+  source: string | null;
+};
 
 export async function GET(request: Request) {
   try {
@@ -26,6 +38,48 @@ export async function GET(request: Request) {
     if (query.length < 1) {
       return NextResponse.json({ results: [], message: "En az 1 karakter giriniz" });
     }
+
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("institutions")
+      .select("id, institution_name, city, district, type, address, logo, slug, source")
+      .not("institution_name", "is", null)
+      .order("institution_name", { ascending: true })
+      .limit(600);
+
+    if (error) {
+      throw error;
+    }
+
+    const allInstitutions: Institution[] = ((data ?? []) as InstitutionRow[])
+      .map((row) => {
+        const id = Number(row.id);
+        const name = String(row.institution_name ?? "").trim();
+        if (!Number.isFinite(id) || !name) return null;
+
+        const district = String(row.district ?? "").trim();
+        const city = String(row.city ?? "").trim();
+        const location = [district, city].filter(Boolean).join(", ") || "Konum bilgisi yok";
+        const type = String(row.type ?? "").trim();
+        const address = String(row.address ?? "").trim();
+        const description = type || address || "Kurum bilgisi";
+        const logoPath = String(row.logo ?? "").trim();
+        const imageUrl = logoPath
+          ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
+          : "/images/hero-banner-car.jpg";
+
+        return {
+          id,
+          name,
+          location,
+          description,
+          rating: 4.8,
+          imageUrl,
+          slug: String(row.slug ?? "").trim(),
+          source: row.source ?? null,
+        };
+      })
+      .filter((institution): institution is Institution => institution !== null);
 
     const results = allInstitutions
       .filter((institution) => {
@@ -45,6 +99,7 @@ export async function GET(request: Request) {
         reviewCount: Math.floor(institution.rating * 25),
         imageUrl: institution.imageUrl,
         slug: institution.slug,
+        source: institution.source,
         badge: institution.badge || null,
       }));
 
