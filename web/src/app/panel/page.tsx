@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -322,7 +322,7 @@ function SubscriptionPricingTable({ plans }: { plans: SubscriptionPlan[] }) {
   );
 }
 
-export default function PanelPage() {
+function PanelContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string } | null>(null);
@@ -3762,5 +3762,13 @@ interface InstitutionDetailPreparedData {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PanelPage() {
+  return (
+    <Suspense fallback={null}>
+      <PanelContent />
+    </Suspense>
   );
 }
