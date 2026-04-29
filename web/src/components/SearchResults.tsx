@@ -116,7 +116,7 @@ export default function SearchResults({
                 badge: null,
               } satisfies SearchResult;
             })
-            .filter((item): item is SearchResult => item !== null)
+            .filter((item) => item !== null)
             .filter(
               (institution) =>
                 matchesSearch(institution.name, query) ||
