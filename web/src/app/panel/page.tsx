@@ -1825,14 +1825,6 @@ interface InstitutionDetailPreparedData {
       return { group, features };
     })
     .filter((item) => item.features.length > 0);
-  const isAcademicGroup = (group: InstitutionFeatureGroupRow) => {
-    const key = `${group.slug ?? ""} ${group.name}`.toLocaleLowerCase("tr-TR");
-    return key.includes("akademik") && key.includes("imkan");
-  };
-  const academicGroup = institutionGroupsWithFeatures.find(
-    ({ group }) => isAcademicGroup(group)
-  );
-
   const getDisplayFeatureName = (name: string) => {
     const trimmed = (name ?? "").trim();
     if (trimmed.toLocaleLowerCase("tr-TR") === "engelliye uygun".toLocaleLowerCase("tr-TR")) {
@@ -1841,97 +1833,19 @@ interface InstitutionDetailPreparedData {
     return trimmed;
   };
 
-  const hiddenFeatureNames = new Set<string>(
-    [
-      "Seminer",
-      "Yabancı Dil Sınavı",
-      "Deneme Sınavı",
-      "Veli Bilgilendirme",
-      "Veli Toplantısı",
-      "Ders Tekrarı/Telafi Dersi",
-      "Analiz",
-      "Deneme Dersi",
-      "Tuvalet Eğitimi",
-      "Okul-Aile İşbirliği",
-      "Okul Sonrası Kulüp",
-      "Organik Beslenme",
-      "Hazırlık Sınavı",
-      "Birebir Etüt",
-      "Mentorluk Programı",
-      "Kaynak ve Materyal",
-      "Özel Beslenme",
-      "Ekolojik Bahçe",
-      "Açık Havuz",
-      "Açık Spor Salonu",
-      "Lojman",
-      "Hayvanat Bahçesi",
-    ].map((n) => n.toLocaleLowerCase("tr-TR"))
-  );
-
-  const isFeatureHidden = (feature: InstitutionFeatureDefinitionRow) => {
-    const name = (feature.name ?? "").trim();
-    return hiddenFeatureNames.has(name.toLocaleLowerCase("tr-TR"));
-  };
-
-  const prioritySchoolFeatureNames = new Set<string>(
-    [
-      "Özel Eğitim Uygunluğu",
-      "Montessori",
-      "Waldorf",
-      "Oyun Grubu",
-      "Dini Eğitim",
-    ].map((n) => n.toLocaleLowerCase("tr-TR"))
-  );
-  const isPrioritySchoolFeature = (feature: InstitutionFeatureDefinitionRow) =>
-    prioritySchoolFeatureNames.has((feature.name ?? "").trim().toLocaleLowerCase("tr-TR"));
   const isSchoolHoursFeature = (feature: InstitutionFeatureDefinitionRow) =>
     (feature.name ?? "").trim().toLocaleLowerCase("tr-TR") === "okul saatleri";
-  const isAverageClassSizeFeature = (feature: InstitutionFeatureDefinitionRow) =>
-    (feature.name ?? "").trim().toLocaleLowerCase("tr-TR") === "ortalama sınıf mevcudu";
-  const isSchoolFacilitiesGroup = (group: InstitutionFeatureGroupRow) => {
-    const key = `${group.slug ?? ""} ${group.name}`.toLocaleLowerCase("tr-TR");
-    return key.includes("okul") && key.includes("imkan");
-  };
 
-  const academicFeatures = (academicGroup?.features ?? institutionFeatureDefinitions)
-    .filter(
-      (feature) =>
-        !isFeatureHidden(feature) &&
-        !isPrioritySchoolFeature(feature) &&
-        (feature.input_type === "text" ||
-          feature.input_type === "number" ||
-          feature.input_type === "boolean" ||
-          feature.input_type === "single_select" ||
-          feature.input_type === "multi_select")
-    )
-    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-
-  const academicFeaturesFinal = (() => {
-    const hoursIdx = academicFeatures.findIndex((f) => isSchoolHoursFeature(f));
-    const avgIdx = academicFeatures.findIndex((f) => isAverageClassSizeFeature(f));
-    if (hoursIdx < 0 || avgIdx < 0) return academicFeatures;
-    if (avgIdx === hoursIdx + 1) return academicFeatures;
-
-    const hours = academicFeatures[hoursIdx];
-    const avg = academicFeatures[avgIdx];
-    const withoutAvg = academicFeatures.filter((f) => f.id !== avg.id);
-    const hoursIdxInNew = withoutAvg.findIndex((f) => f.id === hours.id);
-    if (hoursIdxInNew < 0) return academicFeatures;
-
-    const next = [...withoutAvg];
-    next.splice(hoursIdxInNew + 1, 0, avg);
-    return next;
-  })();
   const selectionGroups = institutionGroupsWithFeatures
-    .filter(({ group }) => !isAcademicGroup(group))
     .map(({ group, features }) => ({
       group,
       features: features.filter(
         (feature) =>
-          !isFeatureHidden(feature) &&
+          (feature.input_type === "text" ||
+            feature.input_type === "number" ||
           (feature.input_type === "boolean" ||
             feature.input_type === "multi_select" ||
-            feature.input_type === "single_select")
+            feature.input_type === "single_select"))
       ),
     }))
     .filter((item) => item.features.length > 0);
@@ -3130,268 +3044,133 @@ interface InstitutionDetailPreparedData {
                       )}
                     </section>
 
-                    <section className="panel-institutions-group-item panel-institutions-group-item--basic">
-                      <h4 className="panel-institutions-group-title panel-institutions-group-title--academic">
-                        <Info className="panel-institutions-group-title-icon panel-institutions-group-title-icon--academic" aria-hidden />
-                        Akademik İmkanlar
-                      </h4>
-                      <div className="panel-institutions-features-grid">
-                        {academicFeaturesFinal.map((feature) => (
-                          <div
-                            key={feature.id}
-                            className={`panel-institutions-feature-item ${
-                              feature.input_type === "text" ||
-                              feature.input_type === "multi_select" ||
-                              feature.input_type === "boolean"
-                                ? "panel-institutions-feature-item--full"
-                                : ""
-                            }`}
-                          >
-                            {feature.input_type === "text" ? (
-                              <div className="panel-institutions-feature-input-wrap">
-                                <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
-                                {((feature.help_text ?? "").length > 120 || (feature.placeholder ?? "").length > 70) ? (
-                                  <textarea
-                                    className="panel-institutions-feature-textarea"
-                                    value={institutionTextFeatureValues[feature.id] ?? ""}
-                                    onChange={(e) =>
-                                      setInstitutionTextFeatureValues((prev) => ({
-                                        ...prev,
-                                        [feature.id]: e.target.value,
-                                      }))
-                                    }
-                                    placeholder={feature.placeholder || "Bilgi giriniz"}
-                                    rows={3}
-                                  />
-                                ) : (
-                                  <input
-                                    type="text"
-                                    className="panel-institutions-feature-input"
-                                    value={institutionTextFeatureValues[feature.id] ?? ""}
-                                    onChange={(e) =>
-                                      setInstitutionTextFeatureValues((prev) => ({
-                                        ...prev,
-                                        [feature.id]: e.target.value,
-                                      }))
-                                    }
-                                    placeholder={feature.placeholder || "Bilgi giriniz"}
-                                  />
-                        )}
-                      </div>
-                            ) : feature.input_type === "number" ? (
-                              <div className="panel-institutions-feature-input-wrap">
-                                <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
-                                <div className="panel-institutions-feature-number-row">
-                                  <input
-                                    type="number"
-                                    className="panel-institutions-feature-input"
-                                    value={institutionNumberFeatureValues[feature.id] ?? ""}
-                                    onChange={(e) =>
-                                      setInstitutionNumberFeatureValues((prev) => ({
-                                        ...prev,
-                                        [feature.id]: e.target.value,
-                                      }))
-                                    }
-                                    placeholder={feature.placeholder || "Sayı giriniz"}
-                                  />
-                                  {feature.unit ? (
-                                    <span className="panel-institutions-feature-unit">{feature.unit}</span>
-                                  ) : null}
-                                </div>
-                              </div>
-                            ) : feature.input_type === "boolean" ? (
-                              <div className="panel-institutions-feature-input-wrap">
-                                <label className="panel-institutions-selection-check">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(institutionBooleanFeatureValues[feature.id])}
-                                    onChange={(e) =>
-                                      setInstitutionBooleanFeatureValues((prev) => ({
-                                        ...prev,
-                                        [feature.id]: e.target.checked,
-                                      }))
-                                    }
-                                  />
-                                  <span>{getDisplayFeatureName(feature.name)}</span>
-                                </label>
-                              </div>
-                            ) : feature.input_type === "multi_select" ? (
-                              <div className="panel-institutions-feature-input-wrap">
-                                <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
-                                <div className="panel-institutions-feature-multi">
-                                  {institutionFeatureChoices
-                                    .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                                    .map((choice) => {
-                                      const choiceId = String(choice.id);
-                                      const selectedValues = institutionMultiSelectValues[feature.id] ?? [];
-                                      const isSelected = selectedValues.includes(choiceId);
-                                      return (
-                                        <button
-                                          key={choice.id}
-                                          type="button"
-                                          className={`panel-institutions-feature-chip ${isSelected ? "is-selected" : ""}`}
-                                          onClick={() =>
-                                            setInstitutionMultiSelectValues((prev) => {
-                                              const current = prev[feature.id] ?? [];
-                                              const next = isSelected
-                                                ? current.filter((id) => id !== choiceId)
-                                                : [...current, choiceId];
-                                              return {
-                                                ...prev,
-                                                [feature.id]: next,
-                                              };
-                                            })
-                                          }
-                                        >
-                                          <span className="panel-institutions-feature-chip-check" aria-hidden>
-                                            {isSelected ? "✓" : ""}
-                                          </span>
-                                          <span>{choice.name?.trim() || ""}</span>
-                                        </button>
-                                      );
-                                    })}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="panel-institutions-feature-input-wrap">
-                                <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
-                                <div className="panel-institutions-single-select-dropdown">
-                                  <button
-                                    type="button"
-                                    className={`panel-institutions-feature-select panel-institutions-feature-select--button ${openInstitutionSelectId === feature.id ? "panel-institutions-feature-select--open" : ""}`}
-                                    onClick={() =>
-                                      setOpenInstitutionSelectId((prev) =>
-                                        prev === feature.id ? null : feature.id
-                                      )
-                                    }
-                                    aria-haspopup="listbox"
-                                    aria-expanded={openInstitutionSelectId === feature.id}
-                                  >
-                                    <span
-                                      className="panel-institutions-feature-select-label"
-                                      title={
-                                        institutionFeatureChoices.find(
-                                          (choice) =>
-                                            String(choice.id) === (institutionSingleSelectValues[feature.id] ?? "") &&
-                                            choice.feature_definition_id === feature.id &&
-                                            choice.is_active
-                                        )?.name || feature.placeholder || "Seçiniz"
-                                      }
-                                    >
-                                      {institutionFeatureChoices.find(
-                                        (choice) =>
-                                          String(choice.id) === (institutionSingleSelectValues[feature.id] ?? "") &&
-                                          choice.feature_definition_id === feature.id &&
-                                          choice.is_active
-                                      )?.name || feature.placeholder || "Seçiniz"}
-                                    </span>
-                                  </button>
-                                  {openInstitutionSelectId === feature.id && (
-                                    <div className="panel-institutions-feature-select-menu" role="listbox">
-                                      <button
-                                        type="button"
-                                        role="option"
-                                        aria-selected={(institutionSingleSelectValues[feature.id] ?? "") === ""}
-                                        className={`panel-institutions-feature-select-option ${(institutionSingleSelectValues[feature.id] ?? "") === "" ? "panel-institutions-feature-select-option--selected" : ""}`}
-                                        onClick={() => {
-                                          setInstitutionSingleSelectValues((prev) => ({
-                                            ...prev,
-                                            [feature.id]: "",
-                                          }));
-                                          setOpenInstitutionSelectId(null);
-                                        }}
-                                      >
-                                        {feature.placeholder || "Seçiniz"}
-                                      </button>
-                                      {institutionFeatureChoices
-                                        .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                                        .map((choice) => (
-                                          <button
-                                            key={choice.id}
-                                            type="button"
-                                            role="option"
-                                            aria-selected={(institutionSingleSelectValues[feature.id] ?? "") === String(choice.id)}
-                                            className={`panel-institutions-feature-select-option ${(institutionSingleSelectValues[feature.id] ?? "") === String(choice.id) ? "panel-institutions-feature-select-option--selected" : ""}`}
-                                            onClick={() => {
-                                              setInstitutionSingleSelectValues((prev) => ({
-                                                ...prev,
-                                                [feature.id]: String(choice.id),
-                                              }));
-                                              setOpenInstitutionSelectId(null);
-                                            }}
-                                            title={choice.name || undefined}
-                                          >
-                                            {choice.name?.trim() || ""}
-                                          </button>
-                                        ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-
                     {selectionGroups.map(({ group, features }) => {
-                      const normalizedFeatureName = (name: string | null | undefined) =>
-                        String(name ?? "").trim().toLocaleLowerCase("tr-TR");
-                      const featureByName = new Map<string, InstitutionFeatureDefinitionRow>();
-                      institutionFeatureDefinitions.forEach((feature) => {
-                        if (isFeatureHidden(feature)) return;
-                        const key = normalizedFeatureName(feature.name);
-                        if (key && !featureByName.has(key)) {
-                          featureByName.set(key, feature);
+                      const visibleFeatures = features;
+                      const groupNameKey = group.name.trim().toLocaleLowerCase("tr-TR");
+                      const groupHeaderMeta = (() => {
+                        if (groupNameKey === "başlıca özellikler") {
+                          return {
+                            titleClass: "panel-institutions-group-title--academic",
+                            iconClass: "panel-institutions-group-title-icon--academic",
+                            Icon: Info,
+                          };
                         }
-                      });
-
-                      const prioritizedSchoolFeatures = [
-                        featureByName.get("özel eğitim uygunluğu"),
-                        featureByName.get("montessori"),
-                        featureByName.get("waldorf"),
-                        featureByName.get("oyun grubu"),
-                        featureByName.get("dini eğitim"),
-                      ].filter((f): f is InstitutionFeatureDefinitionRow => Boolean(f));
-
-                      const schoolHoursFeature = featureByName.get("okul saatleri") ?? null;
-                      const isSchoolGroup = isSchoolFacilitiesGroup(group);
-                      const consumedIds = new Set<number>();
-                      const visibleFeatures = isSchoolGroup
-                        ? [
-                            ...prioritizedSchoolFeatures.filter((f) => {
-                              if (consumedIds.has(f.id)) return false;
-                              consumedIds.add(f.id);
-                              return true;
-                            }),
-                            ...features.filter((feature) => {
-                              if (consumedIds.has(feature.id)) return false;
-                              if (isPrioritySchoolFeature(feature) || isSchoolHoursFeature(feature)) return false;
-                              consumedIds.add(feature.id);
-                              return true;
-                            }),
-                          ]
-                        : features.filter(
-                            (feature) => !isPrioritySchoolFeature(feature) && !isSchoolHoursFeature(feature)
-                          );
+                        if (groupNameKey === "okul imkanları") {
+                          return {
+                            titleClass: "panel-institutions-group-title--school",
+                            iconClass: "panel-institutions-group-title-icon--school",
+                            Icon: Building,
+                          };
+                        }
+                        if (groupNameKey === "fiziki imkanlar") {
+                          return {
+                            titleClass: "panel-institutions-group-title--physical",
+                            iconClass: "panel-institutions-group-title-icon--physical",
+                            Icon: Building2,
+                          };
+                        }
+                        if (groupNameKey === "eğitim sistemi") {
+                          return {
+                            titleClass: "panel-institutions-group-title--academic",
+                            iconClass: "panel-institutions-group-title-icon--academic",
+                            Icon: List,
+                          };
+                        }
+                        if (groupNameKey === "aktiviteler") {
+                          return {
+                            titleClass: "panel-institutions-group-title--school",
+                            iconClass: "panel-institutions-group-title-icon--school",
+                            Icon: Star,
+                          };
+                        }
+                        if (groupNameKey === "ödeme seçenekleri") {
+                          return {
+                            titleClass: "panel-institutions-group-title--physical",
+                            iconClass: "panel-institutions-group-title-icon--physical",
+                            Icon: CreditCard,
+                          };
+                        }
+                        return {
+                          titleClass: "panel-institutions-group-title--physical",
+                          iconClass: "panel-institutions-group-title-icon--physical",
+                          Icon: Building2,
+                        };
+                      })();
 
                       return (
                       <section key={group.id} className="panel-institutions-group-item">
-                        {group.name.toLocaleLowerCase("tr-TR").includes("okul") ? (
-                          <h4 className="panel-institutions-group-title panel-institutions-group-title--school">
-                            <Building className="panel-institutions-group-title-icon panel-institutions-group-title-icon--school" aria-hidden />
-                            {group.name}
-                          </h4>
-                        ) : (
-                          <h4 className="panel-institutions-group-title panel-institutions-group-title--physical">
-                            <Building2 className="panel-institutions-group-title-icon panel-institutions-group-title-icon--physical" aria-hidden />
-                            {group.name}
-                          </h4>
-                        )}
+                        <h4 className={`panel-institutions-group-title ${groupHeaderMeta.titleClass}`}>
+                          <groupHeaderMeta.Icon
+                            className={`panel-institutions-group-title-icon ${groupHeaderMeta.iconClass}`}
+                            aria-hidden
+                          />
+                          {group.name}
+                        </h4>
                         <div className="panel-institutions-features-grid panel-institutions-features-grid--selection">
                           {visibleFeatures.map((feature) => (
-                            <div key={feature.id} className="panel-institutions-selection-item">
-                              {feature.input_type === "boolean" ? (
+                            <div
+                              key={feature.id}
+                              className={`panel-institutions-selection-item ${
+                                feature.input_type === "text" ||
+                                feature.input_type === "number" ||
+                                feature.input_type === "multi_select"
+                                  ? "panel-institutions-feature-item--full"
+                                  : ""
+                              }`}
+                            >
+                              {feature.input_type === "text" ? (
+                                <div className="panel-institutions-feature-input-wrap">
+                                  <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
+                                  {((feature.help_text ?? "").length > 120 || (feature.placeholder ?? "").length > 70) ? (
+                                    <textarea
+                                      className="panel-institutions-feature-textarea"
+                                      value={institutionTextFeatureValues[feature.id] ?? ""}
+                                      onChange={(e) =>
+                                        setInstitutionTextFeatureValues((prev) => ({
+                                          ...prev,
+                                          [feature.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder={feature.placeholder || "Bilgi giriniz"}
+                                      rows={3}
+                                    />
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      className="panel-institutions-feature-input"
+                                      value={institutionTextFeatureValues[feature.id] ?? ""}
+                                      onChange={(e) =>
+                                        setInstitutionTextFeatureValues((prev) => ({
+                                          ...prev,
+                                          [feature.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder={feature.placeholder || "Bilgi giriniz"}
+                                    />
+                                  )}
+                                </div>
+                              ) : feature.input_type === "number" ? (
+                                <div className="panel-institutions-feature-input-wrap">
+                                  <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
+                                  <div className="panel-institutions-feature-number-row">
+                                    <input
+                                      type="number"
+                                      className="panel-institutions-feature-input"
+                                      value={institutionNumberFeatureValues[feature.id] ?? ""}
+                                      onChange={(e) =>
+                                        setInstitutionNumberFeatureValues((prev) => ({
+                                          ...prev,
+                                          [feature.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder={feature.placeholder || "Sayı giriniz"}
+                                    />
+                                    {feature.unit ? (
+                                      <span className="panel-institutions-feature-unit">{feature.unit}</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ) : feature.input_type === "boolean" ? (
                                 <label className="panel-institutions-selection-check">
                                   <input
                                     type="checkbox"
@@ -3405,7 +3184,7 @@ interface InstitutionDetailPreparedData {
                                   />
                                   <span>{getDisplayFeatureName(feature.name)}</span>
                                 </label>
-                              ) : feature.input_type === "single_select" || isSchoolHoursFeature(feature) ? (
+                              ) : feature.input_type === "single_select" ? (
                                 <div className="panel-institutions-feature-input-wrap">
                                   <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
                                   <div className="panel-institutions-single-select-dropdown">

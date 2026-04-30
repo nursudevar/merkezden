@@ -42,8 +42,10 @@ const ageOptions = [
 ];
 
 const serviceOptions = [
-  { value: "face", label: "Yüz Yüze", icon: Users },
+  { value: "face", label: "Yüz Yüze", icon: MapPin },
   { value: "online", label: "Online", icon: Wifi },
+  { value: "individual", label: "Bireysel", icon: UserRound },
+  { value: "group", label: "Grup", icon: Users },
 ];
 
 const schoolStatusOptions = [
@@ -1009,11 +1011,11 @@ export default function Home() {
                 <div className="filter-section-title">
                   <Image 
                     src="/images/services.svg" 
-                    alt="Eğitim Türü" 
+                    alt="Hizmet Tipi" 
                     width={20} 
                     height={20}
                   />
-                  <span>Eğitim Türü</span>
+                  <span>Hizmet Tipi</span>
                 </div>
                 <div className="education-type-pills">
                   {serviceOptions.map((option) => {
@@ -1304,13 +1306,13 @@ export default function Home() {
           <section className="announcements-section" aria-label="Duyurular">
             <div className="announcements-header">
               <h2 className="announcements-title">Duyurular</h2>
-              <Link href="/blog" className="announcements-view-all">
+              <Link href="/announcements" className="announcements-view-all">
                 tümünü gör
               </Link>
             </div>
 
             <div className="announcements-grid">
-              <Link href="/blog" className="announcement-featured">
+              <Link href="/announcements" className="announcement-featured">
                 <div
                   className="announcement-featured-media"
                   style={{
@@ -1340,7 +1342,7 @@ export default function Home() {
               </Link>
 
               <div className="announcements-side">
-                <Link href="/blog" className="announcement-small">
+                <Link href="/announcements" className="announcement-small">
                   <div
                     className="announcement-small-thumb"
                     style={{
@@ -1357,7 +1359,7 @@ export default function Home() {
                   </div>
                 </Link>
 
-                <Link href="/blog" className="announcement-small">
+                <Link href="/announcements" className="announcement-small">
                   <div
                     className="announcement-small-thumb"
                     style={{

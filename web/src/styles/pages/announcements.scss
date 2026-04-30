@@ -1,0 +1,44 @@
+.announcements-page {
+  width: min(1200px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 40px 0 56px;
+}
+
+.announcements-page-hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.announcements-page-title {
+  font-size: clamp(2rem, 2.8vw, 2.5rem);
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.announcements-page-subtitle {
+  font-size: 1rem;
+  color: #4b5563;
+  margin: 0;
+}
+
+.announcements-page-back-link {
+  display: inline-flex;
+  width: fit-content;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6d5dfc;
+  text-decoration: none;
+}
+
+.announcements-page-back-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .announcements-page {
+    width: min(1200px, calc(100% - 28px));
+    padding: 28px 0 42px;
+  }
+}
