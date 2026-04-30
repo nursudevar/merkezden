@@ -335,10 +335,12 @@ function PanelContent() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [logoValidationModalMessage, setLogoValidationModalMessage] = useState<string | null>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
   const [isSavingInstitutionProfile, setIsSavingInstitutionProfile] = useState(false);
   const [institutionProfileMessage, setInstitutionProfileMessage] = useState<string | null>(null);
+  const [showInstitutionProfileSuccessPopup, setShowInstitutionProfileSuccessPopup] = useState(false);
   const [institutionIsVerified, setInstitutionIsVerified] = useState<boolean>(false);
   const [institutionTypeId, setInstitutionTypeId] = useState<string>("");
   const [institutionCategoryId, setInstitutionCategoryId] = useState<string>("");
@@ -358,6 +360,7 @@ function PanelContent() {
     email: "",
     phone: "",
     website: "",
+    subheading: "",
     city: "",
     district: "",
     address: "",
@@ -369,6 +372,7 @@ function PanelContent() {
     email: "",
     phone: "",
     website: "",
+    subheading: "",
     city: "",
     district: "",
     address: "",
@@ -901,7 +905,7 @@ interface InstitutionDetailPreparedData {
 
         const { data: adminRow, error: adminErr } = await supabase
           .from("institutions")
-          .select("id, slug, institution_name, official_email, official_phone, website, city, district, address, about, logo, is_verified, institution_type_id")
+          .select("id, slug, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo, is_verified, institution_type_id")
           .eq("id", numericId)
           .maybeSingle();
 
@@ -953,6 +957,7 @@ interface InstitutionDetailPreparedData {
         email: row.official_email || "",
         phone: row.official_phone || "",
         website: row.website || "",
+        subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
         address: row.address || "",
@@ -964,6 +969,7 @@ interface InstitutionDetailPreparedData {
         email: row.official_email || "",
         phone: row.official_phone || "",
         website: row.website || "",
+        subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
         address: row.address || "",
@@ -1325,6 +1331,14 @@ interface InstitutionDetailPreparedData {
     institutionTypes,
   ]);
 
+  useEffect(() => {
+    if (!showInstitutionProfileSuccessPopup) return;
+    const timer = window.setTimeout(() => {
+      setShowInstitutionProfileSuccessPopup(false);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [showInstitutionProfileSuccessPopup]);
+
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
       <div className="panel-page">
@@ -1361,6 +1375,8 @@ interface InstitutionDetailPreparedData {
     "image/jpg": "jpg",
     "image/webp": "webp",
   };
+  const LOGO_DIMENSION_RULE_TEXT =
+    "Kare (1:1) logo kullanınız.\nÖnerilen ölçüler: 512x512 veya 1024x1024 px.\nİzin verilen aralık: 256x256 - 2048x2048 px.";
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1374,6 +1390,36 @@ interface InstitutionDetailPreparedData {
     }
     if (!institutionId) {
       setLogoUploadError("Kurum kaydı bulunamadı.");
+      return;
+    }
+    const imageMeta = await new Promise<{ width: number; height: number } | null>((resolve) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        const result = { width: img.naturalWidth, height: img.naturalHeight };
+        URL.revokeObjectURL(objectUrl);
+        resolve(result);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(null);
+      };
+      img.src = objectUrl;
+    });
+    if (!imageMeta) {
+      setLogoValidationModalMessage(LOGO_DIMENSION_RULE_TEXT);
+      return;
+    }
+    if (imageMeta.width !== imageMeta.height) {
+      setLogoValidationModalMessage(LOGO_DIMENSION_RULE_TEXT);
+      return;
+    }
+    if (imageMeta.width < 256 || imageMeta.height < 256) {
+      setLogoValidationModalMessage(LOGO_DIMENSION_RULE_TEXT);
+      return;
+    }
+    if (imageMeta.width > 2048 || imageMeta.height > 2048) {
+      setLogoValidationModalMessage(LOGO_DIMENSION_RULE_TEXT);
       return;
     }
     setLogoUploading(true);
@@ -1422,6 +1468,7 @@ interface InstitutionDetailPreparedData {
       institution_name: institutionFormData.institutionName.trim(),
       official_phone: institutionFormData.phone.trim(),
       website: websiteValue,
+      subheading: institutionFormData.subheading.trim(),
       city: institutionFormData.city.trim(),
       district: institutionFormData.district.trim(),
       address: institutionFormData.address.trim(),
@@ -1439,7 +1486,7 @@ interface InstitutionDetailPreparedData {
         .update(payload)
         .eq("id", instNumericId)
         .select(
-          "id, institution_name, official_email, official_phone, website, city, district, address, about, logo"
+          "id, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo"
         )
         .maybeSingle();
 
@@ -1461,6 +1508,7 @@ interface InstitutionDetailPreparedData {
         official_email?: string | null;
         official_phone?: string | null;
         website?: string | null;
+        subheading?: string | null;
         city?: string | null;
         district?: string | null;
         address?: string | null;
@@ -1477,6 +1525,7 @@ interface InstitutionDetailPreparedData {
         email: row.official_email || "",
         phone: row.official_phone || "",
         website: row.website || "",
+        subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
         address: row.address || "",
@@ -1487,7 +1536,8 @@ interface InstitutionDetailPreparedData {
       setInstitutionFormData(nextForm);
       setInstitutionInitialFormData(nextForm);
       setInstitutionName(nextForm.institutionName);
-      setInstitutionProfileMessage("Kurum profili güncellendi.");
+      setInstitutionProfileMessage(null);
+      setShowInstitutionProfileSuccessPopup(true);
       setIsEditingInstitutionProfile(false);
     } finally {
       setIsSavingInstitutionProfile(false);
@@ -2506,6 +2556,7 @@ interface InstitutionDetailPreparedData {
                         ) : (
                           <Upload className="panel-institution-form-logo-icon" aria-hidden />
                         )}
+                        <Upload className="panel-institution-form-logo-hover-icon" aria-hidden />
                       </div>
                       <span className="panel-institution-form-label">Kurum Logosu</span>
                       {logoUploadError && (
@@ -2535,6 +2586,19 @@ interface InstitutionDetailPreparedData {
                         className="panel-institution-form-input"
                       />
                       </div>
+                    </div>
+                  </div>
+                  <div className="panel-institution-form-row panel-institution-form-row--full">
+                    <div className="panel-institution-form-field">
+                      <label className="panel-institution-form-label">ALT BAŞLIK</label>
+                      <Input
+                        type="text"
+                        value={institutionFormData.subheading}
+                        onChange={(e) => handleInstitutionFormChange("subheading", e.target.value)}
+                        disabled={!isEditingInstitutionProfile}
+                        className="panel-institution-form-input"
+                        placeholder="Kurumunuz hakkında kısa ve bilgilendirici bir alt başlık yazınız."
+                      />
                     </div>
                   </div>
                   <div className="panel-institution-form-row">
@@ -2609,6 +2673,38 @@ interface InstitutionDetailPreparedData {
                 </div>
                 {institutionProfileMessage ? (
                   <p className="panel-institutions-save-message">{institutionProfileMessage}</p>
+                ) : null}
+                {showInstitutionProfileSuccessPopup ? (
+                  <div className="panel-profile-success-popup" role="status" aria-live="polite">
+                    <span className="panel-profile-success-popup-badge">Onaylandı</span>
+                    <p className="panel-profile-success-popup-text">Bilgileriniz Başarıyla Güncellendi</p>
+                  </div>
+                ) : null}
+                {logoValidationModalMessage ? (
+                  <div
+                    className="panel-logo-validation-overlay"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Logo yükleme kuralları"
+                  >
+                    <div className="panel-logo-validation-modal">
+                      <p className="panel-logo-validation-text">
+                        {logoValidationModalMessage.split("\n").map((line, idx) => (
+                          <span key={`${line}-${idx}`} className="panel-logo-validation-line">
+                            {line}
+                          </span>
+                        ))}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="default"
+                        className="panel-logo-validation-close-btn"
+                        onClick={() => setLogoValidationModalMessage(null)}
+                      >
+                        Tamam
+                      </Button>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             ) : isAnnouncementsTab ? (

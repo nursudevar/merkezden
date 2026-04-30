@@ -1185,6 +1185,52 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   color: $text-zinc-600;
 }
 
+.panel-profile-success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.panel-profile-success-popup {
+  min-width: 320px;
+  max-width: min(92vw, 440px);
+  min-height: 200px;
+  background: #fff;
+  border: 1px solid $border-light;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.14);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-profile-success-popup-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.panel-profile-success-popup-text {
+  margin: 0;
+  color: $text-zinc-900;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  text-align: center;
+}
+
 .panel-institutions-feature-number-row {
   display: flex;
   align-items: center;
@@ -1879,6 +1925,12 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     opacity: 0.2;
   }
 
+  &:hover .panel-institution-form-logo-hover-icon,
+  &:focus-visible .panel-institution-form-logo-hover-icon {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
   &--uploading {
     pointer-events: none;
     cursor: wait;
@@ -1928,10 +1980,74 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   z-index: 0;
 }
 
+.panel-institution-form-logo-hover-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.94);
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
 .panel-institution-form-logo-error {
   font-size: $text-sm;
   color: #dc2626;
   margin-top: 2px;
+}
+
+.panel-logo-validation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.panel-logo-validation-modal {
+  width: 350px;
+  min-height: 200px;
+  background: #fff;
+  border: 1px solid $border-light;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.14);
+  padding: 20px 18px 0px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.panel-logo-validation-text {
+  margin: 0;
+  color: $text-zinc-900;
+  font-size: $text-sm;
+  line-height: 1.5;
+  text-align: flex-start;
+}
+
+.panel-logo-validation-line {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.panel-logo-validation-line:last-child {
+  margin-bottom: 0;
+}
+
+.panel-logo-validation-close-btn {
+  align-self: flex-end;
+  background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
+  color: #fff;
+  border: none;
 }
 
 .panel-institution-form-first-fields {

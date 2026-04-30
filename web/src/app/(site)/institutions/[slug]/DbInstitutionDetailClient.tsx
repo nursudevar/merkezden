@@ -36,6 +36,7 @@ type DbInstitutionRow = {
   address: string | null;
   official_phone: string | null;
   website: string | null;
+  subheading: string | null;
   about: string | null;
   logo: string | null;
   is_verified: boolean | null;
@@ -163,7 +164,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
 
       const { data, error: qErr } = await supabase
         .from("institutions")
-        .select("id, slug, institution_name, type, city, district, address, official_phone, website, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name))")
+        .select("id, slug, institution_name, type, city, district, address, official_phone, website, subheading, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name))")
         .eq("slug", slug)
         .maybeSingle();
 
@@ -243,6 +244,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     : row?.institution_type ?? null;
   const categoryName = (institutionTypeRow?.category?.name ?? "").trim();
   const subcategoryName = (institutionTypeRow?.name ?? row?.type ?? "").trim();
+  const subheading = (row?.subheading ?? "").trim();
   const about = (row?.about ?? "").trim();
   const address = (row?.address ?? "").trim();
   const phone = (row?.official_phone ?? "").trim();
@@ -768,7 +770,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                 <div className="institution-title-row">
                   <h1 className="institution-name">{name}</h1>
                 </div>
-                <p className="institution-description">{about || emptyText}</p>
+                {subheading ? <p className="institution-description">{subheading}</p> : null}
                 <div className="institution-meta">
                   <div className="institution-meta-item">
                     <MapPin size={18} />
