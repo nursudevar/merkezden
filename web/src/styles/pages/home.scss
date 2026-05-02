@@ -4,7 +4,7 @@
 
 .hero-search {
   max-width: 1000px;
-  margin: 48px auto 30px;
+  margin: 15px auto 0px;
   @include rounded-48;
   padding: 0;
   text-align: center;
@@ -22,12 +22,21 @@
   }
 }
 
+.main-content .hero-search {
+  max-width: 100%;
+  margin: 0 0 0px;
+}
+
+.home-main-layout {
+  margin-top: 15px;
+}
+
 .hero-search-container {
   width: 100%;
   margin: 0;
   padding: 0;
   position: relative;
-  height: 200px;
+  height: 170px;
   overflow: hidden;
 }
 
@@ -1649,7 +1658,7 @@
 .home-main-categories-header {
   position: relative;
   text-align: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .home-main-categories-title {
@@ -1919,7 +1928,7 @@ a.service-card {
   position: static;
   width: 100%;
   display: block;
-  margin-bottom: 32px;
+  margin-bottom: 22px;
 }
 
 .categories-scroller {
@@ -1929,9 +1938,9 @@ a.service-card {
 .home-main-categories-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
   width: 100%;
-  padding: 4px 0 14px;
+  padding: 2px 0 8px;
   overflow: hidden;
 
   @media (max-width: 1180px) {
@@ -1948,9 +1957,9 @@ a.service-card {
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #ececf2;
-  padding: 18px 20px 16px;
+  padding: 14px 16px 12px;
   height: auto;
-  min-height: 210px;
+  min-height: 168px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1960,8 +1969,8 @@ a.service-card {
   overflow: hidden;
 
   @media (max-width: 1180px) {
-    min-height: 198px;
-    padding: 14px 14px 12px;
+    min-height: 162px;
+    padding: 12px 12px 10px;
   }
 }
 
@@ -1996,8 +2005,8 @@ a.service-card {
 }
 
 .home-main-category-card-icon {
-  width: 45px;
-  height: 45px;
+  width: 36px;
+  height: 36px;
   border-radius: 9999px;
   color: #ffffff;
   display: inline-flex;
@@ -2009,8 +2018,8 @@ a.service-card {
 }
 
 .home-main-category-card-title {
-  margin: 14px 0 10px;
-  font-size: 16px;
+  margin: 10px 0 8px;
+  font-size: 14px;
   line-height: 1.25;
   font-weight: 700;
   color: #2b2f37;
@@ -2022,7 +2031,7 @@ a.service-card {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 10px 0;
+  padding: 6px 0;
 }
 
 .home-main-category-card-list-wrap.is-expanded {
@@ -2050,7 +2059,7 @@ a.service-card {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 
 .home-main-category-card-item {
@@ -2071,7 +2080,7 @@ a.service-card {
 }
 
 .home-main-category-card-more-btn {
-  margin-top: 10px;
+  margin-top: 6px;
   border: none;
   background: transparent;
   color: #5f2fd1;

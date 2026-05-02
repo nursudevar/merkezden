@@ -822,26 +822,7 @@ export default function Home() {
         showSearchButton={false}
       />
 
-    
-      <section className="hero-search">
-        <div className="hero-search-container">
-          <img 
-            src="/images/hero-banner-car.jpg" 
-            alt="Hero Banner" 
-            className="hero-search-banner"
-          />
-          <div className="hero-search-overlay"></div>
-          <div className="hero-search-content">
-            <h1 className="hero-search-title">
-              <span className="hero-search-title-white">ÇAYYOLU</span>{" "}
-              <span className="hero-search-title-purple">SÜRÜCÜ KURSU</span>
-            </h1>
-            <p className="hero-search-subtitle">İLETİŞİME GEÇMEYİ UNUTMAYIN!</p>
-          </div>
-        </div>
-      </section>
-
-      <div className="main-layout">
+      <div className="main-layout home-main-layout">
         <aside className="filter-sidebar">
           <Card className="filter-sidebar-card">
             <CardHeader className="filter-sidebar-header">
@@ -1195,6 +1176,23 @@ export default function Home() {
         </aside>
 
         <main className="main-content">
+          <section className="hero-search">
+            <div className="hero-search-container">
+              <img
+                src="/images/hero-banner-car.jpg"
+                alt="Hero Banner"
+                className="hero-search-banner"
+              />
+              <div className="hero-search-overlay"></div>
+              <div className="hero-search-content">
+                <h1 className="hero-search-title">
+                  <span className="hero-search-title-white">ÇAYYOLU</span>{" "}
+                  <span className="hero-search-title-purple">SÜRÜCÜ KURSU</span>
+                </h1>
+                <p className="hero-search-subtitle">İLETİŞİME GEÇMEYİ UNUTMAYIN!</p>
+              </div>
+            </div>
+          </section>
           {query && query.trim().length > 0 ? (
             <SearchResults 
               query={query} 
