@@ -5,7 +5,7 @@
 .auth-content-wrapper {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 60px 30px;
+  padding: 30px 30px;
   box-sizing: border-box;
 
   @media (max-width: 900px) {
@@ -585,7 +585,7 @@
   background-color: $bg-white;
   @include rounded-24;
   @include shadow-md;
-  padding: 40px;
+  padding: 20px 40px 30px 40px;
   box-sizing: border-box;
 
   @media (max-width: 640px) {
@@ -697,7 +697,7 @@
 .signup-tab-content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   animation: signup-tab-fade-in 220ms ease;
 }
 
@@ -734,7 +734,7 @@
   font-size: 32px;
   font-weight: $font-bold;
   color: $text-zinc-900;
-  margin-bottom: 8px;
+  margin: 15px 0;
   text-align: center;
   line-height: $leading-tight;
 
@@ -743,21 +743,13 @@
   }
 }
 
-.signup-subtitle {
-  font-size: $text-base;
-  color: $text-zinc-600;
-  margin-bottom: 30px;
-  text-align: center;
-  line-height: $leading-normal;
-}
-
 .signup-tabs {
   display: flex;
   width: 100%;
   background-color: rgb(243, 243, 243);
   @include rounded-xl;
   padding: 4px;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   gap: 0;
   position: relative;
 }
@@ -794,7 +786,7 @@
 
 .signup-form {
   @include flex-col;
-  gap: 20px;
+  gap: 15px;
   margin-bottom: 24px;
 }
 

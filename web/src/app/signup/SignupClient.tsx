@@ -282,9 +282,6 @@ export default function SignupClient() {
           <div className="signup-form-center">
             <div className="signup-card">
           <h1 className="signup-title">Hesap Oluşturun</h1>
-          <p className="signup-subtitle">
-            Aramıza katılın ve öğrenme yolculuğunuza başlayın.
-          </p>
 
           <div className="signup-tabs">
             <button
