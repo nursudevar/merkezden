@@ -20,6 +20,7 @@ import "@/styles/pages/auth.scss";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ComponentType } from "react";
+import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -356,14 +357,15 @@ export default function SignupClient() {
                   <label htmlFor="signup-birthdate" className="signup-label">
                     Doğum Tarihi
                   </label>
-                  <input
-                    type="date"
+                  <SignupBirthDatePicker
                     id="signup-birthdate"
-                    name="birthDate"
-                    className="signup-input"
                     value={formData.birthDate}
-                    onChange={handleChange}
-                    required
+                    onChange={(iso) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        birthDate: iso,
+                      }))
+                    }
                   />
                 </div>
 
