@@ -346,6 +346,33 @@
   }
 }
 
+/* Kurum Özellikleri: sol doğrulama kutusuyla alt kenar hizası (yalnızca bu sekmede aside’da badge varken) */
+@media (min-width: 1025px) {
+  .panel-page-container:has(aside .panel-institutions-verification-badge) > .panel-page-main {
+    align-self: stretch;
+    min-height: 0;
+
+    > .panel-main-card {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    > .panel-main-card > .panel-institutions-content {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    > .panel-main-card > .panel-institutions-content > .panel-institutions-groups {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+  }
+}
+
 .panel-main-card {
   background-color: $bg-white;
   @include rounded-24;
@@ -356,6 +383,11 @@
   @media (max-width: 640px) {
     min-width: 0;
   }
+}
+
+/* Kurum özellikleri: tek seçim açılır listesi kartın altında kesilmesin */
+.panel-main-card:has(.panel-institutions-content) {
+  overflow: visible;
 }
 
 .panel-main-card-header {
@@ -726,6 +758,12 @@
   }
 }
 
+/* Kurum özellikleri: üst iki sütunun altında tam genişlik satır (sidebar + ana kolon) */
+.panel-institutions-feature-wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .panel-institutions-section {
   background: rgba(250, 250, 250, 0.6);
   border: 1px solid $border-light;
@@ -947,6 +985,49 @@
 
   &--full {
     grid-column: 1 / -1;
+  }
+}
+
+.panel-institutions-features-grid--selection
+  > .panel-institutions-selection-item.panel-institutions-feature-item--full:has(.panel-institutions-feature-number-row):has(
+    + .panel-institutions-selection-item:not(.panel-institutions-feature-item--full)
+  ) {
+  grid-column: span 2;
+}
+
+.panel-institutions-features-grid--selection
+  > .panel-institutions-selection-item.panel-institutions-feature-item--full:has(.panel-institutions-feature-number-row)
+  + .panel-institutions-selection-item:not(.panel-institutions-feature-item--full) {
+  grid-column: span 2;
+}
+
+@media (max-width: 1080px) {
+  .panel-institutions-features-grid--selection
+    > .panel-institutions-selection-item.panel-institutions-feature-item--full:has(.panel-institutions-feature-number-row):has(
+      + .panel-institutions-selection-item:not(.panel-institutions-feature-item--full)
+    ) {
+    grid-column: span 2;
+  }
+
+  .panel-institutions-features-grid--selection
+    > .panel-institutions-selection-item.panel-institutions-feature-item--full:has(.panel-institutions-feature-number-row)
+    + .panel-institutions-selection-item:not(.panel-institutions-feature-item--full) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 820px) {
+  .panel-institutions-features-grid--selection
+    > .panel-institutions-selection-item.panel-institutions-feature-item--full:has(.panel-institutions-feature-number-row):has(
+      + .panel-institutions-selection-item:not(.panel-institutions-feature-item--full)
+    ) {
+    grid-column: span 1;
+  }
+
+  .panel-institutions-features-grid--selection
+    > .panel-institutions-selection-item.panel-institutions-feature-item--full:has(.panel-institutions-feature-number-row)
+    + .panel-institutions-selection-item:not(.panel-institutions-feature-item--full) {
+    grid-column: span 1;
   }
 }
 
@@ -1221,14 +1302,64 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   border-radius: 50%;
   background: #dcfce7;
   color: #15803d;
+  flex-shrink: 0;
+}
+
+.panel-profile-success-popup-label {
+  margin: 0;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #15803d;
 }
 
 .panel-profile-success-popup-text {
   margin: 0;
   color: $text-zinc-900;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.panel-features-save-toast-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.panel-features-save-toast-modal {
+  min-width: 280px;
+  max-width: min(92vw, 400px);
+  background: #fff;
+  border: 1px solid $border-light;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.14);
+  padding: 22px 24px;
+}
+
+.panel-features-save-toast-modal--error {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: #fff7f7;
+}
+
+.panel-features-save-toast-text {
+  margin: 0;
+  color: $text-zinc-900;
   font-size: $text-sm;
   font-weight: $font-medium;
   text-align: center;
+  line-height: 1.45;
+}
+
+.panel-features-save-toast-modal--error .panel-features-save-toast-text {
+  color: #991b1b;
 }
 
 .panel-institutions-feature-number-row {

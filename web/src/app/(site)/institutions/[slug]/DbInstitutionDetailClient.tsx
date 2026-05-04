@@ -30,7 +30,10 @@ type DbInstitutionRow = {
   slug: string | null;
   institution_name: string | null;
   type: string | null;
-  institution_type: { name: string | null; category: { name: string | null } | null } | Array<{ name: string | null; category: { name: string | null } | null }> | null;
+  institution_type: {
+    name: string | null;
+    category: { name: string | null; slug?: string | null } | null;
+  } | Array<{ name: string | null; category: { name: string | null; slug?: string | null } | null }> | null;
   city: string | null;
   district: string | null;
   address: string | null;
@@ -59,6 +62,7 @@ type InstitutionFeatureGroupRow = {
   name: string;
   display_order: number | null;
   is_active: boolean;
+  category_slug?: string | null;
 };
 
 type InstitutionFeatureDefinitionRow = {
@@ -164,7 +168,9 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
 
       const { data, error: qErr } = await supabase
         .from("institutions")
-        .select("id, slug, institution_name, type, city, district, address, official_phone, website, subheading, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name))")
+        .select(
+          "id, slug, institution_name, type, city, district, address, official_phone, website, subheading, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name, slug))"
+        )
         .eq("slug", slug)
         .maybeSingle();
 
@@ -243,6 +249,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     ? row?.institution_type[0] ?? null
     : row?.institution_type ?? null;
   const categoryName = (institutionTypeRow?.category?.name ?? "").trim();
+  const institutionCategorySlug = (institutionTypeRow?.category?.slug ?? "").trim();
   const subcategoryName = (institutionTypeRow?.name ?? row?.type ?? "").trim();
   const subheading = (row?.subheading ?? "").trim();
   const about = (row?.about ?? "").trim();
@@ -341,12 +348,14 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!row?.id) {
       setPublicFeatureSections([]);
+      setAcademicLines([]);
       return;
     }
 
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
     const institutionId = Number(row.id);
+    const selectedCategorySlug = institutionCategorySlug;
 
     (async () => {
       const [
@@ -357,7 +366,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       ] = await Promise.all([
         supabase
           .from("institution_feature_groups")
-          .select("id, name, display_order, is_active")
+          .select("id, name, display_order, is_active, category_slug")
           .eq("is_active", true)
           .order("display_order", { ascending: true, nullsFirst: false })
           .order("id", { ascending: true }),
@@ -389,6 +398,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           isUnauthorizedSupabaseError(entriesError)
         ) {
           setPublicFeatureSections([]);
+          setAcademicLines([]);
           return;
         }
 
@@ -399,6 +409,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           entriesError: serializeSupabaseError(entriesError),
         });
         setPublicFeatureSections([]);
+        setAcademicLines([]);
         return;
       }
 
@@ -415,6 +426,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         if (!cancelled && entryChoicesError) {
           if (isUnauthorizedSupabaseError(entryChoicesError)) {
             setPublicFeatureSections([]);
+            setAcademicLines([]);
             return;
           }
           console.warn(
@@ -431,13 +443,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const definitions = (definitionsData as InstitutionFeatureDefinitionRow[] | null) ?? [];
       const choices = (choicesData as InstitutionFeatureChoiceRow[] | null) ?? [];
 
-      const targetGroupNames = new Set([
-        "Akademik İmkanlar",
-        "Okul İmkanları",
-        "Fiziki İmkanlar",
-      ]);
-
-      const filteredGroups = groups.filter((group) => targetGroupNames.has((group.name ?? "").trim()));
       const entriesByFeatureId = new Map<number, InstitutionFeatureEntryRow>();
       entries.forEach((entry) => entriesByFeatureId.set(entry.feature_definition_id, entry));
 
@@ -461,64 +466,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         selectedChoiceIdsByEntryId.set(rowChoice.institution_feature_entry_id, current);
       });
 
-      const sections: PublicFeatureGroupSection[] = filteredGroups
-        .map((group) => {
-          const groupFeatures = definitions
-            .filter((feature) => feature.group_id === group.id)
-            .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
-
-          const badges: string[] = [];
-
-          groupFeatures.forEach((feature) => {
-            const entry = entriesByFeatureId.get(feature.id);
-            if (!entry) return;
-
-            if (feature.input_type === "boolean") {
-              if (entry.boolean_answer === true) badges.push(feature.name);
-              return;
-            }
-
-            if (feature.input_type === "single_select") {
-              const selectedChoiceId = entry.selected_choice_id ?? null;
-              if (!selectedChoiceId) return;
-              const label = choiceNameById.get(selectedChoiceId);
-              if (label) badges.push(label);
-              return;
-            }
-
-            if (feature.input_type === "multi_select") {
-              const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
-              selectedIds.forEach((choiceId) => {
-                const label = choiceNameById.get(choiceId);
-                if (label) badges.push(label);
-              });
-              return;
-            }
-
-            if (feature.input_type === "text") {
-              const value = (entry.text_answer ?? "").trim();
-              if (!value) return;
-              badges.push(`${feature.name}: ${value}`);
-              return;
-            }
-
-            if (feature.input_type === "number") {
-              if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return;
-              const unit = (feature.unit ?? "").trim();
-              badges.push(`${feature.name}: ${entry.number_answer}${unit ? ` ${unit}` : ""}`);
-            }
-          });
-
-          return {
-            id: group.id,
-            name: group.name,
-            badges: Array.from(new Set(badges)),
-          };
-        })
-        .filter((section) => section.badges.length > 0);
-
-      setPublicFeatureSections(sections);
-
       const normalize = (v: string) =>
         v
           .toLowerCase()
@@ -528,14 +475,88 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           .replace(/ö/g, "o")
           .replace(/ü/g, "u")
           .replace(/ç/g, "c");
+
+      const baslicaGroup = groups.find(
+        (group) => (group.name ?? "").trim().toLocaleLowerCase("tr-TR") === "başlıca özellikler"
+      );
+      const akademikGroupFallback = groups.find(
+        (group) => normalize((group.name ?? "").trim()) === normalize("Akademik İmkanlar")
+      );
+      const primaryStructuredGroup = baslicaGroup ?? akademikGroupFallback;
+
+      const badgeGroups =
+        selectedCategorySlug.length > 0
+          ? groups.filter((group) => {
+              const nameKey = (group.name ?? "").trim().toLocaleLowerCase("tr-TR");
+              if (nameKey === "başlıca özellikler") return false;
+              return (group.category_slug ?? "").trim() === selectedCategorySlug;
+            })
+          : [];
+
+      const buildBadgesForGroup = (group: InstitutionFeatureGroupRow): string[] => {
+        const groupFeatures = definitions
+          .filter((feature) => feature.group_id === group.id)
+          .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
+        const badges: string[] = [];
+        groupFeatures.forEach((feature) => {
+          const entry = entriesByFeatureId.get(feature.id);
+          if (!entry) return;
+
+          if (feature.input_type === "boolean") {
+            if (entry.boolean_answer === true) badges.push(feature.name);
+            return;
+          }
+
+          if (feature.input_type === "single_select") {
+            const selectedChoiceId = entry.selected_choice_id ?? null;
+            if (!selectedChoiceId) return;
+            const label = choiceNameById.get(selectedChoiceId);
+            if (label) badges.push(label);
+            return;
+          }
+
+          if (feature.input_type === "multi_select") {
+            const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
+            selectedIds.forEach((choiceId) => {
+              const label = choiceNameById.get(choiceId);
+              if (label) badges.push(label);
+            });
+            return;
+          }
+
+          if (feature.input_type === "text") {
+            const value = (entry.text_answer ?? "").trim();
+            if (!value) return;
+            badges.push(`${feature.name}: ${value}`);
+            return;
+          }
+
+          if (feature.input_type === "number") {
+            if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return;
+            const unit = (feature.unit ?? "").trim();
+            badges.push(`${feature.name}: ${entry.number_answer}${unit ? ` ${unit}` : ""}`);
+          }
+        });
+        return Array.from(new Set(badges));
+      };
+
+      const sections: PublicFeatureGroupSection[] = badgeGroups
+        .map((group) => ({
+          id: group.id,
+          name: group.name,
+          badges: buildBadgesForGroup(group),
+        }))
+        .filter((section) => section.badges.length > 0);
+
+      setPublicFeatureSections(sections);
+
       const hasAny = (...needles: string[]) => (text: string) =>
         needles.some((needle) => text.includes(needle));
-      const academicGroup = filteredGroups.find(
-        (group) => normalize(group.name) === normalize("Akademik İmkanlar")
-      );
       const nextAcademicLines: AcademicFeatureLine[] = [];
-      if (academicGroup) {
-        const academicFeatures = definitions.filter((feature) => feature.group_id === academicGroup.id);
+      if (primaryStructuredGroup) {
+        const academicFeatures = definitions.filter(
+          (feature) => feature.group_id === primaryStructuredGroup.id
+        );
         const extractFeatureValue = (feature: InstitutionFeatureDefinitionRow): string | string[] | null => {
           const entry = entriesByFeatureId.get(feature.id);
           if (!entry) return null;
@@ -567,11 +588,13 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             const text = normalize(`${feature.slug ?? ""} ${feature.name ?? ""}`);
             return matcher(text);
           });
+        const usedFeatureIds = new Set<number>();
         const pull = (label: string, matcher: (text: string) => boolean, isBadgeList?: boolean) => {
           const feature = findBy(matcher);
           if (!feature) return;
           const value = extractFeatureValue(feature);
           if (!value || (Array.isArray(value) && value.length === 0)) return;
+          usedFeatureIds.add(feature.id);
           nextAcademicLines.push({ label, value, isBadgeList });
         };
         pull("Okul Türü", hasAny("okul durumu", "okul turu", "okul_turu", "kurum turu"));
@@ -580,7 +603,36 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         pull("Okul Saatleri", hasAny("okul saatleri", "okul_saatleri", "saat"));
         pull("Öğrenci Yaşı", hasAny("ogrenci yasi", "yas araligi", "yas", "ogrenci_yasi"));
         pull("Ortalama Sınıf Mevcudu", hasAny("ortalama sinif mevcudu", "sinif mevcudu", "mevcud"));
+        pull("Hizmet Tipi", hasAny("hizmet tipi", "hizmet_tipi", "servis tipi", "service_type", "service type"));
+        pull(
+          "Aylık Ortalama Fiyat Aralığı",
+          hasAny(
+            "fiyat araligi",
+            "fiyat_araligi",
+            "aylik ortalama fiyat",
+            "ortalama fiyat",
+            "price_range",
+            "monthly price"
+          )
+        );
         pull("Yabancı Diller", hasAny("yabanci diller", "yabanci dil"), true);
+
+        const orderedRest = [...academicFeatures].sort(
+          (a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999)
+        );
+        for (const feature of orderedRest) {
+          if (usedFeatureIds.has(feature.id)) continue;
+          const value = extractFeatureValue(feature);
+          if (!value || (Array.isArray(value) && value.length === 0)) continue;
+          const label = (feature.name ?? "").trim();
+          if (!label) continue;
+          usedFeatureIds.add(feature.id);
+          nextAcademicLines.push({
+            label,
+            value,
+            ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
+          });
+        }
       }
       setAcademicLines(nextAcademicLines);
     })();
@@ -588,7 +640,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [row?.id]);
+  }, [row?.id, institutionCategorySlug]);
 
   useEffect(() => {
     if (!isGalleryModalOpen) {
@@ -1004,36 +1056,38 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
               <div className="institution-features-head">
                 <h2 className="institution-section-title">Kurum Özellikleri</h2>
               </div>
-              {publicFeatureSections.length > 0 ? (
+              {publicFeatureSections.length > 0 || academicLines.length > 0 ? (
                 <div className="institution-features-groups">
+                  {academicLines.length > 0 ? (
+                    <div className="institution-features-group">
+                      <h3 className="institution-features-group-title">Başlıca Özellikler</h3>
+                      <div className="institution-features-academic-list">
+                        {academicLines.map((line, lineIdx) => (
+                          <div key={`${line.label}-${lineIdx}`} className="institution-features-academic-row">
+                            <span className="institution-features-academic-icon" aria-hidden>
+                              <GitCommitVertical size={25} strokeWidth={2.2} />
+                            </span>
+                            <div className="institution-features-academic-content">
+                              <span className="institution-features-academic-label">{line.label}</span>
+                              <span className="institution-features-academic-value">
+                                {Array.isArray(line.value) ? line.value.join(", ") : line.value}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   {publicFeatureSections.map((section) => (
                     <div key={section.id} className="institution-features-group">
                       <h3 className="institution-features-group-title">{section.name}</h3>
-                  {section.name === "Akademik İmkanlar" && academicLines.length > 0 ? (
-                    <div className="institution-features-academic-list">
-                      {academicLines.map((line) => (
-                        <div key={line.label} className="institution-features-academic-row">
-                          <span className="institution-features-academic-icon" aria-hidden>
-                            <GitCommitVertical size={25} strokeWidth={2.2} />
+                      <div className="institution-features-badges">
+                        {section.badges.map((badge) => (
+                          <span key={`${section.id}-${badge}`} className="institution-features-badge">
+                            {badge}
                           </span>
-                          <div className="institution-features-academic-content">
-                            <span className="institution-features-academic-label">{line.label}</span>
-                            <span className="institution-features-academic-value">
-                              {Array.isArray(line.value) ? line.value.join(", ") : line.value}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="institution-features-badges">
-                      {section.badges.map((badge) => (
-                        <span key={`${section.id}-${badge}`} className="institution-features-badge">
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
