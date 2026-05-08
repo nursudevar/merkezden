@@ -38,8 +38,13 @@ import {
   resolveIsAdminFromUserRolesClient,
   resolveUserTypeFromUsersClient,
 } from "@/lib/auth/authBrowserClient";
+import {
+  institutionTimeToInputHHMM,
+  inputHHMMToDbTimeOrNull,
+} from "@/lib/institutionWorkingHours";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { InstitutionFeatureSelectionGroupList } from "./InstitutionFeatureSelectionGroupList";
+import { WorkingHoursTimePicker } from "./WorkingHoursTimePicker";
 import {
   Button,
   Input,
@@ -364,6 +369,8 @@ function PanelContent() {
     subheading: "",
     city: "",
     district: "",
+    workingHoursStart: "",
+    workingHoursEnd: "",
     address: "",
     about: "",
     logoUrl: "",
@@ -376,6 +383,8 @@ function PanelContent() {
     subheading: "",
     city: "",
     district: "",
+    workingHoursStart: "",
+    workingHoursEnd: "",
     address: "",
     about: "",
     logoUrl: "",
@@ -909,7 +918,9 @@ interface InstitutionDetailPreparedData {
 
         const { data: adminRow, error: adminErr } = await supabase
           .from("institutions")
-          .select("id, slug, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo, is_verified, institution_type_id")
+          .select(
+            "id, slug, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo, is_verified, institution_type_id, working_hours_start, working_hours_end"
+          )
           .eq("id", numericId)
           .maybeSingle();
 
@@ -964,6 +975,8 @@ interface InstitutionDetailPreparedData {
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
+        workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
+        workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
         address: row.address || "",
         about: row.about || "",
         logoUrl,
@@ -976,6 +989,8 @@ interface InstitutionDetailPreparedData {
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
+        workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
+        workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
         address: row.address || "",
         about: row.about || "",
         logoUrl,
@@ -1489,6 +1504,8 @@ interface InstitutionDetailPreparedData {
       subheading: institutionFormData.subheading.trim(),
       city: institutionFormData.city.trim(),
       district: institutionFormData.district.trim(),
+      working_hours_start: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursStart),
+      working_hours_end: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
       address: institutionFormData.address.trim(),
       about: institutionFormData.about.trim(),
     };
@@ -1504,7 +1521,7 @@ interface InstitutionDetailPreparedData {
         .update(payload)
         .eq("id", instNumericId)
         .select(
-          "id, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo"
+          "id, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo, working_hours_start, working_hours_end"
         )
         .maybeSingle();
 
@@ -1532,6 +1549,8 @@ interface InstitutionDetailPreparedData {
         address?: string | null;
         about?: string | null;
         logo?: string | null;
+        working_hours_start?: string | null;
+        working_hours_end?: string | null;
       };
 
       const logoUrl = row.logo
@@ -1546,6 +1565,8 @@ interface InstitutionDetailPreparedData {
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
+        workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
+        workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
         address: row.address || "",
         about: row.about || "",
         logoUrl,
@@ -2758,6 +2779,44 @@ interface InstitutionDetailPreparedData {
                         onChange={(e) => handleInstitutionFormChange("district", e.target.value)}
                         disabled={!isEditingInstitutionProfile}
                         className="panel-institution-form-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="panel-institution-form-row">
+                    <div className="panel-institution-form-field">
+                      <label
+                        className="panel-institution-form-label"
+                        htmlFor="panel-working-hours-start"
+                      >
+                        ÇALIŞMA SAATLERİ - BAŞLANGIÇ
+                      </label>
+                      <WorkingHoursTimePicker
+                        id="panel-working-hours-start"
+                        value={institutionFormData.workingHoursStart}
+                        onChange={(next) =>
+                          handleInstitutionFormChange("workingHoursStart", next)
+                        }
+                        disabled={!isEditingInstitutionProfile}
+                        ariaLabel="Çalışma saatleri başlangıç"
+                        placeholder="Başlangıç"
+                      />
+                    </div>
+                    <div className="panel-institution-form-field">
+                      <label
+                        className="panel-institution-form-label"
+                        htmlFor="panel-working-hours-end"
+                      >
+                        ÇALIŞMA SAATLERİ - BİTİŞ
+                      </label>
+                      <WorkingHoursTimePicker
+                        id="panel-working-hours-end"
+                        value={institutionFormData.workingHoursEnd}
+                        onChange={(next) =>
+                          handleInstitutionFormChange("workingHoursEnd", next)
+                        }
+                        disabled={!isEditingInstitutionProfile}
+                        ariaLabel="Çalışma saatleri bitiş"
+                        placeholder="Bitiş"
                       />
                     </div>
                   </div>

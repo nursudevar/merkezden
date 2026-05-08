@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution } from "@/lib/institutionHelpers";
+import { formatWorkingHoursRange } from "@/lib/institutionWorkingHours";
 import ShareButton from "./ShareButton";
 
 type DbInstitutionRow = {
@@ -44,6 +45,8 @@ type DbInstitutionRow = {
   logo: string | null;
   is_verified: boolean | null;
   source: string | null;
+  working_hours_start?: string | null;
+  working_hours_end?: string | null;
 };
 
 type InstitutionMediaImageRow = {
@@ -169,7 +172,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, city, district, address, official_phone, website, subheading, about, logo, is_verified, source, institution_type:institution_types(name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, city, district, address, official_phone, website, subheading, about, logo, is_verified, source, working_hours_start, working_hours_end, institution_type:institution_types(name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
         .maybeSingle();
@@ -257,6 +260,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const phone = (row?.official_phone ?? "").trim();
   const website = (row?.website ?? "").trim();
   const emptyText = "Henüz içerik girilmedi.";
+  const workingHoursText =
+    formatWorkingHoursRange(row?.working_hours_start, row?.working_hours_end) ?? emptyText;
   const hasLogo = Boolean((row?.logo ?? "").trim()) && Boolean(logoUrl) && !logoLoadFailed;
   const photoMediaItems = useMemo(
     () => mediaItems.filter((item) => item.mediaType === "photo"),
@@ -1042,7 +1047,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   </div>
                   <div>
                     <div className="institution-contact-label">ÇALIŞMA SAATLERİ</div>
-                    <div className="institution-contact-value">{emptyText}</div>
+                    <div className="institution-contact-value">{workingHoursText}</div>
                   </div>
                 </div>
               </div>
