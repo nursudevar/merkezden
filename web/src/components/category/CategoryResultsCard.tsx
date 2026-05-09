@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Clock, Star, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui";
+import { MapPin, GraduationCap } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 
 interface CategoryResultsCardProps {
@@ -21,6 +20,16 @@ interface CategoryResultsCardProps {
   imageUrl?: string;
   slug?: string;
   source?: string | null;
+  subcategoryName?: string;
+}
+
+const DESCRIPTION_MAX_LENGTH = 100;
+
+function truncateDescription(value: string, max = DESCRIPTION_MAX_LENGTH): string {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (text.length <= max) return text;
+  return `${text.slice(0, max).trimEnd()}...`;
 }
 
 export default function CategoryResultsCard({
@@ -28,87 +37,67 @@ export default function CategoryResultsCard({
   name,
   description,
   location,
-  price,
-  ageRange,
-  rating,
-  reviewCount,
   badges,
   logoInitial = "M",
   logoColor = "#6d5dfc",
   imageUrl,
   slug,
   source,
+  subcategoryName,
 }: CategoryResultsCardProps) {
-  const priceText = typeof price === "number" ? `${price.toLocaleString("tr-TR")} ₺ / ay` : price;
-  
   const institutionSlug = String(slug ?? "").trim();
+  const truncatedDescription = truncateDescription(description);
+  const subcategoryLabel = String(subcategoryName ?? "").trim();
 
   const cardContent = (
     <>
-      <div className="category-results-card-logo-section">
-        <div className="category-results-card-logo" style={{ backgroundColor: imageUrl ? 'transparent' : logoColor }}>
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={name}
-              fill
-              className="category-results-card-logo-image"
-              sizes="80px"
-              unoptimized
-            />
-          ) : (
-            logoInitial
-          )}
+      <div className="category-results-card-top">
+        <div className="category-results-card-logo-section">
+          <div
+            className="category-results-card-logo"
+            style={{ backgroundColor: imageUrl ? "transparent" : logoColor }}
+          >
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt={name}
+                fill
+                className="category-results-card-logo-image"
+                sizes="80px"
+                unoptimized
+              />
+            ) : (
+              logoInitial
+            )}
+          </div>
+          <div className="category-results-card-badges">
+            {badges.map((badge, index) => (
+              <span key={index} className="category-results-card-badge">
+                {badge}
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="category-results-card-badges">
-          {badges.map((badge, index) => (
-            <span key={index} className="category-results-card-badge">
-              {badge}
+
+        <div className="category-results-card-header-info">
+          <h3 className="category-results-card-title">{name}</h3>
+          {subcategoryLabel ? (
+            <span className="category-results-card-subcategory-badge">
+              <GraduationCap size={12} />
+              {subcategoryLabel}
             </span>
-          ))}
+          ) : null}
         </div>
       </div>
-      
+
       <div className="category-results-card-content">
-        <div className="category-results-card-header">
-          <div className="category-results-card-rating">
-            <Star size={14} fill="currentColor" />
-            <span>{rating}</span>
-            <span className="category-results-card-rating-count">({reviewCount})</span>
-          </div>
-        </div>
+        {truncatedDescription ? (
+          <p className="category-results-card-description">{truncatedDescription}</p>
+        ) : null}
 
-        <h3 className="category-results-card-title">{name}</h3>
-        
-        <p className="category-results-card-description">{description}</p>
-
-        <div className="category-results-card-meta">
-          <div className="category-results-card-meta-item">
-            <MapPin size={16} />
-            <span>{location}</span>
-          </div>
-          <div className="category-results-card-meta-item">
-            <span className="category-results-card-meta-icon">₺</span>
-            <span>{priceText}</span>
-          </div>
-          <div className="category-results-card-meta-item">
-            <Clock size={16} />
-            <span>{ageRange}</span>
-          </div>
-        </div>
-
-        <div className="category-results-card-actions">
-          <span className="category-results-card-details-link">Detayları İncele</span>
-          <Button 
-            className="category-results-card-contact-button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            İletişime Geç
-            <ArrowRight size={16} />
-          </Button>
+        <div className="category-results-card-location">
+          <MapPin size={14} />
+          <span>{location}</span>
         </div>
       </div>
     </>
@@ -132,4 +121,3 @@ export default function CategoryResultsCard({
     </article>
   );
 }
-

@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import CategoryHero from "@/components/category/CategoryHero";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
+import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+
+const CATEGORY_NAME = "Yabancı Dil";
 
 const filterConfig = {
   categories: [
@@ -13,15 +17,30 @@ const filterConfig = {
 };
 
 export default function LanguagesPage() {
+  const [searchText, setSearchText] = useState("");
+  const [district, setDistrict] = useState("");
+  const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
+    search: searchText,
+    district,
+  });
+
   return (
     <>
-      <CategoryHero />
+      <CategoryHero
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        selectedDistrict={district}
+        onDistrictChange={setDistrict}
+        districts={districts}
+      />
       <CategoryPageLayout
-        categoryName="Yabancı Dil"
+        categoryName={CATEGORY_NAME}
         subtitle="Yabancı dil öğrenimi için en iyi eğitim kurumları. Global dünyaya açılın ve dil becerilerinizi geliştirin."
         filterConfig={filterConfig}
+        results={results}
+        isLoading={isLoading}
+        errorMessage={error}
       />
     </>
   );
 }
-

@@ -181,3 +181,37 @@
   gap: 20px;
 }
 
+.category-results-cards--two {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+
+  > .category-results-empty {
+    grid-column: 1 / -1;
+  }
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .category-results-card-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.category-results-empty {
+  margin: 0;
+  padding: 24px 16px;
+  text-align: center;
+  font-size: $text-base;
+  color: $text-zinc-600;
+  background-color: $bg-white;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+

@@ -1,0 +1,149 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+/* Radix Select: root layout’ta home.scss yüklenmeyen sayfalarda portal dropdown’unun görünmesi için taban stiller (panel.scss ile uyumlu). */
+
+.select-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px 32px 10px 12px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $default-text-color;
+  outline: none;
+  user-select: none;
+  @include transition-colors;
+
+  &:hover,
+  &[data-highlighted] {
+    background-color: rgba(109, 93, 252, 0.08);
+    color: $purple-main;
+  }
+
+  &[data-state="checked"] {
+    background-color: rgba(109, 93, 252, 0.1);
+    color: $purple-main;
+    font-weight: $font-semibold;
+  }
+
+  &[data-disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+}
+
+.select-item-indicator {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-item-check-icon {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  flex-shrink: 0;
+  color: $purple-main;
+}
+
+.select-trigger-default,
+.select-trigger-sm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 6px;
+  border: 1px solid $border-light;
+  background-color: transparent;
+  padding: 0 12px;
+  font-size: $text-sm;
+  white-space: nowrap;
+  @include shadow-sm;
+  @include transition;
+  outline: none;
+  cursor: pointer;
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.select-trigger-default {
+  height: 36px;
+}
+
+.select-trigger-sm {
+  height: 32px;
+}
+
+.select-trigger-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.select-content {
+  position: relative;
+  z-index: 10050;
+  max-height: var(--radix-select-content-available-height);
+  min-width: var(--radix-select-trigger-width);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  @include shadow-lg;
+  background-color: $bg-white;
+  padding: 8px;
+  @include transition;
+}
+
+.select-content-popper {
+  &[data-side="bottom"] {
+    transform: translateY(4px);
+  }
+  &[data-side="left"] {
+    transform: translateX(-4px);
+  }
+  &[data-side="right"] {
+    transform: translateX(4px);
+  }
+  &[data-side="top"] {
+    transform: translateY(-4px);
+  }
+}
+
+.select-viewport {
+  padding: 4px;
+}
+
+.select-content-popper .select-viewport {
+  height: var(--radix-select-trigger-height);
+  width: 100%;
+  min-width: var(--radix-select-trigger-width);
+}
+
+.select-scroll-button {
+  display: flex;
+  cursor: default;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.select-scroll-icon {
+  width: 16px;
+  height: 16px;
+}

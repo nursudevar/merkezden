@@ -5,6 +5,14 @@ import { GraduationCap } from "lucide-react";
 import CategoryBreadcrumb from "./CategoryBreadcrumb";
 import CategorySearchBar from "./CategorySearchBar";
 
+interface CategoryHeroProps {
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  selectedDistrict?: string;
+  onDistrictChange?: (value: string) => void;
+  districts?: string[];
+}
+
 const categoryData: Record<string, { title: string; description: string }> = {
   school: {
     title: "Okul",
@@ -42,23 +50,29 @@ const categoryData: Record<string, { title: string; description: string }> = {
 
 function getCategoryData(pathname: string): { title: string; description: string } {
   const slug = pathname.split("/").pop() || "";
-  
+
   if (categoryData[slug]) {
     return categoryData[slug];
   }
-  
+
   const fallbackTitle = slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-  
+
   return {
     title: `${fallbackTitle} Eğitim Kurumları`,
     description: `${fallbackTitle} kategorisindeki eğitim kurumlarını keşfedin. İhtiyacınıza uygun en iyi seçenekleri bulun.`,
   };
 }
 
-export default function CategoryHero() {
+export default function CategoryHero({
+  searchValue,
+  onSearchChange,
+  selectedDistrict,
+  onDistrictChange,
+  districts,
+}: CategoryHeroProps) {
   const pathname = usePathname();
   const { title, description } = getCategoryData(pathname);
 
@@ -69,17 +83,22 @@ export default function CategoryHero() {
           <CategoryBreadcrumb />
         </div>
         <div className="category-hero-content">
-        <div className="category-hero-badge">
-          <GraduationCap size={20} />
-        </div>
+          <div className="category-hero-badge">
+            <GraduationCap size={20} />
+          </div>
           <h1 className="category-hero-title">{title}</h1>
           <p className="category-hero-subtitle">{description}</p>
         </div>
         <div className="category-hero-search-wrapper">
-          <CategorySearchBar />
+          <CategorySearchBar
+            searchValue={searchValue}
+            onSearchChange={onSearchChange}
+            selectedDistrict={selectedDistrict}
+            onDistrictChange={onDistrictChange}
+            districts={districts}
+          />
         </div>
       </div>
     </section>
   );
 }
-

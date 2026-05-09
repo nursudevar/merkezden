@@ -7,7 +7,7 @@
   margin: 0;
   padding: 0;
   position: relative;
-  z-index: 1;
+  z-index: 20;
 }
 
 .category-search-bar-container {
@@ -92,27 +92,71 @@
 .category-search-select {
   min-width: 140px;
   height: 48px !important;
-  border: 1px solid $border-light;
-  border-radius: 12px;
-  background-color: #f9fafb;
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: $bg-white;
   font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $default-text-color;
+  padding: 0 16px;
   @include transition;
-  transition-property: border-color, box-shadow;
+  transition-property: border-color, box-shadow, background-color;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
 
   &:hover {
     border-color: $purple-main;
+    background-color: #f9fafb;
   }
 
   &[data-state="open"] {
     border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+
+  [data-placeholder] {
+    color: $default-text-color;
+    font-weight: $font-medium;
+  }
+
+  [data-placeholder]:not([data-placeholder=""]) {
+    color: $text-zinc-600;
+  }
+
+  .select-trigger-icon {
+    width: 16px;
+    height: 16px;
+    color: $text-zinc-600;
+    opacity: 0.7;
+    flex-shrink: 0;
+    @include transition;
+    transition-property: transform, opacity;
+  }
+
+  &[data-state="open"] .select-trigger-icon {
+    transform: rotate(180deg);
+    opacity: 1;
   }
 
   @media (max-width: 768px) {
     width: 100%;
     min-width: 100%;
   }
+}
+
+/* Kategori hero üst barı: uzun ilçe listesi için portal viewport yüksekliği (Sırala dropdown ile aynı mantık) */
+.select-content-popper.category-search-select-popper .select-viewport {
+  height: auto !important;
+  max-height: min(320px, var(--radix-select-content-available-height, 85vh));
+  min-height: 0;
 }
 
 .category-search-filters-btn {

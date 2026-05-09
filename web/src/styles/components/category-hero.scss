@@ -6,7 +6,8 @@
   position: relative;
   background: linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.98) 50%, rgba(255, 255, 255, 1) 100%);
   padding: 0 0 60px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
 
   &::before {
     content: "";
@@ -38,7 +39,7 @@
 
 .category-hero-search-wrapper {
   position: relative;
-  z-index: 1;
+  z-index: 25;
 }
 
 .category-hero-breadcrumb-wrapper {

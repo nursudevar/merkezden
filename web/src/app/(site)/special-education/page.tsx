@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import CategoryHero from "@/components/category/CategoryHero";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
+import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+
+const CATEGORY_NAME = "Özel Eğitim";
 
 const filterConfig = {
   categories: [
@@ -13,15 +17,30 @@ const filterConfig = {
 };
 
 export default function SpecialEducationPage() {
+  const [searchText, setSearchText] = useState("");
+  const [district, setDistrict] = useState("");
+  const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
+    search: searchText,
+    district,
+  });
+
   return (
     <>
-      <CategoryHero />
+      <CategoryHero
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        selectedDistrict={district}
+        onDistrictChange={setDistrict}
+        districts={districts}
+      />
       <CategoryPageLayout
-        categoryName="Özel Eğitim"
+        categoryName={CATEGORY_NAME}
         subtitle="Özel eğitim ihtiyaçları için uzman eğitim kurumları. Her çocuğun ihtiyacına özel eğitim çözümleri."
         filterConfig={filterConfig}
+        results={results}
+        isLoading={isLoading}
+        errorMessage={error}
       />
     </>
   );
 }
-

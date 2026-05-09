@@ -1,68 +1,46 @@
 "use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import '@/styles/pages/category.scss';
+import { useState } from "react";
+import CategoryHero from "@/components/category/CategoryHero";
+import CategoryPageLayout from "@/components/category/CategoryPageLayout";
+import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
 
-const categoryRoutes: Record<string, string> = {
-  "Okul": "/school",
-  "Kurs & Sınava Hazırlık": "/courses-exams",
-  "Spor": "/sports",
-  "Sanat": "/arts",
-  "Yabancı Dil": "/languages",
-  "Kişisel Gelişim": "/personal-development",
-  "Mesleki Eğitim": "/vocational-training",
-  "Özel Eğitim": "/special-education",
+const CATEGORY_NAME = "Kurs & Sınava Hazırlık";
+
+const filterConfig = {
+  categories: [
+    { label: "YKS Hazırlık", count: 15, value: "yks" },
+    { label: "LGS Hazırlık", count: 12, value: "lgs" },
+    { label: "KPSS", count: 8, value: "kpss" },
+    { label: "Dil Kursları", count: 20, value: "dil" },
+  ],
 };
 
-const categories = [
-  "Okul",
-  "Kurs & Sınava Hazırlık",
-  "Spor",
-  "Sanat",
-  "Yabancı Dil",
-  "Kişisel Gelişim",
-  "Mesleki Eğitim",
-  "Özel Eğitim",
-];
-
-function CategoryPills() {
-  const pathname = usePathname();
-
-  return (
-    <div className="main-categories-pills">
-      {categories.map((category) => {
-        const route = categoryRoutes[category];
-        const isActive = pathname === route;
-
-        return (
-          <Link
-            key={category}
-            href={route}
-            className={`main-category-pill ${isActive ? "main-category-pill--active" : ""}`}
-          >
-            {category}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function CoursesExamsPage() {
+  const [searchText, setSearchText] = useState("");
+  const [district, setDistrict] = useState("");
+  const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
+    search: searchText,
+    district,
+  });
+
   return (
-    <div className="category-page-container">
-      <div className="category-page-content">
-        <h1 className="category-page-title">Kurs & Sınava Hazırlık</h1>
-        <CategoryPills />
-        <div className="category-page-filters">
-          <p>Filtreler buraya gelecek</p>
-        </div>
-        <div className="category-page-results">
-          <p>Sonuçlar buraya gelecek</p>
-        </div>
-      </div>
-    </div>
+    <>
+      <CategoryHero
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        selectedDistrict={district}
+        onDistrictChange={setDistrict}
+        districts={districts}
+      />
+      <CategoryPageLayout
+        categoryName={CATEGORY_NAME}
+        subtitle="Sınavlara hazırlık ve kişisel gelişim kursları. Başarıya giden yolda size en uygun eğitim programını bulun."
+        filterConfig={filterConfig}
+        results={results}
+        isLoading={isLoading}
+        errorMessage={error}
+      />
+    </>
   );
 }
-

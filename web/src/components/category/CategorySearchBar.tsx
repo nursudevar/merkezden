@@ -1,28 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { Search as SearchIcon, SlidersHorizontal } from "lucide-react";
-import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from "@/components/ui";
+import { Search as SearchIcon } from "lucide-react";
+import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 
-export default function CategorySearchBar() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState<string | undefined>(undefined);
-  const [selectedEducationType, setSelectedEducationType] = useState<string | undefined>(undefined);
+interface CategorySearchBarProps {
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  selectedDistrict?: string;
+  onDistrictChange?: (value: string) => void;
+  districts?: string[];
+}
 
-  const cities = [
-    "Tüm İller",
-    "Ankara",
-    "İstanbul",
-    "İzmir",
-    "Bursa",
-    "Antalya",
-  ];
+const ALL_DISTRICTS_VALUE = "__all__";
 
-  const educationTypes = [
-    "Eğitim Türü",
-    "Online",
-    "Yüz Yüze",
-  ];
+export default function CategorySearchBar({
+  searchValue,
+  onSearchChange,
+  selectedDistrict,
+  onDistrictChange,
+  districts = [],
+}: CategorySearchBarProps) {
+  const isControlledSearch = typeof onSearchChange === "function";
+  const isControlledDistrict = typeof onDistrictChange === "function";
+
+  const [internalSearch, setInternalSearch] = useState("");
+  const [internalDistrict, setInternalDistrict] = useState<string>("");
+
+  const search = isControlledSearch ? (searchValue ?? "") : internalSearch;
+  const district = isControlledDistrict ? (selectedDistrict ?? "") : internalDistrict;
+
+  const handleSearchChange = (value: string) => {
+    if (isControlledSearch) onSearchChange?.(value);
+    else setInternalSearch(value);
+  };
+
+  const handleDistrictChange = (value: string) => {
+    const next = value === ALL_DISTRICTS_VALUE ? "" : value;
+    if (isControlledDistrict) onDistrictChange?.(next);
+    else setInternalDistrict(next);
+  };
 
   return (
     <div className="category-search-bar">
@@ -33,49 +50,43 @@ export default function CategorySearchBar() {
             <Input
               type="text"
               placeholder="Kurum adı veya bölge ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="category-search-input"
             />
           </div>
-          
-          <Select value={selectedCity} onValueChange={setSelectedCity}>
-            <SelectTrigger className="category-search-select">
-              <SelectValue placeholder="Tüm İller" />
+
+          <Select value="ankara" disabled>
+            <SelectTrigger className="category-search-select" aria-label="İl: Ankara">
+              <SelectValue placeholder="Ankara" />
             </SelectTrigger>
-            <SelectContent className="select-content">
-              {cities.map((city) => (
-                <SelectItem key={city} value={city === "Tüm İller" ? "all" : city.toLowerCase()} className="select-item">
-                  {city}
+            <SelectContent className="select-content category-search-select-popper">
+              <SelectItem value="ankara" className="select-item">
+                Ankara
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={district ? district : ALL_DISTRICTS_VALUE}
+            onValueChange={handleDistrictChange}
+          >
+            <SelectTrigger className="category-search-select" aria-label="İlçe">
+              <SelectValue placeholder="Tüm İlçeler" />
+            </SelectTrigger>
+            <SelectContent className="select-content category-search-select-popper">
+              <SelectItem value={ALL_DISTRICTS_VALUE} className="select-item">
+                Tüm İlçeler
+              </SelectItem>
+              {districts.map((d) => (
+                <SelectItem key={d} value={d} className="select-item">
+                  {d}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-
-          <Select value={selectedEducationType} onValueChange={setSelectedEducationType}>
-            <SelectTrigger className="category-search-select">
-              <SelectValue placeholder="Eğitim Türü" />
-            </SelectTrigger>
-            <SelectContent className="select-content">
-              {educationTypes.map((type) => (
-                <SelectItem key={type} value={type === "Eğitim Türü" ? "all" : type.toLowerCase()} className="select-item">
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" className="category-search-filters-btn">
-            <SlidersHorizontal size={18} />
-            <span>Filtreler</span>
-          </Button>
-
-          <Button className="category-search-submit-btn">
-            Ara
-          </Button>
         </div>
       </div>
     </div>
   );
 }
-
