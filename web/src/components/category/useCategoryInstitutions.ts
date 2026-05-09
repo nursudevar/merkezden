@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { ANKARA_DISTRICTS } from "@/constants/districts";
 
 export type CategoryResultItem = {
   id: string;
@@ -121,7 +122,7 @@ export function useCategoryInstitutions(
   const [results, setResults] = useState<CategoryResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [districts, setDistricts] = useState<string[]>([]);
+  const districts = ANKARA_DISTRICTS;
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
@@ -130,45 +131,6 @@ export function useCategoryInstitutions(
     }, 450);
     return () => window.clearTimeout(timeout);
   }, [rawSearch]);
-
-  // Ankara + kategoriye ait distinct ilçe listesi (kategori değişince bir kez)
-  useEffect(() => {
-    const targetName = String(categoryName ?? "").trim();
-    if (!targetName) {
-      setDistricts([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error: qErr } = await supabase
-        .from("institutions")
-        .select(
-          "district, institution_type:institution_types!inner(id, category:institution_categories!inner(id, name))"
-        )
-        .ilike("city", FIXED_CITY)
-        .ilike("institution_type.category.name", targetName)
-        .limit(2000);
-
-      if (cancelled) return;
-      if (qErr) {
-        setDistricts([]);
-        return;
-      }
-      const rows = (data as Array<{ district: string | null }> | null) ?? [];
-      const next = [
-        ...new Set(
-          rows
-            .map((r) => String(r.district ?? "").trim())
-            .filter((v) => Boolean(v))
-        ),
-      ].sort((a, b) => a.localeCompare(b, "tr"));
-      setDistricts(next);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryName]);
 
   // Asıl kurum listesi
   useEffect(() => {

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -15,6 +15,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { getCategoryHref, getCategoryIcon } from "@/lib/categoryHelpers";
+import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -24,6 +25,9 @@ const InstitutionLocationsMap = dynamic(
   { ssr: false }
 );
 
+/** Ana sayfa sol panel — Fiyat filtresi (TL) */
+const PRICE_FILTER_MIN = 0;
+const PRICE_FILTER_MAX = 100_000;
 
 const categories = [
   { name: "OKUL", icon: "🏫", items: ["Anaokul", "Kreş", "İlkokul", "Ortaokul", "Lise", "Yaz Okulu"], className: "category-card" },
@@ -61,15 +65,26 @@ const petFilterGroup = {
   items: ["Pet Otel/Kreş", "Köpek Eğitimi", "Pet Kuaför"],
 } as const;
 
-const sidebarCategoryGroups = [
-  { id: "school", title: "Okul", icon: "🏫", headerClassName: "category-header-school", items: ["Anaokul/Kreş", "İlkokul", "Ortaokul", "Lise", "Yaz Okulu", "Oyun Grubu"] },
-  { id: "exam", title: "Kurs & Sınava Hazırlık", icon: "📚", headerClassName: "category-header-exam", items: ["TUS", "DUS", "KPSS", "YKS", "LGS", "DGS"] },
-  { id: "sport", title: "Spor", icon: "⚽", headerClassName: "category-header-sport", items: ["Futbol", "Voleybol", "Basketbol", "Tenis", "Masa Tenisi", "Yüzme"] },
-  { id: "art", title: "Sanat", icon: "🎨", headerClassName: "category-header-art", items: ["Resim", "Karakalem", "Yağlı Boya", "Akrilik", "Sulu Boya", "Ahşap Boyama"] },
-  { id: "language", title: "Yabancı Dil", icon: "🌍", headerClassName: "category-header-language", items: ["İngilizce", "Almanca", "Fransızca", "Rusça", "İspanyolca", "İtalyanca"] },
-  { id: "personal-dev", title: "Kişisel Gelişim", icon: "✨", headerClassName: "category-header-personal-dev", items: ["İletişim", "Duygusal Zeka", "Verimlilik", "Kariyer", "Dil ve İfade", "Teknoloji"] },
-  { id: "professional", title: "Mesleki Eğitim", icon: "🎯", headerClassName: "category-header-professional", items: ["Ofis", "Bilişim", "Sağlık/Bakım", "Güzellik/Moda", "El Sanatları", "İnşaat"] },
-  { id: "special", title: "Özel Eğitim", icon: "🧩", headerClassName: "category-header-special", items: ["Masal Terapisi", "Oyun Terapisi", "Dil ve Konuşma Terapisi", "ABA Terapi", "Kekemelik", "Afazi"] },
+/**
+ * Sol filtre paneli ana kategori başlıkları + DB'deki `institution_categories` kayıtlarına
+ * normalize edilmiş eşleşme anahtarları. Subcategory listeleri runtime'da DB'den (institution_types) çekilir.
+ */
+const sidebarCategoryGroups: ReadonlyArray<{
+  id: string;
+  title: string;
+  icon: string;
+  headerClassName: string;
+  /** institution_categories.name ile normalize-eşleşme için kabul edilen anahtarlar */
+  matchKeys: ReadonlyArray<string>;
+}> = [
+  { id: "school", title: "Okul", icon: "🏫", headerClassName: "category-header-school", matchKeys: ["okul"] },
+  { id: "exam", title: "Kurs & Sınava Hazırlık", icon: "📚", headerClassName: "category-header-exam", matchKeys: ["kurs sinava hazirlik", "sinava hazirlik", "kurs ve sinava hazirlik", "kurs", "sinav"] },
+  { id: "sport", title: "Spor", icon: "⚽", headerClassName: "category-header-sport", matchKeys: ["spor"] },
+  { id: "art", title: "Sanat", icon: "🎨", headerClassName: "category-header-art", matchKeys: ["sanat"] },
+  { id: "language", title: "Yabancı Dil", icon: "🌍", headerClassName: "category-header-language", matchKeys: ["yabanci dil", "yabanci diller"] },
+  { id: "personal-dev", title: "Kişisel Gelişim", icon: "✨", headerClassName: "category-header-personal-dev", matchKeys: ["kisisel gelisim"] },
+  { id: "professional", title: "Mesleki Eğitim", icon: "🎯", headerClassName: "category-header-professional", matchKeys: ["mesleki egitim"] },
+  { id: "special", title: "Özel Eğitim", icon: "🧩", headerClassName: "category-header-special", matchKeys: ["ozel egitim"] },
 ];
 
 const blogPosts = [
@@ -136,12 +151,62 @@ type CategoryTypeRow = {
   is_active?: boolean | null;
 };
 
+type MainCategorySubcategory = {
+  /** institution_types.id — sonraki adımda kategori filtreleme için kullanılacak */
+  id: number;
+  name: string;
+};
+
 type MainCategoryCard = {
   id: number;
   name: string;
   slug: string;
-  subcategories: string[];
+  subcategories: MainCategorySubcategory[];
 };
+
+/** Sol filtre paneli — Türkçe karakter farklarını yok sayan eşleşme anahtarı */
+function normalizeCategoryKey(value: string): string {
+  return String(value ?? "")
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Sol panelde seçilen alt kurum tipleri + «Tümü» ile seçilen ana kategorilerden türetilen `institution_types.id` listesi (OR). */
+function computeSidebarSelectedInstitutionTypeIds(
+  selectedKeys: Set<string>,
+  selectedAllGroups: Set<string>,
+  mainCategoryCards: MainCategoryCard[]
+): number[] {
+  const idSet = new Set<number>();
+  for (const key of selectedKeys) {
+    for (const g of sidebarCategoryGroups) {
+      const prefix = `${g.id}-`;
+      if (!key.startsWith(prefix)) continue;
+      const suffix = key.slice(prefix.length);
+      if (!/^\d+$/.test(suffix)) continue;
+      const n = Number(suffix);
+      if (Number.isFinite(n)) idSet.add(n);
+      break;
+    }
+  }
+  for (const groupId of selectedAllGroups) {
+    const group = sidebarCategoryGroups.find((g) => g.id === groupId);
+    if (!group) continue;
+    const matchedCard = mainCategoryCards.find((card) => {
+      const nameKey = normalizeCategoryKey(card.name);
+      const slugKey = normalizeCategoryKey(card.slug);
+      return group.matchKeys.some((k) => k === nameKey || k === slugKey);
+    });
+    for (const sub of matchedCard?.subcategories ?? []) {
+      idSet.add(sub.id);
+    }
+  }
+  return Array.from(idSet);
+}
 
 const HOME_PREMIUM_PICK_NAME_GROUPS: readonly (readonly string[])[] = [
   ["ANKARA ÖZEL TEVFİK FİKRET ANADOLU LİSESİ"],
@@ -460,18 +525,22 @@ export default function Home() {
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoritesError, setFavoritesError] = useState<string | null>(null);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
-  const [districts, setDistricts] = useState<string[]>([]);
+  const districts = ANKARA_DISTRICTS;
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
-  const [priceRange, setPriceRange] = useState<number[]>([0, 10000]);
+  const [priceRange, setPriceRange] = useState<number[]>([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [openCategoryId, setOpenCategoryId] = useState<string>(() => sidebarCategoryGroups[0]?.id ?? "");
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
+  /** Ana kategori «Tümü»: ilgili `institution_categories` altındaki tüm `institution_types.id` (OR). */
+  const [selectedCategoryAllGroups, setSelectedCategoryAllGroups] = useState<Set<string>>(() => new Set());
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
-  const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null);
-  const [selectedSchoolStatus, setSelectedSchoolStatus] = useState<string | null>(null);
-  const [selectedAgeOption, setSelectedAgeOption] = useState<string | null>(null);
+  const [selectedServiceTypes, setSelectedServiceTypes] = useState<Set<"face" | "online" | "individual" | "group">>(
+    () => new Set()
+  );
+  const [selectedSchoolStatuses, setSelectedSchoolStatuses] = useState<Set<"private" | "public">>(() => new Set());
+  const [selectedAgeOptions, setSelectedAgeOptions] = useState<Set<"child" | "adult">>(() => new Set());
   const [premiumPicksPage, setPremiumPicksPage] = useState(0);
   const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
   const [premiumPicks, setPremiumPicks] = useState<PremiumPickItem[]>([]);
@@ -479,6 +548,11 @@ export default function Home() {
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const reduceMotion = useReducedMotion();
+
+  const sidebarInstitutionTypeIds = useMemo(
+    () => computeSidebarSelectedInstitutionTypeIds(selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards),
+    [selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards]
+  );
 
   const premiumPicksPageCount = Math.max(1, Math.ceil(premiumPicks.length / 3));
 
@@ -694,28 +768,10 @@ export default function Home() {
   }, [isAuthReady, user]);
 
   useEffect(() => {
-    fetch("/api/locations")
-      .then((response) => response.json())
-      .then((data) => {
-        const districtNames = (data?.districts || []).map((district: any) => district.name);
-        setDistricts(districtNames);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (!selectedDistrict) {
       setNeighborhoods([]);
       setSelectedNeighborhood("");
-      return;
     }
-    fetch("/api/locations")
-      .then((response) => response.json())
-      .then((data) => {
-        const match = (data?.districts || []).find((district: any) => district.name === selectedDistrict);
-        setNeighborhoods(match ? match.neighborhoods : []);
-      })
-      .catch(() => {});
   }, [selectedDistrict]);
 
   useEffect(() => {
@@ -757,11 +813,16 @@ export default function Home() {
 
       const types = (typeRes.data ?? []) as CategoryTypeRow[];
 
-      const cards = categories.map((category) => {
-        const subcategories = types
+      const cards: MainCategoryCard[] = categories.map((category) => {
+        const subcategories: MainCategorySubcategory[] = types
           .filter((type) => type.category_id === category.id)
-          .map((type) => String(type.name ?? "").trim())
-          .filter(Boolean);
+          .map((type) => {
+            const id = Number(type.id);
+            const name = String(type.name ?? "").trim();
+            if (!Number.isFinite(id) || !name) return null;
+            return { id, name };
+          })
+          .filter((item): item is MainCategorySubcategory => Boolean(item));
 
         return {
           id: category.id,
@@ -794,7 +855,7 @@ export default function Home() {
   }, [showInstitutionMapModal]);
 
   const handlePriceInput = (index: number, value: string) => {
-    const numeric = Math.max(0, Math.min(10000, Number(value) || 0));
+    const numeric = Math.max(PRICE_FILTER_MIN, Math.min(PRICE_FILTER_MAX, Number(value) || 0));
     setPriceRange((prev) => {
       const next = [...prev];
       next[index] = numeric;
@@ -892,7 +953,11 @@ export default function Home() {
                     <SelectTrigger className="location-input">
                       <SelectValue placeholder="Şehir Seçin" />
                     </SelectTrigger>
-                    <SelectContent className="select-content">
+                    <SelectContent
+                      className="select-content home-location-dropdown"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
                       <SelectItem value="ankara" className="select-item">
                         Ankara
                       </SelectItem>
@@ -902,7 +967,11 @@ export default function Home() {
                     <SelectTrigger className="location-input">
                       <SelectValue placeholder="İlçe Seçin" />
                     </SelectTrigger>
-                    <SelectContent className="select-content">
+                    <SelectContent
+                      className="select-content home-location-dropdown"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
                       {districts.map((district) => (
                         <SelectItem key={district} value={district} className="select-item">
                           {district}
@@ -914,7 +983,11 @@ export default function Home() {
                     <SelectTrigger className="location-input">
                       <SelectValue placeholder="Mahalle Seçin" />
                     </SelectTrigger>
-                    <SelectContent className="select-content">
+                    <SelectContent
+                      className="select-content home-location-dropdown"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
                       {neighborhoods.map((neighborhood) => (
                         <SelectItem key={neighborhood} value={neighborhood} className="select-item">
                           {neighborhood}
@@ -938,14 +1011,20 @@ export default function Home() {
                 <div className="education-type-pills">
                   {schoolStatusOptions.map((option) => {
                     const Icon = option.icon;
-                    const isSelected = selectedSchoolStatus === option.value;
+                    const v = option.value as "private" | "public";
+                    const isSelected = selectedSchoolStatuses.has(v);
                     return (
                       <button
                         key={option.value}
                         type="button"
                         className={`education-type-pill ${isSelected ? 'education-type-pill--selected' : ''}`}
                         onClick={() => {
-                          setSelectedSchoolStatus(isSelected ? null : option.value);
+                          setSelectedSchoolStatuses((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(v)) next.delete(v);
+                            else next.add(v);
+                            return next;
+                          });
                         }}
                       >
                         <Icon className="education-type-pill-icon" />
@@ -968,14 +1047,20 @@ export default function Home() {
                 </div>
                 <div className="filter-section-options">
                   {ageOptions.map((option) => {
-                    const isSelected = selectedAgeOption === option.value;
+                    const v = option.value as "child" | "adult";
+                    const isSelected = selectedAgeOptions.has(v);
                     return (
                       <button
                         key={option.value}
                         type="button"
                         className={`${option.className} ${isSelected ? 'filter-option--selected' : ''}`}
                         onClick={() => {
-                          setSelectedAgeOption(isSelected ? null : option.value);
+                          setSelectedAgeOptions((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(v)) next.delete(v);
+                            else next.add(v);
+                            return next;
+                          });
                         }}
                       >
                         <span className={`filter-indicator ${isSelected ? 'filter-indicator--checked' : ''}`}>
@@ -1001,14 +1086,20 @@ export default function Home() {
                 <div className="education-type-pills">
                   {serviceOptions.map((option) => {
                     const Icon = option.icon;
-                    const isSelected = selectedServiceType === option.value;
+                    const v = option.value as "face" | "online" | "individual" | "group";
+                    const isSelected = selectedServiceTypes.has(v);
                     return (
                       <button
                         key={option.value}
                         type="button"
                         className={`education-type-pill ${isSelected ? 'education-type-pill--selected' : ''}`}
                         onClick={() => {
-                          setSelectedServiceType(isSelected ? null : option.value);
+                          setSelectedServiceTypes((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(v)) next.delete(v);
+                            else next.add(v);
+                            return next;
+                          });
                         }}
                       >
                         <Icon className="education-type-pill-icon" />
@@ -1045,12 +1136,12 @@ export default function Home() {
                   />
                 </div>
                 <div className="price-filter-slider">
-                  <Slider value={priceRange} onValueChange={setPriceRange} min={0} max={10000} step={500} />
+                  <Slider value={priceRange} onValueChange={setPriceRange} min={PRICE_FILTER_MIN} max={PRICE_FILTER_MAX} step={500} />
                 </div>
                 <div className="price-filter-labels">
                   <span>0₺</span>
-                  <span>5K₺</span>
-                  <span>10K₺</span>
+                  <span>50K₺</span>
+                  <span>100K₺</span>
                 </div>
               </div>
               <Separator />
@@ -1066,9 +1157,20 @@ export default function Home() {
                 </div>
                 <Accordion type="single" value={openCategoryId} onValueChange={(v) => setOpenCategoryId(v ?? "")} collapsible>
                   {sidebarCategoryGroups.map((group) => {
+                    const matchedCard = mainCategoryCards.find((card) => {
+                      const nameKey = normalizeCategoryKey(card.name);
+                      const slugKey = normalizeCategoryKey(card.slug);
+                      return group.matchKeys.some((k) => k === nameKey || k === slugKey);
+                    });
+                    const subcategories = matchedCard?.subcategories ?? [];
+                    const showAllRow = subcategories.length > 0;
+                    type AccordionRow = { kind: "all" } | { kind: "sub"; item: MainCategorySubcategory };
+                    const rows: AccordionRow[] = showAllRow
+                      ? [{ kind: "all" }, ...subcategories.map((item) => ({ kind: "sub" as const, item }))]
+                      : [];
                     const isExpanded = expandedCategories.includes(group.id);
-                    const hasMore = group.items.length > 4;
-                    const itemsToShow = isExpanded ? group.items : group.items.slice(0, hasMore ? 4 : group.items.length);
+                    const hasMore = rows.length > 4;
+                    const itemsToShow = isExpanded ? rows : rows.slice(0, hasMore ? 4 : rows.length);
 
                     return (
                       <AccordionItem key={group.id} value={group.id} className="category-accordion-item">
@@ -1077,15 +1179,57 @@ export default function Home() {
                         </AccordionTrigger>
                         <AccordionContent className="category-accordion-content">
                           <div className="category-accordion-options">
-                            {itemsToShow.map((item) => {
-                              const itemKey = `${group.id}-${item}`;
+                            {itemsToShow.map((row) => {
+                              if (row.kind === "all") {
+                                const allSelected = selectedCategoryAllGroups.has(group.id);
+                                return (
+                                  <button
+                                    key={`${group.id}-__all__`}
+                                    type="button"
+                                    className={`category-option ${allSelected ? "category-option-selected" : ""}`}
+                                    aria-label={`${group.title} — tüm alt kategoriler`}
+                                    onClick={() => {
+                                      const turningOn = !selectedCategoryAllGroups.has(group.id);
+                                      setSelectedCategoryAllGroups((prev) => {
+                                        const next = new Set(prev);
+                                        if (turningOn) next.add(group.id);
+                                        else next.delete(group.id);
+                                        return next;
+                                      });
+                                      if (turningOn) {
+                                        setSelectedCategoryItems((prev) => {
+                                          const next = new Set(prev);
+                                          const prefix = `${group.id}-`;
+                                          for (const k of prev) {
+                                            if (k.startsWith(prefix)) {
+                                              const suf = k.slice(prefix.length);
+                                              if (/^\d+$/.test(suf)) next.delete(k);
+                                            }
+                                          }
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    Tümü
+                                  </button>
+                                );
+                              }
+                              const item = row.item;
+                              const itemKey = `${group.id}-${item.id}`;
                               const isSelected = selectedCategoryItems.has(itemKey);
                               return (
                                 <button
-                                  key={item}
+                                  key={item.id}
                                   type="button"
                                   className={`category-option ${isSelected ? "category-option-selected" : ""}`}
+                                  data-institution-type-id={item.id}
                                   onClick={() => {
+                                    setSelectedCategoryAllGroups((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(group.id);
+                                      return next;
+                                    });
                                     setSelectedCategoryItems((prev) => {
                                       const next = new Set(prev);
                                       if (isSelected) {
@@ -1097,7 +1241,7 @@ export default function Home() {
                                     });
                                   }}
                                 >
-                                  {item}
+                                  {item.name}
                                 </button>
                               );
                             })}
@@ -1193,10 +1337,40 @@ export default function Home() {
               </div>
             </div>
           </section>
-          {query && query.trim().length > 0 ? (
+          {(query && query.trim().length > 0) ||
+          selectedDistrict ||
+          selectedSchoolStatuses.size > 0 ||
+          selectedAgeOptions.size > 0 ||
+          selectedServiceTypes.size > 0 ||
+          priceRange[0] > PRICE_FILTER_MIN ||
+          priceRange[1] < PRICE_FILTER_MAX ||
+          sidebarInstitutionTypeIds.length > 0 ? (
             <SearchResults 
               query={query} 
+              cityFilter="Ankara"
+              districtFilter={selectedDistrict}
+              schoolStatusFilters={Array.from(selectedSchoolStatuses)}
+              studentAgeFilters={Array.from(selectedAgeOptions)}
+              serviceTypeFilters={Array.from(selectedServiceTypes)}
+              priceRangeFilter={{
+                min: priceRange[0],
+                max: priceRange[1],
+                defaultMin: PRICE_FILTER_MIN,
+                defaultMax: PRICE_FILTER_MAX,
+              }}
+              institutionTypeIds={sidebarInstitutionTypeIds}
               onClearSearch={() => setQuery("")}
+              onClearAllFilters={() => {
+                setQuery("");
+                setSelectedDistrict("");
+                setSelectedNeighborhood("");
+                setSelectedSchoolStatuses(new Set());
+                setSelectedAgeOptions(new Set());
+                setSelectedServiceTypes(new Set());
+                setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
+                setSelectedCategoryItems(new Set());
+                setSelectedCategoryAllGroups(new Set());
+              }}
               onToggleFavorite={handleFavoriteToggle}
               favoriteIds={favoriteIds}
               favoritesEnabled={favoritesEnabled && !favoritesLoading}
@@ -1220,7 +1394,7 @@ export default function Home() {
                   const isExpanded = Boolean(expandedCategoryCards[cardKey]);
                   const hasMoreThanThree = category.subcategories.length > 3;
                   const sortedSubcategories = [...category.subcategories].sort(
-                    (a, b) => a.length - b.length || a.localeCompare(b, "tr")
+                    (a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name, "tr")
                   );
                   const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 3);
                   return (
@@ -1240,7 +1414,7 @@ export default function Home() {
                         <div className={`home-main-category-card-list-wrap ${isExpanded ? "is-expanded" : ""}`}>
                         <ul className="home-main-category-card-list">
                           {visibleSubcategories.map((subcategory) => (
-                            <li key={`${category.id}-${subcategory}`} className="home-main-category-card-item">
+                            <li key={`${category.id}-${subcategory.id}`} className="home-main-category-card-item">
                               <Sparkle
                                 className="home-main-category-card-item-bullet"
                                 size={16}
@@ -1249,7 +1423,7 @@ export default function Home() {
                                 stroke="transparent"
                                 strokeWidth={0}
                               />
-                              <span>{subcategory}</span>
+                              <span>{subcategory.name}</span>
                             </li>
                           ))}
                         </ul>
