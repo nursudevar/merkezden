@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button, Card, CardContent } from "@/components/ui";
@@ -20,11 +20,18 @@ import {
   ArrowLeft,
   Play,
   GitCommitVertical,
+  Sparkles,
+  Megaphone,
+  CalendarDays,
+  ImageOff,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionWorkingHours";
 import ShareButton from "./ShareButton";
+import AnnouncementDetailModal, {
+  type AnnouncementDetailItem,
+} from "@/components/AnnouncementDetailModal";
 
 type DbInstitutionRow = {
   id: number;
@@ -160,6 +167,17 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
   const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
   const [detailBranch, setDetailBranch] = useState<DetailBranch>("default");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "gallery" | "features" | "announcements"
+  >("overview");
+  const [institutionAnnouncements, setInstitutionAnnouncements] = useState<
+    AnnouncementDetailItem[]
+  >([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [announcementsLoaded, setAnnouncementsLoaded] = useState(false);
+  const [announcementsError, setAnnouncementsError] = useState<string | null>(null);
+  const [activeAnnouncement, setActiveAnnouncement] =
+    useState<AnnouncementDetailItem | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +245,130 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       cancelled = true;
     };
   }, [slug]);
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    if (typeof window === "undefined") return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, []);
+
+  const handleAnchorTabClick = useCallback(
+    (
+      event: React.MouseEvent<HTMLAnchorElement>,
+      sectionId: string,
+      tab: "overview" | "gallery" | "features",
+    ) => {
+      event.preventDefault();
+      setActiveTab(tab);
+      scrollToSection(sectionId);
+    },
+    [scrollToSection],
+  );
+
+  const handleAnnouncementsTabClick = useCallback(() => {
+    setActiveTab("announcements");
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "announcements") return;
+    if (!row?.id) return;
+    if (announcementsLoaded) return;
+
+    let cancelled = false;
+    setAnnouncementsLoading(true);
+    setAnnouncementsError(null);
+
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error: qErr } = await supabase
+        .from("announcements")
+        .select(
+          "id, title, content, announcement_image_url, link_url, created_at, institution:institutions(institution_name)"
+        )
+        .eq("institution_id", row.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (qErr) {
+        console.error("[institution][announcements] load error", qErr);
+        setAnnouncementsError("Duyurular yüklenemedi.");
+        setInstitutionAnnouncements([]);
+        setAnnouncementsLoading(false);
+        setAnnouncementsLoaded(true);
+        return;
+      }
+
+      const rows = (data ?? []) as Array<{
+        id: string | number;
+        title: string | null;
+        content: string | null;
+        announcement_image_url: string | null;
+        link_url: string | null;
+        created_at: string | null;
+        institution:
+          | { institution_name: string | null }
+          | Array<{ institution_name: string | null }>
+          | null;
+      }>;
+
+      const mapped: AnnouncementDetailItem[] = rows
+        .map((r) => {
+          const inst = Array.isArray(r.institution)
+            ? r.institution[0] ?? null
+            : r.institution ?? null;
+          const title = String(r.title ?? "").trim();
+          if (!title) return null;
+          return {
+            id: String(r.id),
+            title,
+            content: String(r.content ?? "").trim(),
+            imageUrl: r.announcement_image_url
+              ? String(r.announcement_image_url).trim() || null
+              : null,
+            createdAt: r.created_at ? String(r.created_at) : null,
+            institutionName: String(inst?.institution_name ?? "").trim(),
+            linkUrl: r.link_url ? String(r.link_url).trim() || null : null,
+          } as AnnouncementDetailItem;
+        })
+        .filter((item): item is AnnouncementDetailItem => item !== null);
+
+      console.info("[institution][announcements] loaded", {
+        institutionId: row.id,
+        count: mapped.length,
+      });
+
+      setInstitutionAnnouncements(mapped);
+      setAnnouncementsLoading(false);
+      setAnnouncementsLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, row?.id, announcementsLoaded]);
+
+  const formatAnnouncementDateTr = useCallback((iso: string | null): string => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }, []);
+
+  const buildAnnouncementExcerpt = useCallback((text: string, maxLen: number) => {
+    const t = String(text ?? "").trim().replace(/\s+/g, " ");
+    if (t.length <= maxLen) return t;
+    return `${t.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+  }, []);
 
   const logoUrl = useMemo(() => {
     const supabase = createSupabaseBrowserClient();
@@ -861,17 +1003,44 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
 
         <div className="institution-tabs-sticky">
           <div className="institution-tabs-list">
-            <a href="#overview" className="institution-tab-item institution-tab-active">
+            <a
+              href="#overview"
+              className={`institution-tab-item${activeTab === "overview" ? " institution-tab-active" : ""}`}
+              onClick={(event) => handleAnchorTabClick(event, "overview", "overview")}
+            >
               <BookOpen size={20} />
               <span>Genel Bakış</span>
             </a>
-            <a href="#gallery" className="institution-tab-item">
+            <a
+              href="#gallery"
+              className={`institution-tab-item${activeTab === "gallery" ? " institution-tab-active" : ""}`}
+              onClick={(event) => handleAnchorTabClick(event, "gallery", "gallery")}
+            >
               <ImageIcon size={20} />
               <span>Galeri</span>
             </a>
+            <a
+              href="#features"
+              className={`institution-tab-item${activeTab === "features" ? " institution-tab-active" : ""}`}
+              onClick={(event) => handleAnchorTabClick(event, "features", "features")}
+            >
+              <Sparkles size={20} />
+              <span>Kurum Özellikleri</span>
+            </a>
+            <button
+              type="button"
+              className={`institution-tab-item institution-tab-item--button${activeTab === "announcements" ? " institution-tab-active" : ""}`}
+              onClick={handleAnnouncementsTabClick}
+              aria-controls="announcements-tab"
+            >
+              <Megaphone size={20} />
+              <span>Duyurular</span>
+            </button>
           </div>
         </div>
 
+        {activeTab !== "announcements" ? (
+        <>
         <div className="institution-content-grid">
           <div className="institution-main-content">
             <section id="overview" className="institution-section">
@@ -1055,7 +1224,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           </aside>
         </div>
 
-        <section className="institution-section">
+        <section id="features" className="institution-section">
           <Card className="institution-section-card institution-features-card">
             <CardContent>
               <div className="institution-features-head">
@@ -1102,6 +1271,141 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             </CardContent>
           </Card>
         </section>
+        </>
+        ) : (
+          <section
+            id="announcements-tab"
+            className="institution-section institution-announcements-tab"
+            role="tabpanel"
+            aria-label="Kurum duyuruları"
+          >
+            <Card className="institution-section-card institution-announcements-card">
+              <CardContent>
+                <div className="institution-features-head">
+                  <h2 className="institution-section-title">Duyurular</h2>
+                </div>
+                {announcementsLoading ? (
+                  <div className="institution-features-empty">
+                    Duyurular yükleniyor...
+                  </div>
+                ) : announcementsError ? (
+                  <div className="institution-features-empty">
+                    {announcementsError}
+                  </div>
+                ) : institutionAnnouncements.length === 0 ? (
+                  <div className="institution-features-empty">
+                    Bu kuruma ait henüz duyuru bulunmuyor.
+                  </div>
+                ) : (
+                  <div className="institution-announcements-list">
+                    {institutionAnnouncements.map((item) => {
+                      const trimmedLink = (item.linkUrl ?? "").trim();
+                      const hasLink = trimmedLink.length > 0;
+                      const absoluteLink = hasLink
+                        ? /^https?:\/\//i.test(trimmedLink)
+                          ? trimmedLink
+                          : `https://${trimmedLink}`
+                        : null;
+                      const linkLabel = hasLink
+                        ? trimmedLink.replace(/^https?:\/\//i, "").replace(/^www\./i, "")
+                        : "";
+
+                      return (
+                        <article
+                          key={item.id}
+                          className="institution-announcement-item"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setActiveAnnouncement(item)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setActiveAnnouncement(item);
+                            }
+                          }}
+                          aria-label={`${item.title} duyurusunu aç`}
+                        >
+                          <div
+                            className={`institution-announcement-thumb${
+                              item.imageUrl ? "" : " institution-announcement-thumb--empty"
+                            }`}
+                            aria-hidden
+                          >
+                            {item.imageUrl ? (
+                              <Image
+                                src={item.imageUrl}
+                                alt=""
+                                fill
+                                className="institution-announcement-thumb-image"
+                                sizes="72px"
+                                unoptimized
+                              />
+                            ) : (
+                              <ImageOff
+                                className="institution-announcement-thumb-icon"
+                                size={28}
+                                strokeWidth={1.25}
+                              />
+                            )}
+                          </div>
+                          <div className="institution-announcement-body">
+                            {name ? (
+                              <div className="institution-announcement-kicker">
+                                {name.toLocaleUpperCase("tr-TR")}
+                              </div>
+                            ) : null}
+                            <h3 className="institution-announcement-title">
+                              {item.title}
+                            </h3>
+                            {item.content ? (
+                              <p className="institution-announcement-desc">
+                                {buildAnnouncementExcerpt(item.content, 220)}
+                              </p>
+                            ) : null}
+                            <div className="institution-announcement-meta">
+                              {item.createdAt ? (
+                                <span className="institution-announcement-meta-item">
+                                  <CalendarDays
+                                    className="institution-announcement-meta-icon"
+                                    size={14}
+                                  />
+                                  <span>
+                                    {formatAnnouncementDateTr(item.createdAt)}
+                                  </span>
+                                </span>
+                              ) : null}
+                              {hasLink && absoluteLink ? (
+                                <a
+                                  href={absoluteLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="institution-announcement-meta-item institution-announcement-meta-link"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  <Globe
+                                    className="institution-announcement-meta-icon"
+                                    size={14}
+                                  />
+                                  <span>{linkLabel}</span>
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
+        <AnnouncementDetailModal
+          isOpen={Boolean(activeAnnouncement)}
+          onClose={() => setActiveAnnouncement(null)}
+          announcement={activeAnnouncement}
+        />
 
         {isGalleryModalOpen ? (
           <div

@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, Sparkle } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, Sparkle, SlidersHorizontal, ImageOff } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import { HeaderWithSearch } from "@/components/layout/header.client";
@@ -259,6 +259,30 @@ type PurpleFeaturedCard = {
 
 function normalizeInstitutionNameKey(name: string): string {
   return name.trim().replace(/\s+/g, " ");
+}
+
+/** Ana sayfa «Duyurular» bölümü için kurum bilgisiyle birleştirilmiş duyuru kaydı. */
+type HomeAnnouncement = {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl: string | null;
+  createdAt: string | null;
+  institutionName: string;
+  institutionCity: string;
+};
+
+function formatAnnouncementDateTr(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function buildAnnouncementExcerpt(text: string, maxLen: number): string {
+  const t = String(text ?? "").trim().replace(/\s+/g, " ");
+  if (t.length <= maxLen) return t;
+  return `${t.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
 }
 
 function buildHomeSchoolLocation(district: string | null, city: string | null): string {
@@ -535,6 +559,23 @@ export default function Home() {
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   /** Ana kategori «Tümü»: ilgili `institution_categories` altındaki tüm `institution_types.id` (OR). */
   const [selectedCategoryAllGroups, setSelectedCategoryAllGroups] = useState<Set<string>>(() => new Set());
+  /** Sadece mobil/tablet (<1024px) için sol filtre panelinin açık/kapalı durumu. Desktop'ta etkisiz. */
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  /**
+   * Mobil/tablet (<1024px) için filtre değişiminin ardından «Arama Sonuçları» bölümüne yumuşak kaydırır.
+   * SSR güvenlidir; sadece kullanıcı tetikli filtre handler'larından çağırılmalı (initial render etkilenmez).
+   * Hedef: filtre aktifken render edilen `<section class="search-results-section">`.
+   */
+  const scrollToResultsOnMobile = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const target = document.querySelector<HTMLElement>(".search-results-section");
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, []);
   const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<Set<"face" | "online" | "individual" | "group">>(
     () => new Set()
@@ -545,6 +586,7 @@ export default function Home() {
   const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
   const [premiumPicks, setPremiumPicks] = useState<PremiumPickItem[]>([]);
   const [purpleFeatured, setPurpleFeatured] = useState<PurpleFeaturedCard[]>([]);
+  const [homeAnnouncements, setHomeAnnouncements] = useState<HomeAnnouncement[]>([]);
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const reduceMotion = useReducedMotion();
@@ -778,6 +820,63 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("announcements")
+        .select(
+          "id, title, content, announcement_image_url, created_at, institution:institutions(institution_name, city)"
+        )
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (cancelled) return;
+      if (error) {
+        console.error("[home][announcements] load error", error);
+        setHomeAnnouncements([]);
+        return;
+      }
+
+      const rows = (data ?? []) as Array<{
+        id: string | number;
+        title: string | null;
+        content: string | null;
+        announcement_image_url: string | null;
+        created_at: string | null;
+        institution:
+          | { institution_name: string | null; city: string | null }
+          | Array<{ institution_name: string | null; city: string | null }>
+          | null;
+      }>;
+
+      const mapped: HomeAnnouncement[] = rows
+        .map((r) => {
+          const inst = Array.isArray(r.institution) ? r.institution[0] ?? null : r.institution ?? null;
+          const title = String(r.title ?? "").trim();
+          if (!title) return null;
+          return {
+            id: String(r.id),
+            title,
+            content: String(r.content ?? "").trim(),
+            imageUrl: r.announcement_image_url ? String(r.announcement_image_url).trim() || null : null,
+            createdAt: r.created_at ? String(r.created_at) : null,
+            institutionName: String(inst?.institution_name ?? "").trim(),
+            institutionCity: String(inst?.city ?? "").trim(),
+          } as HomeAnnouncement;
+        })
+        .filter((item): item is HomeAnnouncement => item !== null);
+
+      setHomeAnnouncements(mapped);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
       const [categoryRes, typeRes] = await Promise.all([
         supabase
           .from("institution_categories")
@@ -867,6 +966,22 @@ export default function Home() {
       }
       return next;
     });
+    scrollToResultsOnMobile();
+  };
+
+  const handleHeaderSearchChange = (value: string) => {
+    setQuery(value);
+    scrollToResultsOnMobile();
+  };
+
+  const handleSliderPriceChange = (next: number[]) => {
+    setPriceRange(next);
+    scrollToResultsOnMobile();
+  };
+
+  const handleDistrictChange = (value: string) => {
+    setSelectedDistrict(value);
+    scrollToResultsOnMobile();
   };
 
   const toggleCategoryExpansion = (categoryId: string) => {
@@ -879,12 +994,12 @@ export default function Home() {
     <div className="page-container">
       <HeaderWithSearch 
         searchValue={query}
-        onSearchChange={setQuery}
+        onSearchChange={handleHeaderSearchChange}
         showSearchButton={false}
       />
 
-      <div className="main-layout home-main-layout">
-        <aside className="filter-sidebar">
+      <div className={`main-layout home-main-layout${isMobileFilterOpen ? " is-mobile-filter-open" : ""}`}>
+        <aside className="filter-sidebar" id="home-filter-sidebar">
           <Card className="filter-sidebar-card">
             <CardHeader className="filter-sidebar-header">
               <div className="filter-sidebar-header-content">
@@ -963,7 +1078,7 @@ export default function Home() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
+                  <Select value={selectedDistrict} onValueChange={handleDistrictChange}>
                     <SelectTrigger className="location-input">
                       <SelectValue placeholder="İlçe Seçin" />
                     </SelectTrigger>
@@ -1025,6 +1140,7 @@ export default function Home() {
                             else next.add(v);
                             return next;
                           });
+                          scrollToResultsOnMobile();
                         }}
                       >
                         <Icon className="education-type-pill-icon" />
@@ -1061,6 +1177,7 @@ export default function Home() {
                             else next.add(v);
                             return next;
                           });
+                          scrollToResultsOnMobile();
                         }}
                       >
                         <span className={`filter-indicator ${isSelected ? 'filter-indicator--checked' : ''}`}>
@@ -1100,6 +1217,7 @@ export default function Home() {
                             else next.add(v);
                             return next;
                           });
+                          scrollToResultsOnMobile();
                         }}
                       >
                         <Icon className="education-type-pill-icon" />
@@ -1136,7 +1254,7 @@ export default function Home() {
                   />
                 </div>
                 <div className="price-filter-slider">
-                  <Slider value={priceRange} onValueChange={setPriceRange} min={PRICE_FILTER_MIN} max={PRICE_FILTER_MAX} step={500} />
+                  <Slider value={priceRange} onValueChange={handleSliderPriceChange} min={PRICE_FILTER_MIN} max={PRICE_FILTER_MAX} step={500} />
                 </div>
                 <div className="price-filter-labels">
                   <span>0₺</span>
@@ -1209,6 +1327,7 @@ export default function Home() {
                                           return next;
                                         });
                                       }
+                                      scrollToResultsOnMobile();
                                     }}
                                   >
                                     Tümü
@@ -1239,6 +1358,7 @@ export default function Home() {
                                       }
                                       return next;
                                     });
+                                    scrollToResultsOnMobile();
                                   }}
                                 >
                                   {item.name}
@@ -1337,6 +1457,16 @@ export default function Home() {
               </div>
             </div>
           </section>
+          <button
+            type="button"
+            className={`home-mobile-filter-toggle${isMobileFilterOpen ? " is-open" : ""}`}
+            aria-expanded={isMobileFilterOpen}
+            aria-controls="home-filter-sidebar"
+            onClick={() => setIsMobileFilterOpen((v) => !v)}
+          >
+            <SlidersHorizontal size={18} aria-hidden />
+            <span>Filtrele</span>
+          </button>
           {(query && query.trim().length > 0) ||
           selectedDistrict ||
           selectedSchoolStatuses.size > 0 ||
@@ -1475,81 +1605,111 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="announcements-section" aria-label="Duyurular">
-            <div className="announcements-header">
-              <h2 className="announcements-title">Duyurular</h2>
-              <Link href="/announcements" className="announcements-view-all">
-                tümünü gör
-              </Link>
-            </div>
-
-            <div className="announcements-grid">
-              <Link href="/announcements" className="announcement-featured">
-                <div
-                  className="announcement-featured-media"
-                  style={{
-                    backgroundImage:
-                      'url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&h=700&fit=crop")',
-                  }}
-                >
-                  <span className="announcement-badge">Yeni</span>
-                  <div className="announcement-featured-overlay" />
-                  <div className="announcement-featured-body">
-                    <h3 className="announcement-featured-title">Eğitimde Bahar Dönemi Kayıtları Başladı</h3>
-                    <p className="announcement-featured-desc">
-                      Yakınınızdaki kurumları karşılaştırın, fiyat ve hizmet detaylarını tek ekranda inceleyin.
-                    </p>
-                    <div className="announcement-featured-meta">
-                      <span className="announcement-meta-item">
-                        <CalendarDays className="announcement-meta-icon" />
-                        2 Mart 2026
-                      </span>
-                      <span className="announcement-meta-item">
-                        <MapPin className="announcement-meta-icon" />
-                        Ankara
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              <div className="announcements-side">
-                <Link href="/announcements" className="announcement-small">
-                  <div
-                    className="announcement-small-thumb"
-                    style={{
-                      backgroundImage:
-                        'url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop")',
-                    }}
-                  />
-                  <div className="announcement-small-body">
-                    <div className="announcement-small-kicker">KAMPANYA</div>
-                    <h4 className="announcement-small-title">Üyeliğe Özel İlk Görüşme İndirimi</h4>
-                    <p className="announcement-small-desc">
-                      Seçili kurumlarda tanışma dersleri ve değerlendirme görüşmeleri avantajlı.
-                    </p>
-                  </div>
-                </Link>
-
-                <Link href="/announcements" className="announcement-small">
-                  <div
-                    className="announcement-small-thumb"
-                    style={{
-                      backgroundImage:
-                        'url("https://images.unsplash.com/photo-1454165205744-3b78555e5572?w=600&h=400&fit=crop")',
-                    }}
-                  />
-                  <div className="announcement-small-body">
-                    <div className="announcement-small-kicker">BİLGİLENDİRME</div>
-                    <h4 className="announcement-small-title">Yeni Filtreler ve Arama Deneyimi</h4>
-                    <p className="announcement-small-desc">
-                      Lokasyon, fiyat ve kategori filtreleriyle en uygun seçeneklere daha hızlı ulaşın.
-                    </p>
-                  </div>
+          {homeAnnouncements.length > 0 ? (
+            <section className="announcements-section" aria-label="Duyurular">
+              <div className="announcements-header">
+                <h2 className="announcements-title">Duyurular</h2>
+                <Link href="/announcements" className="announcements-view-all">
+                  tümünü gör
                 </Link>
               </div>
-            </div>
-          </section>
+
+              <div className="announcements-grid">
+                {(() => {
+                  const featured = homeAnnouncements[0];
+                  const sideItems = homeAnnouncements.slice(1, 3);
+                  const featuredDate = formatAnnouncementDateTr(featured.createdAt);
+                  return (
+                    <>
+                      <Link href="/announcements" className="announcement-featured">
+                        <div
+                          className={`announcement-featured-media${featured.imageUrl ? "" : " announcement-featured-media--empty"}`}
+                          style={
+                            featured.imageUrl
+                              ? { backgroundImage: `url("${featured.imageUrl}")` }
+                              : undefined
+                          }
+                        >
+                          {!featured.imageUrl ? (
+                            <div className="announcement-featured-empty-icon" aria-hidden>
+                              <ImageOff size={48} strokeWidth={1.25} />
+                            </div>
+                          ) : null}
+                          <span className="announcement-badge">Yeni</span>
+                          <div className="announcement-featured-overlay" />
+                          <div className="announcement-featured-body">
+                            <h3 className="announcement-featured-title">{featured.title}</h3>
+                            {featured.content ? (
+                              <p className="announcement-featured-desc">
+                                {buildAnnouncementExcerpt(featured.content, 160)}
+                              </p>
+                            ) : null}
+                            <div className="announcement-featured-meta">
+                              {featuredDate ? (
+                                <span className="announcement-meta-item">
+                                  <CalendarDays className="announcement-meta-icon" />
+                                  {featuredDate}
+                                </span>
+                              ) : null}
+                              {featured.institutionCity ? (
+                                <span className="announcement-meta-item">
+                                  <MapPin className="announcement-meta-icon" />
+                                  {featured.institutionCity}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+
+                      {sideItems.length > 0 ? (
+                        <div className="announcements-side">
+                          {sideItems.map((item) => (
+                            <Link
+                              href="/announcements"
+                              key={item.id}
+                              className="announcement-small"
+                            >
+                              <div
+                                className={`announcement-small-thumb${item.imageUrl ? "" : " announcement-small-thumb--empty"}`}
+                                style={
+                                  item.imageUrl
+                                    ? { backgroundImage: `url("${item.imageUrl}")` }
+                                    : undefined
+                                }
+                                aria-hidden
+                              >
+                                {!item.imageUrl ? (
+                                  <ImageOff
+                                    className="announcement-small-thumb-icon"
+                                    size={22}
+                                    strokeWidth={1.25}
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="announcement-small-body">
+                                {item.institutionName ? (
+                                  <div className="announcement-small-kicker">
+                                    {item.institutionName.toLocaleUpperCase("tr-TR")}
+                                  </div>
+                                ) : null}
+                                <h4 className="announcement-small-title">{item.title}</h4>
+                                {item.content ? (
+                                  <p className="announcement-small-desc">
+                                    {buildAnnouncementExcerpt(item.content, 110)}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })()}
+              </div>
+            </section>
+          ) : null}
 
           <section className="blog-section">
             <div className="blog-section-header">

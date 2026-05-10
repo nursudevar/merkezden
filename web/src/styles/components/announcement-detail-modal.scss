@@ -1,0 +1,239 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+/* Duyuru detay modalı — proje genelindeki LoginModal/AuthModal stiliyle uyumludur. */
+.announcement-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: announcementModalFadeIn 0.2s ease-out;
+}
+
+@keyframes announcementModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.announcement-modal-content {
+  position: relative;
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-lg;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: announcementModalSlideUp 0.25s ease-out;
+}
+
+@keyframes announcementModalSlideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.announcement-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1px solid $border-light;
+  color: $text-zinc-700;
+  cursor: pointer;
+  z-index: 3;
+  @include transition;
+  transition-property: transform, background-color, color;
+
+  &:hover {
+    background-color: $bg-white;
+    color: $text-zinc-900;
+    transform: scale(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $purple-main;
+    outline-offset: 2px;
+  }
+}
+
+.announcement-modal-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  background-color: $bg-zinc-50;
+  flex-shrink: 0;
+}
+
+/* Görseli olmayan duyuru için — proje genelindeki yoğun mor gradient ile uyumlu. */
+.announcement-modal-media--empty {
+  background: linear-gradient(
+    to right,
+    rgba(109, 93, 252, 0.85),
+    rgba(127, 86, 217, 0.85),
+    rgba(148, 84, 255, 0.85)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.announcement-modal-media-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.announcement-modal-body {
+  padding: 24px 28px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.announcement-modal-kicker {
+  font-size: 11px;
+  font-weight: $font-bold;
+  letter-spacing: 1px;
+  color: $purple-main;
+  text-transform: uppercase;
+}
+
+.announcement-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $text-zinc-900;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.announcement-modal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: $text-zinc-500;
+  font-size: 0.9rem;
+}
+
+.announcement-modal-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.announcement-modal-meta-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.announcement-modal-desc {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: $text-zinc-700;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 4px 0 0 0;
+}
+
+.announcement-modal-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 18px;
+  @include rounded-full;
+  @include gradient-purple-top;
+  color: $bg-white;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  max-width: 100%;
+  @include transition;
+  transition-property: transform, box-shadow;
+
+  &:hover {
+    transform: translateY(-2px);
+    @include shadow-md;
+    color: $bg-white;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.announcement-modal-link-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.announcement-modal-link-text {
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .announcement-modal-overlay {
+    padding: 12px;
+  }
+
+  .announcement-modal-content {
+    max-height: calc(100vh - 24px);
+  }
+
+  .announcement-modal-body {
+    padding: 18px 18px 20px;
+    gap: 10px;
+  }
+
+  .announcement-modal-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* Tıklanabilir duyuru kartları için ortak görsel ipucu — yalnızca duyurular sayfasında uygulanır. */
+.announcement-clickable {
+  cursor: pointer;
+  @include transition;
+  transition-property: transform, box-shadow, border-color;
+
+  &:focus-visible {
+    outline: 2px solid $purple-main;
+    outline-offset: 2px;
+  }
+}
+
+.announcement-clickable.announcement-small:hover {
+  transform: translateY(-2px);
+  border-color: rgba($purple-main, 0.35);
+  @include shadow-md;
+}
+
+.announcement-clickable.announcement-featured:hover {
+  transform: translateY(-2px);
+}

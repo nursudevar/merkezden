@@ -352,6 +352,19 @@
   }
 }
 
+/* Desktop'ta mobil tetikleyici gizli */
+.home-mobile-filter-toggle {
+  display: none;
+}
+
+/* Mobil/tablet'te filtre değişiminden sonra scrollIntoView hedefi (header altına biraz boşluk). */
+@media (max-width: 1023px) {
+  .search-results-section {
+    scroll-margin-top: 16px;
+  }
+}
+
+/* Mobil & Tablet (<1024px) — sadece ana sayfa */
 @media (max-width: 1023px) {
   .main-layout {
     .filter-sidebar {
@@ -359,6 +372,76 @@
     }
     .main-content {
       order: 1;
+    }
+  }
+
+  /* Hero altında Filtrele butonu görünür hâle gelir */
+  .home-main-layout .home-mobile-filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    align-self: stretch;
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid $border-default;
+    background-color: $bg-white;
+    color: $purple-main;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    @include transition;
+    transition-property: color, background-color, border-color, box-shadow;
+
+    &:hover {
+      background-color: rgba($purple-main, 0.06);
+      border-color: rgba($purple-main, 0.35);
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba($purple-main, 0.45);
+      outline-offset: 2px;
+    }
+
+    &.is-open {
+      background-color: $purple-main;
+      border-color: $purple-main;
+      color: $bg-white;
+    }
+  }
+
+  /*
+   * Mobilde sıralama: hero → Filtrele butonu → açıkken sidebar → Arama Sonuçları / diğer içerikler
+   * `display: contents` ile main-content çocukları home-main-layout'un flex item'ı olur.
+   */
+  .home-main-layout {
+    > .main-content {
+      display: contents;
+    }
+
+    > .filter-sidebar {
+      order: 3;
+      display: none;
+      margin-top: 4px;
+    }
+
+    &.is-mobile-filter-open > .filter-sidebar {
+      display: block;
+    }
+
+    > .main-content > .hero-search {
+      order: 1;
+    }
+    > .main-content > .home-mobile-filter-toggle {
+      order: 2;
+    }
+    /* Hero ve filtre butonu dışındaki tüm main-content çocukları aside'dan sonra */
+    > .main-content > *:not(.hero-search):not(.home-mobile-filter-toggle) {
+      order: 4;
     }
   }
 }
@@ -2757,6 +2840,14 @@ a.search-result-card {
   justify-content: center;
   gap: 16px;
 
+  @media (max-width: 639px) {
+    align-items: stretch;
+    width: 100%;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   @media (min-width: 640px) {
     flex-direction: row;
   }
@@ -2769,10 +2860,18 @@ a.search-result-card {
   font-weight: $font-semibold;
   line-height: $leading-normal;
   white-space: nowrap;
+  text-align: center;
   @include transition;
   transition-property: transform, box-shadow, background-color, color, border-color;
   cursor: pointer;
   border: none;
+
+  @media (max-width: 639px) {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: $text-sm;
+    white-space: normal;
+  }
 }
 
 .cta-section-button-primary {
@@ -3302,6 +3401,8 @@ a.search-result-card {
   border: 0;
   border-radius: 0;
   overflow: hidden;
+  /* Üst kenarda subpixel render aliasing kaynaklı mor sızıntıyı sayfa arkaplan rengiyle kapatır. */
+  box-shadow: inset 0 2px 0 $bg-zinc-50;
 }
 
 .purple-featured-bg {
@@ -3921,6 +4022,27 @@ a.search-result-card {
   @include shadow-md;
 }
 
+/* Görseli olmayan duyurular için — proje genelinde kullanılan yoğun mor gradient ile uyumlu. */
+.announcement-featured-media--empty {
+  background: linear-gradient(
+    to right,
+    rgba(109, 93, 252, 0.8),
+    rgba(127, 86, 217, 0.8),
+    rgba(148, 84, 255, 0.8)
+  );
+}
+
+/* Featured fallback "görsel yok" ikonu — gradient zemin üzerinde merkeze hizalanır, overlay altında yumuşak kalır. */
+.announcement-featured-empty-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
 .announcement-featured-overlay {
   position: absolute;
   inset: 0;
@@ -4023,6 +4145,22 @@ a.search-result-card {
   background-size: cover;
   background-position: center;
   background-color: $bg-zinc-50;
+}
+
+/* Thumbnail'ı olmayan küçük duyurular için — purple-featured kartlarındaki açık mor doku ile uyumlu. */
+.announcement-small-thumb--empty {
+  background-image: linear-gradient(
+    135deg,
+    rgba($purple-main, 0.12),
+    rgba($purple-main, 0.24)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.announcement-small-thumb-icon {
+  color: rgba($purple-main, 0.6);
 }
 
 .announcement-small-body {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Building2, Heart } from "lucide-react";
@@ -483,7 +483,26 @@ export default function SearchResults({
   const [error, setError] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
   const [visibleCount, setVisibleCount] = useState(20);
+  /**
+   * Sayfa başına gösterilecek sonuç adımı.
+   * Desktop'ta 20, mobil/tablet'te (<1024px) 10. SSR'da default 20; hydration sonrası viewport'a göre güncellenir.
+   */
+  const [pageSize, setPageSize] = useState(20);
   const [viewMode, setViewMode] = useState<SearchResultsViewMode>("recommended");
+
+  const pageSizeRef = useRef(pageSize);
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(max-width: 1023px)");
+    const apply = () => setPageSize(mql.matches ? 10 : 20);
+    apply();
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, []);
 
   const trimmedQuery = query.trim();
   const trimmedCity = String(cityFilter ?? "").trim();
@@ -544,7 +563,7 @@ export default function SearchResults({
             const allowedIds = await resolveInstitutionIdsBySchoolStatuses(supabase, schoolStatuses);
             if (allowedIds.length === 0) {
               setResults([]);
-              setVisibleCount(20);
+              setVisibleCount(pageSizeRef.current);
               setError(null);
               return;
             }
@@ -555,7 +574,7 @@ export default function SearchResults({
             const ageIds = await resolveInstitutionIdsByStudentAges(supabase, studentAges);
             if (ageIds.length === 0) {
               setResults([]);
-              setVisibleCount(20);
+              setVisibleCount(pageSizeRef.current);
               setError(null);
               return;
             }
@@ -566,7 +585,7 @@ export default function SearchResults({
             const serviceIds = await resolveInstitutionIdsByServiceTypes(supabase, serviceTypes);
             if (serviceIds.length === 0) {
               setResults([]);
-              setVisibleCount(20);
+              setVisibleCount(pageSizeRef.current);
               setError(null);
               return;
             }
@@ -580,7 +599,7 @@ export default function SearchResults({
             });
             if (priceIds.length === 0) {
               setResults([]);
-              setVisibleCount(20);
+              setVisibleCount(pageSizeRef.current);
               setError(null);
               return;
             }
@@ -643,7 +662,7 @@ export default function SearchResults({
             : mappedRows;
 
           setResults(mappedResults);
-          setVisibleCount(20);
+          setVisibleCount(pageSizeRef.current);
           setError(null);
         } catch (err) {
           console.error("[SearchResults] Error:", err);
@@ -860,9 +879,9 @@ export default function SearchResults({
             <button
               type="button"
               className="search-results-load-more-button"
-              onClick={() => setVisibleCount((prev) => prev + 20)}
+              onClick={() => setVisibleCount((prev) => prev + pageSize)}
             >
-              Daha Fazla Gör (+20)
+              Daha Fazla Gör (+{pageSize})
             </button>
           </div>
         )}
