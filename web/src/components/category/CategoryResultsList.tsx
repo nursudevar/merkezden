@@ -41,7 +41,7 @@ export default function CategoryResultsList({
             <h2 className="category-results-title">Eğitim Kurumları</h2>
           </div>
           <p className="category-results-subtitle">
-            {subtitle || "İstanbul bölgesinde öne çıkan en iyi eğitim kurumlarını inceleyin."}
+            {subtitle || "Ankara bölgesinde öne çıkan en iyi eğitim kurumlarını inceleyin."}
           </p>
         </div>
         <div className="category-results-sort">

@@ -1,27 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import CategoryHero from "@/components/category/CategoryHero";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
 import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+import {
+  EMPTY_SCHOOL_CATEGORY_FILTERS,
+  type SchoolCategoryFilterPayload,
+} from "@/components/category/schoolCategoryFilterTypes";
 
 const CATEGORY_NAME = "Okul";
-
-const filterConfig = {
-  categories: [
-    { label: "Anaokulu / Kreş", count: 12, value: "anaokulu" },
-    { label: "İlkokul", count: 8, value: "ilkokul" },
-    { label: "Ortaokul", count: 5, value: "ortaokul" },
-    { label: "Lise", count: 9, value: "lise" },
-  ],
-};
+/** institution_categories.slug ve institution_feature_groups.category_slug ile eşleşir. */
+const CATEGORY_SLUG = "okul";
 
 export default function SchoolPage() {
   const [searchText, setSearchText] = useState("");
   const [district, setDistrict] = useState("");
+  const [schoolFilters, setSchoolFilters] = useState<SchoolCategoryFilterPayload>(
+    EMPTY_SCHOOL_CATEGORY_FILTERS,
+  );
+
+  const handleSchoolFilterPayloadChange = useCallback((payload: SchoolCategoryFilterPayload) => {
+    setSchoolFilters(payload);
+  }, []);
+
   const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     district,
+    schoolFilters,
   });
 
   return (
@@ -35,11 +41,18 @@ export default function SchoolPage() {
       />
       <CategoryPageLayout
         categoryName={CATEGORY_NAME}
-        subtitle="İstanbul bölgesinde öne çıkan en iyi eğitim kurumlarını inceleyin."
-        filterConfig={filterConfig}
+        categorySlug={CATEGORY_SLUG}
+        subtitle="Ankara bölgesinde öne çıkan en iyi eğitim kurumlarını inceleyin."
         results={results}
         isLoading={isLoading}
         errorMessage={error}
+        schoolModeProps={{
+          linkedSearch: searchText,
+          onLinkedSearchChange: setSearchText,
+          linkedDistrict: district,
+          onLinkedDistrictChange: setDistrict,
+          onSchoolFilterPayloadChange: handleSchoolFilterPayloadChange,
+        }}
       />
     </>
   );

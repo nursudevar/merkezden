@@ -267,3 +267,96 @@
   flex-shrink: 0;
 }
 
+/* Dinamik feature group filtreleri — Okul kategori sayfasında DB'den gelen
+   feature_groups/definitions/choices için kompakt checkbox listesi (2 sütunlu). */
+.category-filter-section-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.category-filter-checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: $bg-white;
+  font-size: 13px;
+  color: $default-text-color;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+  @include transition;
+  transition-property: background-color, border-color, color;
+
+  &:hover {
+    background-color: rgba(109, 93, 252, 0.05);
+    border-color: rgba(109, 93, 252, 0.25);
+  }
+}
+
+.category-filter-checkbox-option--selected {
+  background-color: rgba(109, 93, 252, 0.1);
+  border-color: $purple-main;
+
+  .category-filter-checkbox-label {
+    color: $purple-main;
+    font-weight: $font-semibold;
+  }
+}
+
+.category-filter-checkbox-input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: $purple-main;
+  cursor: pointer;
+}
+
+.category-filter-checkbox-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @include transition;
+  transition-property: color, font-weight;
+}
+
+/* Daha Fazla Göster / Daha Az Göster butonu — proje genelinde mor link tarzı. */
+.category-filter-show-more {
+  align-self: center;
+  margin-top: 4px;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  color: $purple-main;
+  font-size: 13px;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  @include transition;
+  transition-property: color;
+
+  &:hover {
+    color: $purple-dark;
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $purple-main;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+.category-filter-section-empty {
+  font-size: $text-sm;
+  color: $text-zinc-500;
+}
+
