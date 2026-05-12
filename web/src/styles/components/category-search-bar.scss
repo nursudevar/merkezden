@@ -18,10 +18,15 @@
   padding: 20px;
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
 
   @media (max-width: 640px) {
     padding: 16px;
     border-radius: 12px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 14px;
   }
 }
 
@@ -71,8 +76,14 @@
   border-radius: 12px;
   background-color: #f9fafb;
   font-size: $text-sm;
+  min-width: 0;
   @include transition;
   transition-property: border-color, box-shadow;
+
+  @media (max-width: 480px) {
+    height: 44px;
+    padding-left: 42px;
+  }
 
   &:focus {
     outline: none;
@@ -149,6 +160,10 @@
   @media (max-width: 768px) {
     width: 100%;
     min-width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    height: 44px;
   }
 }
 

@@ -2,17 +2,17 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { MapPin, Search } from "lucide-react";
+import { RotateCcw, Search } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { Button } from "@/components/ui";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
@@ -779,6 +779,56 @@ function useCategoryFilterSidebarModel({
 
   const renderedFeatureGroups = useMemo(() => featureGroups, [featureGroups]);
 
+  /** En az bir filtre aktif mi? Sıfırlama butonunun görünürlüğünü belirler. */
+  const hasActiveFilters = useMemo(() => {
+    if (String(displaySearch ?? "").trim()) return true;
+    if (String(displayDistrict ?? "").trim()) return true;
+    if (String(selectedSubcategoryId ?? "").trim()) return true;
+    for (const v of Object.values(selectedCommonSingle)) {
+      const s = String(v ?? "").trim();
+      if (s && s !== CLEAR_SINGLE_SELECT_VALUE) return true;
+    }
+    for (const set of Object.values(selectedCommonMulti)) {
+      if ((set?.size ?? 0) > 0) return true;
+    }
+    for (const r of Object.values(selectedCommonRange)) {
+      if (String(r?.min ?? "").trim() !== "" || String(r?.max ?? "").trim() !== "") return true;
+    }
+    for (const set of Object.values(selectedFeatureOptionsByGroup)) {
+      if ((set?.size ?? 0) > 0) return true;
+    }
+    return false;
+  }, [
+    displaySearch,
+    displayDistrict,
+    selectedSubcategoryId,
+    selectedCommonSingle,
+    selectedCommonMulti,
+    selectedCommonRange,
+    selectedFeatureOptionsByGroup,
+  ]);
+
+  /**
+   * Tüm filtre state'ini default değerlere döndürür. Linked search/district için
+   * parent state'i de boş değerle bildirir. Sidebar feature payload'u zaten boş
+   * state'ten otomatik olarak boş emit edileceği için ekstra çağrı gerekmez.
+   */
+  const resetAll = useCallback(() => {
+    setSearch("");
+    setDistrict("");
+    setSelectedCategory("");
+    setPriceRange([0, 50000]);
+    setSelectedSubcategoryId("");
+    setSelectedCommonSingle({});
+    setSelectedCommonMulti({});
+    setSelectedCommonRange({});
+    setSelectedFeatureOptionsByGroup({});
+    setExpandedGroupIds(new Set());
+    setExpandedCommonMultiIds(new Set());
+    if (isLinkedSearch) onLinkedSearchChange?.("");
+    if (isLinkedDistrict) onLinkedDistrictChange?.("");
+  }, [isLinkedSearch, isLinkedDistrict, onLinkedSearchChange, onLinkedDistrictChange]);
+
   return {
     categories,
     hasDynamicFeatureMode,
@@ -811,6 +861,8 @@ function useCategoryFilterSidebarModel({
     toggleCommonMultiExpanded,
     setCommonRange,
     renderedFeatureGroups,
+    hasActiveFilters,
+    resetAll,
   };
 }
 
@@ -898,15 +950,6 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
         </div>
 
         <div className="category-filter-sidebar-content">
-          <Button
-            variant="outline"
-            className="category-filter-map-button"
-            onClick={() => {}}
-          >
-            <MapPin size={18} />
-            Haritada Göster
-          </Button>
-
           <div className="category-filter-section">
             <h3 className="category-filter-section-title">ARAMA</h3>
             <div className="category-filter-section-inputs">
@@ -1266,4 +1309,28 @@ export default function CategoryFilterSidebar({ config, onFilterChange, category
   });
   const model = ctxModel ?? fallbackModel;
   return <CategoryFilterSidebarView model={model} />;
+}
+
+/**
+ * Sonuç alanında, kategoriye özel paylaşımlı filtre modeli aktifken görünür
+ * olan "Filtreleri Sıfırla" butonu. Tıklandığında tüm filtre state'i default
+ * haline döner ve sonuçlar filtrelenmemiş şekilde listelenir.
+ */
+export function CategoryFilterResetButton() {
+  const ctxModel = useContext(SchoolCategoryFilterPanelContext);
+  if (!ctxModel) return null;
+  if (!ctxModel.hasActiveFilters) return null;
+  return (
+    <div className="category-results-reset">
+      <button
+        type="button"
+        className="category-results-reset-btn"
+        onClick={ctxModel.resetAll}
+        aria-label="Tüm filtreleri sıfırla"
+      >
+        <RotateCcw size={16} aria-hidden="true" />
+        <span>Filtreleri Sıfırla</span>
+      </button>
+    </div>
+  );
 }

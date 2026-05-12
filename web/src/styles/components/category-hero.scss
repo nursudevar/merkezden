@@ -9,6 +9,14 @@
   overflow-x: hidden;
   overflow-y: visible;
 
+  @media (max-width: 768px) {
+    padding: 0 0 40px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0 0 28px;
+  }
+
   &::before {
     content: "";
     position: absolute;
@@ -31,9 +39,14 @@
   text-align: center;
   position: relative;
   z-index: 1;
+  min-width: 0;
 
   @media (max-width: 640px) {
     padding: 0 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0 16px;
   }
 }
 
@@ -45,10 +58,18 @@
 .category-hero-breadcrumb-wrapper {
   padding: 16px 0 24px;
   text-align: left;
+
+  @media (max-width: 640px) {
+    padding: 12px 0 16px;
+  }
 }
 
 .category-hero-content {
   padding: 16px 0 32px;
+
+  @media (max-width: 640px) {
+    padding: 8px 0 20px;
+  }
 }
 
 .category-hero-badge {
@@ -76,6 +97,8 @@
   margin: 0 0 12px 0;
   line-height: 1.2;
   letter-spacing: -0.5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 
   @media (max-width: 768px) {
     font-size: 28px;
@@ -84,6 +107,10 @@
   @media (max-width: 640px) {
     font-size: 24px;
     margin-bottom: 10px;
+  }
+
+  @media (max-width: 380px) {
+    font-size: 22px;
   }
 }
 
