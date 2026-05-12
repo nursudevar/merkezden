@@ -8,6 +8,7 @@ import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Sli
 import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, Sparkle, SlidersHorizontal, ImageOff } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
+import { HomeFeaturedInstitutionsMarquee } from "@/components/featured/HomeFeaturedInstitutionsMarquee";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
@@ -125,17 +126,6 @@ const blogPosts = [
     slug: "sanatin-cocuk-gelisimine-etkisi",
   },
 ];
-
-type FeaturedInstitution = {
-  id: number;
-  name: string;
-  imageUrl: string;
-  slug: string;
-  source: string;
-  bodyMainCategory: string;
-  bodySubCategory: string;
-  bodyLocation: string;
-};
 
 type CategoryRow = {
   id: number;
@@ -290,240 +280,6 @@ function buildHomeSchoolLocation(district: string | null, city: string | null): 
   const c = String(city ?? "").trim();
   if (d && c) return `${d}, ${c}`;
   return d || c || "Ankara";
-}
-
-function FeaturedInstitutions({
-  onToggleFavorite,
-  favoriteIds,
-  favoritesEnabled,
-  favoriteActionLoadingIds,
-  isAuthenticated,
-}: {
-  onToggleFavorite: (institutionId: number, e: React.MouseEvent) => void;
-  favoriteIds: Set<number>;
-  favoritesEnabled: boolean;
-  favoriteActionLoadingIds: Set<number>;
-  isAuthenticated: boolean;
-}) {
-  const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState<FeaturedInstitution[]>([]);
-  const [brokenFeaturedImageIds, setBrokenFeaturedImageIds] = useState<Set<number>>(() => new Set());
-  const [featuredPinnedDeneme, setFeaturedPinnedDeneme] = useState<FeaturedInstitution | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data: row, error } = await supabase
-        .from("institutions")
-        .select("id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))")
-        .eq("institution_name", "Deneme")
-        .maybeSingle();
-
-      if (cancelled || error || !row) return;
-
-      const r = row as Record<string, unknown>;
-      const id = Number(r.id);
-      const name = String(r.institution_name ?? "").trim();
-      if (!Number.isFinite(id) || !name) return;
-
-      const institutionType = r.institution_type as
-        | { name?: string | null; category?: { name?: string | null } | null }
-        | undefined;
-      const mainCategory = String(institutionType?.category?.name ?? "").trim();
-      const subCategory =
-        String(institutionType?.name ?? "").trim() || String(r.type ?? "").trim();
-      const city = String(r.city ?? "").trim();
-      const district = String(r.district ?? "").trim();
-      const location = [district, city].filter(Boolean).join(", ");
-      const logoPath = String(r.logo ?? "").trim();
-      const logoUrl = logoPath
-        ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
-        : "";
-
-      setFeaturedPinnedDeneme({
-        id,
-        name,
-        imageUrl: logoUrl,
-        slug: String(r.slug ?? "").trim(),
-        source: String(r.source ?? "").trim(),
-        bodyMainCategory: mainCategory || "Kategori",
-        bodySubCategory: subCategory || "Alt kategori belirtilmedi",
-        bodyLocation: location || "Konum bilgisi yok",
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("institutions")
-        .select("id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))")
-        .not("institution_name", "is", null)
-        .limit(180);
-
-      if (cancelled || error || !data) return;
-
-      const dynamicItems = (data as Array<Record<string, unknown>>)
-        .map((row) => {
-          const id = Number(row.id);
-          const name = String(row.institution_name ?? "").trim();
-          if (!Number.isFinite(id) || !name) return null;
-
-          const institutionType = row.institution_type as
-            | { name?: string | null; category?: { name?: string | null } | null }
-            | undefined;
-
-          const mainCategory = String(institutionType?.category?.name ?? "").trim();
-          const subCategory =
-            String(institutionType?.name ?? "").trim() || String(row.type ?? "").trim();
-          const city = String(row.city ?? "").trim();
-          const district = String(row.district ?? "").trim();
-          const location = [district, city].filter(Boolean).join(", ");
-          const logoPath = String(row.logo ?? "").trim();
-          const logoUrl = logoPath
-            ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
-            : "";
-
-          return {
-            id,
-            name,
-            imageUrl: logoUrl,
-            slug: String(row.slug ?? "").trim(),
-            source: String(row.source ?? "").trim(),
-            bodyMainCategory: mainCategory || "Kategori",
-            bodySubCategory: subCategory || "Alt kategori belirtilmedi",
-            bodyLocation: location || "Konum bilgisi yok",
-          };
-        })
-        .filter((item): item is FeaturedInstitution => item !== null);
-
-      if (dynamicItems.length > 0) {
-        const shuffled = [...dynamicItems];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        setShuffledFeaturedInstitutions(shuffled.slice(0, 8));
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <section className="featured-institutions-section">
-      <div className="featured-institutions-header">
-        <div className="featured-institutions-header-left">
-          <h2 className="featured-institutions-title">Öne Çıkanlar</h2>
-        </div>
-      </div>
-      <div className="featured-institutions-slider">
-        {(() => {
-          const featuredList = featuredPinnedDeneme
-            ? [
-                featuredPinnedDeneme,
-                ...shuffledFeaturedInstitutions.filter((i) => i.id !== featuredPinnedDeneme.id).slice(0, 7),
-              ]
-            : shuffledFeaturedInstitutions;
-          const marqueeList = [...featuredList, ...featuredList];
-
-          return (
-            <div className="featured-institutions-scroller">
-              {marqueeList.map((institution, index) => {
-                const isDuplicate = index >= featuredList.length;
-                const key = `${institution.id}-${index}`;
-                const isFavorite = favoriteIds.has(institution.id);
-                const isActionLoading = favoriteActionLoadingIds.has(institution.id);
-                const canRenderImage = Boolean(institution.imageUrl) && !brokenFeaturedImageIds.has(institution.id);
-                return (
-                  <Link
-                    key={key}
-                    href={getInstitutionDetailHref({
-                      id: institution.id,
-                      slug: institution.slug,
-                      source: (institution as { source?: string }).source || undefined,
-                    })}
-                    className="featured-institution-card"
-                    aria-label={`${institution.name} detayları`}
-                    aria-hidden={isDuplicate}
-                    tabIndex={isDuplicate ? -1 : undefined}
-                  >
-                  <div className="featured-institution-image-wrapper">
-                    {canRenderImage ? (
-                      <img
-                        src={institution.imageUrl}
-                        alt={institution.name}
-                        className="featured-institution-image"
-                        onError={() =>
-                          setBrokenFeaturedImageIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(institution.id);
-                            return next;
-                          })
-                        }
-                      />
-                    ) : (
-                      <div className="featured-institution-placeholder" aria-label="Logo bulunmuyor">
-                        <Building2 size={28} />
-                      </div>
-                    )}
-                    <div className="featured-institution-overlay" />
-                    <motion.button
-                      type="button"
-                      aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
-                      className="featured-institution-favorite"
-                      whileTap={{ scale: 0.9 }}
-                      disabled={isActionLoading || (isAuthenticated && !favoritesEnabled)}
-                      onClick={(e) => {
-                        onToggleFavorite(institution.id, e);
-                      }}
-                    >
-                      <motion.div
-                        animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                      >
-                        <Heart
-                          className={isFavorite ? "heart-favorite-icon heart-favorite-icon--active" : "heart-favorite-icon"}
-                        />
-                      </motion.div>
-                    </motion.button>
-                  </div>
-                  <div className="featured-institution-content">
-                    <span className="featured-institution-body-category">
-                      {institution.bodyMainCategory}
-                    </span>
-                    <h3 className="featured-institution-name">{institution.name}</h3>
-                    <p className="featured-institution-subcategory">
-                      {institution.bodySubCategory}
-                    </p>
-                    <div className="featured-institution-location">
-                      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 0C2.69 0 0 2.69 0 6C0 10.5 6 14 6 14C6 14 12 10.5 12 6C12 2.69 9.31 0 6 0ZM6 8.25C4.76 8.25 3.75 7.24 3.75 6C3.75 4.76 4.76 3.75 6 3.75C7.24 3.75 8.25 4.76 8.25 6C8.25 7.24 7.24 8.25 6 8.25Z" fill="currentColor"/>
-                      </svg>
-                      <span>{institution.bodyLocation}</span>
-                    </div>
-                  </div>
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })()}
-      </div>
-      <div className="featured-institutions-view-all">
-        <Link href="/okullar">
-          Tüm Kurumları Görüntüle →
-        </Link>
-      </div>
-    </section>
-  );
 }
 
 const premiumPicksMotionVariants = {
@@ -1582,7 +1338,7 @@ export default function Home() {
             </div>
           </section>
 
-          <FeaturedInstitutions
+          <HomeFeaturedInstitutionsMarquee
             onToggleFavorite={handleFavoriteToggle}
             favoriteIds={favoriteIds}
             favoritesEnabled={favoritesEnabled && !favoritesLoading}
