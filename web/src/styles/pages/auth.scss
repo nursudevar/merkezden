@@ -756,7 +756,7 @@
 
 .signup-tab {
   flex: 1;
-  padding: 12px 20px;
+  padding: 10px 20px;
   font-size: $text-base;
   font-weight: $font-medium;
   color: $text-zinc-500;
@@ -786,8 +786,8 @@
 
 .signup-form {
   @include flex-col;
-  gap: 15px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
 .signup-form-row {
@@ -1203,7 +1203,6 @@
   cursor: pointer;
   @include transition;
   transition-property: transform, box-shadow;
-  margin-top: 8px;
 
   &:hover {
     transform: translateY(-2px);
@@ -1217,6 +1216,46 @@
   @media (max-width: 640px) {
     padding: 12px 20px;
     font-size: $text-sm;
+  }
+}
+
+.signup-instructor-section {
+  margin-top: 28px;
+  margin-bottom: 24px;
+  padding-top: 28px;
+  border-top: 1px solid $border-light;
+  @include flex-col;
+  gap: 15px;
+}
+
+.signup-instructor-heading {
+  margin: 0;
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+  line-height: $leading-tight;
+}
+
+.signup-instructor-description {
+  margin: -6px 0 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: $leading-normal;
+}
+
+.signup-field-error {
+  margin: 6px 0 0;
+  font-size: $text-xs;
+  color: #dc2626;
+  line-height: 1.4;
+}
+
+.signup-input--error {
+  border-color: #fca5a5;
+
+  &:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
   }
 }
 

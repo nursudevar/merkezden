@@ -24,6 +24,20 @@ import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker
 
 const supabase = createSupabaseBrowserClient();
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+type InstructorFormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  birthDate: string;
+  password: string;
+  nationalId: string;
+  reference: string;
+  acceptTerms: boolean;
+};
+
 type SignupFeatureItem = {
   title: string;
   description: string;
@@ -116,6 +130,19 @@ export default function SignupClient() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [instructorFormData, setInstructorFormData] = useState<InstructorFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    birthDate: "",
+    password: "",
+    nationalId: "",
+    reference: "",
+    acceptTerms: false,
+  });
+  const [instructorErrors, setInstructorErrors] = useState<Partial<Record<keyof InstructorFormData, string>>>(
+    {},
+  );
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "success" | "error" | "email-exists";
@@ -141,7 +168,6 @@ export default function SignupClient() {
       return;
     }
 
-    const MIN_PASSWORD_LENGTH = 8;
     if (formData.password.length < MIN_PASSWORD_LENGTH) {
       setModalState({
         isOpen: true,
@@ -250,6 +276,104 @@ export default function SignupClient() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const clearInstructorError = (field: keyof InstructorFormData) => {
+    setInstructorErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setInstructorFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    clearInstructorError(name as keyof InstructorFormData);
+  };
+
+  const handleInstructorNationalIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+    setInstructorFormData((prev) => ({
+      ...prev,
+      nationalId: digits,
+    }));
+    clearInstructorError("nationalId");
+  };
+
+  const validateInstructorForm = (): Partial<Record<keyof InstructorFormData, string>> => {
+    const errors: Partial<Record<keyof InstructorFormData, string>> = {};
+    const firstName = instructorFormData.firstName.trim();
+    const lastName = instructorFormData.lastName.trim();
+    const email = instructorFormData.email.trim();
+    const password = instructorFormData.password;
+    const nationalId = instructorFormData.nationalId.trim();
+
+    if (!firstName) errors.firstName = "Ad alanı zorunludur.";
+    if (!lastName) errors.lastName = "Soyad alanı zorunludur.";
+
+    if (!instructorFormData.birthDate) {
+      errors.birthDate = "Doğum tarihinizi girmeden devam edemezsiniz.";
+    }
+
+    if (!email) {
+      errors.email = "E-posta adresi zorunludur.";
+    } else if (!EMAIL_PATTERN.test(email)) {
+      errors.email = "Geçerli bir e-posta adresi girin.";
+    }
+
+    if (!password) {
+      errors.password = "Şifre zorunludur.";
+    } else if (password.length < MIN_PASSWORD_LENGTH) {
+      errors.password = `Şifreniz en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`;
+    }
+
+    if (!nationalId) {
+      errors.nationalId = "TC kimlik numarası zorunludur.";
+    } else if (nationalId.length !== 11) {
+      errors.nationalId = "TC kimlik numarası 11 haneli olmalıdır.";
+    } else if (nationalId.startsWith("0")) {
+      errors.nationalId = "TC kimlik numarası 0 ile başlayamaz.";
+    }
+
+    return errors;
+  };
+
+  const handleInstructorSubmit = () => {
+    if (!instructorFormData.acceptTerms) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Kayıt başarısız",
+        message: "Devam etmek için koşulları kabul etmelisiniz.",
+      });
+      return;
+    }
+
+    const errors = validateInstructorForm();
+    if (Object.keys(errors).length > 0) {
+      setInstructorErrors(errors);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Eksik veya hatalı bilgi",
+        message: "Lütfen bireysel eğitmen alanındaki zorunlu alanları kontrol edin.",
+      });
+      return;
+    }
+
+    setInstructorErrors({});
+    setModalState({
+      isOpen: true,
+      type: "success",
+      title: "Bilgiler doğrulandı",
+      message:
+        "Bireysel eğitmen kaydı çok yakında aktif olacaktır. Şimdilik bilgileriniz yalnızca ön doğrulamadan geçti.",
+    });
   };
 
   return (
@@ -453,31 +577,249 @@ export default function SignupClient() {
               )}
             </div>
 
-            <label className="signup-checkbox">
-              <input
-                type="checkbox"
-                name="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={handleChange}
-                required
-              />
-              <span>
-                Kayıt olarak{" "}
-                <Link href="/terms" className="signup-link-inline">
-                  Kullanım Koşullarımızı
-                </Link>{" "}
-                ve{" "}
-                <Link href="/privacy" className="signup-link-inline">
-                  Gizlilik Politikamızı
-                </Link>
-                {" "}kabul etmiş olursunuz.
-              </span>
-            </label>
+            {activeTab === "bireysel" ? (
+              <>
+                <label className="signup-checkbox">
+                  <input
+                    type="checkbox"
+                    name="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>
+                    Kayıt olarak{" "}
+                    <Link href="/terms" className="signup-link-inline">
+                      Kullanım Koşullarımızı
+                    </Link>{" "}
+                    ve{" "}
+                    <Link href="/privacy" className="signup-link-inline">
+                      Gizlilik Politikamızı
+                    </Link>{" "}
+                    kabul etmiş olursunuz.
+                  </span>
+                </label>
 
-            <button type="submit" className="signup-primary-button" disabled={loading}>
-              {loading ? "Hesabınız oluşturuluyor..." : "Hesap Oluştur"}
-            </button>
+                <button type="submit" className="signup-primary-button" disabled={loading}>
+                  {loading ? "Hesabınız oluşturuluyor..." : "Hesap Oluştur"}
+                </button>
+              </>
+            ) : (
+              <>
+                <label className="signup-checkbox">
+                  <input
+                    type="checkbox"
+                    name="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>
+                    Kayıt olarak{" "}
+                    <Link href="/terms" className="signup-link-inline">
+                      Kullanım Koşullarımızı
+                    </Link>{" "}
+                    ve{" "}
+                    <Link href="/privacy" className="signup-link-inline">
+                      Gizlilik Politikamızı
+                    </Link>{" "}
+                    kabul etmiş olursunuz.
+                  </span>
+                </label>
+
+                <button type="submit" className="signup-primary-button" disabled={loading}>
+                  {loading ? "Hesabınız oluşturuluyor..." : "Hesap Oluştur"}
+                </button>
+              </>
+            )}
           </form>
+
+          {activeTab === "kurumsal" ? (
+            <section
+              className="signup-instructor-section"
+              aria-labelledby="signup-instructor-heading"
+            >
+                  <h2 id="signup-instructor-heading" className="signup-instructor-heading">
+                    Bireysel Eğitmen misiniz?
+                  </h2>
+                  <p className="signup-instructor-description">
+                    Kurum hesabı yerine bireysel eğitmen hesabı oluşturmak için aşağıdaki bilgileri
+                    doldurun.
+                  </p>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-firstname" className="signup-label">
+                      Ad
+                    </label>
+                    <input
+                      type="text"
+                      id="signup-instructor-firstname"
+                      name="firstName"
+                      className={`signup-input${instructorErrors.firstName ? " signup-input--error" : ""}`}
+                      placeholder="Adınızı girin"
+                      value={instructorFormData.firstName}
+                      onChange={handleInstructorChange}
+                      autoComplete="given-name"
+                    />
+                    {instructorErrors.firstName ? (
+                      <p className="signup-field-error" role="alert">
+                        {instructorErrors.firstName}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-lastname" className="signup-label">
+                      Soyad
+                    </label>
+                    <input
+                      type="text"
+                      id="signup-instructor-lastname"
+                      name="lastName"
+                      className={`signup-input${instructorErrors.lastName ? " signup-input--error" : ""}`}
+                      placeholder="Soyadınızı girin"
+                      value={instructorFormData.lastName}
+                      onChange={handleInstructorChange}
+                      autoComplete="family-name"
+                    />
+                    {instructorErrors.lastName ? (
+                      <p className="signup-field-error" role="alert">
+                        {instructorErrors.lastName}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-email" className="signup-label">
+                      E-posta
+                    </label>
+                    <input
+                      type="email"
+                      id="signup-instructor-email"
+                      name="email"
+                      className={`signup-input${instructorErrors.email ? " signup-input--error" : ""}`}
+                      placeholder="egitmen@adresiniz.com"
+                      value={instructorFormData.email}
+                      onChange={handleInstructorChange}
+                      autoComplete="email"
+                    />
+                    {instructorErrors.email ? (
+                      <p className="signup-field-error" role="alert">
+                        {instructorErrors.email}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-birthdate" className="signup-label">
+                      Doğum Tarihi
+                    </label>
+                    <SignupBirthDatePicker
+                      id="signup-instructor-birthdate"
+                      value={instructorFormData.birthDate}
+                      onChange={(iso) => {
+                        setInstructorFormData((prev) => ({
+                          ...prev,
+                          birthDate: iso,
+                        }));
+                        clearInstructorError("birthDate");
+                      }}
+                    />
+                    {instructorErrors.birthDate ? (
+                      <p className="signup-field-error" role="alert">
+                        {instructorErrors.birthDate}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-password" className="signup-label">
+                      Şifre
+                    </label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="signup-instructor-password"
+                      name="password"
+                      className={`signup-input${instructorErrors.password ? " signup-input--error" : ""}`}
+                      placeholder="En az 8 karakter"
+                      value={instructorFormData.password}
+                      onChange={handleInstructorChange}
+                      autoComplete="new-password"
+                    />
+                    {instructorErrors.password ? (
+                      <p className="signup-field-error" role="alert">
+                        {instructorErrors.password}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-national-id" className="signup-label">
+                      TC Kimlik No
+                    </label>
+                    <input
+                      type="text"
+                      id="signup-instructor-national-id"
+                      name="nationalId"
+                      className={`signup-input${instructorErrors.nationalId ? " signup-input--error" : ""}`}
+                      placeholder="TC kimlik numaranızı girin"
+                      value={instructorFormData.nationalId}
+                      onChange={handleInstructorNationalIdChange}
+                      inputMode="numeric"
+                      maxLength={11}
+                      autoComplete="off"
+                    />
+                    {instructorErrors.nationalId ? (
+                      <p className="signup-field-error" role="alert">
+                        {instructorErrors.nationalId}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="signup-field">
+                    <label htmlFor="signup-instructor-reference" className="signup-label">
+                      Referansınız
+                    </label>
+                    <input
+                      type="text"
+                      id="signup-instructor-reference"
+                      name="reference"
+                      className="signup-input"
+                      placeholder="Referans kişi veya kurumu yazın"
+                      value={instructorFormData.reference}
+                      onChange={handleInstructorChange}
+                    />
+                  </div>
+
+                  <label className="signup-checkbox">
+                    <input
+                      type="checkbox"
+                      name="acceptTerms"
+                      checked={instructorFormData.acceptTerms}
+                      onChange={handleInstructorChange}
+                    />
+                    <span>
+                      Kayıt olarak{" "}
+                      <Link href="/terms" className="signup-link-inline">
+                        Kullanım Koşullarımızı
+                      </Link>{" "}
+                      ve{" "}
+                      <Link href="/privacy" className="signup-link-inline">
+                        Gizlilik Politikamızı
+                      </Link>{" "}
+                      kabul etmiş olursunuz.
+                    </span>
+                  </label>
+
+              <button
+                type="button"
+                className="signup-primary-button"
+                onClick={handleInstructorSubmit}
+              >
+                Bireysel Eğitmen Hesabı Oluştur
+              </button>
+            </section>
+          ) : null}
 
           <p className="signup-bottom-text">
             Zaten bir hesabınız var mı?{" "}
