@@ -51,7 +51,7 @@ a.category-results-card {
 .category-results-card-top {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   gap: 12px;
   width: 100%;
   min-width: 0;
@@ -94,6 +94,9 @@ a.category-results-card {
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   svg {
     color: $purple-main;
@@ -179,6 +182,11 @@ a.category-results-card {
   line-height: 1.3;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 
   @media (max-width: 480px) {
     font-size: 18px;
@@ -193,6 +201,11 @@ a.category-results-card {
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 
   @media (max-width: 480px) {
     font-size: 13px;

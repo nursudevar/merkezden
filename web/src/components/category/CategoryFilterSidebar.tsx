@@ -933,6 +933,31 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
     renderedFeatureGroups,
   } = model;
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const hasAdvancedFilters =
+    commonFields.length > 0 || renderedFeatureGroups.length > 0;
+  const showLoginHint =
+    hasDynamicFeatureMode &&
+    !featureGroupsLoading &&
+    isAuthenticated === false &&
+    !hasAdvancedFilters;
+
   return (
     <aside className="category-filter-sidebar">
       <div className="category-filter-sidebar-card">
@@ -1156,7 +1181,7 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
                                 onChange={() => toggleCommonMulti(field.definitionId, c.id)}
                                 className="category-filter-checkbox-input"
                               />
-                              <span className="category-filter-checkbox-label" title={c.name}>
+                              <span className="category-filter-checkbox-label">
                                 {c.name}
                               </span>
                             </label>
@@ -1220,7 +1245,7 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
                                 onChange={() => toggleFeatureOption(group.id, option.key)}
                                 className="category-filter-checkbox-input"
                               />
-                              <span className="category-filter-checkbox-label" title={option.label}>
+                              <span className="category-filter-checkbox-label">
                                 {option.label}
                               </span>
                             </label>
@@ -1293,6 +1318,12 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
               </div>
             </>
           )}
+
+          {showLoginHint ? (
+            <p className="category-filter-login-hint" role="note">
+              Daha fazla filtreleme yapmak için lütfen giriş yapınız.
+            </p>
+          ) : null}
         </div>
       </div>
     </aside>

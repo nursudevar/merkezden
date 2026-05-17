@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import Footer from "@/components/layout/Footer";
+import { ClampedTextTooltipGlobal } from "@/components/ClampedTextTooltipGlobal";
 import "@/styles/main.scss";
 import "leaflet/dist/leaflet.css";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
@@ -33,6 +34,7 @@ export default function RootLayout({
         className={`${plusJakartaSans.variable}`}
       >
         {children}
+        <ClampedTextTooltipGlobal />
         <Footer />
       </body>
     </html>

@@ -789,10 +789,9 @@ export default function OkullarPageClient() {
                             <td
                               key={col}
                               className={tdClass || undefined}
-                              title={isTruncate && display !== '-' ? display : undefined}
                             >
                               {isCategory && display !== '-' ? (
-                                <span className="okullar-category-badge" title={display}>
+                                <span className="okullar-category-badge">
                                   {display}
                                 </span>
                               ) : isInstitutionName && display !== '-' && institutionIdString ? (

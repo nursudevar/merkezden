@@ -23,15 +23,6 @@ interface CategoryResultsCardProps {
   subcategoryName?: string;
 }
 
-const DESCRIPTION_MAX_LENGTH = 100;
-
-function truncateDescription(value: string, max = DESCRIPTION_MAX_LENGTH): string {
-  const text = String(value ?? "").trim();
-  if (!text) return "";
-  if (text.length <= max) return text;
-  return `${text.slice(0, max).trimEnd()}...`;
-}
-
 export default function CategoryResultsCard({
   id,
   name,
@@ -46,7 +37,7 @@ export default function CategoryResultsCard({
   subcategoryName,
 }: CategoryResultsCardProps) {
   const institutionSlug = String(slug ?? "").trim();
-  const truncatedDescription = truncateDescription(description);
+  const descriptionText = String(description ?? "").trim();
   const subcategoryLabel = String(subcategoryName ?? "").trim();
 
   const cardContent = (
@@ -91,8 +82,8 @@ export default function CategoryResultsCard({
       </div>
 
       <div className="category-results-card-content">
-        {truncatedDescription ? (
-          <p className="category-results-card-description">{truncatedDescription}</p>
+        {descriptionText ? (
+          <p className="category-results-card-description">{descriptionText}</p>
         ) : null}
 
         <div className="category-results-card-location">

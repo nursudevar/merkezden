@@ -132,6 +132,16 @@
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+
+  /* Giriş Yap + Kayıt Ol — masaüstü header (md+) */
+  .button-primary {
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    padding: 0 18px;
+    line-height: 1;
+    box-sizing: border-box;
+  }
 }
 
 // .header-actions yalnızca md+ görünür; .header-actions-nav gibi bu sınıf masaüstünde gizlenmez (Giriş ile aynı gradient buton).
@@ -139,6 +149,16 @@
   display: inline-flex;
   align-items: center;
   text-decoration: none;
+
+  /* Nasıl Çalışır? — Giriş/Kayıt ile aynı ölçü */
+  .button-primary {
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    padding: 0 18px;
+    line-height: 1;
+    box-sizing: border-box;
+  }
 }
 
 @media (min-width: 768px) {
@@ -165,8 +185,8 @@
     flex-direction: column;
     justify-content: center;
     gap: 6px;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(to right, rgb(109, 93, 252), rgb(127, 86, 217), rgb(148, 84, 255));
     border: none;
     padding: 0;

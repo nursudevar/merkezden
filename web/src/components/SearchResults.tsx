@@ -868,7 +868,7 @@ export default function SearchResults({
                   <span>{result.location}</span>
                 </div>
                 <h3 className="search-result-name">{result.name}</h3>
-                <p className="search-result-description" title={result.description}>{result.description}</p>
+                <p className="search-result-description">{result.description}</p>
               </div>
             </Link>
             );
