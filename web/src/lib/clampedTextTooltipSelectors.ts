@@ -1,7 +1,6 @@
 /** CSS line-clamp / ellipsis ile kesilen metin alanları — global tooltip hedefleri. */
 export const CLAMPED_TEXT_TOOLTIP_SELECTORS = [
   ".featured-institutions-list-card-title",
-  ".featured-institutions-list-card-district",
   ".featured-institution-name",
   ".featured-institution-subcategory",
   ".category-results-card-title",

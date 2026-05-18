@@ -41,7 +41,7 @@ export function FeaturedInstitutionListCard({
             alt=""
             fill
             className="featured-institutions-list-card-logo-image"
-            sizes="48px"
+            sizes="(max-width: 640px) 28vw, 12vw"
             unoptimized
             onError={onImageError}
           />
@@ -53,9 +53,6 @@ export function FeaturedInstitutionListCard({
       </div>
       <div className="featured-institutions-list-card-body">
         <h3 className="featured-institutions-list-card-title">{institution.name}</h3>
-        {institution.district ? (
-          <p className="featured-institutions-list-card-district">{institution.district}</p>
-        ) : null}
       </div>
     </Link>
   );

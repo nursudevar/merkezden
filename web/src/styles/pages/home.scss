@@ -2496,17 +2496,18 @@ a.featured-institutions-list-card {
 
 .featured-institutions-list-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 6px;
+  display: grid;
+  grid-template-rows: minmax(0, 7fr) minmax(0, 3fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  aspect-ratio: 1 / 0.95;
   background-color: $bg-white;
   border: 1px solid $border-light;
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
   @include transition;
   transition-property: box-shadow, transform, border-color;
 
@@ -2518,29 +2519,22 @@ a.featured-institutions-list-card {
   }
 
   @media (max-width: 640px) {
-    padding: 8px 6px;
-    gap: 6px;
+    aspect-ratio: 1 / 0.98;
     border-radius: 8px;
   }
 }
 
 .featured-institutions-list-card-logo {
   position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
   overflow: hidden;
-  flex-shrink: 0;
   background: linear-gradient(135deg, #f4f0ff 0%, #ebe4ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-
-  @media (max-width: 640px) {
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-  }
 }
 
 .featured-institutions-list-card-logo-image {
@@ -2549,54 +2543,53 @@ a.featured-institutions-list-card {
 }
 
 .featured-institutions-list-card-logo-fallback {
-  font-size: 14px;
+  font-size: 22px;
   font-weight: $font-bold;
   color: #5f2fd1;
   line-height: 1;
 
   @media (max-width: 640px) {
-    font-size: 12px;
+    font-size: 18px;
   }
 }
 
 .featured-institutions-list-card-body {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
   width: 100%;
   min-width: 0;
-  text-align: center;
-}
-
-.featured-institutions-list-card-title {
-  margin: 0;
-  font-size: 11px;
-  font-weight: $font-semibold;
-  color: $text-zinc-900;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  min-height: 0;
+  padding: 5px;
+  box-sizing: border-box;
   overflow: hidden;
-  width: 100%;
 
   @media (max-width: 640px) {
-    font-size: 10px;
+    padding: 3px 5px 4px;
   }
 }
 
-.featured-institutions-list-card-district {
+.featured-institutions-list-card-title {
+  --featured-list-title-lh: 1.25;
   margin: 0;
   font-size: 10px;
-  color: $text-zinc-500;
-  line-height: 1.2;
-  white-space: nowrap;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+  line-height: var(--featured-list-title-lh);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  max-height: calc(2 * var(--featured-list-title-lh) * 1em);
   width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 
   @media (max-width: 640px) {
+    --featured-list-title-lh: 1.2;
     font-size: 9px;
   }
 }
