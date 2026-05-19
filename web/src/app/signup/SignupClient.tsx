@@ -130,6 +130,7 @@ export default function SignupClient() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [isInstructorSubmitting, setIsInstructorSubmitting] = useState(false);
   const [instructorFormData, setInstructorFormData] = useState<InstructorFormData>({
     firstName: "",
     lastName: "",
@@ -343,7 +344,7 @@ export default function SignupClient() {
     return errors;
   };
 
-  const handleInstructorSubmit = () => {
+  const handleInstructorSubmit = async () => {
     if (!instructorFormData.acceptTerms) {
       setModalState({
         isOpen: true,
@@ -367,13 +368,81 @@ export default function SignupClient() {
     }
 
     setInstructorErrors({});
-    setModalState({
-      isOpen: true,
-      type: "success",
-      title: "Bilgiler doğrulandı",
-      message:
-        "Bireysel eğitmen kaydı çok yakında aktif olacaktır. Şimdilik bilgileriniz yalnızca ön doğrulamadan geçti.",
-    });
+
+    const firstName = instructorFormData.firstName.trim();
+    const lastName = instructorFormData.lastName.trim();
+    const email = instructorFormData.email.trim();
+    const password = instructorFormData.password;
+
+    setIsInstructorSubmitting(true);
+
+    try {
+      const { data: emailExists, error: emailCheckError } = await supabase.rpc(
+        "check_email_exists",
+        { p_email: email.toLowerCase() },
+      );
+
+      if (emailCheckError) {
+      }
+
+      if (emailExists === true) {
+        setModalState({
+          isOpen: true,
+          type: "email-exists",
+          title: "Hesabınız zaten mevcut",
+          message: "Bu e-posta adresiyle zaten bir hesabınız var. Lütfen giriş yapın.",
+        });
+        setIsInstructorSubmitting(false);
+        return;
+      }
+
+      const metadata = {
+        user_type: "instructor",
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim(),
+        birth_date: instructorFormData.birthDate,
+        tc_identity_no: instructorFormData.nationalId,
+        reference: instructorFormData.reference.trim() || null,
+      };
+
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata,
+        },
+      });
+
+      if (error) {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Kayıt başarısız",
+          message: "Bireysel eğitmen hesabı oluşturulurken bir hata oluştu.",
+        });
+        setIsInstructorSubmitting(false);
+        return;
+      }
+
+      setModalState({
+        isOpen: true,
+        type: "success",
+        title: "Kayıt başarılı",
+        message:
+          "Bireysel eğitmen hesabınız oluşturuldu. Lütfen e-postanızı onayladıktan sonra giriş yapın.",
+      });
+      setIsInstructorSubmitting(false);
+    } catch (err) {
+      console.error("INSTRUCTOR SIGNUP ERROR:", err);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Kayıt başarısız",
+        message: "Bireysel eğitmen hesabı oluşturulurken bir hata oluştu.",
+      });
+      setIsInstructorSubmitting(false);
+    }
   };
 
   return (
@@ -815,8 +884,9 @@ export default function SignupClient() {
                 type="button"
                 className="signup-primary-button"
                 onClick={handleInstructorSubmit}
+                disabled={isInstructorSubmitting}
               >
-                Bireysel Eğitmen Hesabı Oluştur
+                {isInstructorSubmitting ? "Hesabınız oluşturuluyor..." : "Bireysel Eğitmen Hesabı Oluştur"}
               </button>
             </section>
           ) : null}
