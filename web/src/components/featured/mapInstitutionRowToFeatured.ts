@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import type { FeaturedInstitution } from "./featuredInstitutionTypes";
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
@@ -22,10 +23,7 @@ export function mapInstitutionRowToFeatured(
   const city = String(row.city ?? "").trim();
   const district = String(row.district ?? "").trim();
   const location = [district, city].filter(Boolean).join(", ");
-  const logoPath = String(row.logo ?? "").trim();
-  const logoUrl = logoPath
-    ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
-    : "";
+  const logoUrl = resolveInstitutionLogoPublicUrl(supabase, String(row.logo ?? ""));
 
   return {
     id,

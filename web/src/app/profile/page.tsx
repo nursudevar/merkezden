@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { resolveInstitutionLogoPublicUrl } from '@/lib/institutionLogoUrl';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { HeaderClientWrapper } from '@/components/layout/header.client';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
@@ -397,15 +398,8 @@ function FavoritesSection() {
   const normalizedFavorites = useMemo(() => {
     const supabase = createSupabaseBrowserClient();
     return favorites.map((inst) => {
-      const rawLogo = String(inst.logo ?? '').trim();
-      if (!rawLogo) {
-        return { ...inst, logoUrl: null as string | null };
-      }
-      if (/^https?:\/\//i.test(rawLogo)) {
-        return { ...inst, logoUrl: rawLogo };
-      }
-      const publicUrl = supabase.storage.from('institution-logos').getPublicUrl(rawLogo).data.publicUrl;
-      return { ...inst, logoUrl: publicUrl || null };
+      const logoUrl = resolveInstitutionLogoPublicUrl(supabase, inst.logo);
+      return { ...inst, logoUrl: logoUrl || null };
     });
   }, [favorites]);
 

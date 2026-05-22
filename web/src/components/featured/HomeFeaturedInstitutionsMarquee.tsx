@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { FeaturedInstitution } from "./featuredInstitutionTypes";
+import { fetchHomeFeaturedPinnedRows } from "./homeFeaturedPinned";
 import { mapInstitutionRowToFeatured } from "./mapInstitutionRowToFeatured";
 import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
+
+const MARQUEE_FEATURED_COUNT = 8;
+
+const MARQUEE_INSTITUTION_SELECT =
+  "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))";
 
 export function HomeFeaturedInstitutionsMarquee({
   onToggleFavorite,
@@ -27,24 +33,30 @@ export function HomeFeaturedInstitutionsMarquee({
 }) {
   const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState<FeaturedInstitution[]>([]);
   const [brokenFeaturedImageIds, setBrokenFeaturedImageIds] = useState<Set<number>>(() => new Set());
-  const [featuredPinnedDeneme, setFeaturedPinnedDeneme] = useState<FeaturedInstitution | null>(null);
+  const [featuredPinnedInstitutions, setFeaturedPinnedInstitutions] = useState<FeaturedInstitution[]>(
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const { data: row, error } = await supabase
-        .from("institutions")
-        .select(
-          "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))",
-        )
-        .eq("institution_name", "Deneme")
-        .maybeSingle();
+      const pinnedRows = await fetchHomeFeaturedPinnedRows(supabase);
 
-      if (cancelled || error || !row) return;
+      if (cancelled) return;
 
-      const mapped = mapInstitutionRowToFeatured(supabase, row as Record<string, unknown>);
-      if (mapped) setFeaturedPinnedDeneme(mapped);
+      const pinned: FeaturedInstitution[] = [];
+      const pinnedIds = new Set<number>();
+
+      for (const row of pinnedRows) {
+        const mapped = mapInstitutionRowToFeatured(supabase, row);
+        if (mapped && !pinnedIds.has(mapped.id)) {
+          pinned.push(mapped);
+          pinnedIds.add(mapped.id);
+        }
+      }
+
+      setFeaturedPinnedInstitutions(pinned);
     })();
     return () => {
       cancelled = true;
@@ -57,9 +69,7 @@ export function HomeFeaturedInstitutionsMarquee({
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("institutions")
-        .select(
-          "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))",
-        )
+        .select(MARQUEE_INSTITUTION_SELECT)
         .not("institution_name", "is", null)
         .limit(180);
 
@@ -84,12 +94,16 @@ export function HomeFeaturedInstitutionsMarquee({
     };
   }, []);
 
-  const featuredList = featuredPinnedDeneme
-    ? [
-        featuredPinnedDeneme,
-        ...shuffledFeaturedInstitutions.filter((i) => i.id !== featuredPinnedDeneme.id).slice(0, 7),
-      ]
-    : shuffledFeaturedInstitutions;
+  const pinnedIds = new Set(featuredPinnedInstitutions.map((i) => i.id));
+  const featuredList =
+    featuredPinnedInstitutions.length > 0
+      ? [
+          ...featuredPinnedInstitutions,
+          ...shuffledFeaturedInstitutions
+            .filter((i) => !pinnedIds.has(i.id))
+            .slice(0, Math.max(0, MARQUEE_FEATURED_COUNT - featuredPinnedInstitutions.length)),
+        ]
+      : shuffledFeaturedInstitutions;
   const marqueeList = [...featuredList, ...featuredList];
 
   return (

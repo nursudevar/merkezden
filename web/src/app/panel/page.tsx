@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import {
   loadInstitutionRowForAuthUserClient,
   resolveIsAdminFromUserRolesClient,
@@ -886,7 +887,7 @@ interface InstitutionDetailPreparedData {
       resolveIsAdminFromUserRolesClient(user.id),
     ]).then(([type, adminFlag]) => {
       if (!cancelled) {
-        setUserType(type);
+        setUserType(type === "individual" || type === "institution" ? type : null);
         setIsAdmin(adminFlag);
         setRoleLoaded(true);
       }
@@ -961,9 +962,7 @@ interface InstitutionDetailPreparedData {
         typeof row.institution_type_id === "number" ? String(row.institution_type_id) : ""
       );
 
-      const logoUrl = row.logo
-        ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
-        : "";
+      const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
 
       setInstitutionName(row.institution_name || "");
 
@@ -1553,9 +1552,7 @@ interface InstitutionDetailPreparedData {
         working_hours_end?: string | null;
       };
 
-      const logoUrl = row.logo
-        ? supabase.storage.from("institution-logos").getPublicUrl(row.logo).data.publicUrl
-        : "";
+      const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
 
       const nextForm = {
         institutionName: row.institution_name || "",

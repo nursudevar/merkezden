@@ -11,6 +11,7 @@ import {
   resolveInstitutionNameFromUsersClient,
   resolveInstitutionSlugFromUsersClient,
   resolveUserTypeFromUsersClient,
+  type AppUserType,
 } from "@/lib/auth/authBrowserClient";
 import { Button } from "@/components/ui";
 import SearchBar from "@/components/SearchBar";
@@ -62,11 +63,12 @@ export function HeaderBrandLogo() {
 
 interface HeaderWithSearchClientProps {
   user: { id: string; email?: string } | null;
-  userType: "individual" | "institution" | null;
+  userType: AppUserType | null;
   isAdmin?: boolean;
   institutionName?: string | null;
   institutionSlug?: string | null;
   individualName?: string | null;
+  instructorName?: string | null;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -81,6 +83,7 @@ export function HeaderWithSearchClient({
   institutionName,
   institutionSlug,
   individualName,
+  instructorName,
   searchValue = "",
   onSearchChange,
   searchPlaceholder,
@@ -88,14 +91,20 @@ export function HeaderWithSearchClient({
   showSearchButton = true,
 }: HeaderWithSearchClientProps) {
   const welcomeName =
-    userType === "institution" ? institutionName || "Kurum Hesabı" : individualName || "Kullanıcı";
+    userType === "institution"
+      ? institutionName || "Kurum Hesabı"
+      : userType === "instructor"
+        ? instructorName || "Eğitmen Hesabı"
+        : individualName || "Kullanıcı";
   const getCTALabel = () => {
     if (userType === "institution") return "YÖNETİM PANELİ";
+    if (userType === "instructor") return "EĞİTMEN PANELİ";
     return "PROFİL";
   };
 
   const getCTAHref = () => {
     if (userType === "institution") return "/panel";
+    if (userType === "instructor") return "/egitmen-paneli";
     return "/profile";
   };
 
@@ -171,7 +180,8 @@ export function HeaderWithSearchClient({
               </button>
               {menuOpen && (
                 <div className="header-hamburger-dropdown">
-                  {user && (userType === "institution" || userType === "individual") &&
+                  {user &&
+                    (userType === "institution" || userType === "individual" || userType === "instructor") &&
                     (userType === "institution" ? (
                       <Link
                         href={institutionDetailHref}
@@ -209,6 +219,12 @@ export function HeaderWithSearchClient({
                       <span>{getCTALabel()}</span>
                     </Link>
                   )}
+                  {user && userType === "instructor" && shouldShowCTA && (
+                    <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                      <LayoutDashboard className="header-hamburger-icon" aria-hidden />
+                      <span>Eğitmen Paneli</span>
+                    </Link>
+                  )}
                   {user && isAdmin && (
                     <Link href="/admin" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                       <Shield className="header-hamburger-icon" aria-hidden />
@@ -241,7 +257,10 @@ export function HeaderWithSearchClient({
                   </Link>
                   {user ? (
                     <>
-                      {shouldShowCTA && userType !== "institution" && userType !== "individual" && (
+                      {shouldShowCTA &&
+                        userType !== "institution" &&
+                        userType !== "individual" &&
+                        userType !== "instructor" && (
                         <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                           <User className="header-hamburger-icon" aria-hidden />
                           <span>{getCTALabel()}</span>
@@ -349,7 +368,8 @@ export function HeaderWithSearchClient({
               </button>
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
-                  {user && (userType === "institution" || userType === "individual") &&
+                  {user &&
+                    (userType === "institution" || userType === "individual" || userType === "instructor") &&
                     (userType === "institution" ? (
                       <Link
                         href={institutionDetailHref}
@@ -395,6 +415,16 @@ export function HeaderWithSearchClient({
                       <span>{getCTALabel()}</span>
                     </Link>
                   )}
+                  {user && userType === "instructor" && shouldShowCTA && (
+                    <Link
+                      href={getCTAHref()}
+                      className="header-hamburger-link"
+                      onClick={() => setDesktopMenuOpen(false)}
+                    >
+                      <LayoutDashboard className="header-hamburger-icon" aria-hidden />
+                      <span>EĞİTMEN PANELİ</span>
+                    </Link>
+                  )}
                   {user && isAdmin && (
                     <Link
                       href="/admin"
@@ -429,7 +459,11 @@ export function HeaderWithSearchClient({
                     <HelpCircle className="header-hamburger-icon" aria-hidden />
                     <span>S.S.S</span>
                   </Link>
-                  {user && shouldShowCTA && userType !== "institution" && userType !== "individual" && (
+                  {user &&
+                    shouldShowCTA &&
+                    userType !== "institution" &&
+                    userType !== "individual" &&
+                    userType !== "instructor" && (
                     <Link
                       href={getCTAHref()}
                       className="header-hamburger-link"
@@ -461,11 +495,12 @@ export function HeaderWithSearchClient({
 
 interface HeaderClientProps {
   initialUser: { id: string; email?: string } | null;
-  initialUserType: "individual" | "institution" | null;
+  initialUserType: AppUserType | null;
   initialIsAdmin?: boolean;
   initialInstitutionName?: string | null;
   initialInstitutionSlug?: string | null;
   initialIndividualName?: string | null;
+  initialInstructorName?: string | null;
 }
 
 export function HeaderClient({
@@ -475,6 +510,7 @@ export function HeaderClient({
   initialInstitutionName,
   initialInstitutionSlug,
   initialIndividualName,
+  initialInstructorName,
 }: HeaderClientProps) {
   return (
     <HeaderWithSearchClient
@@ -484,6 +520,7 @@ export function HeaderClient({
       institutionName={initialInstitutionName}
       institutionSlug={initialInstitutionSlug}
       individualName={initialIndividualName}
+      instructorName={initialInstructorName}
     />
   );
 }
@@ -504,11 +541,12 @@ export function HeaderWithSearch({
   showSearchButton,
 }: HeaderWithSearchProps) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [userType, setUserType] = useState<"individual" | "institution" | null>(null);
+  const [userType, setUserType] = useState<AppUserType | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
+  const [instructorName, setInstructorName] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -530,6 +568,7 @@ export function HeaderWithSearch({
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
+          setInstructorName(null);
         }
         setIsAuthReady(true);
       });
@@ -550,6 +589,7 @@ export function HeaderWithSearch({
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
+          setInstructorName(null);
         }
       });
     });
@@ -625,6 +665,20 @@ export function HeaderWithSearch({
     let cancelled = false;
     resolveIndividualNameFromUsersClient(user.id).then((name) => {
       if (!cancelled) setIndividualName(name || "Kullanıcı");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, userType]);
+
+  useEffect(() => {
+    if (!user?.id || userType !== "instructor") {
+      setInstructorName(null);
+      return;
+    }
+    let cancelled = false;
+    resolveIndividualNameFromUsersClient(user.id).then((name) => {
+      if (!cancelled) setInstructorName(name || "Eğitmen");
     });
     return () => {
       cancelled = true;
@@ -642,6 +696,7 @@ export function HeaderWithSearch({
       institutionName={displayUserType === "institution" ? institutionName : null}
       institutionSlug={displayUserType === "institution" ? institutionSlug : null}
       individualName={displayUserType === "individual" ? individualName : null}
+      instructorName={displayUserType === "instructor" ? instructorName : null}
       searchValue={searchValue}
       onSearchChange={onSearchChange}
       searchPlaceholder={searchPlaceholder}
@@ -653,11 +708,12 @@ export function HeaderWithSearch({
 
 export function HeaderClientWrapper() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [userType, setUserType] = useState<"individual" | "institution" | null>(null);
+  const [userType, setUserType] = useState<AppUserType | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
   const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
+  const [instructorName, setInstructorName] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -679,6 +735,7 @@ export function HeaderClientWrapper() {
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
+          setInstructorName(null);
         }
         setIsAuthReady(true);
       });
@@ -699,6 +756,7 @@ export function HeaderClientWrapper() {
           setInstitutionName(null);
           setInstitutionSlug(null);
           setIndividualName(null);
+          setInstructorName(null);
         }
       });
     });
@@ -780,6 +838,20 @@ export function HeaderClientWrapper() {
     };
   }, [user?.id, userType]);
 
+  useEffect(() => {
+    if (!user?.id || userType !== "instructor") {
+      setInstructorName(null);
+      return;
+    }
+    let cancelled = false;
+    resolveIndividualNameFromUsersClient(user.id).then((name) => {
+      if (!cancelled) setInstructorName(name || "Eğitmen");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, userType]);
+
   const displayUser = isAuthReady ? user : null;
   const displayUserType = isAuthReady ? userType : null;
 
@@ -791,6 +863,7 @@ export function HeaderClientWrapper() {
       initialInstitutionName={displayUserType === "institution" ? institutionName : null}
       initialInstitutionSlug={displayUserType === "institution" ? institutionSlug : null}
       initialIndividualName={displayUserType === "individual" ? individualName : null}
+      initialInstructorName={displayUserType === "instructor" ? instructorName : null}
     />
   );
 }

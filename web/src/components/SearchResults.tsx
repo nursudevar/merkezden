@@ -7,6 +7,7 @@ import { Building2, Heart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { matchesSearch } from "@/lib/utils";
 import "@/styles/pages/home.scss";
 
@@ -628,10 +629,7 @@ export default function SearchResults({
                 | undefined;
               const mainCategory = String(institutionType?.category?.name ?? "").trim();
               const subCategory = String(institutionType?.name ?? "").trim() || type;
-              const logoPath = String(row.logo ?? "").trim();
-              const imageUrl = logoPath
-                ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
-                : "";
+              const imageUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
 
               return {
                 id: id.toString(),

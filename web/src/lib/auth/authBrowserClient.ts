@@ -135,9 +135,11 @@ export async function resolveInstitutionSlugFromUsersClient(
 
 // --- Kullanıcı (users) -------------------------------------------------------
 
+export type AppUserType = "individual" | "institution" | "instructor";
+
 export async function resolveUserTypeFromUsersClient(
   authUid: string
-): Promise<"individual" | "institution" | null> {
+): Promise<AppUserType | null> {
   try {
     const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase
@@ -152,7 +154,7 @@ export async function resolveUserTypeFromUsersClient(
     }
 
     const type = data?.user_type;
-    if (type === "individual" || type === "institution") {
+    if (type === "individual" || type === "institution" || type === "instructor") {
       return type;
     }
     return null;

@@ -26,6 +26,7 @@ import {
   ImageOff,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { isMebInstitution } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionWorkingHours";
 import ShareButton from "./ShareButton";
@@ -379,9 +380,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       return "";
     }
 
-    const normalizedLogoPath = rawLogoPath.replace(/^\/+/, "");
-    const resolvedUrl =
-      supabase.storage.from("institution-logos").getPublicUrl(normalizedLogoPath).data.publicUrl || "";
+    const resolvedUrl = resolveInstitutionLogoPublicUrl(supabase, rawLogoPath);
 
     console.info("[institutions][detail][logo][raw]", rawLogoPath);
     console.info("[institutions][detail][logo][resolved]", resolvedUrl);
@@ -856,9 +855,21 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
               <div className="institution-hero-main">
                 <div className="institution-logo-section">
                   <div className="institution-logo-wrapper">
-                    <div className="institution-logo institution-logo--meb-fallback">
-                      <GraduationCap size={56} />
-                    </div>
+                    {hasLogo ? (
+                      <Image
+                        src={logoUrl}
+                        alt={name}
+                        width={160}
+                        height={160}
+                        className="institution-logo"
+                        unoptimized
+                        onError={() => setLogoLoadFailed(true)}
+                      />
+                    ) : (
+                      <div className="institution-logo institution-logo--meb-fallback">
+                        <GraduationCap size={56} />
+                      </div>
+                    )}
                   </div>
                 </div>
 

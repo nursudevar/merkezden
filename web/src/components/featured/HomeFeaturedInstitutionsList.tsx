@@ -6,10 +6,14 @@ import {
   FeaturedInstitutionListCard,
   type FeaturedInstitutionListItem,
 } from "./FeaturedInstitutionListCard";
+import { fetchHomeFeaturedPinnedRows } from "./homeFeaturedPinned";
 import { mapInstitutionRowToListItem } from "./mapInstitutionRowToListItem";
 
 const LIST_SIZE = 36;
 const FETCH_LIMIT = 300;
+
+const INSTITUTION_SELECT =
+  "id, slug, source, institution_name, district, logo";
 
 function shuffleInstitutions<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -19,9 +23,6 @@ function shuffleInstitutions<T>(items: T[]): T[] {
   }
   return shuffled;
 }
-
-const INSTITUTION_SELECT =
-  "id, slug, source, institution_name, district, logo";
 
 export function HomeFeaturedInstitutionsList() {
   const [institutions, setInstitutions] = useState<FeaturedInstitutionListItem[]>([]);
@@ -33,12 +34,8 @@ export function HomeFeaturedInstitutionsList() {
     (async () => {
       const supabase = createSupabaseBrowserClient();
 
-      const [denemeResult, listResult] = await Promise.all([
-        supabase
-          .from("institutions")
-          .select(INSTITUTION_SELECT)
-          .eq("institution_name", "Deneme")
-          .maybeSingle(),
+      const [pinnedRows, listResult] = await Promise.all([
+        fetchHomeFeaturedPinnedRows(supabase),
         supabase
           .from("institutions")
           .select(INSTITUTION_SELECT)
@@ -48,12 +45,19 @@ export function HomeFeaturedInstitutionsList() {
 
       if (cancelled) return;
 
-      const pinnedDeneme = denemeResult.data
-        ? mapInstitutionRowToListItem(supabase, denemeResult.data as Record<string, unknown>)
-        : null;
+      const pinned: FeaturedInstitutionListItem[] = [];
+      const pinnedIds = new Set<number>();
+
+      for (const row of pinnedRows) {
+        const item = mapInstitutionRowToListItem(supabase, row);
+        if (item && !pinnedIds.has(item.id)) {
+          pinned.push(item);
+          pinnedIds.add(item.id);
+        }
+      }
 
       if (listResult.error || !listResult.data) {
-        if (pinnedDeneme) setInstitutions([pinnedDeneme]);
+        if (pinned.length > 0) setInstitutions(pinned);
         return;
       }
 
@@ -62,15 +66,16 @@ export function HomeFeaturedInstitutionsList() {
         .filter((item): item is FeaturedInstitutionListItem => item !== null);
 
       if (mapped.length === 0) {
-        if (pinnedDeneme) setInstitutions([pinnedDeneme]);
+        if (pinned.length > 0) setInstitutions(pinned);
         return;
       }
 
-      const others = shuffleInstitutions(
-        pinnedDeneme ? mapped.filter((item) => item.id !== pinnedDeneme.id) : mapped,
-      ).slice(0, pinnedDeneme ? LIST_SIZE - 1 : LIST_SIZE);
+      const others = shuffleInstitutions(mapped.filter((item) => !pinnedIds.has(item.id))).slice(
+        0,
+        Math.max(0, LIST_SIZE - pinned.length),
+      );
 
-      setInstitutions(pinnedDeneme ? [pinnedDeneme, ...others] : others);
+      setInstitutions([...pinned, ...others]);
     })();
 
     return () => {

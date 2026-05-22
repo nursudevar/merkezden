@@ -1,0 +1,924 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+/* Eğitmen paneli — kurum paneliyle aynı görsel dil, ayrı sınıf adları */
+
+.egitmen-panel-page {
+  min-height: 100vh;
+  width: 100%;
+  background-color: $bg-zinc-50;
+  overflow-x: hidden;
+}
+
+.egitmen-panel-page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: $text-lg;
+  color: $text-zinc-600;
+}
+
+.egitmen-panel-page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px 20px;
+  }
+
+  @media (max-width: 720px) {
+    padding: 20px 16px;
+    gap: 20px;
+  }
+
+  > * {
+    @media (max-width: 720px) {
+      min-width: 0;
+    }
+  }
+}
+
+.egitmen-panel-sidebar {
+  position: sticky;
+  top: 40px;
+  align-self: start;
+  height: fit-content;
+
+  @media (max-width: 1024px) {
+    position: static;
+    top: auto;
+  }
+}
+
+.egitmen-panel-sidebar-content {
+  background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-md;
+  padding: 32px 24px;
+
+  @media (max-width: 1024px) {
+    padding: 20px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 16px;
+  }
+}
+
+.egitmen-panel-sidebar-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid $border-light;
+}
+
+.egitmen-panel-sidebar-avatar-wrap {
+  margin-bottom: 16px;
+}
+
+.egitmen-panel-sidebar-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba($purple-main, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.egitmen-panel-sidebar-avatar-icon {
+  width: 40px;
+  height: 40px;
+  color: $purple-main;
+}
+
+.egitmen-panel-sidebar-name {
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: $default-text-color;
+  margin: 0 0 6px;
+  line-height: 1.3;
+}
+
+.egitmen-panel-sidebar-role {
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  margin: 0;
+}
+
+.egitmen-panel-sidebar-nav {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @media (max-width: 1024px) {
+    flex-direction: row;
+    gap: 12px;
+    overflow-x: auto;
+  }
+}
+
+.egitmen-panel-sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: transparent;
+  border: none;
+  color: $text-zinc-700;
+  font-size: $text-base;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+  text-align: left;
+  width: 90%;
+
+  @media (max-width: 1024px) {
+    white-space: nowrap;
+    width: auto;
+    padding: 10px 14px;
+    font-size: $text-sm;
+  }
+
+  &:hover {
+    background-color: $bg-zinc-50;
+    color: $text-zinc-900;
+  }
+
+  &--active {
+    background-color: rgba($purple-main, 0.1);
+    color: $purple-main;
+    font-weight: $font-semibold;
+
+    &:hover {
+      background-color: rgba($purple-main, 0.1);
+      color: $purple-main;
+    }
+  }
+
+  &--logout {
+    color: $text-zinc-600;
+  }
+}
+
+.egitmen-panel-sidebar-nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.egitmen-panel-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.egitmen-panel-main-card {
+  background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-md;
+  border: 1px solid $border-light;
+  overflow: hidden;
+}
+
+.egitmen-panel-main-card:has(.egitmen-panel-tab-content) {
+  overflow: visible;
+}
+
+.egitmen-panel-overview-card {
+  overflow: visible;
+}
+
+.egitmen-panel-main-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 30px 24px;
+  border-bottom: 1px solid $border-light;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.egitmen-panel-main-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.egitmen-panel-main-card-icon {
+  width: 24px;
+  height: 24px;
+  color: $purple-main;
+  flex-shrink: 0;
+}
+
+.egitmen-panel-main-card-title {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.egitmen-panel-save-btn {
+  @include gradient-purple-top;
+  color: $bg-white;
+  border: none;
+  padding: 8px 20px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: 12px;
+  min-height: 40px;
+  cursor: pointer;
+  @include transition;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 0.95;
+  }
+}
+
+.egitmen-panel-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  @include gradient-purple-top;
+  color: $bg-white;
+  @include rounded-xl;
+  padding: 10px 20px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border: none;
+  cursor: pointer;
+}
+
+.egitmen-panel-add-btn-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.egitmen-panel-save-message {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba($green-main, 0.08);
+  color: $green-main;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+
+}
+
+/* Genel Bakış */
+.egitmen-panel-overview-header {
+  padding: 24px 30px 16px;
+
+  @media (max-width: 640px) {
+    padding: 20px 20px 12px;
+  }
+}
+
+.egitmen-panel-overview-title {
+  font-size: 20px;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0 0 6px;
+}
+
+.egitmen-panel-overview-subtitle {
+  font-size: 14px;
+  color: $text-zinc-600;
+  margin: 0;
+}
+
+.egitmen-panel-overview-content {
+  padding: 0 30px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    padding: 0 20px 20px;
+  }
+}
+
+.egitmen-panel-overview-box {
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  @include rounded-24;
+  @include shadow-md;
+  padding: 20px 24px;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    padding: 16px 18px;
+  }
+}
+
+.egitmen-panel-overview-box-title {
+  font-size: $text-base;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0 0 10px;
+}
+
+.egitmen-panel-overview-box-body {
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: 1.55;
+
+  p {
+    margin: 0;
+  }
+}
+
+.egitmen-panel-overview-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.egitmen-panel-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.egitmen-panel-stat-card {
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 18px;
+  @include shadow-sm;
+  padding: 16px 18px;
+  min-height: 108px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.egitmen-panel-stat-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.egitmen-panel-stat-card-label {
+  display: block;
+  font-size: 10px;
+  font-weight: $font-semibold;
+  color: rgba($orange-primary, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.egitmen-panel-stat-card-heading {
+  font-size: $text-sm;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.egitmen-panel-stat-card-desc {
+  font-size: 12px;
+  color: $text-zinc-600;
+  margin: 0;
+  line-height: 1.4;
+
+  &--sub {
+    margin-top: 6px;
+  }
+}
+
+.egitmen-panel-stat-card-value-wrap {
+  flex-shrink: 0;
+}
+
+.egitmen-panel-stat-card-value {
+  font-size: 26px;
+  font-weight: $font-bold;
+  color: $purple-main;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Profil durumu — alt satır, tam genişlik (kurum paneli eksik bilgiler kutusu gibi) */
+.egitmen-panel-status-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 18px;
+  @include shadow-sm;
+  padding: 20px 24px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24px;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 20px;
+  }
+}
+
+.egitmen-panel-status-card-main {
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+
+.egitmen-panel-status-card-label {
+  display: block;
+  font-size: 10px;
+  font-weight: $font-semibold;
+  color: rgba($orange-primary, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.egitmen-panel-status-card-heading {
+  font-size: $text-base;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.egitmen-panel-status-card-value {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: $text-base;
+  font-weight: $font-bold;
+  color: $green-main;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.egitmen-panel-status-card-desc {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 auto;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: 1.45;
+  text-align: right;
+
+  @media (max-width: 720px) {
+    margin: 0;
+    text-align: left;
+  }
+}
+
+/* Tab içerikleri */
+.egitmen-panel-card-content {
+  padding: 24px 30px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.egitmen-panel-tab-content {
+  padding: 24px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.egitmen-panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.egitmen-panel-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  &--full {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.egitmen-panel-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.egitmen-panel-form-label {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-zinc-700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.egitmen-panel-form-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  font-size: $text-base;
+  color: $text-zinc-900;
+  background: $bg-white;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: rgba($purple-main, 0.45);
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.12);
+  }
+}
+
+.egitmen-panel-form-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 16px;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  font-size: $text-base;
+  color: $text-zinc-900;
+  background: $bg-white;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: rgba($purple-main, 0.45);
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.12);
+  }
+}
+
+.egitmen-panel-section {
+  background: rgba(250, 250, 250, 0.6);
+  border: 1px solid $border-light;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.egitmen-panel-section-title {
+  margin: 0 0 14px;
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+}
+
+.egitmen-panel-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+
+  &--selection {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 1080px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 820px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.egitmen-panel-option-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: $text-sm;
+  color: $text-zinc-700;
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 14px;
+    height: 14px;
+    accent-color: $purple-main;
+    cursor: pointer;
+  }
+}
+
+/* Medya */
+.egitmen-panel-media {
+  padding: 24px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.egitmen-panel-media-desc {
+  margin: 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: 1.5;
+}
+
+.egitmen-panel-media-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.egitmen-panel-media-upload-card {
+  background: rgba(248, 250, 252, 0.4);
+  border: 1px solid $border-light;
+  border-radius: 18px;
+  padding: 16px;
+  @include shadow-sm;
+}
+
+.egitmen-panel-media-upload-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.egitmen-panel-media-upload-title {
+  margin: 0;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+}
+
+.egitmen-panel-media-upload-subtitle {
+  margin: 6px 0 0;
+  font-size: $text-xs;
+  color: $text-zinc-500;
+}
+
+.egitmen-panel-media-upload-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.egitmen-panel-media-upload-icon {
+  width: 16px;
+  height: 16px;
+  color: $purple-primary;
+}
+
+.egitmen-panel-dropzone {
+  display: block;
+  border: 1.5px dashed rgba(203, 213, 225, 0.95);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 1);
+  padding: 12px;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    border-color: rgba(124, 58, 237, 0.28);
+  }
+
+  input {
+    display: none;
+  }
+}
+
+.egitmen-panel-dropzone-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 100px;
+  text-align: center;
+}
+
+.egitmen-panel-dropzone-icon {
+  width: 22px;
+  height: 22px;
+  color: $purple-primary;
+}
+
+.egitmen-panel-dropzone-title {
+  margin: 0;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-zinc-800;
+}
+
+.egitmen-panel-dropzone-subtitle {
+  margin: 0;
+  font-size: $text-xs;
+  color: $text-zinc-500;
+}
+
+.egitmen-panel-media-cv-block {
+  max-width: 100%;
+}
+
+/* Duyurular */
+.egitmen-panel-announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.egitmen-panel-announcement-item {
+  border: 1px solid $border-light;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: $bg-white;
+}
+
+.egitmen-panel-announcement-item-title {
+  display: block;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+  margin-bottom: 6px;
+}
+
+.egitmen-panel-announcement-item-desc {
+  margin: 0 0 8px;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: 1.45;
+}
+
+.egitmen-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  background: rgba($purple-main, 0.08);
+  color: $purple-main;
+}
+
+.egitmen-panel-form-actions {
+  margin-top: 12px;
+}
+
+.egitmen-panel-announcement-upload {
+  margin-top: 12px;
+}
+
+/* Tablo */
+.egitmen-panel-table-content {
+  padding: 24px 30px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.egitmen-panel-table-wrap {
+  overflow-x: auto;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  @include shadow-sm;
+}
+
+.egitmen-panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $text-sm;
+}
+
+.egitmen-panel-th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  color: $text-zinc-700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: $bg-zinc-50;
+  border-bottom: 1px solid $border-light;
+
+  &--actions {
+    width: 100px;
+    text-align: right;
+  }
+}
+
+.egitmen-panel-tr {
+  border-bottom: 1px solid $border-light;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.egitmen-panel-td {
+  padding: 12px 14px;
+  color: $text-zinc-900;
+  vertical-align: top;
+
+  &--title {
+    font-weight: $font-semibold;
+  }
+
+  &--actions {
+    text-align: right;
+  }
+}
+
+.egitmen-panel-desc-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 220px;
+}
+
+.egitmen-panel-table-action-btn {
+  @include gradient-purple-top;
+  color: $bg-white;
+  border: none;
+  padding: 6px 14px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  border-radius: 10px;
+  min-height: 32px;
+}
+
+.egitmen-panel-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}

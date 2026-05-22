@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 
@@ -807,10 +808,8 @@ function mapRow(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   row: InstitutionRow,
 ): CategoryResultItem {
-  const logoPath = String(row.logo ?? "").trim().replace(/^\/+/, "");
-  const imageUrl = logoPath
-    ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl || undefined
-    : undefined;
+  const imageUrl =
+    resolveInstitutionLogoPublicUrl(supabase, row.logo) || undefined;
   const name = String(row.institution_name ?? "").trim() || FALLBACK;
   const description = String(row.subheading ?? "").trim();
   const location = buildLocation(row.district, row.city);

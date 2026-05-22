@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { matchesSearch } from "@/lib/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 
 type Institution = {
   id: number;
@@ -63,10 +64,8 @@ export async function GET(request: Request) {
         const type = String(row.type ?? "").trim();
         const address = String(row.address ?? "").trim();
         const description = type || address || "Kurum bilgisi";
-        const logoPath = String(row.logo ?? "").trim();
-        const imageUrl = logoPath
-          ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
-          : "/images/hero-banner-car.jpg";
+        const imageUrl =
+          resolveInstitutionLogoPublicUrl(supabase, row.logo) || "/images/hero-banner-car.jpg";
 
         return {
           id,

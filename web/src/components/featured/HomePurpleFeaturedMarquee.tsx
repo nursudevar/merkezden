@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Building2, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 
 const LIST_SIZE = 20;
 const FETCH_LIMIT = 240;
@@ -42,10 +43,7 @@ function mapRowToPurpleCard(
   const district = String(row.district ?? "").trim();
   const city = String(row.city ?? "").trim();
   const location = [district, city].filter(Boolean).join(", ") || "Konum bilgisi yok";
-  const logoPath = String(row.logo ?? "").trim();
-  const imageUrl = logoPath
-    ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl
-    : "";
+  const imageUrl = resolveInstitutionLogoPublicUrl(supabase, String(row.logo ?? ""));
 
   return {
     id,

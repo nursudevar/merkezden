@@ -2470,7 +2470,7 @@ a.service-card {
 
 .featured-institutions-list {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   overflow: visible;
 
@@ -2574,7 +2574,7 @@ a.featured-institutions-list-card {
 .featured-institutions-list-card-title {
   --featured-list-title-lh: 1.25;
   margin: 0;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: $font-semibold;
   color: $text-zinc-900;
   line-height: var(--featured-list-title-lh);

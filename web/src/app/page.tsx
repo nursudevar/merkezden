@@ -15,6 +15,7 @@ import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { getCategoryHref, getCategoryIcon } from "@/lib/categoryHelpers";
@@ -387,8 +388,7 @@ export default function Home() {
         return null;
       };
 
-      const toLogoUrl = (logoPath: string) =>
-        logoPath ? supabase.storage.from("institution-logos").getPublicUrl(logoPath).data.publicUrl : "";
+      const toLogoUrl = (rawLogo: string) => resolveInstitutionLogoPublicUrl(supabase, rawLogo);
 
       const premium: PremiumPickItem[] = [];
       for (const group of HOME_PREMIUM_PICK_NAME_GROUPS) {
