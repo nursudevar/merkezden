@@ -3046,6 +3046,71 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       background-color: $bg-zinc-50;
     }
   }
+
+  &--danger {
+    background-color: $red-error !important;
+    color: $bg-white !important;
+    border: none !important;
+
+    &:hover:not(:disabled) {
+      background-color: $red-error-hover !important;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* Silme onay modalı */
+.panel-confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.panel-confirm-modal-content {
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-lg;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.panel-confirm-modal-title {
+  margin: 0;
+  padding: 24px 24px 0;
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  line-height: 1.3;
+}
+
+.panel-confirm-modal-body {
+  padding: 16px 24px 0;
+}
+
+.panel-confirm-modal-message {
+  margin: 0;
+  font-size: $text-base;
+  color: $text-zinc-600;
+  line-height: 1.5;
+}
+
+.panel-confirm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px 24px;
+  border-top: 1px solid $border-light;
+  margin-top: 20px;
 }
 
 /* Talepler tab */

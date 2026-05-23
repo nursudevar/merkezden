@@ -6,9 +6,16 @@ import { CloudUpload, FileText, Image as ImageIcon, Trash2, User } from "lucide-
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { InstructorProfileRow } from "@/lib/instructorProfileClient";
 import {
+  INSTRUCTOR_MEDIA_CV_ERROR,
+  INSTRUCTOR_MEDIA_CV_SUCCESS,
+  INSTRUCTOR_MEDIA_GALLERY_DELETE_SUCCESS,
+  INSTRUCTOR_MEDIA_IMAGE_ERROR,
+  INSTRUCTOR_MEDIA_PROFILE_SUCCESS,
   INSTRUCTOR_MEDIA_TABLE_MISSING_SQL,
   resolveInstructorCvStoragePath,
+  deleteInstructorCvClient,
   deleteInstructorGalleryMediaClient,
+  deleteInstructorProfilePhotoClient,
   isValidInstructorCvFile,
   isValidInstructorImageFile,
   loadInstructorGalleryMediaClient,
@@ -46,6 +53,8 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
   const [galleryLoading, setGalleryLoading] = useState(true);
   const [galleryTableMissing, setGalleryTableMissing] = useState(false);
   const [deletingGalleryId, setDeletingGalleryId] = useState<number | null>(null);
+  const [deletingProfile, setDeletingProfile] = useState(false);
+  const [deletingCv, setDeletingCv] = useState(false);
 
   const profilePictureUrl = String(instructorRow.profile_picture ?? "").trim();
   const cvPath = String(instructorRow.cv_url ?? "").trim();
@@ -74,6 +83,11 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
     e.target.value = "";
     if (!file) return;
 
+    if (!isValidInstructorImageFile(file)) {
+      setMediaError(INSTRUCTOR_MEDIA_IMAGE_ERROR);
+      return;
+    }
+
     setMediaMessage(null);
     setMediaError(null);
     setUploadingProfile(true);
@@ -92,7 +106,7 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
       }
       if (row) {
         onInstructorRowChange(row);
-        setMediaMessage("Profil fotoğrafı güncellendi.");
+        setMediaMessage(INSTRUCTOR_MEDIA_PROFILE_SUCCESS);
       }
     } finally {
       setUploadingProfile(false);
@@ -114,7 +128,7 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
       let uploaded = 0;
       for (const file of files) {
         if (!isValidInstructorImageFile(file)) {
-          setMediaError("Lütfen geçerli bir görsel dosyası seçin.");
+          setMediaError(INSTRUCTOR_MEDIA_IMAGE_ERROR);
           continue;
         }
         const { item, tableMissing, error } = await uploadInstructorGalleryImageClient(
@@ -138,6 +152,7 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
         }
       }
       if (uploaded > 0) {
+        await loadGallery();
         setMediaMessage(
           uploaded === 1 ? "Galeri görseli yüklendi." : `${uploaded} galeri görseli yüklendi.`,
         );
@@ -153,7 +168,7 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
     if (!file) return;
 
     if (!isValidInstructorCvFile(file)) {
-      setMediaError("Lütfen PDF, DOC veya DOCX formatında bir CV yükleyin.");
+      setMediaError(INSTRUCTOR_MEDIA_CV_ERROR);
       return;
     }
 
@@ -175,10 +190,64 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
       }
       if (row) {
         onInstructorRowChange(row);
-        setMediaMessage("CV güncellendi.");
+        setMediaMessage(INSTRUCTOR_MEDIA_CV_SUCCESS);
       }
     } finally {
       setUploadingCv(false);
+    }
+  };
+
+  const handleProfilePhotoDelete = async () => {
+    if (!profilePictureUrl) return;
+
+    setMediaMessage(null);
+    setMediaError(null);
+    setDeletingProfile(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { row, error } = await deleteInstructorProfilePhotoClient(
+        authUserId,
+        instructorId,
+        instructorRow.profile_picture,
+        supabase,
+      );
+      if (error) {
+        setMediaError(error);
+        return;
+      }
+      if (row) {
+        onInstructorRowChange(row);
+        setMediaMessage("Profil fotoğrafı silindi.");
+      }
+    } finally {
+      setDeletingProfile(false);
+    }
+  };
+
+  const handleCvDelete = async () => {
+    if (!hasCv) return;
+
+    setMediaMessage(null);
+    setMediaError(null);
+    setDeletingCv(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { row, error } = await deleteInstructorCvClient(
+        authUserId,
+        instructorId,
+        instructorRow.cv_url,
+        supabase,
+      );
+      if (error) {
+        setMediaError(error);
+        return;
+      }
+      if (row) {
+        onInstructorRowChange(row);
+        setMediaMessage("CV silindi.");
+      }
+    } finally {
+      setDeletingCv(false);
     }
   };
 
@@ -198,8 +267,8 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
         setMediaError(error);
         return;
       }
-      setGalleryItems((prev) => prev.filter((row) => row.id !== item.id));
-      setMediaMessage("Galeri görseli silindi.");
+      await loadGallery();
+      setMediaMessage(INSTRUCTOR_MEDIA_GALLERY_DELETE_SUCCESS);
     } finally {
       setDeletingGalleryId(null);
     }
@@ -249,15 +318,27 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
           </label>
           <div className="egitmen-panel-media-uploaded">
             {profilePictureUrl ? (
-              <div className="egitmen-panel-media-preview-wrap">
-                <Image
-                  src={profilePictureUrl}
-                  alt="Profil fotoğrafı"
-                  width={120}
-                  height={120}
-                  className="egitmen-panel-media-preview-img"
-                  unoptimized
-                />
+              <div className="egitmen-panel-profile-preview-card">
+                <div className="egitmen-panel-media-preview-wrap">
+                  <Image
+                    src={profilePictureUrl}
+                    alt="Profil fotoğrafı"
+                    width={160}
+                    height={120}
+                    className="egitmen-panel-media-preview-img"
+                    unoptimized
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="egitmen-panel-media-file-delete"
+                  onClick={() => void handleProfilePhotoDelete()}
+                  disabled={deletingProfile || uploadingProfile}
+                  aria-label="Profil fotoğrafını sil"
+                >
+                  <Trash2 size={16} aria-hidden />
+                  {deletingProfile ? "…" : "Sil"}
+                </button>
               </div>
             ) : (
               <p className="egitmen-panel-media-empty-text">Henüz profil fotoğrafı yüklenmedi.</p>
@@ -366,15 +447,27 @@ export function InstructorMediaTab({ authUserId, instructorRow, onInstructorRowC
           {hasCv ? (
             <div className="egitmen-panel-cv-list" role="list" aria-label="Yüklenen CV">
               <div className="egitmen-panel-cv-item" role="listitem">
-                <div className="egitmen-panel-cv-item-icon-wrap" aria-hidden>
-                  <FileText className="egitmen-panel-cv-item-icon" />
+                <div className="egitmen-panel-cv-item-main">
+                  <div className="egitmen-panel-cv-item-icon-wrap" aria-hidden>
+                    <FileText className="egitmen-panel-cv-item-icon" />
+                  </div>
+                  <div className="egitmen-panel-cv-item-body">
+                    <span className="egitmen-panel-cv-item-name" title={cvDisplayFileName(cvPath)}>
+                      {cvDisplayFileName(cvPath)}
+                    </span>
+                    <span className="egitmen-panel-cv-item-status">CV yüklendi</span>
+                  </div>
                 </div>
-                <div className="egitmen-panel-cv-item-body">
-                  <span className="egitmen-panel-cv-item-name" title={cvDisplayFileName(cvPath)}>
-                    {cvDisplayFileName(cvPath)}
-                  </span>
-                  <span className="egitmen-panel-cv-item-status">CV yüklendi</span>
-                </div>
+                <button
+                  type="button"
+                  className="egitmen-panel-media-file-delete"
+                  onClick={() => void handleCvDelete()}
+                  disabled={deletingCv || uploadingCv}
+                  aria-label="CV dosyasını sil"
+                >
+                  <Trash2 size={16} aria-hidden />
+                  {deletingCv ? "…" : "Sil"}
+                </button>
               </div>
             </div>
           ) : (

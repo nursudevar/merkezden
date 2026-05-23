@@ -12,9 +12,7 @@ import {
   Settings,
   LogOut,
   FileText,
-  CloudUpload,
   Image as ImageIcon,
-  Plus,
   GraduationCap,
   Building2,
   Tags,
@@ -47,6 +45,7 @@ import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker
 import { Button, Input } from "@/components/ui";
 import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
 import { EgitmenFormSelect } from "./EgitmenFormSelect";
+import { InstructorAnnouncementsTab } from "./InstructorAnnouncementsTab";
 import { InstructorMediaTab } from "./InstructorMediaTab";
 import "@/styles/main.scss";
 import "@/styles/pages/egitmen-panel.scss";
@@ -207,21 +206,6 @@ const MOCK_EXPERTISE_AREAS = [
   "Satranç",
 ];
 
-const MOCK_ANNOUNCEMENTS = [
-  {
-    id: "1",
-    title: "Yaz dönemi birebir ders programı",
-    description: "Temmuz–Ağustos için online ve yüz yüze birebir ders slotları açılmıştır.",
-    date: "12.05.2026",
-  },
-  {
-    id: "2",
-    title: "Ücretsiz deneme dersi",
-    description: "Yeni öğrenciler için 45 dakikalık ücretsiz tanışma dersi.",
-    date: "01.05.2026",
-  },
-];
-
 const MOCK_APPLICATIONS = [
   {
     id: "1",
@@ -311,10 +295,6 @@ export default function InstructorPanelPage() {
   const [priceRange, setPriceRange] = useState("1000-5000 TL");
   const [expertiseAreas, setExpertiseAreas] = useState<string[]>(["Matematik"]);
   const [ageGroups, setAgeGroups] = useState<string[]>(["Çocuk", "Genç"]);
-
-  const [announcementTitle, setAnnouncementTitle] = useState("");
-  const [announcementDescription, setAnnouncementDescription] = useState("");
-  const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS);
 
   const [settingsEmail, setSettingsEmail] = useState("egitmen@ornek.com");
   const [settingsPassword, setSettingsPassword] = useState("");
@@ -598,22 +578,6 @@ export default function InstructorPanelPage() {
     setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   };
 
-  const handleAddAnnouncement = () => {
-    const title = announcementTitle.trim();
-    const description = announcementDescription.trim();
-    if (!title || !description) return;
-    const next = {
-      id: String(Date.now()),
-      title,
-      description,
-      date: new Date().toLocaleDateString("tr-TR"),
-    };
-    setAnnouncements((prev) => [next, ...prev]);
-    setAnnouncementTitle("");
-    setAnnouncementDescription("");
-    console.log("[instructor-panel] announcement add (mock)", next);
-  };
-
   const handleSettingsSave = () => {
     console.log("[instructor-panel] settings save (mock)", {
       settingsEmail,
@@ -625,14 +589,6 @@ export default function InstructorPanelPage() {
   const handlePassiveAccount = () => {
     console.log("[instructor-panel] passive account (mock)");
   };
-
-  const handleMockFileSelect = useCallback((label: string) => {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = "";
-      if (file) console.log(`[instructor-panel] ${label} selected (mock):`, file.name);
-    };
-  }, []);
 
   const sidebarIcons: Record<InstructorPanelTabId, React.ReactNode> = {
     overview: <LayoutDashboard className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
@@ -916,12 +872,12 @@ export default function InstructorPanelPage() {
               </>
             ) : (
               <>
+                {!isAnnouncements ? (
                 <div className="egitmen-panel-main-card-header">
                   <div className="egitmen-panel-main-card-header-left">
                     {isProfile ? <User className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isFeatures ? <Shapes className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isMedia ? <Images className="egitmen-panel-main-card-icon" aria-hidden /> : null}
-                    {isAnnouncements ? <Megaphone className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isApplications ? <Inbox className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isSettings ? <Settings className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     <h2 id="instructor-card-title" className="egitmen-panel-main-card-title">
@@ -950,6 +906,7 @@ export default function InstructorPanelPage() {
                     </Button>
                   ) : null}
                 </div>
+                ) : null}
 
                 {isProfile ? (
                   <div className="egitmen-panel-card-content">
@@ -1371,65 +1328,15 @@ export default function InstructorPanelPage() {
                 ) : null}
 
                 {isAnnouncements ? (
-                  <div className="egitmen-panel-tab-content">
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Yeni Duyuru</h3>
-                      <div className="egitmen-panel-form-field">
-                        <label className="egitmen-panel-form-label">Duyuru Başlığı</label>
-                        <Input
-                          className="egitmen-panel-form-input"
-                          value={announcementTitle}
-                          onChange={(e) => setAnnouncementTitle(e.target.value)}
-                        />
-                      </div>
-                      <div className="egitmen-panel-form-field">
-                        <label className="egitmen-panel-form-label">Açıklama</label>
-                        <textarea
-                          className="egitmen-panel-form-textarea"
-                          rows={4}
-                          value={announcementDescription}
-                          onChange={(e) => setAnnouncementDescription(e.target.value)}
-                        />
-                      </div>
-                      <div className="egitmen-panel-media-upload-card egitmen-panel-announcement-upload">
-                        <label className="egitmen-panel-dropzone">
-                          <input type="file" accept="image/*" onChange={handleMockFileSelect("announcement-image")} />
-                          <div className="egitmen-panel-dropzone-inner">
-                            <CloudUpload className="egitmen-panel-dropzone-icon" aria-hidden />
-                            <p className="egitmen-panel-dropzone-title">Duyuru görseli (isteğe bağlı)</p>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="egitmen-panel-form-actions">
-                      <Button
-                        type="button"
-                        variant="default"
-                        className="egitmen-panel-add-btn"
-                        onClick={handleAddAnnouncement}
-                      >
-                        <Plus className="egitmen-panel-add-btn-icon" aria-hidden />
-                        Duyuru Ekle
-                      </Button>
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Duyurularım</h3>
-                      <div className="egitmen-panel-announcement-list">
-                      {announcements.map((item) => (
-                        <article
-                          key={item.id}
-                          className="egitmen-panel-announcement-item"
-                        >
-                          <div className="egitmen-panel-announcement-item-body">
-                            <span className="egitmen-panel-announcement-item-title">{item.title}</span>
-                            <p className="egitmen-panel-announcement-item-desc">{item.description}</p>
-                            <span className="egitmen-panel-badge">{item.date}</span>
-                          </div>
-                        </article>
-                      ))}
-                      </div>
-                    </div>
-                  </div>
+                  instructorRowId && user?.id ? (
+                    <InstructorAnnouncementsTab authUserId={user.id} instructorId={instructorRowId} />
+                  ) : profileLoading ? (
+                    <p className="egitmen-panel-form-loading">Eğitmen bilgileri yükleniyor…</p>
+                  ) : (
+                    <p className="egitmen-panel-form-error" role="alert">
+                      Eğitmen profiliniz bulunamadı.
+                    </p>
+                  )
                 ) : null}
 
                 {isApplications ? (

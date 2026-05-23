@@ -7,8 +7,8 @@ import {
   type InstructorProfileRow,
 } from "@/lib/instructorProfileClient";
 
-export const INSTRUCTOR_PROFILE_IMAGES_BUCKET = "instructor-profile-images";
-export const INSTRUCTOR_GALLERY_IMAGES_BUCKET = "instructor-gallery-images";
+/** Tüm eğitmen görselleri (profil, galeri, duyuru) — kurum paneli institution-media ile aynı model */
+export const INSTRUCTOR_MEDIA_BUCKET = "instructor-media";
 export const INSTRUCTOR_CV_FILES_BUCKET = "instructor-cv-files";
 export const INSTRUCTOR_MEDIA_TABLE = "instructor_media" as const;
 
@@ -17,6 +17,9 @@ export const INSTRUCTOR_MEDIA_CV_ERROR =
   "Lütfen PDF, DOC veya DOCX formatında bir CV yükleyin.";
 export const INSTRUCTOR_MEDIA_UPLOAD_ERROR = "Dosya yüklenirken bir hata oluştu.";
 export const INSTRUCTOR_MEDIA_DELETE_ERROR = "Dosya silinirken bir hata oluştu.";
+export const INSTRUCTOR_MEDIA_PROFILE_SUCCESS = "Profil fotoğrafı başarıyla güncellendi.";
+export const INSTRUCTOR_MEDIA_CV_SUCCESS = "CV başarıyla güncellendi.";
+export const INSTRUCTOR_MEDIA_GALLERY_DELETE_SUCCESS = "Görsel başarıyla silindi.";
 export const INSTRUCTOR_MEDIA_CV_NOT_FOUND_ERROR =
   "CV dosyası bulunamadı. Lütfen CV'yi yeniden yükleyin.";
 
@@ -29,6 +32,7 @@ const ALLOWED_CV_TYPES = new Set([
 
 const PROFILE_PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 const GALLERY_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const ANNOUNCEMENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 const CV_MAX_BYTES = 15 * 1024 * 1024;
 
 export type InstructorGalleryMediaRow = {
@@ -64,8 +68,35 @@ CREATE INDEX IF NOT EXISTS instructor_media_owner_auth_id_idx
 
 ALTER TABLE public.instructor_media ENABLE ROW LEVEL SECURITY;`;
 
+type InstructorMediaFolder = "profile" | "gallery" | "announcements";
+
 function safeStorageFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").slice(0, 120);
+}
+
+function buildTimestampedStorageFileName(originalName: string, fallbackExt: string): string {
+  const timestamp = Date.now();
+  const cleanName = safeStorageFileName(originalName) || `${timestamp}.${fallbackExt}`;
+  return `${timestamp}-${cleanName}`;
+}
+
+function buildInstructorMediaPath(
+  instructorId: number,
+  folder: InstructorMediaFolder,
+  fileName: string,
+): string {
+  return `instructors/${instructorId}/${folder}/${fileName}`;
+}
+
+function buildInstructorCvPath(instructorId: number, fileName: string): string {
+  return `instructors/${instructorId}/cv/${fileName}`;
+}
+
+function getInstructorMediaPublicUrl(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  path: string,
+): string {
+  return supabase.storage.from(INSTRUCTOR_MEDIA_BUCKET).getPublicUrl(path).data.publicUrl ?? "";
 }
 
 export function isValidInstructorImageFile(file: File): boolean {
@@ -93,7 +124,134 @@ export function isInstructorMediaTableMissingError(error: {
   );
 }
 
-/** instructors.cv_url — storage yolu veya (eski kayıtlar) tam Supabase URL */
+export function extractStoragePathFromPublicUrl(
+  publicUrlOrPath: string,
+  bucket: string,
+): string | null {
+  const raw = String(publicUrlOrPath ?? "").trim();
+  if (!raw) return null;
+  if (!raw.includes("://")) {
+    return raw.replace(/^\/+/, "");
+  }
+  try {
+    const url = new URL(raw);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = url.pathname.indexOf(marker);
+    if (idx >= 0) {
+      return decodeURIComponent(url.pathname.slice(idx + marker.length));
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** Public görsel URL veya storage yolu → instructor-media içindeki path */
+function resolveInstructorMediaStoragePath(publicUrlOrPath: string): string | null {
+  const raw = String(publicUrlOrPath ?? "").trim();
+  if (!raw) return null;
+
+  const fromUrl = extractStoragePathFromPublicUrl(raw, INSTRUCTOR_MEDIA_BUCKET);
+  if (fromUrl) return fromUrl;
+
+  if (!raw.includes("://")) {
+    return raw.replace(/^\/+/, "");
+  }
+  return null;
+}
+
+async function removeStorageFileQuietly(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  bucket: string,
+  path: string | null | undefined,
+): Promise<void> {
+  const p = String(path ?? "").trim();
+  if (!p) return;
+  const { error } = await supabase.storage.from(bucket).remove([p]);
+  if (error) {
+    console.warn(`[instructor-media] storage remove (${bucket}):`, error);
+  }
+}
+
+async function removeInstructorPublicImageQuietly(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  publicUrlOrPath: string | null | undefined,
+): Promise<void> {
+  const path = resolveInstructorMediaStoragePath(String(publicUrlOrPath ?? ""));
+  if (!path) return;
+  await removeStorageFileQuietly(supabase, INSTRUCTOR_MEDIA_BUCKET, path);
+}
+
+async function removeGalleryStorageForItem(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  item: InstructorGalleryMediaRow,
+): Promise<void> {
+  const filePath = String(item.file_path ?? "").trim();
+  if (filePath) {
+    await removeStorageFileQuietly(supabase, INSTRUCTOR_MEDIA_BUCKET, filePath);
+    return;
+  }
+
+  const pathFromUrl = resolveInstructorMediaStoragePath(String(item.file_url ?? ""));
+  if (pathFromUrl) {
+    await removeStorageFileQuietly(supabase, INSTRUCTOR_MEDIA_BUCKET, pathFromUrl);
+  }
+}
+
+async function uploadInstructorPublicImage(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  instructorId: number,
+  folder: InstructorMediaFolder,
+  file: File,
+  maxBytes: number,
+): Promise<{ path: string; publicUrl: string } | { error: string }> {
+  if (!isValidInstructorImageFile(file)) {
+    return { error: INSTRUCTOR_MEDIA_IMAGE_ERROR };
+  }
+  if (file.size > maxBytes) {
+    return { error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+
+  const storageFileName = buildTimestampedStorageFileName(file.name, "jpg");
+  const path = buildInstructorMediaPath(instructorId, folder, storageFileName);
+
+  const { error: uploadError } = await supabase.storage
+    .from(INSTRUCTOR_MEDIA_BUCKET)
+    .upload(path, file, { upsert: false, contentType: file.type });
+
+  if (uploadError) {
+    console.error(`[instructor-media] ${folder} upload:`, uploadError);
+    return { error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+
+  return { path, publicUrl: getInstructorMediaPublicUrl(supabase, path) };
+}
+
+async function updateInstructorMediaColumn(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  authUid: string,
+  instructorId: number,
+  patch: { profile_picture?: string | null; cv_url?: string | null },
+): Promise<{ row: InstructorProfileRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from(INSTRUCTORS_TABLE)
+    .update(patch)
+    .eq("id", instructorId)
+    .eq("owner_auth_id", authUid)
+    .select(INSTRUCTOR_PROFILE_ROW_SELECT)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[instructors] media column update:", error);
+    return { row: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+  if (!data) {
+    return { row: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+  return { row: data as InstructorProfileRow, error: null };
+}
+
+/** instructors.cv_url — storage yolu veya tam Supabase URL */
 export function resolveInstructorCvStoragePath(cvUrlOrPath: string): string | null {
   const raw = String(cvUrlOrPath ?? "").trim();
   if (!raw) return null;
@@ -125,65 +283,6 @@ export function resolveInstructorCvStoragePath(cvUrlOrPath: string): string | nu
   return null;
 }
 
-export function extractStoragePathFromPublicUrl(
-  publicUrlOrPath: string,
-  bucket: string,
-): string | null {
-  const raw = String(publicUrlOrPath ?? "").trim();
-  if (!raw) return null;
-  if (!raw.includes("://")) {
-    return raw.replace(/^\/+/, "");
-  }
-  try {
-    const url = new URL(raw);
-    const marker = `/storage/v1/object/public/${bucket}/`;
-    const idx = url.pathname.indexOf(marker);
-    if (idx >= 0) {
-      return decodeURIComponent(url.pathname.slice(idx + marker.length));
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-async function removeStorageFileQuietly(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  bucket: string,
-  path: string | null | undefined,
-): Promise<void> {
-  const p = String(path ?? "").trim();
-  if (!p) return;
-  const { error } = await supabase.storage.from(bucket).remove([p]);
-  if (error) {
-    console.warn(`[instructor-media] storage remove (${bucket}):`, error);
-  }
-}
-
-async function updateInstructorMediaColumn(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  authUid: string,
-  instructorId: number,
-  patch: { profile_picture?: string | null; cv_url?: string | null },
-): Promise<{ row: InstructorProfileRow | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from(INSTRUCTORS_TABLE)
-    .update(patch)
-    .eq("id", instructorId)
-    .eq("owner_auth_id", authUid)
-    .select(INSTRUCTOR_PROFILE_ROW_SELECT)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[instructors] media column update:", error);
-    return { row: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-  if (!data) {
-    return { row: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-  return { row: data as InstructorProfileRow, error: null };
-}
-
 export async function uploadInstructorProfilePhotoClient(
   authUid: string,
   instructorId: number,
@@ -191,48 +290,31 @@ export async function uploadInstructorProfilePhotoClient(
   currentProfilePicture: string | null | undefined,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{ row: InstructorProfileRow | null; error: string | null }> {
-  if (!isValidInstructorImageFile(file)) {
-    return { row: null, error: INSTRUCTOR_MEDIA_IMAGE_ERROR };
-  }
-  if (file.size > PROFILE_PHOTO_MAX_BYTES) {
-    return { row: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const timestamp = Date.now();
-  const cleanName = safeStorageFileName(file.name) || `${timestamp}.jpg`;
-  const path = `instructors/${instructorId}/profile/${timestamp}-${cleanName}`;
 
-  const oldPath = extractStoragePathFromPublicUrl(
-    String(currentProfilePicture ?? ""),
-    INSTRUCTOR_PROFILE_IMAGES_BUCKET,
+  const uploaded = await uploadInstructorPublicImage(
+    supabase,
+    instructorId,
+    "profile",
+    file,
+    PROFILE_PHOTO_MAX_BYTES,
   );
-
-  const { error: uploadError } = await supabase.storage
-    .from(INSTRUCTOR_PROFILE_IMAGES_BUCKET)
-    .upload(path, file, { upsert: false, contentType: file.type });
-
-  if (uploadError) {
-    console.error("[instructor-media] profile photo upload:", uploadError);
-    return { row: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  if ("error" in uploaded) {
+    return { row: null, error: uploaded.error };
   }
 
-  const publicUrl =
-    supabase.storage.from(INSTRUCTOR_PROFILE_IMAGES_BUCKET).getPublicUrl(path).data
-      .publicUrl ?? "";
+  const { path, publicUrl } = uploaded;
 
   const { row, error } = await updateInstructorMediaColumn(supabase, authUid, instructorId, {
     profile_picture: publicUrl || null,
   });
 
   if (error) {
-    await removeStorageFileQuietly(supabase, INSTRUCTOR_PROFILE_IMAGES_BUCKET, path);
+    await removeStorageFileQuietly(supabase, INSTRUCTOR_MEDIA_BUCKET, path);
     return { row: null, error };
   }
 
-  if (oldPath && oldPath !== path) {
-    await removeStorageFileQuietly(supabase, INSTRUCTOR_PROFILE_IMAGES_BUCKET, oldPath);
-  }
+  await removeInstructorPublicImageQuietly(supabase, currentProfilePicture);
 
   return { row, error: null };
 }
@@ -252,10 +334,11 @@ export async function uploadInstructorCvClient(
   }
 
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const timestamp = Date.now();
-  const ext = file.name.includes(".") ? file.name.split(".").pop() : "pdf";
-  const cleanName = safeStorageFileName(file.name) || `${timestamp}.${ext}`;
-  const path = `instructors/${instructorId}/cv/${timestamp}-${cleanName}`;
+  const storageFileName = buildTimestampedStorageFileName(
+    file.name,
+    file.name.includes(".") ? (file.name.split(".").pop() ?? "pdf") : "pdf",
+  );
+  const path = buildInstructorCvPath(instructorId, storageFileName);
   const oldPath = resolveInstructorCvStoragePath(String(currentCvPath ?? ""));
 
   const { error: uploadError } = await supabase.storage
@@ -331,6 +414,26 @@ export async function getInstructorCvViewUrlClient(
   return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_CV_NOT_FOUND_ERROR };
 }
 
+/** Duyuru görseli — instructor_announcements.image_url / image_path için */
+export async function uploadInstructorAnnouncementImageClient(
+  instructorId: number,
+  file: File,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{ imageUrl: string; imagePath: string } | { error: string }> {
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const uploaded = await uploadInstructorPublicImage(
+    supabase,
+    instructorId,
+    "announcements",
+    file,
+    ANNOUNCEMENT_IMAGE_MAX_BYTES,
+  );
+  if ("error" in uploaded) {
+    return { error: uploaded.error };
+  }
+  return { imageUrl: uploaded.publicUrl, imagePath: uploaded.path };
+}
+
 export async function loadInstructorGalleryMediaClient(
   authUid: string,
   instructorId: number,
@@ -372,30 +475,20 @@ export async function uploadInstructorGalleryImageClient(
   file: File,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{ item: InstructorGalleryMediaRow | null; tableMissing: boolean; error: string | null }> {
-  if (!isValidInstructorImageFile(file)) {
-    return { item: null, tableMissing: false, error: INSTRUCTOR_MEDIA_IMAGE_ERROR };
-  }
-  if (file.size > GALLERY_IMAGE_MAX_BYTES) {
-    return { item: null, tableMissing: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const timestamp = Date.now();
-  const cleanName = safeStorageFileName(file.name) || `${timestamp}.jpg`;
-  const path = `instructors/${instructorId}/gallery/${timestamp}-${cleanName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(INSTRUCTOR_GALLERY_IMAGES_BUCKET)
-    .upload(path, file, { upsert: false, contentType: file.type });
-
-  if (uploadError) {
-    console.error("[instructor-media] gallery upload:", uploadError);
-    return { item: null, tableMissing: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  const uploaded = await uploadInstructorPublicImage(
+    supabase,
+    instructorId,
+    "gallery",
+    file,
+    GALLERY_IMAGE_MAX_BYTES,
+  );
+  if ("error" in uploaded) {
+    return { item: null, tableMissing: false, error: uploaded.error };
   }
 
-  const publicUrl =
-    supabase.storage.from(INSTRUCTOR_GALLERY_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl ??
-    "";
+  const { path, publicUrl } = uploaded;
 
   const { data, error: insertError } = await supabase
     .from(INSTRUCTOR_MEDIA_TABLE)
@@ -415,11 +508,11 @@ export async function uploadInstructorGalleryImageClient(
 
   if (insertError) {
     if (isInstructorMediaTableMissingError(insertError)) {
-      await removeStorageFileQuietly(supabase, INSTRUCTOR_GALLERY_IMAGES_BUCKET, path);
+      await removeStorageFileQuietly(supabase, INSTRUCTOR_MEDIA_BUCKET, path);
       return { item: null, tableMissing: true, error: null };
     }
     console.error("[instructor-media] gallery insert:", insertError);
-    await removeStorageFileQuietly(supabase, INSTRUCTOR_GALLERY_IMAGES_BUCKET, path);
+    await removeStorageFileQuietly(supabase, INSTRUCTOR_MEDIA_BUCKET, path);
     return { item: null, tableMissing: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
   }
 
@@ -433,17 +526,8 @@ export async function deleteInstructorGalleryMediaClient(
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{ error: string | null }> {
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const filePath = String(item.file_path ?? "").trim();
 
-  if (filePath) {
-    const { error: removeError } = await supabase.storage
-      .from(INSTRUCTOR_GALLERY_IMAGES_BUCKET)
-      .remove([filePath]);
-    if (removeError) {
-      console.error("[instructor-media] gallery storage delete:", removeError);
-      return { error: INSTRUCTOR_MEDIA_DELETE_ERROR };
-    }
-  }
+  await removeGalleryStorageForItem(supabase, item);
 
   const { error: deleteError } = await supabase
     .from(INSTRUCTOR_MEDIA_TABLE)
@@ -459,4 +543,47 @@ export async function deleteInstructorGalleryMediaClient(
   }
 
   return { error: null };
+}
+
+export async function deleteInstructorProfilePhotoClient(
+  authUid: string,
+  instructorId: number,
+  currentProfilePicture: string | null | undefined,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{ row: InstructorProfileRow | null; error: string | null }> {
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+
+  await removeInstructorPublicImageQuietly(supabase, currentProfilePicture);
+
+  const { row, error } = await updateInstructorMediaColumn(supabase, authUid, instructorId, {
+    profile_picture: null,
+  });
+
+  if (error) {
+    return { row: null, error };
+  }
+
+  return { row, error: null };
+}
+
+export async function deleteInstructorCvClient(
+  authUid: string,
+  instructorId: number,
+  currentCvPath: string | null | undefined,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{ row: InstructorProfileRow | null; error: string | null }> {
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const path = resolveInstructorCvStoragePath(String(currentCvPath ?? ""));
+
+  await removeStorageFileQuietly(supabase, INSTRUCTOR_CV_FILES_BUCKET, path);
+
+  const { row, error } = await updateInstructorMediaColumn(supabase, authUid, instructorId, {
+    cv_url: null,
+  });
+
+  if (error) {
+    return { row: null, error };
+  }
+
+  return { row, error: null };
 }

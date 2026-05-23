@@ -419,6 +419,10 @@ function PanelContent() {
     content?: string;
   }>({});
   const [announcementSaving, setAnnouncementSaving] = useState(false);
+  const [announcementDeleteConfirmRow, setAnnouncementDeleteConfirmRow] = useState<AnnouncementRow | null>(
+    null,
+  );
+  const [announcementDeletingId, setAnnouncementDeletingId] = useState<string | null>(null);
   const [announcementImageFile, setAnnouncementImageFile] = useState<File | null>(null);
   const [announcementImageRemovePending, setAnnouncementImageRemovePending] = useState(false);
   const [announcementImageObjectUrl, setAnnouncementImageObjectUrl] = useState<string | null>(null);
@@ -1256,13 +1260,16 @@ interface InstitutionDetailPreparedData {
   }, [isAuthReady, user, roleLoaded, userType, isAdmin, router]);
 
   useEffect(() => {
-    if (!announcementModalOpen && !subscriptionModalOpen) {
+    if (!announcementModalOpen && !subscriptionModalOpen && !announcementDeleteConfirmRow) {
       document.body.style.overflow = "";
       return;
     }
     document.body.style.overflow = "hidden";
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (announcementDeleteConfirmRow && announcementDeletingId == null) {
+          setAnnouncementDeleteConfirmRow(null);
+        }
         if (announcementModalOpen) {
           setAnnouncementModalOpen(false);
           setEditingAnnouncementId(null);
@@ -1280,7 +1287,7 @@ interface InstitutionDetailPreparedData {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [announcementModalOpen, subscriptionModalOpen]);
+  }, [announcementModalOpen, subscriptionModalOpen, announcementDeleteConfirmRow, announcementDeletingId]);
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -2347,29 +2354,39 @@ interface InstitutionDetailPreparedData {
     }
   };
 
-  const handleAnnouncementDelete = async (id: string) => {
-    if (!window.confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
-    if (!institutionId) return;
+  const openAnnouncementDeleteConfirm = (row: AnnouncementRow) => {
+    setAnnouncementDeleteConfirmRow(row);
+  };
+
+  const closeAnnouncementDeleteConfirm = () => {
+    if (announcementDeletingId != null) return;
+    setAnnouncementDeleteConfirmRow(null);
+  };
+
+  const handleAnnouncementDeleteConfirm = async () => {
+    const row = announcementDeleteConfirmRow;
+    if (!row || !institutionId || announcementDeletingId != null) return;
     const instId = Number(institutionId);
     if (!Number.isFinite(instId)) return;
 
-    const row = announcementsList.find((r) => r.id === id);
+    setAnnouncementDeletingId(row.id);
     const supabase = createSupabaseBrowserClient();
     setAnnouncementsError(null);
 
     const { error: deleteError } = await supabase
       .from("announcements")
       .delete()
-      .eq("id", id)
+      .eq("id", row.id)
       .eq("institution_id", instId);
 
     if (deleteError) {
       console.error("Announcement delete error:", deleteError);
       setAnnouncementsError("Duyuru silinemedi.");
+      setAnnouncementDeletingId(null);
       return;
     }
 
-    if (row?.imageUrl) {
+    if (row.imageUrl) {
       const path = tryGetInstitutionMediaPathFromUrl(row.imageUrl);
       if (path) {
         const { error: removeError } = await supabase.storage.from("institution-media").remove([path]);
@@ -2377,6 +2394,8 @@ interface InstitutionDetailPreparedData {
       }
     }
 
+    setAnnouncementDeleteConfirmRow(null);
+    setAnnouncementDeletingId(null);
     await loadAnnouncements(supabase);
   };
 
@@ -2946,8 +2965,8 @@ interface InstitutionDetailPreparedData {
                                     type="button"
                                     className="panel-announcements-action-btn"
                                     aria-label="Sil"
-                                    onClick={() => handleAnnouncementDelete(row.id)}
-                                    disabled={announcementSaving}
+                                    onClick={() => openAnnouncementDeleteConfirm(row)}
+                                    disabled={announcementSaving || announcementDeletingId != null}
                                   >
                                     <Trash2 className="panel-announcements-action-icon" aria-hidden />
                                   </button>
@@ -3466,6 +3485,48 @@ interface InstitutionDetailPreparedData {
           </div>
         </div>
       )}
+
+      {announcementDeleteConfirmRow ? (
+        <div
+          className="panel-confirm-modal-overlay"
+          onClick={closeAnnouncementDeleteConfirm}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="panel-delete-confirm-title"
+        >
+          <div className="panel-confirm-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 id="panel-delete-confirm-title" className="panel-confirm-modal-title">
+              Duyuruyu Sil
+            </h2>
+            <div className="panel-confirm-modal-body">
+              <p className="panel-confirm-modal-message">
+                <strong>{announcementDeleteConfirmRow.title}</strong> başlıklı duyuruyu silmek
+                istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <div className="panel-confirm-modal-footer">
+              <Button
+                type="button"
+                variant="outline"
+                className="panel-announcement-modal-btn panel-announcement-modal-btn--cancel"
+                onClick={closeAnnouncementDeleteConfirm}
+                disabled={announcementDeletingId != null}
+              >
+                İptal
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                className="panel-announcement-modal-btn panel-announcement-modal-btn--danger"
+                onClick={() => void handleAnnouncementDeleteConfirm()}
+                disabled={announcementDeletingId != null}
+              >
+                {announcementDeletingId != null ? "Siliniyor..." : "Sil"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {announcementModalOpen && (
         <div

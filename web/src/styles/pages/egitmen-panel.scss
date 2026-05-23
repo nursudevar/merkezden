@@ -1261,16 +1261,44 @@ $egitmen-select-arrow-neutral: url("data:image/svg+xml,%3Csvg xmlns='http://www.
   margin-top: 12px;
 }
 
+.egitmen-panel-profile-preview-card {
+  max-width: 200px;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  overflow: hidden;
+  background: $bg-white;
+}
+
 .egitmen-panel-media-preview-wrap {
   margin: 0;
 }
 
 .egitmen-panel-media-preview-img {
-  width: 120px;
+  display: block;
+  width: 100%;
   height: 120px;
   object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid $border-light;
+}
+
+.egitmen-panel-media-file-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-top: 1px solid $border-light;
+  background: $bg-zinc-50;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  color: #b91c1c;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .egitmen-panel-cv-list {
@@ -1282,13 +1310,21 @@ $egitmen-select-arrow-neutral: url("data:image/svg+xml,%3Csvg xmlns='http://www.
 
 .egitmen-panel-cv-item {
   display: flex;
+  flex-direction: column;
+  max-width: 320px;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  overflow: hidden;
+  background: $bg-white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+}
+
+.egitmen-panel-cv-item-main {
+  display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid $border-light;
-  border-radius: 12px;
-  background: $bg-white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   min-width: 0;
 }
 
@@ -1406,33 +1442,553 @@ $egitmen-select-arrow-neutral: url("data:image/svg+xml,%3Csvg xmlns='http://www.
   word-break: break-word;
 }
 
-/* Duyurular */
-.egitmen-panel-announcement-list {
+/* İçerikler & Duyurular */
+.egitmen-panel-announcements-header {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 30px 16px;
+  border-bottom: 1px solid $border-light;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    padding: 20px;
+  }
 }
 
-.egitmen-panel-announcement-item {
-  border: 1px solid $border-light;
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: $bg-white;
+.egitmen-panel-announcements-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
 }
 
-.egitmen-panel-announcement-item-title {
-  display: block;
-  font-size: $text-base;
-  font-weight: $font-semibold;
-  color: $text-zinc-900;
-  margin-bottom: 6px;
+.egitmen-panel-announcements-header-text {
+  min-width: 0;
 }
 
-.egitmen-panel-announcement-item-desc {
-  margin: 0 0 8px;
+.egitmen-panel-announcements-subtitle {
+  margin: 6px 0 0;
   font-size: $text-sm;
   color: $text-zinc-600;
   line-height: 1.45;
+}
+
+.egitmen-panel-announcements-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  @include gradient-purple-top;
+  color: $bg-white;
+  @include rounded-xl;
+  padding: 10px 20px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  @include transition;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    @include shadow-md;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.egitmen-panel-announcements-add-btn-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.egitmen-panel-announcements-content {
+  padding: 24px 30px;
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+}
+
+.egitmen-panel-announcements-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 40px 20px;
+  border: 1px dashed $border-light;
+  border-radius: 12px;
+  background: $bg-zinc-50;
+}
+
+.egitmen-panel-announcements-empty-title {
+  margin: 0;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+}
+
+.egitmen-panel-announcements-empty-desc {
+  margin: 0 0 8px;
+  max-width: 420px;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+  line-height: 1.5;
+}
+
+.egitmen-panel-announcements-table-wrap {
+  overflow-x: auto;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  @include shadow-sm;
+}
+
+.egitmen-panel-announcements-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $text-base;
+}
+
+.egitmen-panel-announcements-th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-zinc-700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: $bg-zinc-50;
+  border-bottom: 1px solid $border-light;
+
+  &--actions {
+    width: 100px;
+    text-align: right;
+  }
+
+  &--image {
+    width: 88px;
+    text-align: center;
+  }
+}
+
+.egitmen-panel-announcements-tr {
+  border-bottom: 1px solid $border-light;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.egitmen-panel-announcements-td {
+  padding: 14px 16px;
+  color: $text-zinc-900;
+  vertical-align: top;
+
+  &--image {
+    width: 88px;
+    padding: 14px 10px;
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  &--title {
+    font-weight: $font-medium;
+  }
+
+  &--desc {
+    max-width: 280px;
+  }
+
+  &--actions {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.egitmen-panel-announcements-thumb {
+  width: 64px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(226, 232, 240, 0.6);
+}
+
+.egitmen-panel-announcements-thumb--image {
+  object-fit: cover;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.egitmen-panel-announcements-thumb--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.egitmen-panel-announcements-thumb-icon {
+  width: 18px;
+  height: 18px;
+  color: rgba(124, 58, 237, 0.75);
+}
+
+.egitmen-panel-announcements-desc-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+}
+
+.egitmen-panel-announcements-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+
+  &--published {
+    background-color: $green-bg;
+    color: $green-main;
+  }
+
+  &--passive {
+    background-color: $bg-zinc-50;
+    color: $text-zinc-600;
+  }
+}
+
+.egitmen-panel-announcements-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin-left: 4px;
+  border: 1px solid $border-light;
+  border-radius: 10px;
+  background-color: $bg-white;
+  color: $text-zinc-600;
+  cursor: pointer;
+  @include transition;
+
+  &:hover:not(:disabled) {
+    background-color: $bg-zinc-50;
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &:first-of-type {
+    margin-left: 0;
+  }
+}
+
+.egitmen-panel-announcements-action-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.egitmen-panel-announcement-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.egitmen-panel-announcement-modal-content {
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-lg;
+  width: 100%;
+  max-width: 550px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.egitmen-panel-announcement-modal-title {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  margin: 0;
+  padding: 24px 24px 0;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.egitmen-panel-announcement-modal-body {
+  padding: 20px 24px 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.egitmen-panel-announcement-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .egitmen-panel-form-textarea {
+    resize: none;
+  }
+}
+
+.egitmen-panel-announcement-modal-error {
+  font-size: $text-sm;
+  color: $red-error;
+  margin-top: 2px;
+}
+
+.egitmen-panel-announcement-image-field {
+  position: relative;
+}
+
+.egitmen-panel-announcement-image-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.egitmen-panel-dropzone--announcement-preview {
+  position: relative;
+  display: block;
+  cursor: default;
+  padding: 8px;
+}
+
+.egitmen-panel-announcement-dropzone-preview-img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 1);
+}
+
+.egitmen-panel-announcement-image-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.5);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.egitmen-panel-dropzone--announcement-preview:hover .egitmen-panel-announcement-image-preview-overlay,
+.egitmen-panel-dropzone--announcement-preview:focus-within .egitmen-panel-announcement-image-preview-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.egitmen-panel-announcement-image-preview-btn {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  @include transition;
+  background-color: $bg-white;
+  color: $text-zinc-800;
+
+  &:hover:not(:disabled) {
+    background-color: $bg-zinc-50;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--muted {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.65);
+    color: $bg-white;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+  }
+}
+
+.egitmen-panel-media-upload-card--announcement-modal {
+  .egitmen-panel-dropzone-inner {
+    min-height: 100px;
+  }
+}
+
+.egitmen-panel-announcement-modal-file-hint {
+  margin: 8px 0 0;
+  font-size: $text-sm;
+  color: $text-zinc-600;
+}
+
+.egitmen-panel-announcement-status-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background-color: $bg-white;
+  font-size: $text-base;
+  color: $text-zinc-900;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.egitmen-panel-announcement-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  flex-shrink: 0;
+  border-top: 1px solid $border-light;
+}
+
+.egitmen-panel-announcement-modal-btn {
+  min-width: 100px;
+  min-height: 40px;
+  padding: 8px 20px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: 12px;
+
+  &--submit {
+    @include gradient-purple-top;
+    color: $bg-white !important;
+    border: none !important;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      @include shadow-md;
+      opacity: 1;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &--cancel {
+    background-color: $bg-white !important;
+    border: 1px solid $border-light !important;
+    color: $text-zinc-700 !important;
+
+    &:hover:not(:disabled) {
+      background-color: $bg-zinc-50 !important;
+    }
+  }
+
+  &--danger {
+    background-color: $red-error !important;
+    color: $bg-white !important;
+    border: none !important;
+
+    &:hover:not(:disabled) {
+      background-color: $red-error-hover !important;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* Silme onay modalı */
+.egitmen-panel-confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.egitmen-panel-confirm-modal-content {
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-lg;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.egitmen-panel-confirm-modal-title {
+  margin: 0;
+  padding: 24px 24px 0;
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  line-height: 1.3;
+}
+
+.egitmen-panel-confirm-modal-body {
+  padding: 16px 24px 0;
+}
+
+.egitmen-panel-confirm-modal-message {
+  margin: 0;
+  font-size: $text-base;
+  color: $text-zinc-600;
+  line-height: 1.5;
+}
+
+.egitmen-panel-confirm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px 24px;
+  border-top: 1px solid $border-light;
+  margin-top: 20px;
 }
 
 .egitmen-panel-badge {
@@ -1444,14 +2000,6 @@ $egitmen-select-arrow-neutral: url("data:image/svg+xml,%3Csvg xmlns='http://www.
   font-weight: $font-semibold;
   background: rgba($purple-main, 0.08);
   color: $purple-main;
-}
-
-.egitmen-panel-form-actions {
-  margin-top: 12px;
-}
-
-.egitmen-panel-announcement-upload {
-  margin-top: 12px;
 }
 
 /* Tablo */
