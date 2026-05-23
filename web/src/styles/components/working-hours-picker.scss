@@ -1,0 +1,146 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+/* Kurum paneli çalışma saati seçici — eğitmen panelinde de kullanılır */
+.working-hours-picker {
+  position: relative;
+  width: 100%;
+}
+
+.working-hours-picker__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background-color: $bg-white;
+  font-size: $text-base;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: $text-zinc-900;
+  cursor: pointer;
+  text-align: left;
+  @include transition;
+
+  &:hover:not(:disabled) {
+    border-color: rgba($purple-main, 0.4);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.1);
+  }
+
+  &.is-open {
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.12);
+  }
+
+  &:disabled {
+    background-color: $bg-zinc-50;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+.working-hours-picker__value {
+  display: inline-flex;
+  align-items: center;
+
+  &.is-placeholder {
+    color: $text-zinc-500;
+  }
+}
+
+.working-hours-picker__icon {
+  color: $purple-main;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.working-hours-picker__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.08);
+  z-index: 30;
+}
+
+.working-hours-picker__col-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.working-hours-picker__col-label {
+  font-size: 11px;
+  font-weight: $font-semibold;
+  letter-spacing: 0.6px;
+  color: $text-zinc-500;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.working-hours-picker__col {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background-color: rgba($purple-main, 0.03);
+  scrollbar-width: thin;
+  scrollbar-color: rgba($purple-main, 0.3) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba($purple-main, 0.25);
+    border-radius: 999px;
+  }
+}
+
+.working-hours-picker__opt {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 2px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: $text-zinc-900;
+  text-align: center;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    background-color: rgba($purple-main, 0.1);
+    color: $purple-main;
+  }
+
+  &.is-selected {
+    background-color: $purple-main;
+    color: #fff;
+    font-weight: $font-semibold;
+  }
+}

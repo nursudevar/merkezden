@@ -13,6 +13,7 @@ import {
   resolveUserTypeFromUsersClient,
   type AppUserType,
 } from "@/lib/auth/authBrowserClient";
+import { resolveInstructorNameFromInstructorsClient } from "@/lib/instructorProfileClient";
 import { Button } from "@/components/ui";
 import SearchBar from "@/components/SearchBar";
 import {
@@ -677,13 +678,13 @@ export function HeaderWithSearch({
       return;
     }
     let cancelled = false;
-    resolveIndividualNameFromUsersClient(user.id).then((name) => {
+    resolveInstructorNameFromInstructorsClient(user.id).then((name) => {
       if (!cancelled) setInstructorName(name || "Eğitmen");
     });
     return () => {
       cancelled = true;
     };
-  }, [user?.id, userType]);
+  }, [user?.id, user?.email, userType]);
 
   const displayUser = isAuthReady ? user : null;
   const displayUserType = isAuthReady ? userType : null;
@@ -844,13 +845,13 @@ export function HeaderClientWrapper() {
       return;
     }
     let cancelled = false;
-    resolveIndividualNameFromUsersClient(user.id).then((name) => {
+    resolveInstructorNameFromInstructorsClient(user.id).then((name) => {
       if (!cancelled) setInstructorName(name || "Eğitmen");
     });
     return () => {
       cancelled = true;
     };
-  }, [user?.id, userType]);
+  }, [user?.id, user?.email, userType]);
 
   const displayUser = isAuthReady ? user : null;
   const displayUserType = isAuthReady ? userType : null;

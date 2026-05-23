@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -16,15 +16,38 @@ import {
   Image as ImageIcon,
   Plus,
   GraduationCap,
+  Building2,
+  Tags,
+  Phone,
+  Mail,
+  MapPin,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
-  resolveIndividualNameFromUsersClient,
   resolveUserTypeFromUsersClient,
   type AppUserType,
 } from "@/lib/auth/authBrowserClient";
+import {
+  EMPTY_INSTRUCTOR_PROFILE_FORM,
+  INSTRUCTOR_PROFILE_CITY,
+  INSTRUCTOR_SUBHEADING_MAX_LENGTH,
+  instructorDisplayNameFromRow,
+  instructorProfileFormsEqual,
+  loadInstructorRowForAuthUserClient,
+  mapInstructorRowToFormState,
+  updateInstructorProfileForAuthUserClient,
+  type InstructorProfileFormState,
+  type InstructorProfileRow,
+} from "@/lib/instructorProfileClient";
+import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { Button, Input } from "@/components/ui";
+import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
+import { EgitmenFormSelect } from "./EgitmenFormSelect";
+import { InstructorMediaTab } from "./InstructorMediaTab";
 import "@/styles/main.scss";
 import "@/styles/pages/egitmen-panel.scss";
 
@@ -47,12 +70,131 @@ const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
   { id: "settings", label: "Ayarlar" },
 ];
 
-const MOCK_STATS = {
-  profileViews: 128,
-  contactRequests: 7,
-  activeAnnouncements: 2,
-  profileStatus: "Taslak profil",
+const INSTRUCTOR_OVERVIEW_LOAD_ERROR =
+  "Eğitmen bilgileriniz yüklenirken bir hata oluştu.";
+
+const INSTRUCTOR_OVERVIEW_COMPLETENESS_KEYS = [
+  "phone",
+  "city",
+  "district",
+  "address",
+  "title",
+  "branch",
+  "education_level",
+  "experience_years",
+  "subheading",
+  "bio",
+  "about",
+  "working_hours",
+  "profile_picture",
+  "cv_url",
+] as const;
+
+type InstructorOverviewCompletenessKey = (typeof INSTRUCTOR_OVERVIEW_COMPLETENESS_KEYS)[number];
+
+type InstructorOverviewMissingFieldId = InstructorOverviewCompletenessKey;
+
+type InstructorOverviewMissingField = {
+  id: InstructorOverviewMissingFieldId;
+  label: string;
+  tab: InstructorPanelTabId;
 };
+
+const INSTRUCTOR_OVERVIEW_FIELD_META: Record<
+  InstructorOverviewCompletenessKey,
+  { label: string; tab: InstructorPanelTabId }
+> = {
+  phone: { label: "Telefon", tab: "profile" },
+  city: { label: "Şehir", tab: "profile" },
+  district: { label: "İlçe", tab: "profile" },
+  address: { label: "Adres", tab: "profile" },
+  title: { label: "Ünvan", tab: "profile" },
+  branch: { label: "Branş", tab: "profile" },
+  education_level: { label: "Eğitim Seviyesi", tab: "profile" },
+  experience_years: { label: "Deneyim Yılı", tab: "profile" },
+  subheading: { label: "Kısa Tanıtım", tab: "profile" },
+  bio: { label: "Kısa Biyografi", tab: "profile" },
+  about: { label: "Hakkında", tab: "profile" },
+  working_hours: { label: "Çalışma Saatleri", tab: "profile" },
+  profile_picture: { label: "Profil Fotoğrafı", tab: "media" },
+  cv_url: { label: "CV", tab: "media" },
+};
+
+const INSTRUCTOR_OVERVIEW_MISSING_FIELD_ICON_CLASS =
+  "egitmen-panel-overview-missing-info-mini-icon-svg";
+
+function isInstructorOverviewFieldFilled(
+  key: InstructorOverviewCompletenessKey,
+  row: InstructorProfileRow | null,
+  form: InstructorProfileFormState,
+): boolean {
+  if (!row) return false;
+  switch (key) {
+    case "phone":
+      return Boolean(form.phone.trim());
+    case "city":
+      return Boolean(form.city.trim());
+    case "district":
+      return Boolean(form.district.trim());
+    case "address":
+      return Boolean(form.address.trim());
+    case "title":
+      return Boolean(form.title.trim());
+    case "branch":
+      return Boolean(form.branch.trim());
+    case "education_level":
+      return Boolean(form.education_level.trim());
+    case "experience_years": {
+      const exp = row.experience_years;
+      if (exp != null && Number.isFinite(Number(exp))) return true;
+      return Boolean(form.experience_years.trim());
+    }
+    case "subheading":
+      return Boolean(form.subheading.trim());
+    case "bio":
+      return Boolean(form.bio.trim());
+    case "about":
+      return Boolean(form.about.trim());
+    case "working_hours":
+      return Boolean(form.working_hours_start.trim() && form.working_hours_end.trim());
+    case "profile_picture":
+      return Boolean(String(row.profile_picture ?? "").trim());
+    case "cv_url":
+      return Boolean(String(row.cv_url ?? "").trim());
+    default:
+      return false;
+  }
+}
+
+function renderInstructorOverviewMissingFieldIcon(id: InstructorOverviewMissingFieldId) {
+  const c = INSTRUCTOR_OVERVIEW_MISSING_FIELD_ICON_CLASS;
+  switch (id) {
+    case "phone":
+      return <Phone className={c} aria-hidden />;
+    case "city":
+    case "district":
+    case "address":
+      return <MapPin className={c} aria-hidden />;
+    case "title":
+      return <User className={c} aria-hidden />;
+    case "branch":
+      return <Tags className={c} aria-hidden />;
+    case "education_level":
+    case "experience_years":
+      return <GraduationCap className={c} aria-hidden />;
+    case "subheading":
+    case "bio":
+    case "about":
+    case "cv_url":
+      return <FileText className={c} aria-hidden />;
+    case "working_hours":
+      return <Clock className={c} aria-hidden />;
+    case "profile_picture":
+      return <ImageIcon className={c} aria-hidden />;
+    default:
+      return <FileText className={c} aria-hidden />;
+  }
+}
 
 const MOCK_EXPERTISE_AREAS = [
   "Matematik",
@@ -110,24 +252,33 @@ const MOCK_APPLICATIONS = [
   },
 ];
 
-const INITIAL_PROFILE_FORM = {
-  firstName: "Ayşe",
-  lastName: "Öğretmen",
-  email: "egitmen@ornek.com",
-  phone: "0532 000 00 00",
-  birthDate: "1990-05-15",
-  tcIdentity: "",
-  city: "Ankara",
-  district: "Çankaya",
-  address: "",
-  bio: "",
-  title: "Eğitmen",
-  branch: "Matematik",
-  experienceYears: "5",
-  educationLevel: "Lisans",
-  workingHoursStart: "09:00",
-  workingHoursEnd: "18:00",
-};
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function cleanInstructorPhoneInput(value: string): string {
+  return value.replace(/[^\d\s+()-]/g, "");
+}
+
+function isValidInstructorPhone(phone: string): boolean {
+  const trimmed = phone.trim();
+  if (!trimmed) return true;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function isValidInstructorWebsite(website: string): boolean {
+  const trimmed = website.trim();
+  if (!trimmed) return true;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withProtocol);
+    return Boolean(url.hostname) && url.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
+const INSTRUCTOR_PROFILE_SUCCESS_MESSAGE = "Eğitmen profiliniz başarıyla güncellendi.";
+const INSTRUCTOR_PROFILE_ERROR_MESSAGE = "Eğitmen profili güncellenirken bir hata oluştu.";
 
 export default function InstructorPanelPage() {
   const router = useRouter();
@@ -138,8 +289,22 @@ export default function InstructorPanelPage() {
   const [instructorName, setInstructorName] = useState("Eğitmen");
   const [activeTab, setActiveTab] = useState<InstructorPanelTabId>("overview");
 
-  const [profileForm, setProfileForm] = useState(INITIAL_PROFILE_FORM);
-  const [profileSaveMessage, setProfileSaveMessage] = useState<string | null>(null);
+  const [instructorRowId, setInstructorRowId] = useState<number | null>(null);
+  const [instructorRow, setInstructorRow] = useState<InstructorProfileRow | null>(null);
+  const [profileForm, setProfileForm] = useState<InstructorProfileFormState>(
+    EMPTY_INSTRUCTOR_PROFILE_FORM,
+  );
+  const [profileInitialForm, setProfileInitialForm] = useState<InstructorProfileFormState>(
+    EMPTY_INSTRUCTOR_PROFILE_FORM,
+  );
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
+  const [profileFieldErrors, setProfileFieldErrors] = useState<
+    Partial<Record<keyof InstructorProfileFormState, string>>
+  >({});
+  const [showProfileSuccessPopup, setShowProfileSuccessPopup] = useState(false);
 
   const [serviceTypes, setServiceTypes] = useState<string[]>(["Online", "Bireysel"]);
   const [lessonTypes, setLessonTypes] = useState<string[]>(["Birebir Ders"]);
@@ -214,16 +379,56 @@ export default function InstructorPanelPage() {
   useEffect(() => {
     if (!user?.id || userType !== "instructor") {
       setInstructorName("Eğitmen");
+      setInstructorRowId(null);
+      setInstructorRow(null);
+      setProfileForm(EMPTY_INSTRUCTOR_PROFILE_FORM);
+      setProfileInitialForm(EMPTY_INSTRUCTOR_PROFILE_FORM);
+      setProfileLoadError(null);
+      setProfileLoading(false);
       return;
     }
+
     let cancelled = false;
-    resolveIndividualNameFromUsersClient(user.id).then((name) => {
-      if (!cancelled) setInstructorName(name || "Eğitmen");
-    });
+    setProfileLoading(true);
+    setProfileLoadError(null);
+    const supabase = createSupabaseBrowserClient();
+
+    loadInstructorRowForAuthUserClient(user.id, supabase).then(
+      ({ row, error }) => {
+        if (cancelled) return;
+        setProfileLoading(false);
+        if (error) {
+          setProfileLoadError(INSTRUCTOR_OVERVIEW_LOAD_ERROR);
+          setInstructorRowId(null);
+          setInstructorRow(null);
+          return;
+        }
+        if (!row) {
+          setProfileLoadError("Eğitmen profili bulunamadı.");
+          setInstructorRowId(null);
+          setInstructorRow(null);
+          return;
+        }
+        const loadedForm = mapInstructorRowToFormState(row);
+        setInstructorRowId(row.id);
+        setInstructorRow(row);
+        setProfileForm(loadedForm);
+        setProfileInitialForm(loadedForm);
+        setInstructorName(instructorDisplayNameFromRow(row));
+        setProfileLoadError(null);
+      },
+    );
+
     return () => {
       cancelled = true;
     };
   }, [user?.id, userType]);
+
+  useEffect(() => {
+    if (!showProfileSuccessPopup) return;
+    const timer = window.setTimeout(() => setShowProfileSuccessPopup(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [showProfileSuccessPopup]);
 
   useEffect(() => {
     if (user?.email) setSettingsEmail(user.email);
@@ -242,11 +447,142 @@ export default function InstructorPanelPage() {
     window.location.href = "/";
   };
 
-  const handleProfileSave = () => {
-    console.log("[instructor-panel] profile save (mock)", profileForm);
-    setProfileSaveMessage("Değişiklikler kaydedildi (önizleme).");
-    window.setTimeout(() => setProfileSaveMessage(null), 3000);
+  const validateInstructorProfileForm = (): Partial<
+    Record<keyof InstructorProfileFormState, string>
+  > => {
+    const errors: Partial<Record<keyof InstructorProfileFormState, string>> = {};
+    const name = profileForm.name.trim();
+    const surname = profileForm.surname.trim();
+    const email = profileForm.email.trim();
+    const tc = profileForm.tc_identity_no.trim();
+    const exp = profileForm.experience_years.trim();
+
+    if (!name) errors.name = "Ad alanı zorunludur.";
+    if (!surname) errors.surname = "Soyad alanı zorunludur.";
+    if (!email) {
+      errors.email = "E-posta adresi zorunludur.";
+    } else if (!EMAIL_PATTERN.test(email)) {
+      errors.email = "Geçerli bir e-posta adresi girin.";
+    }
+    if (!tc) {
+      errors.tc_identity_no = "TC kimlik numarası zorunludur.";
+    } else if (tc.length !== 11) {
+      errors.tc_identity_no = "TC kimlik numarası 11 haneli olmalıdır.";
+    } else if (tc.startsWith("0")) {
+      errors.tc_identity_no = "TC kimlik numarası 0 ile başlayamaz.";
+    }
+    if (!profileForm.birth_date.trim()) {
+      errors.birth_date = "Doğum tarihi zorunludur.";
+    }
+    if (exp && !Number.isFinite(Number(exp))) {
+      errors.experience_years = "Deneyim yılı sayısal olmalıdır.";
+    }
+
+    const subheading = profileForm.subheading.trim();
+    if (subheading.length > INSTRUCTOR_SUBHEADING_MAX_LENGTH) {
+      errors.subheading = "Kısa tanıtım en fazla 100 karakter olabilir.";
+    }
+
+    if (!isValidInstructorPhone(profileForm.phone)) {
+      errors.phone = "Geçerli bir telefon numarası girin.";
+    }
+
+    if (!isValidInstructorWebsite(profileForm.website)) {
+      errors.website = "Geçerli bir web sitesi adresi girin.";
+    }
+
+    return errors;
   };
+
+  const normalizeProfileFormForSave = (
+    form: InstructorProfileFormState,
+  ): InstructorProfileFormState => ({
+    ...form,
+    city: INSTRUCTOR_PROFILE_CITY,
+    subheading: form.subheading.slice(0, INSTRUCTOR_SUBHEADING_MAX_LENGTH),
+    phone: cleanInstructorPhoneInput(form.phone),
+  });
+
+  const handleProfileSave = async () => {
+    if (!user?.id || !instructorRowId) {
+      setProfileSaveError(INSTRUCTOR_PROFILE_ERROR_MESSAGE);
+      return;
+    }
+
+    const errors = validateInstructorProfileForm();
+    if (Object.keys(errors).length > 0) {
+      setProfileFieldErrors(errors);
+      setProfileSaveError("Lütfen zorunlu alanları kontrol edin.");
+      return;
+    }
+
+    setProfileFieldErrors({});
+    setProfileSaveError(null);
+    setProfileSaving(true);
+
+    try {
+      const { row: data, error } = await updateInstructorProfileForAuthUserClient(
+        user.id,
+        instructorRowId,
+        normalizeProfileFormForSave(profileForm),
+      );
+
+      if (error || !data) {
+        console.error("[instructor-panel] profile save error:", error);
+        setProfileSaveError(INSTRUCTOR_PROFILE_ERROR_MESSAGE);
+        return;
+      }
+
+      const nextForm = mapInstructorRowToFormState(data);
+      setProfileForm(nextForm);
+      setProfileInitialForm(nextForm);
+      setInstructorRow(data);
+      setInstructorName(instructorDisplayNameFromRow(data));
+      setShowProfileSuccessPopup(true);
+    } catch (err) {
+      console.error("[instructor-panel] profile save error:", err);
+      setProfileSaveError(INSTRUCTOR_PROFILE_ERROR_MESSAGE);
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleProfileFieldChange = (
+    field: keyof InstructorProfileFormState,
+    value: string,
+  ) => {
+    setProfileForm((prev) => ({ ...prev, [field]: value }));
+    setProfileFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const handleTcIdentityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+    handleProfileFieldChange("tc_identity_no", digits);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleProfileFieldChange("phone", cleanInstructorPhoneInput(e.target.value));
+  };
+
+  const handleSubheadingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleProfileFieldChange(
+      "subheading",
+      e.target.value.slice(0, INSTRUCTOR_SUBHEADING_MAX_LENGTH),
+    );
+  };
+
+  const districtSelectOptions = useMemo(() => {
+    const current = profileForm.district.trim();
+    if (current && !ANKARA_DISTRICTS.includes(current)) {
+      return [current, ...ANKARA_DISTRICTS];
+    }
+    return ANKARA_DISTRICTS;
+  }, [profileForm.district]);
 
   const handleFeaturesSave = () => {
     console.log("[instructor-panel] features save (mock)", {
@@ -310,6 +646,38 @@ export default function InstructorPanelPage() {
 
   const activeTabConfig =
     INSTRUCTOR_PANEL_TABS.find((t) => t.id === activeTab) ?? INSTRUCTOR_PANEL_TABS[0];
+
+  const overviewMissingFields = useMemo((): InstructorOverviewMissingField[] => {
+    if (!instructorRow) return [];
+    return INSTRUCTOR_OVERVIEW_COMPLETENESS_KEYS.filter(
+      (key) => !isInstructorOverviewFieldFilled(key, instructorRow, profileForm),
+    ).map((key) => ({
+      id: key,
+      label: INSTRUCTOR_OVERVIEW_FIELD_META[key].label,
+      tab: INSTRUCTOR_OVERVIEW_FIELD_META[key].tab,
+    }));
+  }, [instructorRow, profileForm]);
+
+  const overviewMediaCount = useMemo(() => {
+    if (!instructorRow) return 0;
+    let count = 0;
+    if (String(instructorRow.profile_picture ?? "").trim()) count += 1;
+    if (String(instructorRow.cv_url ?? "").trim()) count += 1;
+    return count;
+  }, [instructorRow]);
+
+  const overviewHasCv = Boolean(String(instructorRow?.cv_url ?? "").trim());
+  const overviewBranchLabel = profileForm.branch.trim() || "Belirtilmedi";
+  const overviewCvStatusLabel = overviewHasCv ? "Yüklendi" : "Eksik";
+
+  const handleOverviewTabSelect = useCallback((tab: InstructorPanelTabId) => {
+    setActiveTab(tab);
+  }, []);
+
+  const isProfileFormDirty = useMemo(
+    () => !instructorProfileFormsEqual(profileForm, profileInitialForm),
+    [profileForm, profileInitialForm],
+  );
 
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
@@ -390,73 +758,160 @@ export default function InstructorPanelPage() {
                   <h2 id="instructor-overview-title" className="egitmen-panel-overview-title">
                     Genel Bakış
                   </h2>
-                  <p className="egitmen-panel-overview-subtitle">Eğitmen paneli özetiniz ve kısa rehber.</p>
+                  <p className="egitmen-panel-overview-subtitle">
+                    Eğitmen profilinizin özeti ve panel kullanım rehberi.
+                  </p>
                 </div>
                 <div className="egitmen-panel-overview-content">
-                  <div className="egitmen-panel-overview-box">
-                    <h3 className="egitmen-panel-overview-box-title">Hoş Geldiniz</h3>
-                    <div className="egitmen-panel-overview-box-body">
-                      <p>Merhaba, eğitmen panelinize hoş geldiniz.</p>
+                  {profileLoading ? (
+                    <p className="egitmen-panel-form-loading">Eğitmen bilgileriniz yükleniyor…</p>
+                  ) : profileLoadError ? (
+                    <p className="egitmen-panel-form-error" role="alert">
+                      {profileLoadError}
+                    </p>
+                  ) : !instructorRow ? (
+                    <p className="egitmen-panel-form-error" role="alert">
+                      Eğitmen profili bulunamadı.
+                    </p>
+                  ) : (
+                    <>
+                  <div className="egitmen-panel-overview-cards">
+                    <div className="egitmen-panel-overview-media-status-card">
+                      <div className="egitmen-panel-overview-media-status-body">
+                        <span className="egitmen-panel-overview-media-status-label">MEDYA DURUMU</span>
+                        <h3 className="egitmen-panel-overview-media-status-heading">
+                          Toplam Medya Sayısı
+                        </h3>
+                        <p className="egitmen-panel-overview-media-status-desc">
+                          Yüklenen fotoğraf/CV durumu.
+                        </p>
+                      </div>
+                      <div className="egitmen-panel-overview-media-status-count" aria-live="polite">
+                        <span className="egitmen-panel-overview-media-status-count-value">
+                          {overviewMediaCount}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="egitmen-panel-overview-missing-info-card">
+                      <span className="egitmen-panel-overview-missing-info-label">EKSİK BİLGİLER</span>
+                      <h3 className="egitmen-panel-overview-missing-info-heading">
+                        Eksik Bilgiler Uyarısı
+                      </h3>
+                      {overviewMissingFields.length === 0 ? (
+                        <p className="egitmen-panel-overview-missing-info-ok">
+                          Profil bilgileriniz tamamlanmış görünüyor.
+                        </p>
+                      ) : (
+                        <div
+                          className="egitmen-panel-overview-missing-info-scroll"
+                          role="list"
+                          aria-label="Eksik alanlar"
+                        >
+                          {overviewMissingFields.map((field) => (
+                            <div
+                              key={field.id}
+                              className="egitmen-panel-overview-missing-info-mini"
+                              role="listitem"
+                            >
+                              <div
+                                className="egitmen-panel-overview-missing-info-mini-icon"
+                                aria-hidden
+                              >
+                                {renderInstructorOverviewMissingFieldIcon(field.id)}
+                              </div>
+                              <div className="egitmen-panel-overview-missing-info-mini-body">
+                                <span className="egitmen-panel-overview-missing-info-mini-title">
+                                  {field.label}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="egitmen-panel-overview-missing-info-mini-action"
+                                  onClick={() => handleOverviewTabSelect(field.tab)}
+                                >
+                                  Şimdi Düzenle
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="egitmen-panel-overview-metrics">
-                    <div className="egitmen-panel-overview-stats">
-                      <div className="egitmen-panel-stat-card">
-                        <div className="egitmen-panel-stat-card-body">
-                          <span className="egitmen-panel-stat-card-label">PROFİL</span>
-                          <h3 className="egitmen-panel-stat-card-heading">Profil Görüntülenme</h3>
-                          <p className="egitmen-panel-stat-card-desc">Son 30 gün (örnek veri).</p>
-                        </div>
-                        <div className="egitmen-panel-stat-card-value-wrap" aria-live="polite">
-                          <span className="egitmen-panel-stat-card-value">
-                            {MOCK_STATS.profileViews}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-stat-card">
-                        <div className="egitmen-panel-stat-card-body">
-                          <span className="egitmen-panel-stat-card-label">İLETİŞİM</span>
-                          <h3 className="egitmen-panel-stat-card-heading">Gelen İletişim Talepleri</h3>
-                          <p className="egitmen-panel-stat-card-desc">Bekleyen ve yeni talepler.</p>
-                        </div>
-                        <div className="egitmen-panel-stat-card-value-wrap">
-                          <span className="egitmen-panel-stat-card-value">
-                            {MOCK_STATS.contactRequests}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-stat-card">
-                        <div className="egitmen-panel-stat-card-body">
-                          <span className="egitmen-panel-stat-card-label">DUYURU</span>
-                          <h3 className="egitmen-panel-stat-card-heading">Aktif Duyurular</h3>
-                          <p className="egitmen-panel-stat-card-desc">Yayında olan duyuru sayısı.</p>
-                        </div>
-                        <div className="egitmen-panel-stat-card-value-wrap">
-                          <span className="egitmen-panel-stat-card-value">
-                            {MOCK_STATS.activeAnnouncements}
-                          </span>
-                        </div>
-                      </div>
+                  <div
+                    className="egitmen-panel-overview-summary-grid"
+                    aria-label="Profil özeti"
+                  >
+                    <div className="egitmen-panel-overview-summary-card">
+                      <span className="egitmen-panel-overview-summary-label">Branş</span>
+                      <p className="egitmen-panel-overview-summary-value">{overviewBranchLabel}</p>
                     </div>
-                    <div className="egitmen-panel-status-card">
-                      <div className="egitmen-panel-status-card-main">
-                        <span className="egitmen-panel-status-card-label">DURUM</span>
-                        <h3 className="egitmen-panel-status-card-heading">Profil Durumu</h3>
-                      </div>
-                      <p className="egitmen-panel-status-card-value">{MOCK_STATS.profileStatus}</p>
-                      <p className="egitmen-panel-status-card-desc">
-                        Onay bekliyor veya taslak olarak görüntülenebilir.
+                    <div className="egitmen-panel-overview-summary-card">
+                      <span className="egitmen-panel-overview-summary-label">CV Durumu</span>
+                      <p className="egitmen-panel-overview-summary-value">{overviewCvStatusLabel}</p>
+                    </div>
+                  </div>
+                  <div className="egitmen-panel-overview-announcements egitmen-panel-overview-welcome-card">
+                    <h3 className="egitmen-panel-overview-announcements-title">Hoş Geldiniz</h3>
+                    <div className="egitmen-panel-overview-welcome-body">
+                      <p className="egitmen-panel-overview-welcome-greeting">
+                        Merhaba, <strong>{instructorName}</strong>
                       </p>
-                    </div>
-                  </div>
-                  <div className="egitmen-panel-overview-box">
-                    <h3 className="egitmen-panel-overview-box-title">Rehber</h3>
-                    <div className="egitmen-panel-overview-box-body">
                       <p>
-                        Profilinizi tamamlayarak öğrencilerin sizi daha kolay bulmasını sağlayabilirsiniz.
+                        Bu panel üzerinden eğitmen profilinize ait tüm bilgileri tek bir yerden
+                        yönetebilirsiniz.{" "}
+                      </p>
+                      <p className="egitmen-panel-overview-welcome-row">
+                        <span className="egitmen-panel-overview-welcome-row-icon" aria-hidden>
+                          <Building2 className="egitmen-panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="egitmen-panel-overview-welcome-row-text">
+                          <strong>Eğitmen Profili</strong> sekmesinden ad, soyad, iletişim bilgileri,
+                          uzmanlık alanı ve tanıtım metni gibi temel bilgilerinizi eksiksiz
+                          doldurmanız önemlidir.
+                        </span>
+                      </p>
+                      <p className="egitmen-panel-overview-welcome-row">
+                        <span className="egitmen-panel-overview-welcome-row-icon" aria-hidden>
+                          <Tags className="egitmen-panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="egitmen-panel-overview-welcome-row-text">
+                          <strong>Eğitmen Özellikleri</strong> bölümünde seçeceğiniz branş, ders türleri,
+                          hizmet şekli ve diğer eğitmen özellikleri profil sayfanızda ziyaretçilere
+                          gösterilir. Aynı zamanda bu bilgiler filtreleme alanlarında da kullanılacağı
+                          için, profilinizin daha kolay bulunması ve öne çıkması adına tüm alanları
+                          doğru ve eksiksiz doldurmanızı öneririz.
+                        </span>
+                      </p>
+                      <p className="egitmen-panel-overview-welcome-row">
+                        <span className="egitmen-panel-overview-welcome-row-icon" aria-hidden>
+                          <Images className="egitmen-panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="egitmen-panel-overview-welcome-row-text">
+                          <strong>Medya Yönetimi</strong> alanından yüklediğiniz fotoğraflar ve CV
+                          dosyanız eğitmen profilinizde listelenir ve sizi öğrencilere daha güçlü
+                          şekilde tanıtmanıza yardımcı olur.
+                        </span>
+                      </p>
+                      <p className="egitmen-panel-overview-welcome-row">
+                        <span className="egitmen-panel-overview-welcome-row-icon" aria-hidden>
+                          <Megaphone className="egitmen-panel-overview-welcome-icon-svg" />
+                        </span>
+                        <span className="egitmen-panel-overview-welcome-row-text">
+                          <strong>Duyurular</strong> bölümünde ders programı, ücretsiz deneme dersi,
+                          grup dersi kayıtları veya bilgilendirme içerikleri gibi paylaşmak istediğiniz
+                          duyuruları yayınlayabilirsiniz. Her duyuru için aktiflik durumunu
+                          belirleyebilir, süresi geçen duyurularınızı pasif hale getirseniz bile
+                          ziyaretçiler bunları süresi doldu bilgisiyle görmeye devam edebilir.
+                        </span>
+                      </p>
+                      <p>
+                        Eğitmen profilinizin daha güçlü görünmesi için bilgilerinizi düzenli olarak
+                        güncel tutmanızı öneririz.
                       </p>
                     </div>
                   </div>
+                    </>
+                  )}
                 </div>
               </>
             ) : (
@@ -473,14 +928,15 @@ export default function InstructorPanelPage() {
                       {activeTabConfig.label}
                     </h2>
                   </div>
-                  {isProfile ? (
+                  {isProfile && isProfileFormDirty ? (
                     <Button
                       type="button"
                       variant="default"
                       className="egitmen-panel-save-btn"
-                      onClick={handleProfileSave}
+                      onClick={() => void handleProfileSave()}
+                      disabled={profileSaving || profileLoading || !instructorRowId}
                     >
-                      Değişiklikleri Kaydet
+                      {profileSaving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
                     </Button>
                   ) : null}
                   {isFeatures ? (
@@ -497,196 +953,323 @@ export default function InstructorPanelPage() {
 
                 {isProfile ? (
                   <div className="egitmen-panel-card-content">
-                    {profileSaveMessage ? (
-                      <p className="egitmen-panel-save-message">{profileSaveMessage}</p>
+                    {profileLoadError ? (
+                      <p className="egitmen-panel-save-message egitmen-panel-save-message--error" role="alert">
+                        {profileLoadError}
+                      </p>
                     ) : null}
-                    <div className="egitmen-panel-form">
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Ad</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.firstName}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, firstName: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Soyad</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.lastName}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, lastName: e.target.value }))
-                            }
-                          />
-                        </div>
+                    {profileSaveError ? (
+                      <p className="egitmen-panel-save-message egitmen-panel-save-message--error" role="alert">
+                        {profileSaveError}
+                      </p>
+                    ) : null}
+                    {profileLoading ? (
+                      <p className="egitmen-panel-form-loading">Profil yükleniyor…</p>
+                    ) : (
+                      <div className="egitmen-panel-form">
+                        <section className="egitmen-panel-form-section">
+                          <h3 className="egitmen-panel-form-section-title">Kişisel Bilgiler</h3>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Ad</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.name}
+                                onChange={(e) => handleProfileFieldChange("name", e.target.value)}
+                              />
+                              {profileFieldErrors.name ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.name}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Soyad</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.surname}
+                                onChange={(e) => handleProfileFieldChange("surname", e.target.value)}
+                              />
+                              {profileFieldErrors.surname ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.surname}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">E-posta</label>
+                              <Input
+                                type="email"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.email}
+                                onChange={(e) => handleProfileFieldChange("email", e.target.value)}
+                              />
+                              {profileFieldErrors.email ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.email}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Telefon</label>
+                              <Input
+                                type="tel"
+                                inputMode="tel"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.phone}
+                                onChange={handlePhoneChange}
+                              />
+                              {profileFieldErrors.phone ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.phone}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">TC Kimlik No</label>
+                              <Input
+                                inputMode="numeric"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.tc_identity_no}
+                                onChange={handleTcIdentityChange}
+                                maxLength={11}
+                              />
+                              {profileFieldErrors.tc_identity_no ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.tc_identity_no}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field egitmen-panel-form-field--birth-date">
+                              <label className="egitmen-panel-form-label" htmlFor="egitmen-profile-birth-date">
+                                Doğum Tarihi
+                              </label>
+                              <SignupBirthDatePicker
+                                id="egitmen-profile-birth-date"
+                                value={profileForm.birth_date}
+                                onChange={(isoDate) =>
+                                  handleProfileFieldChange("birth_date", isoDate)
+                                }
+                              />
+                              {profileFieldErrors.birth_date ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.birth_date}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Referans</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.reference}
+                                onChange={(e) =>
+                                  handleProfileFieldChange("reference", e.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                        </section>
+
+                        <section className="egitmen-panel-form-section">
+                          <h3 className="egitmen-panel-form-section-title">Eğitmen Bilgileri</h3>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Ünvan</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.title}
+                                onChange={(e) => handleProfileFieldChange("title", e.target.value)}
+                              />
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Branş</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.branch}
+                                onChange={(e) => handleProfileFieldChange("branch", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Deneyim Yılı</label>
+                              <Input
+                                type="number"
+                                min={0}
+                                className="egitmen-panel-form-input"
+                                value={profileForm.experience_years}
+                                onChange={(e) =>
+                                  handleProfileFieldChange("experience_years", e.target.value)
+                                }
+                              />
+                              {profileFieldErrors.experience_years ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.experience_years}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Eğitim Seviyesi</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.education_level}
+                                onChange={(e) =>
+                                  handleProfileFieldChange("education_level", e.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Kısa Tanıtım</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.subheading}
+                                onChange={handleSubheadingChange}
+                                maxLength={INSTRUCTOR_SUBHEADING_MAX_LENGTH}
+                                placeholder="Profilinizde görünecek kısa tanıtım metni."
+                              />
+                              <span className="egitmen-panel-form-char-count" aria-live="polite">
+                                {profileForm.subheading.length}/{INSTRUCTOR_SUBHEADING_MAX_LENGTH}
+                              </span>
+                              {profileFieldErrors.subheading ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.subheading}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Kısa Biyografi</label>
+                              <textarea
+                                className="egitmen-panel-form-textarea egitmen-panel-form-textarea--compact"
+                                rows={3}
+                                value={profileForm.bio}
+                                onChange={(e) => handleProfileFieldChange("bio", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">
+                                Hakkında / Detaylı Açıklama
+                              </label>
+                              <textarea
+                                className="egitmen-panel-form-textarea"
+                                rows={4}
+                                value={profileForm.about}
+                                onChange={(e) => handleProfileFieldChange("about", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Web Sitesi</label>
+                              <Input
+                                type="text"
+                                inputMode="url"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.website}
+                                onChange={(e) => handleProfileFieldChange("website", e.target.value)}
+                                placeholder="ornek.com veya https://ornek.com"
+                              />
+                              {profileFieldErrors.website ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.website}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </section>
+
+                        <section className="egitmen-panel-form-section">
+                          <h3 className="egitmen-panel-form-section-title">Konum ve İletişim</h3>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Şehir</label>
+                              <Input
+                                className="egitmen-panel-form-input egitmen-panel-form-input--readonly"
+                                value={INSTRUCTOR_PROFILE_CITY}
+                                disabled
+                                readOnly
+                                aria-readonly="true"
+                              />
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label" htmlFor="egitmen-profile-district">
+                                İlçe
+                              </label>
+                              <EgitmenFormSelect
+                                id="egitmen-profile-district"
+                                value={profileForm.district}
+                                onChange={(next) => handleProfileFieldChange("district", next)}
+                                options={districtSelectOptions}
+                                placeholder="İlçe seçin"
+                                ariaLabel="İlçe seçin"
+                              />
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Adres</label>
+                              <textarea
+                                className="egitmen-panel-form-textarea egitmen-panel-form-textarea--compact"
+                                rows={2}
+                                value={profileForm.address}
+                                onChange={(e) => handleProfileFieldChange("address", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </section>
+
+                        <section className="egitmen-panel-form-section">
+                          <h3 className="egitmen-panel-form-section-title">Çalışma Saatleri</h3>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label
+                                className="egitmen-panel-form-label"
+                                htmlFor="egitmen-working-hours-start"
+                              >
+                                Çalışma Saati Başlangıç
+                              </label>
+                              <WorkingHoursTimePicker
+                                id="egitmen-working-hours-start"
+                                value={profileForm.working_hours_start}
+                                onChange={(next) =>
+                                  handleProfileFieldChange("working_hours_start", next)
+                                }
+                                ariaLabel="Çalışma saati başlangıç"
+                                placeholder="--:--"
+                              />
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label
+                                className="egitmen-panel-form-label"
+                                htmlFor="egitmen-working-hours-end"
+                              >
+                                Çalışma Saati Bitiş
+                              </label>
+                              <WorkingHoursTimePicker
+                                id="egitmen-working-hours-end"
+                                value={profileForm.working_hours_end}
+                                onChange={(next) =>
+                                  handleProfileFieldChange("working_hours_end", next)
+                                }
+                                ariaLabel="Çalışma saati bitiş"
+                                placeholder="--:--"
+                              />
+                            </div>
+                          </div>
+                        </section>
                       </div>
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">E-posta</label>
-                          <Input
-                            type="email"
-                            className="egitmen-panel-form-input"
-                            value={profileForm.email}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, email: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Telefon</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.phone}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, phone: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Doğum Tarihi</label>
-                          <Input
-                            type="date"
-                            className="egitmen-panel-form-input"
-                            value={profileForm.birthDate}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, birthDate: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">TC Kimlik No</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.tcIdentity}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, tcIdentity: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Şehir</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.city}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, city: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">İlçe</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.district}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, district: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Adres</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.address}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, address: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Kısa Biyografi</label>
-                          <textarea
-                            className="egitmen-panel-form-textarea"
-                            rows={4}
-                            value={profileForm.bio}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, bio: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Ünvan</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.title}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, title: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Branş</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.branch}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, branch: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Deneyim Yılı</label>
-                          <Input
-                            type="number"
-                            min={0}
-                            className="egitmen-panel-form-input"
-                            value={profileForm.experienceYears}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, experienceYears: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Eğitim Seviyesi</label>
-                          <Input
-                            className="egitmen-panel-form-input"
-                            value={profileForm.educationLevel}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, educationLevel: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="egitmen-panel-form-row">
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Çalışma Saati Başlangıç</label>
-                          <Input
-                            type="time"
-                            className="egitmen-panel-form-input"
-                            value={profileForm.workingHoursStart}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, workingHoursStart: e.target.value }))
-                            }
-                          />
-                        </div>
-                        <div className="egitmen-panel-form-field">
-                          <label className="egitmen-panel-form-label">Çalışma Saati Bitiş</label>
-                          <Input
-                            type="time"
-                            className="egitmen-panel-form-input"
-                            value={profileForm.workingHoursEnd}
-                            onChange={(e) =>
-                              setProfileForm((p) => ({ ...p, workingHoursEnd: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 ) : null}
 
@@ -772,80 +1355,19 @@ export default function InstructorPanelPage() {
                 ) : null}
 
                 {isMedia ? (
-                  <div className="egitmen-panel-media">
-                    <p className="egitmen-panel-media-desc">
-                      Profil fotoğrafı, galeri görselleri ve CV dosyanızı buradan yükleyebilirsiniz. (Önizleme
-                      modu — dosyalar kaydedilmez.)
+                  instructorRow && user?.id ? (
+                    <InstructorMediaTab
+                      authUserId={user.id}
+                      instructorRow={instructorRow}
+                      onInstructorRowChange={setInstructorRow}
+                    />
+                  ) : profileLoading ? (
+                    <p className="egitmen-panel-form-loading">Eğitmen bilgileri yükleniyor…</p>
+                  ) : (
+                    <p className="egitmen-panel-form-error" role="alert">
+                      {profileLoadError ?? "Eğitmen profili bulunamadı."}
                     </p>
-                    <div className="egitmen-panel-media-upload-grid">
-                      <div className="egitmen-panel-media-upload-card">
-                        <div className="egitmen-panel-media-upload-head">
-                          <div className="egitmen-panel-media-upload-head-text">
-                            <h4 className="egitmen-panel-media-upload-title">Profil Fotoğrafı</h4>
-                            <p className="egitmen-panel-media-upload-subtitle">PNG, JPG veya WEBP</p>
-                          </div>
-                          <div className="egitmen-panel-media-upload-icon-wrap" aria-hidden>
-                            <User className="egitmen-panel-media-upload-icon" />
-                          </div>
-                        </div>
-                        <label className="egitmen-panel-dropzone">
-                          <input type="file" accept="image/*" onChange={handleMockFileSelect("profile-photo")} />
-                          <div className="egitmen-panel-dropzone-inner">
-                            <CloudUpload className="egitmen-panel-dropzone-icon" aria-hidden />
-                            <p className="egitmen-panel-dropzone-title">Dosyayı seçin veya sürükleyin</p>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="egitmen-panel-media-upload-card">
-                        <div className="egitmen-panel-media-upload-head">
-                          <div className="egitmen-panel-media-upload-head-text">
-                            <h4 className="egitmen-panel-media-upload-title">Galeri Görselleri</h4>
-                            <p className="egitmen-panel-media-upload-subtitle">Birden fazla görsel ekleyebilirsiniz</p>
-                          </div>
-                          <div className="egitmen-panel-media-upload-icon-wrap" aria-hidden>
-                            <ImageIcon className="egitmen-panel-media-upload-icon" />
-                          </div>
-                        </div>
-                        <label className="egitmen-panel-dropzone">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handleMockFileSelect("gallery")}
-                          />
-                          <div className="egitmen-panel-dropzone-inner">
-                            <CloudUpload className="egitmen-panel-dropzone-icon" aria-hidden />
-                            <p className="egitmen-panel-dropzone-title">Galeri için görsel seçin</p>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-media-upload-card egitmen-panel-media-cv-block">
-                      <div className="egitmen-panel-media-upload-head">
-                        <div className="egitmen-panel-media-upload-head-text">
-                          <h4 className="egitmen-panel-media-upload-title">CV Yükle</h4>
-                          <p className="egitmen-panel-media-upload-subtitle">PDF, DOC veya DOCX</p>
-                        </div>
-                        <div className="egitmen-panel-media-upload-icon-wrap" aria-hidden>
-                          <FileText className="egitmen-panel-media-upload-icon" />
-                        </div>
-                      </div>
-                      <label className="egitmen-panel-dropzone">
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx,application/pdf,application/msword"
-                          onChange={handleMockFileSelect("cv")}
-                        />
-                        <div className="egitmen-panel-dropzone-inner">
-                          <CloudUpload className="egitmen-panel-dropzone-icon" aria-hidden />
-                          <p className="egitmen-panel-dropzone-title">CV dosyanızı yükleyin</p>
-                          <p className="egitmen-panel-dropzone-subtitle">
-                            Kabul edilen formatlar: PDF, DOC, DOCX
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
+                  )
                 ) : null}
 
                 {isAnnouncements ? (
@@ -1024,6 +1546,28 @@ export default function InstructorPanelPage() {
           </section>
         </div>
       </div>
+
+      {showProfileSuccessPopup ? (
+        <div className="egitmen-panel-profile-success-overlay" role="presentation">
+          <div
+            className="egitmen-panel-profile-success-popup"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="egitmen-profile-success-title"
+            aria-describedby="egitmen-profile-success-desc"
+          >
+            <span className="egitmen-panel-profile-success-popup-badge" aria-hidden>
+              <CheckCircle size={28} strokeWidth={2} />
+            </span>
+            <span id="egitmen-profile-success-title" className="egitmen-panel-profile-success-popup-label">
+              Onaylandı
+            </span>
+            <p id="egitmen-profile-success-desc" className="egitmen-panel-profile-success-popup-text">
+              {INSTRUCTOR_PROFILE_SUCCESS_MESSAGE}
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
