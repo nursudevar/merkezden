@@ -17,7 +17,7 @@ import {
 export const INSTRUCTORS_TABLE = "instructors" as const;
 
 export const INSTRUCTOR_PROFILE_ROW_SELECT =
-  "id, user_id, owner_auth_id, name, surname, email, phone, tc_identity_no, birth_date, reference, bio, about, subheading, website, city, district, address, title, branch, experience_years, education_level, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url";
+  "id, user_id, owner_auth_id, name, surname, email, phone, tc_identity_no, birth_date, reference, bio, about, subheading, website, city, district, address, title, branch, experience_years, education_level, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url, category_id";
 
 export type InstructorProfileRow = {
   id: number;
@@ -47,6 +47,7 @@ export type InstructorProfileRow = {
   is_active?: boolean | null;
   profile_picture?: string | null;
   cv_url?: string | null;
+  category_id?: number | null;
 };
 
 export type InstructorProfileFormState = {

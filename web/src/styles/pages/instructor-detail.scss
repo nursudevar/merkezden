@@ -1,0 +1,125 @@
+﻿@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+// Eğitmen detay — kurum detay stilleriyle aynı görünüm (ayrı sınıf adları)
+.instructor-detail-page { @extend .institution-detail-page; }
+.instructor-detail-container { @extend .institution-detail-container; }
+.instructor-breadcrumb { @extend .institution-breadcrumb; }
+.instructor-breadcrumb-container { @extend .institution-breadcrumb-container; }
+.instructor-breadcrumb-link { @extend .institution-breadcrumb-link; }
+.instructor-breadcrumb-separator { @extend .institution-breadcrumb-separator; }
+.instructor-breadcrumb-current { @extend .institution-breadcrumb-current; }
+.instructor-hero { @extend .institution-hero; }
+.instructor-hero-content { @extend .institution-hero-content; }
+.instructor-hero-main { @extend .institution-hero-main; }
+.instructor-photo-section { @extend .institution-logo-section; }
+.instructor-photo-wrapper { @extend .institution-logo-wrapper; }
+.instructor-photo { @extend .institution-logo; }
+.instructor-photo-fallback { @extend .institution-logo-empty; }
+.instructor-share-button { @extend .institution-share-button; }
+.instructor-share-tooltip { @extend .institution-share-tooltip; }
+.instructor-info { @extend .institution-info; }
+.instructor-title-row { @extend .institution-title-row; }
+.instructor-name { @extend .institution-name; }
+.instructor-subheading { @extend .institution-description; }
+.instructor-meta { @extend .institution-meta; }
+.instructor-meta-item { @extend .institution-meta-item; }
+.instructor-meta-badge { @extend .institution-meta-badge; }
+.instructor-meta-badge--branch { @extend .institution-meta-badge--subcategory; }
+.instructor-meta-badge--title { @extend .institution-meta-badge--category; }
+.instructor-meta-verified { @extend .institution-meta-verified; }
+.instructor-actions { @extend .institution-actions; }
+.instructor-tabs-sticky { @extend .institution-tabs-sticky; }
+.instructor-tabs-list { @extend .institution-tabs-list; }
+.instructor-tab-item { @extend .institution-tab-item; }
+.instructor-tab-active { @extend .institution-tab-active; }
+.instructor-content-grid { @extend .institution-content-grid; }
+.instructor-section { @extend .institution-section; }
+.instructor-section-header { @extend .institution-section-header; }
+.instructor-section-title { @extend .institution-section-title; }
+.instructor-section-link { @extend .institution-section-link; }
+.instructor-section-card { @extend .institution-section-card; }
+.instructor-about-text { @extend .institution-about-text; }
+.instructor-sidebar { @extend .institution-sidebar; }
+.instructor-sidebar-header { @extend .institution-sidebar-header; }
+.instructor-sidebar-body { @extend .institution-sidebar-body; }
+.instructor-map-preview { @extend .institution-map-preview; }
+.instructor-map-image { @extend .institution-map-image; }
+.instructor-map-preview-empty { @extend .institution-map-preview-empty; }
+.instructor-contact-list { @extend .institution-contact-list; }
+.instructor-contact-item { @extend .institution-contact-item; }
+.instructor-contact-icon { @extend .institution-contact-icon; }
+.instructor-contact-label { @extend .institution-contact-label; }
+.instructor-contact-value { @extend .institution-contact-value; }
+.instructor-contact-link { @extend .institution-contact-link; }
+.instructor-features-card { @extend .institution-features-card; }
+.instructor-features-head { @extend .institution-features-head; }
+.instructor-features-groups { @extend .institution-features-groups; }
+.instructor-features-group { @extend .institution-features-group; }
+.instructor-features-group-title { @extend .institution-features-group-title; }
+.instructor-features-badges { @extend .institution-features-badges; }
+.instructor-features-academic-list { @extend .institution-features-academic-list; }
+.instructor-features-academic-row { @extend .institution-features-academic-row; }
+.instructor-features-academic-icon { @extend .institution-features-academic-icon; }
+.instructor-features-academic-content { @extend .institution-features-academic-content; }
+.instructor-features-academic-label { @extend .institution-features-academic-label; }
+.instructor-features-academic-value { @extend .institution-features-academic-value; }
+.instructor-features-badge { @extend .institution-features-badge; }
+.instructor-features-empty { @extend .institution-features-empty; }
+.instructor-gallery-grid { @extend .institution-gallery-grid; }
+.instructor-gallery-main { @extend .institution-gallery-main; }
+.instructor-gallery-item { @extend .institution-gallery-item; }
+.instructor-gallery-fallback { @extend .institution-gallery-fallback; }
+.instructor-gallery-fallback-icon { @extend .institution-gallery-fallback-icon; }
+.instructor-gallery-fallback-text { @extend .institution-gallery-fallback-text; }
+.instructor-gallery-view-all-btn { @extend .institution-gallery-view-all-btn; }
+.instructor-gallery-image { @extend .institution-gallery-image; }
+.instructor-announcements-card { @extend .institution-announcements-card; }
+.instructor-announcements-list { @extend .institution-announcements-list; }
+.instructor-announcement-item { @extend .institution-announcement-item; }
+.instructor-announcement-thumb { @extend .institution-announcement-thumb; }
+.instructor-announcement-thumb-image { @extend .institution-announcement-thumb-image; }
+.instructor-announcement-thumb--empty { @extend .institution-announcement-thumb--empty; }
+.instructor-announcement-thumb-icon { @extend .institution-announcement-thumb-icon; }
+.instructor-announcement-body { @extend .institution-announcement-body; }
+.instructor-announcement-kicker { @extend .institution-announcement-kicker; }
+.instructor-announcement-title { @extend .institution-announcement-title; }
+.instructor-announcement-desc { @extend .institution-announcement-desc; }
+.instructor-announcement-meta { @extend .institution-announcement-meta; }
+.instructor-announcement-meta-item { @extend .institution-announcement-meta-item; }
+.instructor-announcement-meta-link { @extend .institution-announcement-meta-link; }
+.instructor-announcement-meta-icon { @extend .institution-announcement-meta-icon; }
+.instructor-gallery-modal-backdrop { @extend .institution-gallery-modal-backdrop; }
+.instructor-gallery-modal { @extend .institution-gallery-modal; }
+.instructor-gallery-modal-header {
+  @extend .institution-gallery-modal-header;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+.instructor-gallery-modal-title { @extend .institution-gallery-modal-title; }
+.instructor-gallery-modal-subtitle { @extend .institution-gallery-modal-subtitle; }
+.instructor-gallery-modal-close { @extend .institution-gallery-modal-close; }
+.instructor-gallery-modal-grid { @extend .institution-gallery-modal-grid; }
+.instructor-gallery-modal-item { @extend .institution-gallery-modal-item; }
+.instructor-gallery-modal-empty { @extend .institution-gallery-modal-empty; }
+
+.instructor-tab-active { @extend .institution-tab-active; }
+
+.instructor-gallery-side {
+  min-height: 196px;
+
+  @media (max-width: 768px) {
+    min-height: 240px;
+  }
+}
+
+.instructor-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $purple-main;
+  background: rgba(109, 93, 252, 0.08);
+  border: 1px solid rgba(109, 93, 252, 0.14);
+}

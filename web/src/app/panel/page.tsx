@@ -44,6 +44,7 @@ import {
   inputHHMMToDbTimeOrNull,
 } from "@/lib/institutionWorkingHours";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import { SavingOverlay } from "@/components/SavingOverlay";
 import { InstitutionFeatureSelectionGroupList } from "./InstitutionFeatureSelectionGroupList";
 import { WorkingHoursTimePicker } from "./WorkingHoursTimePicker";
 import {
@@ -3436,6 +3437,8 @@ interface InstitutionDetailPreparedData {
           </div>
         </div>
       ) : null}
+
+      <SavingOverlay visible={institutionFeaturesSaving} text="Kaydediliyor" />
 
       {institutionFeaturesSaveMessage ? (
         <div className="panel-features-save-toast-overlay" role="presentation">

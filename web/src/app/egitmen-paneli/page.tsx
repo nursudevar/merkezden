@@ -8,7 +8,6 @@ import {
   Shapes,
   Images,
   Megaphone,
-  Inbox,
   Settings,
   LogOut,
   FileText,
@@ -46,6 +45,7 @@ import { Button, Input } from "@/components/ui";
 import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
 import { EgitmenFormSelect } from "./EgitmenFormSelect";
 import { InstructorAnnouncementsTab } from "./InstructorAnnouncementsTab";
+import { InstructorFeaturesTab } from "./InstructorFeaturesTab";
 import { InstructorMediaTab } from "./InstructorMediaTab";
 import "@/styles/main.scss";
 import "@/styles/pages/egitmen-panel.scss";
@@ -56,7 +56,6 @@ type InstructorPanelTabId =
   | "features"
   | "media"
   | "announcements"
-  | "applications"
   | "settings";
 
 const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
@@ -65,7 +64,6 @@ const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
   { id: "features", label: "Eğitmen Özellikleri" },
   { id: "media", label: "Fotoğraflar / CV" },
   { id: "announcements", label: "Duyurular" },
-  { id: "applications", label: "Başvurular / İletişim Talepleri" },
   { id: "settings", label: "Ayarlar" },
 ];
 
@@ -195,47 +193,6 @@ function renderInstructorOverviewMissingFieldIcon(id: InstructorOverviewMissingF
   }
 }
 
-const MOCK_EXPERTISE_AREAS = [
-  "Matematik",
-  "Fizik",
-  "İngilizce",
-  "Müzik",
-  "Resim",
-  "Yazılım",
-  "Robotik",
-  "Satranç",
-];
-
-const MOCK_APPLICATIONS = [
-  {
-    id: "1",
-    fullName: "Ayşe Yılmaz",
-    email: "ayse@ornek.com",
-    phone: "0532 000 00 01",
-    message: "Çocuğum için haftada 2 saat matematik dersi almak istiyorum.",
-    date: "18.05.2026",
-    status: "Yeni",
-  },
-  {
-    id: "2",
-    fullName: "Mehmet Kaya",
-    email: "mehmet@ornek.com",
-    phone: "0533 000 00 02",
-    message: "Online İngilizce dersi fiyat bilgisi alabilir miyim?",
-    date: "15.05.2026",
-    status: "Okundu",
-  },
-  {
-    id: "3",
-    fullName: "Zeynep Demir",
-    email: "zeynep@ornek.com",
-    phone: "0534 000 00 03",
-    message: "Grup dersi için yaş aralığı ve program hakkında bilgi rica ederim.",
-    date: "10.05.2026",
-    status: "Yanıtlandı",
-  },
-];
-
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function cleanInstructorPhoneInput(value: string): string {
@@ -289,12 +246,6 @@ export default function InstructorPanelPage() {
     Partial<Record<keyof InstructorProfileFormState, string>>
   >({});
   const [showProfileSuccessPopup, setShowProfileSuccessPopup] = useState(false);
-
-  const [serviceTypes, setServiceTypes] = useState<string[]>(["Online", "Bireysel"]);
-  const [lessonTypes, setLessonTypes] = useState<string[]>(["Birebir Ders"]);
-  const [priceRange, setPriceRange] = useState("1000-5000 TL");
-  const [expertiseAreas, setExpertiseAreas] = useState<string[]>(["Matematik"]);
-  const [ageGroups, setAgeGroups] = useState<string[]>(["Çocuk", "Genç"]);
 
   const [settingsEmail, setSettingsEmail] = useState("egitmen@ornek.com");
   const [settingsPassword, setSettingsPassword] = useState("");
@@ -564,20 +515,6 @@ export default function InstructorPanelPage() {
     return ANKARA_DISTRICTS;
   }, [profileForm.district]);
 
-  const handleFeaturesSave = () => {
-    console.log("[instructor-panel] features save (mock)", {
-      serviceTypes,
-      lessonTypes,
-      priceRange,
-      expertiseAreas,
-      ageGroups,
-    });
-  };
-
-  const toggleInArray = (value: string, list: string[], setter: (next: string[]) => void) => {
-    setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
-  };
-
   const handleSettingsSave = () => {
     console.log("[instructor-panel] settings save (mock)", {
       settingsEmail,
@@ -596,7 +533,6 @@ export default function InstructorPanelPage() {
     features: <Shapes className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     media: <Images className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     announcements: <Megaphone className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
-    applications: <Inbox className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     settings: <Settings className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
   };
 
@@ -621,10 +557,6 @@ export default function InstructorPanelPage() {
     if (String(instructorRow.cv_url ?? "").trim()) count += 1;
     return count;
   }, [instructorRow]);
-
-  const overviewHasCv = Boolean(String(instructorRow?.cv_url ?? "").trim());
-  const overviewBranchLabel = profileForm.branch.trim() || "Belirtilmedi";
-  const overviewCvStatusLabel = overviewHasCv ? "Yüklendi" : "Eksik";
 
   const handleOverviewTabSelect = useCallback((tab: InstructorPanelTabId) => {
     setActiveTab(tab);
@@ -654,7 +586,6 @@ export default function InstructorPanelPage() {
   const isFeatures = activeTab === "features";
   const isMedia = activeTab === "media";
   const isAnnouncements = activeTab === "announcements";
-  const isApplications = activeTab === "applications";
   const isSettings = activeTab === "settings";
 
   return (
@@ -793,19 +724,6 @@ export default function InstructorPanelPage() {
                       )}
                     </div>
                   </div>
-                  <div
-                    className="egitmen-panel-overview-summary-grid"
-                    aria-label="Profil özeti"
-                  >
-                    <div className="egitmen-panel-overview-summary-card">
-                      <span className="egitmen-panel-overview-summary-label">Branş</span>
-                      <p className="egitmen-panel-overview-summary-value">{overviewBranchLabel}</p>
-                    </div>
-                    <div className="egitmen-panel-overview-summary-card">
-                      <span className="egitmen-panel-overview-summary-label">CV Durumu</span>
-                      <p className="egitmen-panel-overview-summary-value">{overviewCvStatusLabel}</p>
-                    </div>
-                  </div>
                   <div className="egitmen-panel-overview-announcements egitmen-panel-overview-welcome-card">
                     <h3 className="egitmen-panel-overview-announcements-title">Hoş Geldiniz</h3>
                     <div className="egitmen-panel-overview-welcome-body">
@@ -878,7 +796,6 @@ export default function InstructorPanelPage() {
                     {isProfile ? <User className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isFeatures ? <Shapes className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isMedia ? <Images className="egitmen-panel-main-card-icon" aria-hidden /> : null}
-                    {isApplications ? <Inbox className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     {isSettings ? <Settings className="egitmen-panel-main-card-icon" aria-hidden /> : null}
                     <h2 id="instructor-card-title" className="egitmen-panel-main-card-title">
                       {activeTabConfig.label}
@@ -893,16 +810,6 @@ export default function InstructorPanelPage() {
                       disabled={profileSaving || profileLoading || !instructorRowId}
                     >
                       {profileSaving ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
-                    </Button>
-                  ) : null}
-                  {isFeatures ? (
-                    <Button
-                      type="button"
-                      variant="default"
-                      className="egitmen-panel-save-btn"
-                      onClick={handleFeaturesSave}
-                    >
-                      Kaydet
                     </Button>
                   ) : null}
                 </div>
@@ -1231,84 +1138,19 @@ export default function InstructorPanelPage() {
                 ) : null}
 
                 {isFeatures ? (
-                  <div className="egitmen-panel-tab-content">
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Hizmet Tipi</h3>
-                      <div className="egitmen-panel-options-grid egitmen-panel-options-grid--selection">
-                        {["Online", "Yüz yüze", "Bireysel", "Grup"].map((opt) => (
-                          <label key={opt} className="egitmen-panel-option-check">
-                            <input
-                              type="checkbox"
-                              checked={serviceTypes.includes(opt)}
-                              onChange={() => toggleInArray(opt, serviceTypes, setServiceTypes)}
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Ders Türü</h3>
-                      <div className="egitmen-panel-options-grid egitmen-panel-options-grid--selection">
-                        {["Birebir Ders", "Grup Dersi", "Online Eğitim", "Atölye"].map((opt) => (
-                          <label key={opt} className="egitmen-panel-option-check">
-                            <input
-                              type="checkbox"
-                              checked={lessonTypes.includes(opt)}
-                              onChange={() => toggleInArray(opt, lessonTypes, setLessonTypes)}
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Fiyat Aralığı</h3>
-                      <div className="egitmen-panel-options-grid egitmen-panel-options-grid--selection">
-                        {["0-1000 TL", "1000-5000 TL", "5000-10000 TL", "10000 TL+"].map((opt) => (
-                          <label key={opt} className="egitmen-panel-option-check">
-                            <input
-                              type="radio"
-                              name="price-range"
-                              checked={priceRange === opt}
-                              onChange={() => setPriceRange(opt)}
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Uzmanlık Alanları</h3>
-                      <div className="egitmen-panel-options-grid egitmen-panel-options-grid--selection">
-                        {MOCK_EXPERTISE_AREAS.map((opt) => (
-                          <label key={opt} className="egitmen-panel-option-check">
-                            <input
-                              type="checkbox"
-                              checked={expertiseAreas.includes(opt)}
-                              onChange={() => toggleInArray(opt, expertiseAreas, setExpertiseAreas)}
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Yaş Grubu</h3>
-                      <div className="egitmen-panel-options-grid egitmen-panel-options-grid--selection">
-                        {["Çocuk", "Genç", "Yetişkin"].map((opt) => (
-                          <label key={opt} className="egitmen-panel-option-check">
-                            <input
-                              type="checkbox"
-                              checked={ageGroups.includes(opt)}
-                              onChange={() => toggleInArray(opt, ageGroups, setAgeGroups)}
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  instructorRow && user?.id ? (
+                    <InstructorFeaturesTab
+                      authUserId={user.id}
+                      instructorRow={instructorRow}
+                      onInstructorRowChange={setInstructorRow}
+                    />
+                  ) : profileLoading ? (
+                    <p className="egitmen-panel-form-loading">Eğitmen bilgileri yükleniyor…</p>
+                  ) : (
+                    <p className="egitmen-panel-form-error" role="alert">
+                      {profileLoadError ?? "Eğitmen profiliniz bulunamadı."}
+                    </p>
+                  )
                 ) : null}
 
                 {isMedia ? (
@@ -1337,54 +1179,6 @@ export default function InstructorPanelPage() {
                       Eğitmen profiliniz bulunamadı.
                     </p>
                   )
-                ) : null}
-
-                {isApplications ? (
-                  <div className="egitmen-panel-table-content">
-                    <div className="egitmen-panel-table-wrap">
-                      <table className="egitmen-panel-table">
-                        <thead>
-                          <tr>
-                            <th className="egitmen-panel-th">Ad Soyad</th>
-                            <th className="egitmen-panel-th">E-posta</th>
-                            <th className="egitmen-panel-th">Telefon</th>
-                            <th className="egitmen-panel-th">Mesaj</th>
-                            <th className="egitmen-panel-th">Tarih</th>
-                            <th className="egitmen-panel-th">Durum</th>
-                            <th className="egitmen-panel-th egitmen-panel-th--actions">İşlem</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {MOCK_APPLICATIONS.map((row) => (
-                            <tr key={row.id} className="egitmen-panel-tr">
-                              <td className="egitmen-panel-td egitmen-panel-td--title">{row.fullName}</td>
-                              <td className="egitmen-panel-td">{row.email}</td>
-                              <td className="egitmen-panel-td">{row.phone}</td>
-                              <td className="egitmen-panel-td egitmen-panel-td--desc">
-                                <span className="egitmen-panel-desc-clamp">{row.message}</span>
-                              </td>
-                              <td className="egitmen-panel-td">{row.date}</td>
-                              <td className="egitmen-panel-td">
-                                <span className="egitmen-panel-badge">{row.status}</span>
-                              </td>
-                              <td className="egitmen-panel-td egitmen-panel-td--actions">
-                                <Button
-                                  type="button"
-                                  variant="default"
-                                  className="egitmen-panel-table-action-btn"
-                                  onClick={() =>
-                                    console.log("[instructor-panel] application detail (mock)", row.id)
-                                  }
-                                >
-                                  Detay
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 ) : null}
 
                 {isSettings ? (

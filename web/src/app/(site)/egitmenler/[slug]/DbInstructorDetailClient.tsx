@@ -1,0 +1,787 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Card, CardContent } from "@/components/ui";
+import {
+  MapPin,
+  GraduationCap,
+  CheckCircle2,
+  Image as ImageIcon,
+  BookOpen,
+  Phone,
+  Globe,
+  Clock,
+  X,
+  Sparkles,
+  Megaphone,
+  CalendarDays,
+  ImageOff,
+  GitCommitVertical,
+  Mail,
+} from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  formatWorkingHoursRange,
+  institutionTimeToInputHHMM,
+} from "@/lib/institutionWorkingHours";
+import type { PublicInstructorRow } from "@/lib/publicInstructorClient";
+import {
+  fetchPublicInstructorByParamClient,
+  publicInstructorDisplayName,
+} from "@/lib/publicInstructorClient";
+import {
+  buildInstructorProfileSummaryLines,
+  fetchPublicInstructorAnnouncementsClient,
+  fetchPublicInstructorFeatureDisplayClient,
+  fetchPublicInstructorGalleryClient,
+  resolvePublicInstructorProfilePictureUrl,
+  type PublicInstructorAnnouncementItem,
+  type PublicInstructorFeatureLine,
+  type PublicInstructorFeatureSection,
+} from "@/lib/publicInstructorDetailClient";
+import AnnouncementDetailModal, {
+  type AnnouncementDetailItem,
+} from "@/components/AnnouncementDetailModal";
+import InstructorShareButton from "./InstructorShareButton";
+
+type InstructorDetailTab = "about" | "features" | "announcements" | "gallery";
+
+const EMPTY_TEXT = "Henüz içerik girilmedi.";
+
+export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: string }) {
+  const [row, setRow] = useState<PublicInstructorRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  const [activeTab, setActiveTab] = useState<InstructorDetailTab>("about");
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+  const [announcements, setAnnouncements] = useState<PublicInstructorAnnouncementItem[]>([]);
+  const [profileLines, setProfileLines] = useState<PublicInstructorFeatureLine[]>([]);
+  const [academicLines, setAcademicLines] = useState<PublicInstructorFeatureLine[]>([]);
+  const [featureSections, setFeatureSections] = useState<PublicInstructorFeatureSection[]>([]);
+  const [universityLabel, setUniversityLabel] = useState<string | null>(null);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementDetailItem | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const { row: instructorRow, error: loadError } = await fetchPublicInstructorByParamClient(slugOrId);
+      if (cancelled) return;
+      if (loadError) {
+        setRow(null);
+        setError("Eğitmen profili yüklenirken bir hata oluştu.");
+        setLoading(false);
+        return;
+      }
+      if (!instructorRow) {
+        setRow(null);
+        setError("Eğitmen profili bulunamadı.");
+        setLoading(false);
+        return;
+      }
+      setRow(instructorRow);
+      setProfileLines(buildInstructorProfileSummaryLines(instructorRow));
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slugOrId]);
+
+  useEffect(() => {
+    if (!row?.id) {
+      setGalleryUrls([]);
+      setAnnouncements([]);
+      setAcademicLines([]);
+      setFeatureSections([]);
+      setUniversityLabel(null);
+      return;
+    }
+
+    let cancelled = false;
+    const instructorId = Number(row.id);
+
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const [galleryRes, announcementsRes, featuresRes] = await Promise.all([
+        fetchPublicInstructorGalleryClient(instructorId, supabase),
+        fetchPublicInstructorAnnouncementsClient(instructorId, supabase),
+        fetchPublicInstructorFeatureDisplayClient(instructorId, supabase),
+      ]);
+
+      if (cancelled) return;
+      setGalleryUrls(galleryRes.items.map((i) => i.url));
+      setAnnouncements(announcementsRes.items);
+      setAcademicLines(featuresRes.academicLines);
+      setFeatureSections(featuresRes.sections);
+      setUniversityLabel(featuresRes.universityLabel);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [row?.id]);
+
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [row?.profile_picture]);
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    if (typeof window === "undefined") return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, []);
+
+  const handleTabClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>, sectionId: string, tab: InstructorDetailTab) => {
+      event.preventDefault();
+      setActiveTab(tab);
+      scrollToSection(sectionId);
+    },
+    [scrollToSection],
+  );
+
+  const displayName = publicInstructorDisplayName(row);
+  const shareKey = String(row?.slug ?? "").trim() || String(row?.id ?? slugOrId).trim();
+
+  const photoUrl = useMemo(() => {
+    if (!row) return "";
+    return resolvePublicInstructorProfilePictureUrl(row.profile_picture);
+  }, [row]);
+
+  const location = [row?.city, row?.district].filter(Boolean).join(", ");
+  const about = String(row?.about ?? row?.bio ?? "").trim();
+  const subheading = String(row?.subheading ?? "").trim();
+  const email = String(row?.email ?? "").trim();
+  const phone = String(row?.phone ?? "").trim();
+  const website = String(row?.website ?? "").trim();
+  const address = String(row?.address ?? "").trim();
+  const workingHoursStart = institutionTimeToInputHHMM(row?.working_hours_start);
+  const workingHoursEnd = institutionTimeToInputHHMM(row?.working_hours_end);
+  const workingHoursText = (() => {
+    const range = formatWorkingHoursRange(row?.working_hours_start, row?.working_hours_end);
+    if (range) return range.replace("-", " – ");
+    if (workingHoursStart && workingHoursEnd) {
+      return `${workingHoursStart} – ${workingHoursEnd}`;
+    }
+    if (workingHoursStart) return `Başlangıç: ${workingHoursStart}`;
+    if (workingHoursEnd) return `Bitiş: ${workingHoursEnd}`;
+    return null;
+  })();
+  const branch = String(row?.branch ?? "").trim();
+  const title = String(row?.title ?? "").trim();
+  const hasPhoto = Boolean(photoUrl) && !photoLoadFailed;
+
+  const mergedAcademicLines = useMemo(() => {
+    const seen = new Set<string>();
+    const lines: PublicInstructorFeatureLine[] = [];
+    for (const line of profileLines) {
+      const key = line.label.toLocaleLowerCase("tr-TR");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      lines.push(line);
+    }
+    for (const line of academicLines) {
+      const key = line.label.toLocaleLowerCase("tr-TR");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      lines.push(line);
+    }
+    return lines;
+  }, [academicLines, profileLines]);
+
+  const hasFeaturesContent = mergedAcademicLines.length > 0 || featureSections.length > 0;
+  const hasAnnouncements = announcements.length > 0;
+  const hasGallery = galleryUrls.length > 0;
+
+  const formatAnnouncementDateTr = useCallback((iso: string | null): string => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  }, []);
+
+  const buildAnnouncementExcerpt = useCallback((text: string, maxLen: number) => {
+    const t = String(text ?? "").trim().replace(/\s+/g, " ");
+    if (t.length <= maxLen) return t;
+    return `${t.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="instructor-detail-page">
+        <div className="instructor-detail-container">
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !row) {
+    return (
+      <div className="instructor-detail-page">
+        <div className="instructor-detail-container">
+          <h1 className="instructor-name">Eğitmen Profili</h1>
+          <p>{error || "Eğitmen profili bulunamadı."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="instructor-detail-page">
+      <div className="instructor-detail-container">
+        <nav className="instructor-breadcrumb" aria-label="Breadcrumb">
+          <div className="instructor-breadcrumb-container">
+            <Link href="/" className="instructor-breadcrumb-link">
+              Ana Sayfa
+            </Link>
+            <span className="instructor-breadcrumb-separator"> &gt; </span>
+            <span className="instructor-breadcrumb-current">{displayName}</span>
+          </div>
+        </nav>
+
+        <Card className="instructor-hero">
+          <CardContent className="instructor-hero-content">
+            <div className="instructor-hero-main">
+              <div className="instructor-photo-section">
+                <div className="instructor-photo-wrapper">
+                  {hasPhoto ? (
+                    <Image
+                      src={photoUrl}
+                      alt={displayName}
+                      width={160}
+                      height={160}
+                      className="instructor-photo"
+                      unoptimized
+                      onError={() => setPhotoLoadFailed(true)}
+                    />
+                  ) : (
+                    <div className="instructor-photo instructor-photo-fallback">
+                      <GraduationCap size={56} aria-hidden />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="instructor-info">
+                <div className="instructor-title-row">
+                  <h1 className="instructor-name">{displayName}</h1>
+                </div>
+                {subheading ? <p className="instructor-subheading">{subheading}</p> : null}
+                <div className="instructor-meta">
+                  {branch ? (
+                    <div className="instructor-meta-item">
+                      <span className="instructor-meta-badge instructor-meta-badge--branch">
+                        <GraduationCap size={16} aria-hidden />
+                        {branch}
+                      </span>
+                    </div>
+                  ) : null}
+                  {title ? (
+                    <div className="instructor-meta-item">
+                      <span className="instructor-meta-badge instructor-meta-badge--title">{title}</span>
+                    </div>
+                  ) : null}
+                  {universityLabel ? (
+                    <div className="instructor-meta-item">
+                      <span className="instructor-meta-badge instructor-meta-badge--title">
+                        {universityLabel}
+                      </span>
+                    </div>
+                  ) : null}
+                  {location ? (
+                    <div className="instructor-meta-item">
+                      <MapPin size={18} aria-hidden />
+                      <span>{location}</span>
+                    </div>
+                  ) : null}
+                  {row.is_verified ? (
+                    <div className="instructor-meta-item instructor-meta-verified">
+                      <CheckCircle2 size={18} aria-hidden />
+                      <span>Onaylı Eğitmen</span>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="instructor-actions">
+                  <InstructorShareButton slugOrId={shareKey} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="instructor-tabs-sticky">
+          <div className="instructor-tabs-list">
+            <a
+              href="#about"
+              className={`instructor-tab-item${activeTab === "about" ? " instructor-tab-active" : ""}`}
+              onClick={(e) => handleTabClick(e, "about", "about")}
+            >
+              <BookOpen size={20} aria-hidden />
+              <span>Hakkında</span>
+            </a>
+            <a
+              href="#features"
+              className={`instructor-tab-item${activeTab === "features" ? " instructor-tab-active" : ""}`}
+              onClick={(e) => handleTabClick(e, "features", "features")}
+            >
+              <Sparkles size={20} aria-hidden />
+              <span>Eğitmen Özellikleri</span>
+            </a>
+            <a
+              href="#announcements"
+              className={`instructor-tab-item${activeTab === "announcements" ? " instructor-tab-active" : ""}`}
+              onClick={(e) => handleTabClick(e, "announcements", "announcements")}
+            >
+              <Megaphone size={20} aria-hidden />
+              <span>Duyurular</span>
+            </a>
+            {hasGallery ? (
+              <a
+                href="#gallery"
+                className={`instructor-tab-item${activeTab === "gallery" ? " instructor-tab-active" : ""}`}
+                onClick={(e) => handleTabClick(e, "gallery", "gallery")}
+              >
+                <ImageIcon size={20} aria-hidden />
+                <span>Galeri</span>
+              </a>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="instructor-content-grid">
+          <div className="instructor-main-content">
+            <section id="about" className="instructor-section">
+              <h2 className="instructor-section-title">Hakkında</h2>
+              <Card className="instructor-section-card">
+                <CardContent>
+                  <div className="instructor-about-text">
+                    {(about || EMPTY_TEXT).split("\n\n").map((paragraph, idx) => (
+                      <p key={idx}>{paragraph}</p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+
+            <section id="announcements" className="instructor-section">
+              <Card className="instructor-section-card instructor-announcements-card">
+                <CardContent>
+                  <div className="instructor-features-head">
+                    <h2 className="instructor-section-title">Duyurular</h2>
+                  </div>
+                  {hasAnnouncements ? (
+                    <div className="instructor-announcements-list">
+                      {announcements.map((item) => {
+                        const trimmedLink = (item.linkUrl ?? "").trim();
+                        const hasLink = trimmedLink.length > 0;
+                        const absoluteLink = hasLink
+                          ? /^https?:\/\//i.test(trimmedLink)
+                            ? trimmedLink
+                            : `https://${trimmedLink}`
+                          : null;
+                        const linkLabel = hasLink
+                          ? trimmedLink.replace(/^https?:\/\//i, "").replace(/^www\./i, "")
+                          : "";
+
+                        return (
+                          <article
+                            key={item.id}
+                            className="instructor-announcement-item"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() =>
+                              setActiveAnnouncement({
+                                id: item.id,
+                                title: item.title,
+                                content: item.content,
+                                imageUrl: item.imageUrl,
+                                createdAt: item.createdAt,
+                                institutionName: displayName,
+                                linkUrl: item.linkUrl,
+                              })
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setActiveAnnouncement({
+                                  id: item.id,
+                                  title: item.title,
+                                  content: item.content,
+                                  imageUrl: item.imageUrl,
+                                  createdAt: item.createdAt,
+                                  institutionName: displayName,
+                                  linkUrl: item.linkUrl,
+                                });
+                              }
+                            }}
+                            aria-label={`${item.title} duyurusunu aç`}
+                          >
+                            <div
+                              className={`instructor-announcement-thumb${
+                                item.imageUrl ? "" : " instructor-announcement-thumb--empty"
+                              }`}
+                              aria-hidden
+                            >
+                              {item.imageUrl ? (
+                                <Image
+                                  src={item.imageUrl}
+                                  alt=""
+                                  fill
+                                  className="instructor-announcement-thumb-image"
+                                  sizes="72px"
+                                  unoptimized
+                                />
+                              ) : (
+                                <ImageOff
+                                  className="instructor-announcement-thumb-icon"
+                                  size={28}
+                                  strokeWidth={1.25}
+                                />
+                              )}
+                            </div>
+                            <div className="instructor-announcement-body">
+                              <div className="instructor-announcement-kicker">
+                                {displayName.toLocaleUpperCase("tr-TR")}
+                              </div>
+                              <h3 className="instructor-announcement-title">{item.title}</h3>
+                              {item.content ? (
+                                <p className="instructor-announcement-desc">
+                                  {buildAnnouncementExcerpt(item.content, 220)}
+                                </p>
+                              ) : null}
+                              <div className="instructor-announcement-meta">
+                                {item.createdAt ? (
+                                  <span className="instructor-announcement-meta-item">
+                                    <CalendarDays className="instructor-announcement-meta-icon" size={14} />
+                                    <span>{formatAnnouncementDateTr(item.createdAt)}</span>
+                                  </span>
+                                ) : null}
+                                {hasLink && absoluteLink ? (
+                                  <a
+                                    href={absoluteLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="instructor-announcement-meta-item instructor-announcement-meta-link"
+                                    onClick={(event) => event.stopPropagation()}
+                                  >
+                                    <Globe className="instructor-announcement-meta-icon" size={14} />
+                                    <span>{linkLabel}</span>
+                                  </a>
+                                ) : null}
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="instructor-features-empty">
+                      Bu eğitmene ait henüz duyuru bulunmuyor.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {hasGallery ? (
+              <section id="gallery" className="instructor-section">
+                <div className="instructor-section-header">
+                  <h2 className="instructor-section-title">Galeri</h2>
+                  <button
+                    type="button"
+                    className="instructor-section-link instructor-gallery-view-all-btn"
+                    onClick={() => setIsGalleryModalOpen(true)}
+                  >
+                    tümünü gör
+                  </button>
+                </div>
+                <div className="instructor-gallery-grid">
+                  <div
+                    className="instructor-gallery-item instructor-gallery-main"
+                    onClick={() => setIsGalleryModalOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setIsGalleryModalOpen(true);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {galleryUrls[0] ? (
+                      <Image
+                        src={galleryUrls[0]}
+                        alt={`${displayName} galeri`}
+                        fill
+                        className="instructor-gallery-image"
+                        sizes="(max-width: 768px) 100vw, 66vw"
+                        unoptimized
+                      />
+                    ) : null}
+                  </div>
+                  <div
+                    className="instructor-gallery-item instructor-gallery-side"
+                    onClick={() => galleryUrls[1] && setIsGalleryModalOpen(true)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {galleryUrls[1] ? (
+                      <Image
+                        src={galleryUrls[1]}
+                        alt={`${displayName} galeri`}
+                        fill
+                        className="instructor-gallery-image"
+                        sizes="33vw"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="instructor-gallery-fallback">
+                        <div className="instructor-gallery-fallback-icon">
+                          <ImageIcon size={30} aria-hidden />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className="instructor-gallery-item instructor-gallery-side"
+                    onClick={() => galleryUrls[2] && setIsGalleryModalOpen(true)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {galleryUrls[2] ? (
+                      <Image
+                        src={galleryUrls[2]}
+                        alt={`${displayName} galeri`}
+                        fill
+                        className="instructor-gallery-image"
+                        sizes="33vw"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="instructor-gallery-fallback">
+                        <div className="instructor-gallery-fallback-icon">
+                          <ImageIcon size={30} aria-hidden />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            ) : null}
+          </div>
+
+          <aside className="instructor-sidebar">
+            <div className="instructor-sidebar-header">
+              <Phone size={20} aria-hidden />
+              <span>İletişim Bilgileri</span>
+            </div>
+            <div className="instructor-sidebar-body">
+              <div className="instructor-map-preview">
+                {hasPhoto ? (
+                  <Image
+                    src={photoUrl}
+                    alt={displayName}
+                    fill
+                    className="instructor-map-image"
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                    unoptimized
+                    onError={() => setPhotoLoadFailed(true)}
+                  />
+                ) : (
+                  <div className="instructor-map-preview-empty">
+                    <GraduationCap size={40} aria-hidden />
+                  </div>
+                )}
+              </div>
+              <div className="instructor-contact-list">
+                {email ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <Mail size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">E-POSTA</div>
+                      <a href={`mailto:${email}`} className="instructor-contact-value instructor-contact-link">
+                        {email}
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+                {location ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <MapPin size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">KONUM</div>
+                      <div className="instructor-contact-value">{location}</div>
+                    </div>
+                  </div>
+                ) : null}
+                {phone ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <Phone size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">TELEFON</div>
+                      <a href={`tel:${phone.replace(/\s/g, "")}`} className="instructor-contact-value instructor-contact-link">
+                        {phone}
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+                {website ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <Globe size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">WEB SİTESİ</div>
+                      <a
+                        href={website.startsWith("http") ? website : `https://${website}`}
+                        className="instructor-contact-value instructor-contact-link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {website}
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+                {address ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <MapPin size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">ADRES</div>
+                      <div className="instructor-contact-value">{address}</div>
+                    </div>
+                  </div>
+                ) : null}
+                {workingHoursText ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <Clock size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">ÇALIŞMA SAATLERİ</div>
+                      <div className="instructor-contact-value">{workingHoursText}</div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section id="features" className="instructor-section">
+          <Card className="instructor-section-card instructor-features-card">
+            <CardContent>
+              <div className="instructor-features-head">
+                <h2 className="instructor-section-title">Eğitmen Özellikleri</h2>
+              </div>
+              {hasFeaturesContent ? (
+                <div className="instructor-features-groups">
+                  {mergedAcademicLines.length > 0 ? (
+                    <div className="instructor-features-group">
+                      <h3 className="instructor-features-group-title">Başlıca Özellikler</h3>
+                      <div className="instructor-features-academic-list">
+                        {mergedAcademicLines.map((line, lineIdx) => (
+                          <div
+                            key={`${line.label}-${lineIdx}`}
+                            className="instructor-features-academic-row"
+                          >
+                            <span className="instructor-features-academic-icon" aria-hidden>
+                              <GitCommitVertical size={25} strokeWidth={2.2} />
+                            </span>
+                            <div className="instructor-features-academic-content">
+                              <span className="instructor-features-academic-label">{line.label}</span>
+                              <span className="instructor-features-academic-value">
+                                {Array.isArray(line.value) ? line.value.join(", ") : line.value}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {featureSections.map((section) => (
+                    <div key={section.id} className="instructor-features-group">
+                      <h3 className="instructor-features-group-title">{section.name}</h3>
+                      <div className="instructor-features-badges">
+                        {section.badges.map((badge) => (
+                          <span key={`${section.id}-${badge}`} className="instructor-features-badge">
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="instructor-features-empty">{EMPTY_TEXT}</div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <AnnouncementDetailModal
+          isOpen={Boolean(activeAnnouncement)}
+          onClose={() => setActiveAnnouncement(null)}
+          announcement={activeAnnouncement}
+        />
+
+        {isGalleryModalOpen && hasGallery ? (
+          <div
+            className="instructor-gallery-modal-backdrop"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setIsGalleryModalOpen(false);
+            }}
+            role="presentation"
+          >
+            <div className="instructor-gallery-modal" role="dialog" aria-modal="true" aria-label="Eğitmen galerisi">
+              <div className="instructor-gallery-modal-header">
+                <div>
+                  <h3 className="instructor-gallery-modal-title">Eğitmen Galerisi</h3>
+                  <p className="instructor-gallery-modal-subtitle">{displayName}</p>
+                </div>
+                <button
+                  type="button"
+                  className="instructor-gallery-modal-close"
+                  onClick={() => setIsGalleryModalOpen(false)}
+                  aria-label="Kapat"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="instructor-gallery-modal-grid">
+                {galleryUrls.map((url, index) => (
+                  <div key={`${url}-${index}`} className="instructor-gallery-modal-item">
+                    <Image
+                      src={url}
+                      alt={`${displayName} galeri ${index + 1}`}
+                      fill
+                      className="instructor-gallery-image"
+                      sizes="240px"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
