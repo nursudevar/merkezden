@@ -16,7 +16,6 @@ import {
   Building2,
   Tags,
   Phone,
-  Mail,
   MapPin,
   CheckCircle,
   Clock,
@@ -29,7 +28,6 @@ import {
 import {
   EMPTY_INSTRUCTOR_PROFILE_FORM,
   INSTRUCTOR_PROFILE_CITY,
-  INSTRUCTOR_SUBHEADING_MAX_LENGTH,
   instructorDisplayNameFromRow,
   instructorProfileFormsEqual,
   loadInstructorRowForAuthUserClient,
@@ -80,7 +78,7 @@ const INSTRUCTOR_OVERVIEW_COMPLETENESS_KEYS = [
   "branch",
   "education_level",
   "experience_years",
-  "subheading",
+  "school",
   "bio",
   "about",
   "working_hours",
@@ -110,7 +108,7 @@ const INSTRUCTOR_OVERVIEW_FIELD_META: Record<
   branch: { label: "Branş", tab: "profile" },
   education_level: { label: "Eğitim Seviyesi", tab: "profile" },
   experience_years: { label: "Deneyim Yılı", tab: "profile" },
-  subheading: { label: "Kısa Tanıtım", tab: "profile" },
+  school: { label: "Mezun Olunan Okul", tab: "profile" },
   bio: { label: "Kısa Biyografi", tab: "profile" },
   about: { label: "Hakkında", tab: "profile" },
   working_hours: { label: "Çalışma Saatleri", tab: "profile" },
@@ -147,8 +145,8 @@ function isInstructorOverviewFieldFilled(
       if (exp != null && Number.isFinite(Number(exp))) return true;
       return Boolean(form.experience_years.trim());
     }
-    case "subheading":
-      return Boolean(form.subheading.trim());
+    case "school":
+      return Boolean(form.school.trim());
     case "bio":
       return Boolean(form.bio.trim());
     case "about":
@@ -177,10 +175,10 @@ function renderInstructorOverviewMissingFieldIcon(id: InstructorOverviewMissingF
       return <User className={c} aria-hidden />;
     case "branch":
       return <Tags className={c} aria-hidden />;
+    case "school":
     case "education_level":
     case "experience_years":
       return <GraduationCap className={c} aria-hidden />;
-    case "subheading":
     case "bio":
     case "about":
     case "cv_url":
@@ -401,11 +399,6 @@ export default function InstructorPanelPage() {
       errors.experience_years = "Deneyim yılı sayısal olmalıdır.";
     }
 
-    const subheading = profileForm.subheading.trim();
-    if (subheading.length > INSTRUCTOR_SUBHEADING_MAX_LENGTH) {
-      errors.subheading = "Kısa tanıtım en fazla 100 karakter olabilir.";
-    }
-
     if (!isValidInstructorPhone(profileForm.phone)) {
       errors.phone = "Geçerli bir telefon numarası girin.";
     }
@@ -422,7 +415,6 @@ export default function InstructorPanelPage() {
   ): InstructorProfileFormState => ({
     ...form,
     city: INSTRUCTOR_PROFILE_CITY,
-    subheading: form.subheading.slice(0, INSTRUCTOR_SUBHEADING_MAX_LENGTH),
     phone: cleanInstructorPhoneInput(form.phone),
   });
 
@@ -490,13 +482,6 @@ export default function InstructorPanelPage() {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleProfileFieldChange("phone", cleanInstructorPhoneInput(e.target.value));
-  };
-
-  const handleSubheadingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleProfileFieldChange(
-      "subheading",
-      e.target.value.slice(0, INSTRUCTOR_SUBHEADING_MAX_LENGTH),
-    );
   };
 
   const districtSelectOptions = useMemo(() => {
@@ -971,22 +956,13 @@ export default function InstructorPanelPage() {
                           </div>
                           <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
                             <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Kısa Tanıtım</label>
+                              <label className="egitmen-panel-form-label">MEZUN OLUNAN OKUL</label>
                               <Input
                                 className="egitmen-panel-form-input"
-                                value={profileForm.subheading}
-                                onChange={handleSubheadingChange}
-                                maxLength={INSTRUCTOR_SUBHEADING_MAX_LENGTH}
-                                placeholder="Profilinizde görünecek kısa tanıtım metni."
+                                value={profileForm.school}
+                                onChange={(e) => handleProfileFieldChange("school", e.target.value)}
+                                placeholder="Mezun olduğunuz okul bilgisini girin."
                               />
-                              <span className="egitmen-panel-form-char-count" aria-live="polite">
-                                {profileForm.subheading.length}/{INSTRUCTOR_SUBHEADING_MAX_LENGTH}
-                              </span>
-                              {profileFieldErrors.subheading ? (
-                                <span className="egitmen-panel-form-error" role="alert">
-                                  {profileFieldErrors.subheading}
-                                </span>
-                              ) : null}
                             </div>
                           </div>
                           <div className="egitmen-panel-form-row egitmen-panel-form-row--full">

@@ -7,14 +7,12 @@ import type { InstructorProfileRow } from "@/lib/instructorProfileClient";
 import {
   INSTRUCTOR_FEATURES_CATEGORY_REQUIRED,
   INSTRUCTOR_FEATURES_LOAD_ERROR,
-  INSTRUCTOR_FEATURES_SAVE_ERROR,
   INSTRUCTOR_FEATURES_SAVE_SUCCESS,
   buildInstructorFeatureFormStateFromEntries,
   fetchInstructorFeatureCategoriesClient,
   fetchInstructorFeatureDefinitionsBundleClient,
   fetchInstructorFeatureEntriesClient,
   getDisplayInstructorFeatureName,
-  isSchoolHoursInstructorFeature,
   saveInstructorFeaturesClient,
   type InstructorFeatureCategoryRow,
   type InstructorFeatureChoiceRow,
@@ -48,7 +46,8 @@ const EMPTY_FORM: InstructorFeatureFormState = {
 };
 
 export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorRowChange }: Props) {
-  const instructorId = instructorRow.id;
+  const instructorId = Number(instructorRow.id);
+  const hasValidInstructorId = Number.isFinite(instructorId) && instructorId > 0;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,7 +63,6 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
   const [featureDefinitions, setFeatureDefinitions] = useState<InstructorFeatureDefinitionRow[]>([]);
   const [featureChoices, setFeatureChoices] = useState<InstructorFeatureChoiceRow[]>([]);
   const [featureEntries, setFeatureEntries] = useState<InstructorFeatureEntryRow[]>([]);
-  const [featureEntryChoices, setFeatureEntryChoices] = useState<InstructorFeatureEntryChoiceRow[]>([]);
 
   const [form, setForm] = useState<InstructorFeatureFormState>(EMPTY_FORM);
   const [openInstructorSelectId, setOpenInstructorSelectId] = useState<number | null>(null);
@@ -90,6 +88,15 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
   const loadAll = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+
+    if (!hasValidInstructorId) {
+      setFeatureEntries([]);
+      setFeatureEntryChoices([]);
+      setForm(EMPTY_FORM);
+      setLoading(false);
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
 
     const [{ categories: cats, error: catError }, bundle, entriesResult] = await Promise.all([
@@ -109,7 +116,6 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
     setFeatureDefinitions(bundle.definitions);
     setFeatureChoices(bundle.choices);
     setFeatureEntries(entriesResult.entries);
-    setFeatureEntryChoices(entriesResult.entryChoices);
 
     const initialCategory =
       instructorRow.category_id != null && Number.isFinite(Number(instructorRow.category_id))
@@ -118,7 +124,7 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
     setCategoryId(initialCategory);
     applyFormFromEntries(bundle.definitions, entriesResult.entries, entriesResult.entryChoices);
     setLoading(false);
-  }, [applyFormFromEntries, authUserId, instructorId, instructorRow.category_id]);
+  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, instructorRow.category_id]);
 
   useEffect(() => {
     void loadAll();
@@ -252,6 +258,11 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
   };
 
   const handleSave = async () => {
+    if (!hasValidInstructorId) {
+      flashSaveMessage(INSTRUCTOR_FEATURES_LOAD_ERROR);
+      return;
+    }
+
     const parsedCategoryId = Number(categoryId.trim());
     if (!Number.isFinite(parsedCategoryId) || !parsedCategoryId) {
       flashSaveMessage(INSTRUCTOR_FEATURES_CATEGORY_REQUIRED);
@@ -297,7 +308,6 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
       const entriesResult = await fetchInstructorFeatureEntriesClient(authUserId, instructorId, supabase);
       if (!entriesResult.error) {
         setFeatureEntries(entriesResult.entries);
-        setFeatureEntryChoices(entriesResult.entryChoices);
         applyFormFromEntries(featureDefinitions, entriesResult.entries, entriesResult.entryChoices);
       }
 

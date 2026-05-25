@@ -54,6 +54,7 @@ export function buildInstructorProfileSummaryLines(
   const lines: Array<{ label: string; value: string | null }> = [
     { label: "Branş", value: row.branch ?? null },
     { label: "Ünvan", value: row.title ?? null },
+    { label: "Mezun Olunan Okul", value: row.school ?? null },
     {
       label: "Deneyim Yılı",
       value:

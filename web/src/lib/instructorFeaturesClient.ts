@@ -57,12 +57,10 @@ function hasSupabaseResponseError(error: unknown): boolean {
 export type InstructorFeatureEntryRow = {
   id: number;
   instructor_id: number;
-  owner_auth_id: string;
   feature_definition_id: number;
-  value_text: string | null;
-  value_number: number | null;
-  value_boolean: boolean | null;
-  value_date: string | null;
+  text_answer: string | null;
+  number_answer: number | null;
+  boolean_answer: boolean | null;
   selected_choice_id: number | null;
 };
 
@@ -92,6 +90,22 @@ export function isSchoolHoursInstructorFeature(feature: InstructorFeatureDefinit
   return (feature.name ?? "").trim().toLocaleLowerCase("tr-TR") === "okul saatleri";
 }
 
+function logInstructorFeaturesSupabaseError(scope: string, error: unknown) {
+  const row = error as {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+  } | null;
+
+  console.error(`[instructor-features] ${scope}:`, {
+    code: String(row?.code ?? ""),
+    message: String(row?.message ?? ""),
+    details: String(row?.details ?? ""),
+    hint: String(row?.hint ?? ""),
+  });
+}
+
 export async function fetchInstructorFeatureCategoriesClient(
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{ categories: InstructorFeatureCategoryRow[]; error: string | null }> {
@@ -103,7 +117,7 @@ export async function fetchInstructorFeatureCategoriesClient(
     .order("display_order", { ascending: true });
 
   if (error) {
-    console.error("[instructor-features] categories:", error);
+    logInstructorFeaturesSupabaseError("categories", error);
     return { categories: [], error: INSTRUCTOR_FEATURES_LOAD_ERROR };
   }
 
@@ -143,7 +157,9 @@ export async function fetchInstructorFeatureDefinitionsBundleClient(
     hasSupabaseResponseError(definitionsRes.error) ||
     hasSupabaseResponseError(choicesRes.error)
   ) {
-    console.error("[instructor-features] definitions bundle:", groupsRes.error, definitionsRes.error, choicesRes.error);
+    logInstructorFeaturesSupabaseError("definitions bundle groups", groupsRes.error);
+    logInstructorFeaturesSupabaseError("definitions bundle definitions", definitionsRes.error);
+    logInstructorFeaturesSupabaseError("definitions bundle choices", choicesRes.error);
     return { groups: [], definitions: [], choices: [], error: INSTRUCTOR_FEATURES_LOAD_ERROR };
   }
 
@@ -156,7 +172,7 @@ export async function fetchInstructorFeatureDefinitionsBundleClient(
 }
 
 export async function fetchInstructorFeatureEntriesClient(
-  authUid: string,
+  _authUid: string,
   instructorId: number,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{
@@ -165,17 +181,21 @@ export async function fetchInstructorFeatureEntriesClient(
   error: string | null;
 }> {
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const normalizedInstructorId = Number(instructorId);
+
+  if (!Number.isFinite(normalizedInstructorId) || normalizedInstructorId <= 0) {
+    return { entries: [], entryChoices: [], error: null };
+  }
 
   const { data: entriesData, error: entriesError } = await supabase
     .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
     .select(
-      "id, instructor_id, owner_auth_id, feature_definition_id, value_text, value_number, value_boolean, value_date, selected_choice_id",
+      "id, instructor_id, feature_definition_id, text_answer, number_answer, boolean_answer, selected_choice_id",
     )
-    .eq("instructor_id", instructorId)
-    .eq("owner_auth_id", authUid);
+    .eq("instructor_id", normalizedInstructorId);
 
   if (entriesError) {
-    console.error("[instructor-features] entries:", entriesError);
+    logInstructorFeaturesSupabaseError("entries", entriesError);
     return { entries: [], entryChoices: [], error: INSTRUCTOR_FEATURES_LOAD_ERROR };
   }
 
@@ -190,7 +210,7 @@ export async function fetchInstructorFeatureEntriesClient(
       .in("instructor_feature_entry_id", entryIds);
 
     if (choicesError) {
-      console.error("[instructor-features] entry choices:", choicesError);
+      logInstructorFeaturesSupabaseError("entry choices", choicesError);
       return { entries: [], entryChoices: [], error: INSTRUCTOR_FEATURES_LOAD_ERROR };
     }
     entryChoices = (choicesData as InstructorFeatureEntryChoiceRow[] | null) ?? [];
@@ -225,14 +245,14 @@ export function buildInstructorFeatureFormStateFromEntries(
   definitions.forEach((feature) => {
     const entry = entriesByFeatureId.get(feature.id);
     if (feature.input_type === "boolean") {
-      booleanValues[feature.id] = Boolean(entry?.value_boolean);
+      booleanValues[feature.id] = Boolean(entry?.boolean_answer);
     } else if (feature.input_type === "text") {
-      textValues[feature.id] = entry?.value_text ?? "";
+      textValues[feature.id] = entry?.text_answer ?? "";
     } else if (feature.input_type === "number") {
       numberValues[feature.id] =
-        typeof entry?.value_number === "number" ? String(entry.value_number) : "";
+        typeof entry?.number_answer === "number" ? String(entry.number_answer) : "";
     } else if (feature.input_type === "date") {
-      dateValues[feature.id] = entry?.value_date ? String(entry.value_date).slice(0, 10) : "";
+      dateValues[feature.id] = entry?.text_answer ? String(entry.text_answer).slice(0, 10) : "";
     } else if (feature.input_type === "single_select" || isSchoolHoursInstructorFeature(feature)) {
       singleSelectValues[feature.id] =
         typeof entry?.selected_choice_id === "number" ? String(entry.selected_choice_id) : "";
@@ -286,7 +306,7 @@ export async function saveInstructorFeaturesClient(
     .eq("owner_auth_id", authUid);
 
   if (categoryError) {
-    console.error("[instructor-features] category save:", categoryError);
+    logInstructorFeaturesSupabaseError("category save", categoryError);
     return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
   }
 
@@ -299,19 +319,23 @@ export async function saveInstructorFeaturesClient(
     if (existing) {
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-        .update({ value_boolean: value })
+        .update({ boolean_answer: value })
         .eq("id", existing.id)
-        .eq("instructor_id", instructorId)
-        .eq("owner_auth_id", authUid);
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        .eq("instructor_id", instructorId);
+      if (error) {
+        logInstructorFeaturesSupabaseError("boolean update", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        owner_auth_id: authUid,
         feature_definition_id: feature.id,
-        value_boolean: value,
+        boolean_answer: value,
       });
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (error) {
+        logInstructorFeaturesSupabaseError("boolean insert", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     }
   }
 
@@ -324,26 +348,34 @@ export async function saveInstructorFeaturesClient(
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
           .eq("id", existing.id)
-          .eq("instructor_id", instructorId)
-          .eq("owner_auth_id", authUid);
-        if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+          .eq("instructor_id", instructorId);
+        if (error) {
+          logInstructorFeaturesSupabaseError("text delete", error);
+          return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        }
       }
       continue;
     }
     if (existing) {
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-        .update({ value_text: value })
-        .eq("id", existing.id);
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        .update({ text_answer: value })
+        .eq("id", existing.id)
+        .eq("instructor_id", instructorId);
+      if (error) {
+        logInstructorFeaturesSupabaseError("text update", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        owner_auth_id: authUid,
         feature_definition_id: feature.id,
-        value_text: value,
+        text_answer: value,
       });
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (error) {
+        logInstructorFeaturesSupabaseError("text insert", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     }
   }
 
@@ -356,7 +388,10 @@ export async function saveInstructorFeaturesClient(
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
           .eq("id", existing.id);
-        if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        if (error) {
+          logInstructorFeaturesSupabaseError("number delete", error);
+          return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        }
       }
       continue;
     }
@@ -365,17 +400,23 @@ export async function saveInstructorFeaturesClient(
     if (existing) {
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-        .update({ value_number: parsed })
-        .eq("id", existing.id);
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        .update({ number_answer: parsed })
+        .eq("id", existing.id)
+        .eq("instructor_id", instructorId);
+      if (error) {
+        logInstructorFeaturesSupabaseError("number update", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        owner_auth_id: authUid,
         feature_definition_id: feature.id,
-        value_number: parsed,
+        number_answer: parsed,
       });
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (error) {
+        logInstructorFeaturesSupabaseError("number insert", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     }
   }
 
@@ -388,24 +429,33 @@ export async function saveInstructorFeaturesClient(
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
           .eq("id", existing.id);
-        if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        if (error) {
+          logInstructorFeaturesSupabaseError("date delete", error);
+          return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        }
       }
       continue;
     }
     if (existing) {
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-        .update({ value_date: value })
-        .eq("id", existing.id);
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        .update({ text_answer: value })
+        .eq("id", existing.id)
+        .eq("instructor_id", instructorId);
+      if (error) {
+        logInstructorFeaturesSupabaseError("date update", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        owner_auth_id: authUid,
         feature_definition_id: feature.id,
-        value_date: value,
+        text_answer: value,
       });
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (error) {
+        logInstructorFeaturesSupabaseError("date insert", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     }
   }
 
@@ -423,7 +473,10 @@ export async function saveInstructorFeaturesClient(
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
           .eq("id", existing.id);
-        if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        if (error) {
+          logInstructorFeaturesSupabaseError("single select delete", error);
+          return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        }
       }
       continue;
     }
@@ -433,16 +486,22 @@ export async function saveInstructorFeaturesClient(
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
         .update({ selected_choice_id: choiceId })
-        .eq("id", existing.id);
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        .eq("id", existing.id)
+        .eq("instructor_id", instructorId);
+      if (error) {
+        logInstructorFeaturesSupabaseError("single select update", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        owner_auth_id: authUid,
         feature_definition_id: feature.id,
         selected_choice_id: choiceId,
       });
-      if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (error) {
+        logInstructorFeaturesSupabaseError("single select insert", error);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     }
   }
 
@@ -469,8 +528,12 @@ export async function saveInstructorFeaturesClient(
         const { error } = await supabase
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
-          .eq("id", existing.id);
-        if (error) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+          .eq("id", existing.id)
+          .eq("instructor_id", instructorId);
+        if (error) {
+          logInstructorFeaturesSupabaseError("multi select delete", error);
+          return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+        }
       }
       continue;
     }
@@ -480,21 +543,21 @@ export async function saveInstructorFeaturesClient(
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
         .insert({
           instructor_id: instructorId,
-          owner_auth_id: authUid,
           feature_definition_id: feature.id,
         })
         .select("id")
         .single();
-      if (insertError || !inserted) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (insertError || !inserted) {
+        logInstructorFeaturesSupabaseError("multi select insert entry", insertError);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
       existing = {
         id: inserted.id as number,
         instructor_id: instructorId,
-        owner_auth_id: authUid,
         feature_definition_id: feature.id,
-        value_text: null,
-        value_number: null,
-        value_boolean: null,
-        value_date: null,
+        text_answer: null,
+        number_answer: null,
+        boolean_answer: null,
         selected_choice_id: null,
       };
     }
@@ -503,7 +566,10 @@ export async function saveInstructorFeaturesClient(
       .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
       .delete()
       .eq("instructor_feature_entry_id", existing.id);
-    if (clearError) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+    if (clearError) {
+      logInstructorFeaturesSupabaseError("multi select clear choices", clearError);
+      return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+    }
 
     const rows = selectedIds.map((choiceId) => ({
       instructor_feature_entry_id: existing!.id,
@@ -513,7 +579,10 @@ export async function saveInstructorFeaturesClient(
       const { error: insertChoicesError } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
         .insert(rows);
-      if (insertChoicesError) return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      if (insertChoicesError) {
+        logInstructorFeaturesSupabaseError("multi select insert choices", insertChoicesError);
+        return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+      }
     }
   }
 

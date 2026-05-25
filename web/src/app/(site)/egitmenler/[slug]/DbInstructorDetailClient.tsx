@@ -61,7 +61,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const [profileLines, setProfileLines] = useState<PublicInstructorFeatureLine[]>([]);
   const [academicLines, setAcademicLines] = useState<PublicInstructorFeatureLine[]>([]);
   const [featureSections, setFeatureSections] = useState<PublicInstructorFeatureSection[]>([]);
-  const [universityLabel, setUniversityLabel] = useState<string | null>(null);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementDetailItem | null>(null);
 
@@ -99,7 +98,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
       setAnnouncements([]);
       setAcademicLines([]);
       setFeatureSections([]);
-      setUniversityLabel(null);
       return;
     }
 
@@ -119,7 +117,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
       setAnnouncements(announcementsRes.items);
       setAcademicLines(featuresRes.academicLines);
       setFeatureSections(featuresRes.sections);
-      setUniversityLabel(featuresRes.universityLabel);
     })();
 
     return () => {
@@ -160,7 +157,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
 
   const location = [row?.city, row?.district].filter(Boolean).join(", ");
   const about = String(row?.about ?? row?.bio ?? "").trim();
-  const subheading = String(row?.subheading ?? "").trim();
+  const school = String(row?.school ?? "").trim();
   const email = String(row?.email ?? "").trim();
   const phone = String(row?.phone ?? "").trim();
   const website = String(row?.website ?? "").trim();
@@ -277,7 +274,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                 <div className="instructor-title-row">
                   <h1 className="instructor-name">{displayName}</h1>
                 </div>
-                {subheading ? <p className="instructor-subheading">{subheading}</p> : null}
                 <div className="instructor-meta">
                   {branch ? (
                     <div className="instructor-meta-item">
@@ -292,10 +288,10 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                       <span className="instructor-meta-badge instructor-meta-badge--title">{title}</span>
                     </div>
                   ) : null}
-                  {universityLabel ? (
+                  {school ? (
                     <div className="instructor-meta-item">
                       <span className="instructor-meta-badge instructor-meta-badge--title">
-                        {universityLabel}
+                        {school}
                       </span>
                     </div>
                   ) : null}

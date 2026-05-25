@@ -10,6 +10,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
 import { HomeFeaturedInstitutionsMarquee } from "@/components/featured/HomeFeaturedInstitutionsMarquee";
+import { HomeIndividualInstructorsSection } from "@/components/featured/HomeIndividualInstructorsSection";
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
@@ -1481,6 +1482,8 @@ export default function Home() {
       </div>
       <div className="content-layout">
         <div className="content-layout-inner">
+          <HomeIndividualInstructorsSection />
+
           <section className="purple-featured-section" aria-label="Hızlı Keşif">
             <div className="purple-featured-bg" aria-hidden />
             <div className="purple-featured-inner">
