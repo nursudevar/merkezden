@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveInstitutionLogoPublicUrl } from '@/lib/institutionLogoUrl';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { HeaderClientWrapper } from '@/components/layout/header.client';
+import { ChangePasswordCard } from '@/components/settings/ChangePasswordCard';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { FavoritesError, getMyFavoriteInstitutions, removeFavorite, type FavoriteInstitution } from '@/lib/favorites/favoritesClient';
 import '@/styles/main.scss';
@@ -33,34 +34,23 @@ interface IndividualProfile {
   birth_date: string | null;
 }
 
-function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: IndividualProfile | null }) {
-  const router = useRouter();
-  const [activeSection, setActiveSection] = useState<string>('profile-info');
+type ProfileSectionId = 'profile-info' | 'favorites' | 'settings';
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (hash === 'favorites') {
-        setActiveSection('favorites');
-      } else {
-        setActiveSection('profile-info');
-      }
-    };
+function resolveProfileSectionFromHash(hash: string): ProfileSectionId {
+  if (hash === 'favorites') return 'favorites';
+  if (hash === 'settings') return 'settings';
+  return 'profile-info';
+}
 
-    handleHashChange();
-
-    window.addEventListener('hashchange', handleHashChange);
-
-    const checkHash = () => {
-      handleHashChange();
-    };
-    
-    setTimeout(checkHash, 0);
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, []);
+function ProfileSidebar({
+  user,
+  profile,
+  activeSection,
+}: {
+  user: SupabaseUser;
+  profile: IndividualProfile | null;
+  activeSection: ProfileSectionId;
+}) {
 
   const handleLogout = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -100,7 +90,7 @@ function ProfileSidebar({ user, profile }: { user: SupabaseUser; profile: Indivi
           </a>
           <a 
             href="#settings" 
-            className="profile-sidebar-nav-item"
+            className={`profile-sidebar-nav-item ${activeSection === 'settings' ? 'profile-sidebar-nav-item--active' : ''}`}
           >
             <Settings className="profile-sidebar-nav-icon" />
             <span>Ayarlar</span>
@@ -552,6 +542,8 @@ export default function ProfilePage() {
   const [usersRow, setUsersRow] = useState<UsersRow | null>(null);
   const [profile, setProfile] = useState<IndividualProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<ProfileSectionId>('profile-info');
+  const userId = user?.id ?? null;
 
   // Auth: same Supabase browser client as header; only redirect when isAuthReady && !user
   useEffect(() => {
@@ -597,7 +589,7 @@ export default function ProfilePage() {
 
   // Load profile data when user is set
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     const supabase = createSupabaseBrowserClient();
 
@@ -606,10 +598,10 @@ export default function ProfilePage() {
         const { data: userData, error: userDataError } = await supabase
           .from('users')
           .select('id, user_type, auth_user_id, email, first_name, last_name')
-          .eq('auth_user_id', user.id)
+          .eq('auth_user_id', userId)
           .maybeSingle();
 
-        let resolvedUsersRow: UsersRow | null = userDataError ? null : userData;
+        const resolvedUsersRow: UsersRow | null = userDataError ? null : userData;
         setUsersRow(resolvedUsersRow);
 
         if (resolvedUsersRow?.id) {
@@ -632,7 +624,21 @@ export default function ProfilePage() {
 
     setLoading(true);
     loadProfile();
-  }, [user]);
+  }, [userId]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      setActiveSection(resolveProfileSectionFromHash(hash));
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   // Do not redirect while auth is not ready; show skeleton
   if (!isAuthReady || (user && loading)) {
@@ -655,19 +661,28 @@ export default function ProfilePage() {
     <div className="profile-page">
       <HeaderClientWrapper />
       <div className="profile-page-container">
-        <ProfileSidebar user={user} profile={profile} />
+        <ProfileSidebar user={user} profile={profile} activeSection={activeSection} />
         <div className="profile-page-main">
-          <div id="profile-info">
-            <ProfileInfoCard
-              user={user}
-              profile={profile}
-              usersRowId={usersRow?.id ?? null}
-              onProfileUpdated={setProfile}
-            />
-          </div>
-          <div id="favorites">
-            <FavoritesSection />
-          </div>
+          {activeSection === 'profile-info' ? (
+            <div id="profile-info">
+              <ProfileInfoCard
+                user={user}
+                profile={profile}
+                usersRowId={usersRow?.id ?? null}
+                onProfileUpdated={setProfile}
+              />
+            </div>
+          ) : null}
+          {activeSection === 'favorites' ? (
+            <div id="favorites">
+              <FavoritesSection />
+            </div>
+          ) : null}
+          {activeSection === 'settings' ? (
+            <div id="settings">
+              <ChangePasswordCard />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

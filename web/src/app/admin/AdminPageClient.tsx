@@ -20,6 +20,7 @@ import {
   Download,
 } from "lucide-react";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { allBlogPosts } from "@/lib/data/blog";
@@ -658,7 +659,9 @@ export default function AdminPageClient() {
             </Card>
           ) : null}
 
-          {activeTab !== "overview" && activeTab !== "institutions" ? (
+          {activeTab === "settings" ? <ChangePasswordCard /> : null}
+
+          {activeTab !== "overview" && activeTab !== "institutions" && activeTab !== "settings" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content">
                 <div className="admin-main-card-header">

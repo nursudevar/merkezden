@@ -40,6 +40,7 @@ import {
 } from "@/lib/instructorProfileClient";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { Button, Input } from "@/components/ui";
 import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
@@ -247,11 +248,6 @@ export default function InstructorPanelPage() {
   >({});
   const [showProfileSuccessPopup, setShowProfileSuccessPopup] = useState(false);
 
-  const [settingsEmail, setSettingsEmail] = useState("egitmen@ornek.com");
-  const [settingsPassword, setSettingsPassword] = useState("");
-  const [settingsPasswordConfirm, setSettingsPasswordConfirm] = useState("");
-  const [profileVisible, setProfileVisible] = useState(true);
-
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
 
@@ -360,10 +356,6 @@ export default function InstructorPanelPage() {
     const timer = window.setTimeout(() => setShowProfileSuccessPopup(false), 3000);
     return () => window.clearTimeout(timer);
   }, [showProfileSuccessPopup]);
-
-  useEffect(() => {
-    if (user?.email) setSettingsEmail(user.email);
-  }, [user?.email]);
 
   useEffect(() => {
     if (!isAuthReady || !user || !roleLoaded) return;
@@ -514,18 +506,6 @@ export default function InstructorPanelPage() {
     }
     return ANKARA_DISTRICTS;
   }, [profileForm.district]);
-
-  const handleSettingsSave = () => {
-    console.log("[instructor-panel] settings save (mock)", {
-      settingsEmail,
-      profileVisible,
-      passwordChanged: Boolean(settingsPassword),
-    });
-  };
-
-  const handlePassiveAccount = () => {
-    console.log("[instructor-panel] passive account (mock)");
-  };
 
   const sidebarIcons: Record<InstructorPanelTabId, React.ReactNode> = {
     overview: <LayoutDashboard className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
@@ -1183,63 +1163,7 @@ export default function InstructorPanelPage() {
 
                 {isSettings ? (
                   <div className="egitmen-panel-tab-content">
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Hesap</h3>
-                      <div className="egitmen-panel-form-field">
-                        <label className="egitmen-panel-form-label">Hesap E-postası</label>
-                        <Input
-                          type="email"
-                          className="egitmen-panel-form-input"
-                          value={settingsEmail}
-                          onChange={(e) => setSettingsEmail(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Şifre Değiştir</h3>
-                      <div className="egitmen-panel-form-field">
-                        <label className="egitmen-panel-form-label">Yeni Şifre</label>
-                        <Input
-                          type="password"
-                          className="egitmen-panel-form-input"
-                          value={settingsPassword}
-                          onChange={(e) => setSettingsPassword(e.target.value)}
-                        />
-                      </div>
-                      <div className="egitmen-panel-form-field">
-                        <label className="egitmen-panel-form-label">Yeni Şifre (Tekrar)</label>
-                        <Input
-                          type="password"
-                          className="egitmen-panel-form-input"
-                          value={settingsPasswordConfirm}
-                          onChange={(e) => setSettingsPasswordConfirm(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="egitmen-panel-section">
-                      <h3 className="egitmen-panel-section-title">Profil Görünürlüğü</h3>
-                      <label className="egitmen-panel-option-check">
-                        <input
-                          type="checkbox"
-                          checked={profileVisible}
-                          onChange={(e) => setProfileVisible(e.target.checked)}
-                        />
-                        <span>Profilim arama sonuçlarında görünsün</span>
-                      </label>
-                    </div>
-                    <div className="egitmen-panel-settings-actions">
-                      <Button
-                        type="button"
-                        variant="default"
-                        className="egitmen-panel-save-btn"
-                        onClick={handleSettingsSave}
-                      >
-                        Ayarları Kaydet
-                      </Button>
-                      <Button type="button" variant="outline" onClick={handlePassiveAccount}>
-                        Hesabı Pasife Al
-                      </Button>
-                    </div>
+                    <ChangePasswordCard className="change-password-card--embedded" />
                   </div>
                 ) : null}
               </>

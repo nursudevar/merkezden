@@ -8,6 +8,8 @@ import {
   Building,
   Megaphone,
   CreditCard,
+  Settings,
+  LogOut,
   Inbox,
   PencilLine,
   Trash2,
@@ -45,6 +47,7 @@ import {
 } from "@/lib/institutionWorkingHours";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { SavingOverlay } from "@/components/SavingOverlay";
+import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { InstitutionFeatureSelectionGroupList } from "./InstitutionFeatureSelectionGroupList";
 import { WorkingHoursTimePicker } from "./WorkingHoursTimePicker";
 import {
@@ -65,6 +68,7 @@ type PanelTabId =
   | "institutions"
   | "media-management"
   | "announcements"
+  | "settings"
   | "subscription";
 
 type OverviewMissingFieldId =
@@ -104,6 +108,11 @@ const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
     id: "announcements",
     label: "Duyurular",
     placeholder: "Duyurular ve içerikler burada yönetilecek.",
+  },
+  {
+    id: "settings",
+    label: "Ayarlar",
+    placeholder: "Hesap ayarları burada yönetilecek.",
   },
   {
     id: "subscription",
@@ -1402,6 +1411,7 @@ interface InstitutionDetailPreparedData {
     institutions: <Building className="panel-sidebar-nav-icon" aria-hidden />,
     "media-management": <Images className="panel-sidebar-nav-icon" aria-hidden />,
     announcements: <Megaphone className="panel-sidebar-nav-icon" aria-hidden />,
+    settings: <Settings className="panel-sidebar-nav-icon" aria-hidden />,
     subscription: <CreditCard className="panel-sidebar-nav-icon" aria-hidden />,
   };
 
@@ -1598,6 +1608,7 @@ interface InstitutionDetailPreparedData {
   const isInstitutionsTab = activeTab === "institutions";
   const isMediaManagementTab = activeTab === "media-management";
   const isAnnouncementsTab = activeTab === "announcements";
+  const isSettingsTab = activeTab === "settings";
   const isSubscriptionTab = activeTab === "subscription";
   const isOverviewTab = activeTab === "overview";
 
@@ -2408,6 +2419,12 @@ interface InstitutionDetailPreparedData {
     setActiveTab(tabId);
   };
 
+  const handleLogout = async () => {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
   return (
     <div className="panel-page">
       <HeaderClientWrapper />
@@ -2439,7 +2456,7 @@ interface InstitutionDetailPreparedData {
               ) : null}
             </div>
             <nav className="panel-sidebar-nav">
-              {PANEL_TABS.map((tab) => (
+              {PANEL_TABS.filter((tab) => tab.id !== "settings").map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -2452,6 +2469,25 @@ interface InstitutionDetailPreparedData {
                 </button>
               ))}
             </nav>
+            <div className="panel-sidebar-footer-actions">
+              <button
+                type="button"
+                className={`panel-sidebar-nav-item ${activeTab === "settings" ? "panel-sidebar-nav-item--active" : ""}`}
+                onClick={() => handleTabSelect("settings")}
+                aria-current={activeTab === "settings" ? "true" : undefined}
+              >
+                <Settings className="panel-sidebar-nav-icon" aria-hidden />
+                <span>Ayarlar</span>
+              </button>
+              <button
+                type="button"
+                className="panel-sidebar-nav-item panel-sidebar-nav-item--logout"
+                onClick={() => void handleLogout()}
+              >
+                <LogOut className="panel-sidebar-nav-icon" aria-hidden />
+                <span>Çıkış Yap</span>
+              </button>
+            </div>
           </div>
 
           {activeTab === "institutions" ? (
@@ -2612,6 +2648,7 @@ interface InstitutionDetailPreparedData {
                 {isInstitutionProfileTab ? <Building2 className="panel-main-card-icon" aria-hidden /> : null}
                 {isMediaManagementTab ? <Images className="panel-main-card-icon" aria-hidden /> : null}
                 {isInstitutionsTab ? <Building className="panel-main-card-icon" aria-hidden /> : null}
+                {isSettingsTab ? <Settings className="panel-main-card-icon" aria-hidden /> : null}
                 <h2 id="panel-card-title" className="panel-main-card-title">
                   {isAnnouncementsTab ? "İçerikler & Duyurular" : activeTabConfig.label}
                 </h2>
@@ -2658,7 +2695,7 @@ interface InstitutionDetailPreparedData {
                   <Plus className="panel-announcements-add-btn-icon" aria-hidden />
                   Yeni Duyuru
                 </Button>
-              ) : isSubscriptionTab || isInstitutionsTab || isMediaManagementTab ? null : (
+              ) : isSubscriptionTab || isInstitutionsTab || isMediaManagementTab || isSettingsTab ? null : (
                 <button
                   type="button"
                   className="panel-main-card-edit-btn"
@@ -3360,6 +3397,10 @@ interface InstitutionDetailPreparedData {
                     ) : null}
                   </div>
                 )}
+              </div>
+            ) : isSettingsTab ? (
+              <div className="panel-institution-card-content">
+                <ChangePasswordCard className="change-password-card--embedded" />
               </div>
             ) : (
               <p className="panel-main-card-placeholder">{activeTabConfig.placeholder}</p>
