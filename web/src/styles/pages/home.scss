@@ -491,27 +491,34 @@
 /* Patili Dostlar — filtre sidebar ile ortak sınıf kullanılmaz */
 .pet-filter-row {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .pet-filter-media {
-  border-radius: 20px;
+  width: min(100%, 180px);
+  max-width: 180px;
+  border-radius: 16px;
   overflow: hidden;
-  flex: 0 0 40%;
+  flex: none;
   min-width: 0;
 }
 
 .pet-filter-media-video {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1.15;
+  object-fit: contain;
 }
 
 .pet-filter-card {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  flex: 0 0 60%;
+  width: 100%;
+  flex: none;
   min-width: 0;
   border-radius: 32px;
   border: 0;
@@ -595,18 +602,17 @@
 
 @media (max-width: 1023px) {
   .pet-filter-row {
-    align-items: center;
+    gap: 14px;
   }
 
   .pet-filter-media {
-    flex: 0 0 38%;
-    min-width: 0;
-    height: clamp(160px, 22vw, 220px);
+    width: min(100%, 150px);
+    max-width: 150px;
   }
 
   .pet-filter-media-video {
     width: 100%;
-    height: 100%;
+    height: auto;
     object-position: center center;
   }
 }

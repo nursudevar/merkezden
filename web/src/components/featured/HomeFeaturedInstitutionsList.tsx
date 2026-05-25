@@ -9,7 +9,7 @@ import {
 import { fetchHomeFeaturedPinnedRows } from "./homeFeaturedPinned";
 import { mapInstitutionRowToListItem } from "./mapInstitutionRowToListItem";
 
-const LIST_SIZE = 36;
+const LIST_SIZE = 25;
 const FETCH_LIMIT = 300;
 
 const INSTITUTION_SELECT =
@@ -75,7 +75,7 @@ export function HomeFeaturedInstitutionsList() {
         Math.max(0, LIST_SIZE - pinned.length),
       );
 
-      setInstitutions([...pinned, ...others]);
+      setInstitutions([...pinned, ...others].slice(0, LIST_SIZE));
     })();
 
     return () => {
