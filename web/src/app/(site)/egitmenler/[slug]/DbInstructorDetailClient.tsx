@@ -161,6 +161,12 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const email = String(row?.email ?? "").trim();
   const phone = String(row?.phone ?? "").trim();
   const website = String(row?.website ?? "").trim();
+  const socialLinks = [
+    { label: "Facebook", value: String(row?.facebook_url ?? "").trim() },
+    { label: "Instagram", value: String(row?.instagram_url ?? "").trim() },
+    { label: "X", value: String(row?.x_url ?? "").trim() },
+    { label: "Linkedin", value: String(row?.linkedin_url ?? "").trim() },
+  ].filter((item) => item.value);
   const address = String(row?.address ?? "").trim();
   const workingHoursStart = institutionTimeToInputHHMM(row?.working_hours_start);
   const workingHoursEnd = institutionTimeToInputHHMM(row?.working_hours_end);
@@ -650,6 +656,31 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                       >
                         {website}
                       </a>
+                    </div>
+                  </div>
+                ) : null}
+                {socialLinks.length > 0 ? (
+                  <div className="instructor-contact-item">
+                    <div className="instructor-contact-icon">
+                      <Globe size={18} aria-hidden />
+                    </div>
+                    <div>
+                      <div className="instructor-contact-label">SOSYAL MEDYA</div>
+                      <div className="instructor-contact-value">
+                        {socialLinks.map((item, index) => (
+                          <span key={item.label}>
+                            {index > 0 ? " • " : ""}
+                            <a
+                              href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
+                              className="instructor-contact-link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {item.label}
+                            </a>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : null}

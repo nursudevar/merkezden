@@ -48,6 +48,10 @@ type DbInstitutionRow = {
   address: string | null;
   official_phone: string | null;
   website: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  x_url?: string | null;
+  linkedin_url?: string | null;
   subheading: string | null;
   about: string | null;
   logo: string | null;
@@ -191,7 +195,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, city, district, address, official_phone, website, subheading, about, logo, is_verified, source, working_hours_start, working_hours_end, institution_type:institution_types(name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_verified, source, working_hours_start, working_hours_end, institution_type:institution_types(name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
         .maybeSingle();
@@ -400,6 +404,12 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const address = (row?.address ?? "").trim();
   const phone = (row?.official_phone ?? "").trim();
   const website = (row?.website ?? "").trim();
+  const socialLinks = [
+    { label: "Facebook", value: String(row?.facebook_url ?? "").trim() },
+    { label: "Instagram", value: String(row?.instagram_url ?? "").trim() },
+    { label: "X", value: String(row?.x_url ?? "").trim() },
+    { label: "Linkedin", value: String(row?.linkedin_url ?? "").trim() },
+  ].filter((item) => item.value);
   const emptyText = "Henüz içerik girilmedi.";
   const workingHoursText =
     formatWorkingHoursRange(row?.working_hours_start, row?.working_hours_end) ?? emptyText;
@@ -1221,6 +1231,31 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     )}
                   </div>
                 </div>
+                {socialLinks.length > 0 ? (
+                  <div className="institution-contact-item">
+                    <div className="institution-contact-icon">
+                      <Globe size={18} />
+                    </div>
+                    <div>
+                      <div className="institution-contact-label">SOSYAL MEDYA</div>
+                      <div className="institution-contact-value">
+                        {socialLinks.map((item, index) => (
+                          <span key={item.label}>
+                            {index > 0 ? " • " : ""}
+                            <a
+                              href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
+                              className="institution-contact-link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {item.label}
+                            </a>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="institution-contact-item">
                   <div className="institution-contact-icon">
                     <Clock size={18} />

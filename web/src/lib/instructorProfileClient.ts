@@ -17,7 +17,7 @@ import {
 export const INSTRUCTORS_TABLE = "instructors" as const;
 
 export const INSTRUCTOR_PROFILE_ROW_SELECT =
-  "id, user_id, owner_auth_id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, city, district, address, title, branch, experience_years, education_level, lesson_type, service_type, price_range, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url, category_id";
+  "id, user_id, owner_auth_id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, city, district, address, title, branch, experience_years, education_level, lesson_type, service_type, price_range, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url, category_id";
 
 export type InstructorProfileRow = {
   id: number;
@@ -34,6 +34,10 @@ export type InstructorProfileRow = {
   bio?: string | null;
   about?: string | null;
   website?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  x_url?: string | null;
+  linkedin_url?: string | null;
   city?: string | null;
   district?: string | null;
   address?: string | null;
@@ -69,6 +73,10 @@ export type InstructorProfileFormState = {
   bio: string;
   about: string;
   website: string;
+  facebook_url: string;
+  instagram_url: string;
+  x_url: string;
+  linkedin_url: string;
   city: string;
   district: string;
   address: string;
@@ -94,6 +102,10 @@ export const EMPTY_INSTRUCTOR_PROFILE_FORM: InstructorProfileFormState = {
   bio: "",
   about: "",
   website: "",
+  facebook_url: "",
+  instagram_url: "",
+  x_url: "",
+  linkedin_url: "",
   city: INSTRUCTOR_PROFILE_CITY,
   district: "",
   address: "",
@@ -128,6 +140,10 @@ export function mapInstructorRowToFormState(row: InstructorProfileRow): Instruct
     bio: String(row.bio ?? "").trim(),
     about: String(row.about ?? "").trim(),
     website: String(row.website ?? "").trim(),
+    facebook_url: String(row.facebook_url ?? "").trim(),
+    instagram_url: String(row.instagram_url ?? "").trim(),
+    x_url: String(row.x_url ?? "").trim(),
+    linkedin_url: String(row.linkedin_url ?? "").trim(),
     city: INSTRUCTOR_PROFILE_CITY,
     district: String(row.district ?? "").trim(),
     address: String(row.address ?? "").trim(),
@@ -160,6 +176,10 @@ export function buildInstructorProfileUpdatePayload(form: InstructorProfileFormS
     bio: form.bio.trim() || null,
     about: form.about.trim() || null,
     website: form.website.trim() || null,
+    facebook_url: form.facebook_url.trim() || null,
+    instagram_url: form.instagram_url.trim() || null,
+    x_url: form.x_url.trim() || null,
+    linkedin_url: form.linkedin_url.trim() || null,
     city: INSTRUCTOR_PROFILE_CITY,
     district: form.district.trim() || null,
     address: form.address.trim() || null,
@@ -206,7 +226,7 @@ export function instructorProfileFormsEqual(
 }
 
 const INSTRUCTOR_PROFILE_SAVE_SELECT =
-  "id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, city, district, address, title, branch, experience_years, education_level, lesson_type, service_type, price_range, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url";
+  "id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, city, district, address, title, branch, experience_years, education_level, lesson_type, service_type, price_range, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url";
 
 /** Panel: yalnızca oturum sahibinin instructors satırını günceller. */
 export async function updateInstructorProfileForAuthUserClient(

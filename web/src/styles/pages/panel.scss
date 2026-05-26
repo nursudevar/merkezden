@@ -2289,6 +2289,14 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   }
 }
 
+.panel-institution-form-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #b91c1c;
+  line-height: 1.35;
+}
+
 .working-hours-picker {
   position: relative;
   width: 100%;

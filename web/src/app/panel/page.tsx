@@ -339,6 +339,18 @@ function SubscriptionPricingTable({ plans }: { plans: SubscriptionPlan[] }) {
   );
 }
 
+function isValidStrictHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+  try {
+    const url = new URL(trimmed);
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname) && url.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
 function PanelContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -357,6 +369,9 @@ function PanelContent() {
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
   const [isSavingInstitutionProfile, setIsSavingInstitutionProfile] = useState(false);
   const [institutionProfileMessage, setInstitutionProfileMessage] = useState<string | null>(null);
+  const [institutionProfileFieldErrors, setInstitutionProfileFieldErrors] = useState<
+    Partial<Record<"facebookUrl" | "instagramUrl" | "xUrl" | "linkedinUrl", string>>
+  >({});
   const [showInstitutionProfileSuccessPopup, setShowInstitutionProfileSuccessPopup] = useState(false);
   const [institutionIsVerified, setInstitutionIsVerified] = useState<boolean>(false);
   const [institutionTypeId, setInstitutionTypeId] = useState<string>("");
@@ -377,6 +392,10 @@ function PanelContent() {
     email: "",
     phone: "",
     website: "",
+    facebookUrl: "",
+    instagramUrl: "",
+    xUrl: "",
+    linkedinUrl: "",
     subheading: "",
     city: "",
     district: "",
@@ -391,6 +410,10 @@ function PanelContent() {
     email: "",
     phone: "",
     website: "",
+    facebookUrl: "",
+    instagramUrl: "",
+    xUrl: "",
+    linkedinUrl: "",
     subheading: "",
     city: "",
     district: "",
@@ -934,7 +957,7 @@ interface InstitutionDetailPreparedData {
         const { data: adminRow, error: adminErr } = await supabase
           .from("institutions")
           .select(
-            "id, slug, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo, is_verified, institution_type_id, working_hours_start, working_hours_end"
+            "id, slug, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, is_verified, institution_type_id, working_hours_start, working_hours_end"
           )
           .eq("id", numericId)
           .maybeSingle();
@@ -985,6 +1008,10 @@ interface InstitutionDetailPreparedData {
         email: row.official_email || "",
         phone: row.official_phone || "",
         website: row.website || "",
+        facebookUrl: row.facebook_url || "",
+        instagramUrl: row.instagram_url || "",
+        xUrl: row.x_url || "",
+        linkedinUrl: row.linkedin_url || "",
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
@@ -999,6 +1026,10 @@ interface InstitutionDetailPreparedData {
         email: row.official_email || "",
         phone: row.official_phone || "",
         website: row.website || "",
+        facebookUrl: row.facebook_url || "",
+        instagramUrl: row.instagram_url || "",
+        xUrl: row.x_url || "",
+        linkedinUrl: row.linkedin_url || "",
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
@@ -1417,6 +1448,14 @@ interface InstitutionDetailPreparedData {
 
   const handleInstitutionFormChange = (field: keyof typeof institutionFormData, value: string) => {
     setInstitutionFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "facebookUrl" || field === "instagramUrl" || field === "xUrl" || field === "linkedinUrl") {
+      setInstitutionProfileFieldErrors((prev) => {
+        if (!prev[field]) return prev;
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const ALLOWED_LOGO_TYPES: Record<string, string> = {
@@ -1513,11 +1552,36 @@ interface InstitutionDetailPreparedData {
       return;
     }
 
+    const socialFieldErrors: Partial<
+      Record<"facebookUrl" | "instagramUrl" | "xUrl" | "linkedinUrl", string>
+    > = {};
+    if (!isValidStrictHttpUrl(institutionFormData.facebookUrl)) {
+      socialFieldErrors.facebookUrl = "Geçerli bir Facebook linki girin.";
+    }
+    if (!isValidStrictHttpUrl(institutionFormData.instagramUrl)) {
+      socialFieldErrors.instagramUrl = "Geçerli bir Instagram linki girin.";
+    }
+    if (!isValidStrictHttpUrl(institutionFormData.xUrl)) {
+      socialFieldErrors.xUrl = "Geçerli bir X linki girin.";
+    }
+    if (!isValidStrictHttpUrl(institutionFormData.linkedinUrl)) {
+      socialFieldErrors.linkedinUrl = "Geçerli bir Linkedin linki girin.";
+    }
+    if (Object.keys(socialFieldErrors).length > 0) {
+      setInstitutionProfileFieldErrors(socialFieldErrors);
+      setInstitutionProfileMessage("Lütfen sosyal medya link alanlarını kontrol edin.");
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     const payload = {
       institution_name: institutionFormData.institutionName.trim(),
       official_phone: institutionFormData.phone.trim(),
       website: websiteValue,
+      facebook_url: institutionFormData.facebookUrl.trim() || null,
+      instagram_url: institutionFormData.instagramUrl.trim() || null,
+      x_url: institutionFormData.xUrl.trim() || null,
+      linkedin_url: institutionFormData.linkedinUrl.trim() || null,
       subheading: institutionFormData.subheading.trim(),
       city: institutionFormData.city.trim(),
       district: institutionFormData.district.trim(),
@@ -1529,6 +1593,7 @@ interface InstitutionDetailPreparedData {
 
     setIsSavingInstitutionProfile(true);
     setInstitutionProfileMessage(null);
+    setInstitutionProfileFieldErrors({});
 
     try {
       const instNumericId = Number(institutionId);
@@ -1538,7 +1603,7 @@ interface InstitutionDetailPreparedData {
         .update(payload)
         .eq("id", instNumericId)
         .select(
-          "id, institution_name, official_email, official_phone, website, subheading, city, district, address, about, logo, working_hours_start, working_hours_end"
+          "id, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, working_hours_start, working_hours_end"
         )
         .maybeSingle();
 
@@ -1560,6 +1625,10 @@ interface InstitutionDetailPreparedData {
         official_email?: string | null;
         official_phone?: string | null;
         website?: string | null;
+        facebook_url?: string | null;
+        instagram_url?: string | null;
+        x_url?: string | null;
+        linkedin_url?: string | null;
         subheading?: string | null;
         city?: string | null;
         district?: string | null;
@@ -1577,6 +1646,10 @@ interface InstitutionDetailPreparedData {
         email: row.official_email || "",
         phone: row.official_phone || "",
         website: row.website || "",
+        facebookUrl: row.facebook_url || "",
+        instagramUrl: row.instagram_url || "",
+        xUrl: row.x_url || "",
+        linkedinUrl: row.linkedin_url || "",
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
@@ -1591,6 +1664,7 @@ interface InstitutionDetailPreparedData {
       setInstitutionInitialFormData(nextForm);
       setInstitutionName(nextForm.institutionName);
       setInstitutionProfileMessage(null);
+      setInstitutionProfileFieldErrors({});
       setShowInstitutionProfileSuccessPopup(true);
       setIsEditingInstitutionProfile(false);
     } finally {
@@ -1601,6 +1675,7 @@ interface InstitutionDetailPreparedData {
   const handleInstitutionProfileCancel = () => {
     setInstitutionFormData(institutionInitialFormData);
     setInstitutionProfileMessage(null);
+    setInstitutionProfileFieldErrors({});
     setIsEditingInstitutionProfile(false);
   };
 
@@ -2812,6 +2887,74 @@ interface InstitutionDetailPreparedData {
                         className="panel-institution-form-input"
                         placeholder="https://"
                       />
+                    </div>
+                  </div>
+                  <div className="panel-institution-form-row">
+                    <div className="panel-institution-form-field">
+                      <label className="panel-institution-form-label">Facebook Linki</label>
+                      <Input
+                        type="url"
+                        value={institutionFormData.facebookUrl}
+                        onChange={(e) => handleInstitutionFormChange("facebookUrl", e.target.value)}
+                        disabled={!isEditingInstitutionProfile}
+                        className="panel-institution-form-input"
+                        placeholder="https://facebook.com/ornek"
+                      />
+                      {institutionProfileFieldErrors.facebookUrl ? (
+                        <span className="panel-institution-form-error" role="alert">
+                          {institutionProfileFieldErrors.facebookUrl}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="panel-institution-form-field">
+                      <label className="panel-institution-form-label">Instagram Linki</label>
+                      <Input
+                        type="url"
+                        value={institutionFormData.instagramUrl}
+                        onChange={(e) => handleInstitutionFormChange("instagramUrl", e.target.value)}
+                        disabled={!isEditingInstitutionProfile}
+                        className="panel-institution-form-input"
+                        placeholder="https://instagram.com/ornek"
+                      />
+                      {institutionProfileFieldErrors.instagramUrl ? (
+                        <span className="panel-institution-form-error" role="alert">
+                          {institutionProfileFieldErrors.instagramUrl}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="panel-institution-form-row">
+                    <div className="panel-institution-form-field">
+                      <label className="panel-institution-form-label">X Linki</label>
+                      <Input
+                        type="url"
+                        value={institutionFormData.xUrl}
+                        onChange={(e) => handleInstitutionFormChange("xUrl", e.target.value)}
+                        disabled={!isEditingInstitutionProfile}
+                        className="panel-institution-form-input"
+                        placeholder="https://x.com/ornek"
+                      />
+                      {institutionProfileFieldErrors.xUrl ? (
+                        <span className="panel-institution-form-error" role="alert">
+                          {institutionProfileFieldErrors.xUrl}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="panel-institution-form-field">
+                      <label className="panel-institution-form-label">Linkedin Linki</label>
+                      <Input
+                        type="url"
+                        value={institutionFormData.linkedinUrl}
+                        onChange={(e) => handleInstitutionFormChange("linkedinUrl", e.target.value)}
+                        disabled={!isEditingInstitutionProfile}
+                        className="panel-institution-form-input"
+                        placeholder="https://linkedin.com/in/ornek"
+                      />
+                      {institutionProfileFieldErrors.linkedinUrl ? (
+                        <span className="panel-institution-form-error" role="alert">
+                          {institutionProfileFieldErrors.linkedinUrl}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="panel-institution-form-row">

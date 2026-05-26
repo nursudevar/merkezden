@@ -217,6 +217,18 @@ function isValidInstructorWebsite(website: string): boolean {
   }
 }
 
+function isValidStrictHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+  try {
+    const url = new URL(trimmed);
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname) && url.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
 const INSTRUCTOR_PROFILE_SUCCESS_MESSAGE = "Eğitmen profiliniz başarıyla güncellendi.";
 const INSTRUCTOR_PROFILE_ERROR_MESSAGE = "Eğitmen profili güncellenirken bir hata oluştu.";
 
@@ -405,6 +417,22 @@ export default function InstructorPanelPage() {
 
     if (!isValidInstructorWebsite(profileForm.website)) {
       errors.website = "Geçerli bir web sitesi adresi girin.";
+    }
+
+    if (!isValidStrictHttpUrl(profileForm.facebook_url)) {
+      errors.facebook_url = "Geçerli bir Facebook linki girin.";
+    }
+
+    if (!isValidStrictHttpUrl(profileForm.instagram_url)) {
+      errors.instagram_url = "Geçerli bir Instagram linki girin.";
+    }
+
+    if (!isValidStrictHttpUrl(profileForm.x_url)) {
+      errors.x_url = "Geçerli bir X linki girin.";
+    }
+
+    if (!isValidStrictHttpUrl(profileForm.linkedin_url)) {
+      errors.linkedin_url = "Geçerli bir Linkedin linki girin.";
     }
 
     return errors;
@@ -1003,6 +1031,74 @@ export default function InstructorPanelPage() {
                               {profileFieldErrors.website ? (
                                 <span className="egitmen-panel-form-error" role="alert">
                                   {profileFieldErrors.website}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Facebook Linki</label>
+                              <Input
+                                type="text"
+                                inputMode="url"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.facebook_url}
+                                onChange={(e) => handleProfileFieldChange("facebook_url", e.target.value)}
+                                placeholder="https://facebook.com/ornek"
+                              />
+                              {profileFieldErrors.facebook_url ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.facebook_url}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Instagram Linki</label>
+                              <Input
+                                type="text"
+                                inputMode="url"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.instagram_url}
+                                onChange={(e) => handleProfileFieldChange("instagram_url", e.target.value)}
+                                placeholder="https://instagram.com/ornek"
+                              />
+                              {profileFieldErrors.instagram_url ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.instagram_url}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">X Linki</label>
+                              <Input
+                                type="text"
+                                inputMode="url"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.x_url}
+                                onChange={(e) => handleProfileFieldChange("x_url", e.target.value)}
+                                placeholder="https://x.com/ornek"
+                              />
+                              {profileFieldErrors.x_url ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.x_url}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Linkedin Linki</label>
+                              <Input
+                                type="text"
+                                inputMode="url"
+                                className="egitmen-panel-form-input"
+                                value={profileForm.linkedin_url}
+                                onChange={(e) => handleProfileFieldChange("linkedin_url", e.target.value)}
+                                placeholder="https://linkedin.com/in/ornek"
+                              />
+                              {profileFieldErrors.linkedin_url ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.linkedin_url}
                                 </span>
                               ) : null}
                             </div>

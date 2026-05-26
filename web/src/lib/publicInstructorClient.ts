@@ -42,6 +42,10 @@ export type PublicInstructorRow = {
   working_hours_start?: string | null;
   working_hours_end?: string | null;
   website?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  x_url?: string | null;
+  linkedin_url?: string | null;
   email?: string | null;
   phone?: string | null;
   is_verified?: boolean | null;
@@ -80,23 +84,41 @@ async function enrichPublicInstructorContact(
   const hasEmail = Boolean(String(row.email ?? "").trim());
   const hasPhone = Boolean(String(row.phone ?? "").trim());
   const hasAddress = Boolean(String(row.address ?? "").trim());
-  if (hasEmail && hasPhone && hasAddress) return row;
+  const hasFacebook = Boolean(String(row.facebook_url ?? "").trim());
+  const hasInstagram = Boolean(String(row.instagram_url ?? "").trim());
+  const hasX = Boolean(String(row.x_url ?? "").trim());
+  const hasLinkedin = Boolean(String(row.linkedin_url ?? "").trim());
+  if (hasEmail && hasPhone && hasAddress && hasFacebook && hasInstagram && hasX && hasLinkedin) {
+    return row;
+  }
 
   const { data, error } = await supabase
     .from(INSTRUCTORS_TABLE)
-    .select("email, phone, address")
+    .select("email, phone, address, facebook_url, instagram_url, x_url, linkedin_url")
     .eq("id", row.id)
     .eq("is_active", true)
     .maybeSingle();
 
   if (error || !data) return row;
 
-  const contact = data as { email?: string | null; phone?: string | null; address?: string | null };
+  const contact = data as {
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    facebook_url?: string | null;
+    instagram_url?: string | null;
+    x_url?: string | null;
+    linkedin_url?: string | null;
+  };
   return {
     ...row,
     email: hasEmail ? row.email : contact.email ?? null,
     phone: hasPhone ? row.phone : contact.phone ?? null,
     address: hasAddress ? row.address : contact.address ?? null,
+    facebook_url: hasFacebook ? row.facebook_url : contact.facebook_url ?? null,
+    instagram_url: hasInstagram ? row.instagram_url : contact.instagram_url ?? null,
+    x_url: hasX ? row.x_url : contact.x_url ?? null,
+    linkedin_url: hasLinkedin ? row.linkedin_url : contact.linkedin_url ?? null,
   };
 }
 
