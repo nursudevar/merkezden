@@ -3569,7 +3569,26 @@ a.search-result-card {
 .home-individual-instructors-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+}
+
+.home-individual-instructors-header-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-individual-instructors-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-individual-instructors-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .home-individual-instructors-title {
@@ -3588,10 +3607,98 @@ a.search-result-card {
   color: $text-zinc-600;
 }
 
+.home-individual-instructors-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.home-individual-instructors-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba($purple-main, 0.12);
+  background: rgba(255, 255, 255, 0.94);
+  color: $text-zinc-800;
+  cursor: pointer;
+  @include transition;
+  transition-property: transform, background-color, border-color, box-shadow, opacity;
+
+  &:hover:not(:disabled) {
+    background: $bg-white;
+    border-color: rgba($purple-main, 0.22);
+    box-shadow: 0 12px 24px rgba(16, 24, 40, 0.12);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+.home-individual-instructors-nav-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.home-individual-instructors-all-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  color: $purple-primary;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: $font-semibold;
+  line-height: 1;
+  white-space: nowrap;
+  @include transition;
+  transition-property: background-color, border-color, transform, box-shadow;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
 .home-individual-instructors-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 16px;
+  overflow-x: auto;
+  padding: 4px 4px 10px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 4px;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(24, 24, 27, 0.2) transparent;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(24, 24, 27, 0.2);
+    border-radius: 999px;
+  }
 }
 
 a.home-individual-instructor-card {
@@ -3602,6 +3709,8 @@ a.home-individual-instructor-card {
 .home-individual-instructor-card {
   display: grid;
   grid-template-columns: 152px minmax(0, 1fr);
+  flex: 0 0 min(420px, calc(100vw - 56px));
+  min-width: min(420px, calc(100vw - 56px));
   min-height: 126px;
   background: $bg-white;
   border: 1px solid rgba(228, 231, 236, 1);
@@ -3610,6 +3719,8 @@ a.home-individual-instructor-card {
   box-shadow: 0 4px 12px rgba(16, 24, 40, 0.05);
   @include transition;
   transition-property: transform, box-shadow, border-color;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 
   &:hover {
     transform: translateY(-1px);
@@ -3688,11 +3799,56 @@ a.home-individual-instructor-card {
 
 .home-individual-instructor-card-price {
   margin: 2px 0 0;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: $font-semibold;
   line-height: 1.2;
   color: $purple-main;
   white-space: nowrap;
+}
+
+.public-instructors-page {
+  max-width: 1280px;
+  margin: 0 auto 72px;
+  padding: 12px 0 0;
+}
+
+.public-instructors-page-header {
+  margin-bottom: 22px;
+}
+
+.public-instructors-page-title {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  letter-spacing: -0.02em;
+}
+
+.public-instructors-page-subtitle {
+  margin: 0;
+  max-width: 720px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: $text-zinc-600;
+}
+
+.public-instructors-page-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+
+  .home-individual-instructor-card {
+    width: 100%;
+    min-width: 0;
+    flex: initial;
+  }
+}
+
+.public-instructors-page-empty {
+  margin: 0;
+  padding: 18px 0;
+  font-size: 15px;
+  color: $text-zinc-600;
 }
 
 @media (max-width: 1023px) {
@@ -3700,7 +3856,7 @@ a.home-individual-instructor-card {
     font-size: 26px;
   }
 
-  .home-individual-instructors-grid {
+  .public-instructors-page-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -3708,6 +3864,20 @@ a.home-individual-instructor-card {
 @media (max-width: 767px) {
   .home-individual-instructors-section {
     gap: 16px;
+  }
+
+  .home-individual-instructors-header-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .home-individual-instructors-actions {
+    align-items: flex-end;
+  }
+
+  .home-individual-instructors-nav {
+    justify-content: flex-end;
   }
 
   .home-individual-instructors-title {
@@ -3719,12 +3889,14 @@ a.home-individual-instructor-card {
   }
 
   .home-individual-instructors-grid {
-    grid-template-columns: 1fr;
     gap: 14px;
+    padding-bottom: 8px;
   }
 
   .home-individual-instructor-card {
     grid-template-columns: 120px minmax(0, 1fr);
+    flex-basis: min(360px, calc(100vw - 40px));
+    min-width: min(360px, calc(100vw - 40px));
     min-height: 118px;
     border-radius: 16px;
   }
@@ -3738,7 +3910,24 @@ a.home-individual-instructor-card {
   }
 
   .home-individual-instructor-card-price {
-    font-size: 18px;
+    font-size: 12px;
+  }
+
+  .public-instructors-page {
+    margin-bottom: 56px;
+  }
+
+  .public-instructors-page-title {
+    font-size: 26px;
+  }
+
+  .public-instructors-page-subtitle {
+    font-size: 14px;
+  }
+
+  .public-instructors-page-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 

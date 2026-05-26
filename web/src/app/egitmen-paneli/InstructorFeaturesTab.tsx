@@ -9,10 +9,12 @@ import {
   INSTRUCTOR_FEATURES_LOAD_ERROR,
   INSTRUCTOR_FEATURES_SAVE_SUCCESS,
   buildInstructorFeatureFormStateFromEntries,
+  buildInstructorDirectFeatureUpdatePayload,
   fetchInstructorFeatureCategoriesClient,
   fetchInstructorFeatureDefinitionsBundleClient,
   fetchInstructorFeatureEntriesClient,
   getDisplayInstructorFeatureName,
+  mergeInstructorDirectFeatureValuesIntoForm,
   saveInstructorFeaturesClient,
   type InstructorFeatureCategoryRow,
   type InstructorFeatureChoiceRow,
@@ -68,8 +70,15 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
   const [openInstructorSelectId, setOpenInstructorSelectId] = useState<number | null>(null);
 
   const applyFormFromEntries = useCallback(
-    (definitions: InstructorFeatureDefinitionRow[], entries: InstructorFeatureEntryRow[], entryChoices: InstructorFeatureEntryChoiceRow[]) => {
-      setForm(buildInstructorFeatureFormStateFromEntries(definitions, entries, entryChoices));
+    (
+      definitions: InstructorFeatureDefinitionRow[],
+      choices: InstructorFeatureChoiceRow[],
+      entries: InstructorFeatureEntryRow[],
+      entryChoices: InstructorFeatureEntryChoiceRow[],
+      row: InstructorProfileRow,
+    ) => {
+      const baseForm = buildInstructorFeatureFormStateFromEntries(definitions, entries, entryChoices);
+      setForm(mergeInstructorDirectFeatureValuesIntoForm(definitions, choices, baseForm, row));
     },
     [],
   );
@@ -91,7 +100,6 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
 
     if (!hasValidInstructorId) {
       setFeatureEntries([]);
-      setFeatureEntryChoices([]);
       setForm(EMPTY_FORM);
       setLoading(false);
       return;
@@ -122,9 +130,15 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
         ? String(instructorRow.category_id)
         : "";
     setCategoryId(initialCategory);
-    applyFormFromEntries(bundle.definitions, entriesResult.entries, entriesResult.entryChoices);
+    applyFormFromEntries(
+      bundle.definitions,
+      bundle.choices,
+      entriesResult.entries,
+      entriesResult.entryChoices,
+      instructorRow,
+    );
     setLoading(false);
-  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, instructorRow.category_id]);
+  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, instructorRow]);
 
   useEffect(() => {
     void loadAll();
@@ -274,12 +288,19 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
 
     try {
       const supabase = createSupabaseBrowserClient();
+      const directInstructorPatch = buildInstructorDirectFeatureUpdatePayload(
+        featureDefinitions,
+        featureChoices,
+        form,
+        featureIdsToSave,
+      );
       const { error: saveError } = await saveInstructorFeaturesClient(
         {
           authUid: authUserId,
           instructorId,
           categoryId: parsedCategoryId,
           definitions: featureDefinitions,
+          choices: featureChoices,
           entries: featureEntries,
           form,
           featureIdsToSave,
@@ -294,21 +315,29 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
 
       const { data: updatedInstructor } = await supabase
         .from("instructors")
-        .select("id, category_id, is_verified, owner_auth_id")
+        .select(
+          "id, category_id, is_verified, owner_auth_id, price_range, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
+        )
         .eq("id", instructorId)
         .eq("owner_auth_id", authUserId)
         .maybeSingle();
 
-      if (updatedInstructor) {
-        onInstructorRowChange({ ...instructorRow, ...updatedInstructor });
-      } else {
-        onInstructorRowChange({ ...instructorRow, category_id: parsedCategoryId });
-      }
+      const nextInstructorRow = updatedInstructor
+        ? { ...instructorRow, ...updatedInstructor }
+        : { ...instructorRow, category_id: parsedCategoryId, ...directInstructorPatch };
+
+      onInstructorRowChange(nextInstructorRow);
 
       const entriesResult = await fetchInstructorFeatureEntriesClient(authUserId, instructorId, supabase);
       if (!entriesResult.error) {
         setFeatureEntries(entriesResult.entries);
-        applyFormFromEntries(featureDefinitions, entriesResult.entries, entriesResult.entryChoices);
+        applyFormFromEntries(
+          featureDefinitions,
+          featureChoices,
+          entriesResult.entries,
+          entriesResult.entryChoices,
+          nextInstructorRow,
+        );
       }
 
       flashSaveMessage(INSTRUCTOR_FEATURES_SAVE_SUCCESS);

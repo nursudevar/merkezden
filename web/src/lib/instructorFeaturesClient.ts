@@ -1,7 +1,8 @@
 "use client";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { INSTRUCTORS_TABLE } from "@/lib/instructorProfileClient";
+import { INSTRUCTORS_TABLE, type InstructorProfileRow } from "@/lib/instructorProfileClient";
+import { institutionTimeToInputHHMM } from "@/lib/institutionWorkingHours";
 
 export const INSTRUCTOR_FEATURE_ENTRIES_TABLE = "instructor_feature_entries" as const;
 export const INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE = "instructor_feature_entry_choices" as const;
@@ -88,6 +89,285 @@ export function getDisplayInstructorFeatureName(name: string): string {
 
 export function isSchoolHoursInstructorFeature(feature: InstructorFeatureDefinitionRow): boolean {
   return (feature.name ?? "").trim().toLocaleLowerCase("tr-TR") === "okul saatleri";
+}
+
+type DirectInstructorFeatureKey =
+  | "lesson_type"
+  | "service_type"
+  | "education_level"
+  | "price_range"
+  | "working_hours";
+
+type DirectInstructorFeaturePatch = {
+  lesson_type?: string | null;
+  service_type?: string | null;
+  education_level?: string | null;
+  price_range?: string | null;
+  working_hours_start?: string | null;
+  working_hours_end?: string | null;
+};
+
+type InstructorFeatureChoiceLike = {
+  id: number;
+  feature_definition_id: number;
+  name?: string | null;
+  is_active?: boolean;
+};
+
+function normalizeInstructorFeatureText(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ç/g, "c")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function resolveDirectInstructorFeatureKey(
+  feature: Pick<InstructorFeatureDefinitionRow, "name" | "slug">,
+): DirectInstructorFeatureKey | null {
+  const candidates = [
+    normalizeInstructorFeatureText(String(feature.slug ?? "")),
+    normalizeInstructorFeatureText(String(feature.name ?? "")),
+  ].filter(Boolean);
+
+  if (candidates.some((key) => key.includes("price_range") || key === "fiyat_araligi")) {
+    return "price_range";
+  }
+  if (
+    candidates.some(
+      (key) =>
+        key.includes("lesson_type") ||
+        key === "ders_turu" ||
+        key === "ders_tipi" ||
+        key === "ders_sekli",
+    )
+  ) {
+    return "lesson_type";
+  }
+  if (
+    candidates.some(
+      (key) =>
+        key.includes("service_type") ||
+        key === "hizmet_turu" ||
+        key === "hizmet_tipi" ||
+        key === "servis_tipi" ||
+        key === "servis_turu",
+    )
+  ) {
+    return "service_type";
+  }
+  if (candidates.some((key) => key.includes("education_level") || key === "egitim_seviyesi")) {
+    return "education_level";
+  }
+  if (
+    candidates.some(
+      (key) =>
+        key.includes("working_hours") ||
+        key === "okul_saatleri" ||
+        key === "calisma_saatleri" ||
+        key === "saat",
+    )
+  ) {
+    return "working_hours";
+  }
+  return null;
+}
+
+function getChoiceLabelById(
+  featureId: number,
+  choiceId: string,
+  choices: InstructorFeatureChoiceLike[],
+): string {
+  return (
+    choices.find(
+      (choice) =>
+        choice.feature_definition_id === featureId &&
+        String(choice.id) === choiceId &&
+        choice.is_active !== false,
+    )?.name?.trim() ?? ""
+  );
+}
+
+function getFeatureValueAsText(
+  feature: InstructorFeatureDefinitionRow,
+  form: InstructorFeatureFormState,
+  choices: InstructorFeatureChoiceLike[],
+): string {
+  if (feature.input_type === "text") {
+    return (form.textValues[feature.id] ?? "").trim();
+  }
+  if (feature.input_type === "number") {
+    return (form.numberValues[feature.id] ?? "").trim();
+  }
+  if (feature.input_type === "date") {
+    return (form.dateValues[feature.id] ?? "").trim();
+  }
+  if (feature.input_type === "boolean") {
+    return form.booleanValues[feature.id] ? "Evet" : "";
+  }
+
+  if (feature.input_type === "single_select" || isSchoolHoursInstructorFeature(feature)) {
+    const selected = (form.singleSelectValues[feature.id] ?? "").trim();
+    return selected ? getChoiceLabelById(feature.id, selected, choices) : "";
+  }
+
+  if (feature.input_type === "multi_select") {
+    const selected = form.multiSelectValues[feature.id] ?? [];
+    const labels = selected
+      .map((choiceId) => getChoiceLabelById(feature.id, choiceId, choices))
+      .filter(Boolean);
+    return labels.join(", ");
+  }
+
+  return "";
+}
+
+function parseWorkingHoursFeatureValue(value: string): {
+  working_hours_start: string | null;
+  working_hours_end: string | null;
+} {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { working_hours_start: null, working_hours_end: null };
+  }
+
+  const match = trimmed.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+  if (!match) {
+    return { working_hours_start: null, working_hours_end: null };
+  }
+
+  const normalizeTime = (raw: string) => {
+    const [hour, minute] = raw.split(":");
+    return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+  };
+
+  return {
+    working_hours_start: normalizeTime(match[1]),
+    working_hours_end: normalizeTime(match[2]),
+  };
+}
+
+export function buildInstructorDirectFeatureUpdatePayload(
+  definitions: InstructorFeatureDefinitionRow[],
+  choices: InstructorFeatureChoiceLike[],
+  form: InstructorFeatureFormState,
+  featureIdsToSave: number[],
+): DirectInstructorFeaturePatch {
+  const patch: DirectInstructorFeaturePatch = {};
+  const saveSet = new Set(featureIdsToSave);
+
+  for (const feature of definitions) {
+    if (!saveSet.has(feature.id)) continue;
+    const directKey = resolveDirectInstructorFeatureKey(feature);
+    if (!directKey) continue;
+
+    const value = getFeatureValueAsText(feature, form, choices);
+    if (directKey === "working_hours") {
+      const parsed = parseWorkingHoursFeatureValue(value);
+      if (value && !parsed.working_hours_start && !parsed.working_hours_end) {
+        console.warn("[instructor-features] okul saatleri değeri parse edilemedi, atlanıyor:", {
+          featureId: feature.id,
+          featureName: feature.name,
+          value,
+        });
+        continue;
+      }
+      patch.working_hours_start = parsed.working_hours_start;
+      patch.working_hours_end = parsed.working_hours_end;
+      continue;
+    }
+
+    patch[directKey] = value || null;
+  }
+
+  return patch;
+}
+
+export function mergeInstructorDirectFeatureValuesIntoForm(
+  definitions: InstructorFeatureDefinitionRow[],
+  choices: InstructorFeatureChoiceLike[],
+  baseForm: InstructorFeatureFormState,
+  instructorRow: Pick<
+    InstructorProfileRow,
+    "lesson_type" | "service_type" | "education_level" | "price_range" | "working_hours_start" | "working_hours_end"
+  >,
+): InstructorFeatureFormState {
+  const next: InstructorFeatureFormState = {
+    booleanValues: { ...baseForm.booleanValues },
+    textValues: { ...baseForm.textValues },
+    numberValues: { ...baseForm.numberValues },
+    dateValues: { ...baseForm.dateValues },
+    singleSelectValues: { ...baseForm.singleSelectValues },
+    multiSelectValues: { ...baseForm.multiSelectValues },
+  };
+
+  const directValues: Record<Exclude<DirectInstructorFeatureKey, "working_hours">, string> = {
+    lesson_type: String(instructorRow.lesson_type ?? "").trim(),
+    service_type: String(instructorRow.service_type ?? "").trim(),
+    education_level: String(instructorRow.education_level ?? "").trim(),
+    price_range: String(instructorRow.price_range ?? "").trim(),
+  };
+
+  const workingHoursRange =
+    instructorRow.working_hours_start && instructorRow.working_hours_end
+      ? `${institutionTimeToInputHHMM(instructorRow.working_hours_start)} - ${institutionTimeToInputHHMM(
+          instructorRow.working_hours_end,
+        )}`
+      : "";
+
+  for (const feature of definitions) {
+    const directKey = resolveDirectInstructorFeatureKey(feature);
+    if (!directKey) continue;
+
+    const rawValue = directKey === "working_hours" ? workingHoursRange : directValues[directKey];
+    if (!rawValue) continue;
+
+    if (feature.input_type === "text") {
+      next.textValues[feature.id] = rawValue;
+      continue;
+    }
+
+    if (feature.input_type === "number") {
+      next.numberValues[feature.id] = rawValue;
+      continue;
+    }
+
+    const normalizedValue = normalizeInstructorFeatureText(rawValue);
+    const matchingChoices = choices.filter(
+      (choice) => choice.feature_definition_id === feature.id && choice.is_active !== false,
+    );
+
+    if (feature.input_type === "multi_select") {
+      const valueParts = rawValue
+        .split(",")
+        .map((part) => normalizeInstructorFeatureText(part))
+        .filter(Boolean);
+
+      next.multiSelectValues[feature.id] = matchingChoices
+        .filter((choice) => valueParts.includes(normalizeInstructorFeatureText(String(choice.name ?? ""))))
+        .map((choice) => String(choice.id));
+      continue;
+    }
+
+    const singleChoice = matchingChoices.find((choice) => {
+      const choiceKey = normalizeInstructorFeatureText(String(choice.name ?? ""));
+      return choiceKey === normalizedValue || normalizedValue.includes(choiceKey) || choiceKey.includes(normalizedValue);
+    });
+
+    if (singleChoice) {
+      next.singleSelectValues[feature.id] = String(singleChoice.id);
+    } else if (feature.input_type === "single_select" || isSchoolHoursInstructorFeature(feature)) {
+      next.singleSelectValues[feature.id] = "";
+    }
+  }
+
+  return next;
 }
 
 function logInstructorFeaturesSupabaseError(scope: string, error: unknown) {
@@ -276,6 +556,7 @@ export type SaveInstructorFeaturesParams = {
   instructorId: number;
   categoryId: number;
   definitions: InstructorFeatureDefinitionRow[];
+  choices: InstructorFeatureChoiceRow[];
   entries: InstructorFeatureEntryRow[];
   form: InstructorFeatureFormState;
   featureIdsToSave: number[];
@@ -291,6 +572,7 @@ export async function saveInstructorFeaturesClient(
     instructorId,
     categoryId,
     definitions,
+    choices,
     entries,
     form,
     featureIdsToSave,
@@ -298,10 +580,16 @@ export async function saveInstructorFeaturesClient(
 
   const saveSet = new Set(featureIdsToSave);
   const shouldPersist = (featureId: number) => saveSet.has(featureId);
+  const directInstructorPatch = buildInstructorDirectFeatureUpdatePayload(
+    definitions,
+    choices,
+    form,
+    featureIdsToSave,
+  );
 
   const { error: categoryError } = await supabase
     .from(INSTRUCTORS_TABLE)
-    .update({ category_id: categoryId })
+    .update({ category_id: categoryId, ...directInstructorPatch })
     .eq("id", instructorId)
     .eq("owner_auth_id", authUid);
 
@@ -310,10 +598,121 @@ export async function saveInstructorFeaturesClient(
     return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
   }
 
-  const findEntry = (featureId: number) =>
-    entries.find((e) => e.feature_definition_id === featureId);
+  const { data: realDefinitionsData, error: realDefinitionsError } = await supabase
+    .from("instructor_feature_definitions")
+    .select("id, name, slug, input_type");
 
-  for (const feature of definitions.filter((f) => f.input_type === "boolean" && shouldPersist(f.id))) {
+  if (realDefinitionsError) {
+    logInstructorFeaturesSupabaseError("real definitions load", realDefinitionsError);
+    return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+  }
+
+  const realDefinitions = ((realDefinitionsData ?? []) as Array<{
+    id: number;
+    name: string | null;
+    slug: string | null;
+    input_type: string | null;
+  }>).filter((row) => Number.isFinite(Number(row.id)));
+
+  if (realDefinitions.length === 0) {
+    console.warn(
+      "[instructor-features] instructor_feature_definitions tablosu boş; feature_entries kaydı atlanıyor.",
+    );
+    return { error: null };
+  }
+
+  const { data: realChoicesData, error: realChoicesError } = await supabase
+    .from("instructor_feature_choices")
+    .select("id, feature_definition_id, name, is_active")
+    .in(
+      "feature_definition_id",
+      realDefinitions.map((row) => Number(row.id)),
+    );
+
+  if (realChoicesError) {
+    logInstructorFeaturesSupabaseError("real choices load", realChoicesError);
+    return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+  }
+
+  const realChoices = ((realChoicesData ?? []) as InstructorFeatureChoiceRow[]).filter((row) => row.is_active);
+
+  const realDefinitionByNormalizedKey = new Map<string, (typeof realDefinitions)[number]>();
+  realDefinitions.forEach((definition) => {
+    const slugKey = normalizeInstructorFeatureText(String(definition.slug ?? ""));
+    const nameKey = normalizeInstructorFeatureText(String(definition.name ?? ""));
+    if (slugKey) realDefinitionByNormalizedKey.set(slugKey, definition);
+    if (nameKey && !realDefinitionByNormalizedKey.has(nameKey)) {
+      realDefinitionByNormalizedKey.set(nameKey, definition);
+    }
+  });
+
+  const resolveRealDefinition = (feature: InstructorFeatureDefinitionRow) => {
+    const keys = [
+      normalizeInstructorFeatureText(String(feature.slug ?? "")),
+      normalizeInstructorFeatureText(String(feature.name ?? "")),
+    ].filter(Boolean);
+
+    for (const key of keys) {
+      const found = realDefinitionByNormalizedKey.get(key);
+      if (found) return found;
+    }
+
+    console.warn("[instructor-features] gerçek feature_definition_id bulunamadı, atlanıyor:", {
+      featureId: feature.id,
+      slug: feature.slug ?? "",
+      name: feature.name,
+    });
+    return null;
+  };
+
+  const uiFeatureIdToRealDefinition = new Map<number, (typeof realDefinitions)[number]>();
+  definitions.forEach((feature) => {
+    const directKey = resolveDirectInstructorFeatureKey(feature);
+    if (directKey) return;
+    const resolved = resolveRealDefinition(feature);
+    if (resolved) uiFeatureIdToRealDefinition.set(feature.id, resolved);
+  });
+
+  const realChoiceIdByUiFeatureIdAndChoiceId = new Map<string, number>();
+  for (const feature of definitions) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
+
+    const uiChoices = choices.filter(
+      (choice) => choice.feature_definition_id === feature.id && choice.is_active,
+    );
+    const candidateRealChoices = realChoices.filter(
+      (choice) => choice.feature_definition_id === Number(realDefinition.id),
+    );
+
+    for (const uiChoice of uiChoices) {
+      const uiChoiceKey = normalizeInstructorFeatureText(String(uiChoice.name ?? ""));
+      if (!uiChoiceKey) continue;
+      const realChoice = candidateRealChoices.find(
+        (choice) => normalizeInstructorFeatureText(String(choice.name ?? "")) === uiChoiceKey,
+      );
+      if (realChoice) {
+        realChoiceIdByUiFeatureIdAndChoiceId.set(`${feature.id}:${uiChoice.id}`, Number(realChoice.id));
+      }
+    }
+  }
+
+  const findEntry = (uiFeatureId: number) => {
+    const realDefinition = uiFeatureIdToRealDefinition.get(uiFeatureId);
+    if (!realDefinition) return undefined;
+    return entries.find((e) => e.feature_definition_id === Number(realDefinition.id));
+  };
+
+  const persistableDefinitions = definitions.filter(
+    (feature) =>
+      shouldPersist(feature.id) &&
+      !resolveDirectInstructorFeatureKey(feature) &&
+      uiFeatureIdToRealDefinition.has(feature.id),
+  );
+
+  for (const feature of persistableDefinitions.filter((f) => f.input_type === "boolean")) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
     const value = Boolean(form.booleanValues[feature.id]);
     const existing = findEntry(feature.id);
     if (existing) {
@@ -329,7 +728,7 @@ export async function saveInstructorFeaturesClient(
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        feature_definition_id: feature.id,
+        feature_definition_id: Number(realDefinition.id),
         boolean_answer: value,
       });
       if (error) {
@@ -339,7 +738,9 @@ export async function saveInstructorFeaturesClient(
     }
   }
 
-  for (const feature of definitions.filter((f) => f.input_type === "text" && shouldPersist(f.id))) {
+  for (const feature of persistableDefinitions.filter((f) => f.input_type === "text")) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
     const value = (form.textValues[feature.id] ?? "").trim();
     const existing = findEntry(feature.id);
     if (!value) {
@@ -369,7 +770,7 @@ export async function saveInstructorFeaturesClient(
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        feature_definition_id: feature.id,
+        feature_definition_id: Number(realDefinition.id),
         text_answer: value,
       });
       if (error) {
@@ -379,7 +780,9 @@ export async function saveInstructorFeaturesClient(
     }
   }
 
-  for (const feature of definitions.filter((f) => f.input_type === "number" && shouldPersist(f.id))) {
+  for (const feature of persistableDefinitions.filter((f) => f.input_type === "number")) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
     const raw = (form.numberValues[feature.id] ?? "").trim();
     const existing = findEntry(feature.id);
     if (!raw) {
@@ -387,7 +790,8 @@ export async function saveInstructorFeaturesClient(
         const { error } = await supabase
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
-          .eq("id", existing.id);
+          .eq("id", existing.id)
+          .eq("instructor_id", instructorId);
         if (error) {
           logInstructorFeaturesSupabaseError("number delete", error);
           return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
@@ -410,7 +814,7 @@ export async function saveInstructorFeaturesClient(
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        feature_definition_id: feature.id,
+        feature_definition_id: Number(realDefinition.id),
         number_answer: parsed,
       });
       if (error) {
@@ -420,7 +824,9 @@ export async function saveInstructorFeaturesClient(
     }
   }
 
-  for (const feature of definitions.filter((f) => f.input_type === "date" && shouldPersist(f.id))) {
+  for (const feature of persistableDefinitions.filter((f) => f.input_type === "date")) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
     const value = (form.dateValues[feature.id] ?? "").trim();
     const existing = findEntry(feature.id);
     if (!value) {
@@ -428,7 +834,8 @@ export async function saveInstructorFeaturesClient(
         const { error } = await supabase
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
-          .eq("id", existing.id);
+          .eq("id", existing.id)
+          .eq("instructor_id", instructorId);
         if (error) {
           logInstructorFeaturesSupabaseError("date delete", error);
           return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
@@ -449,7 +856,7 @@ export async function saveInstructorFeaturesClient(
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        feature_definition_id: feature.id,
+        feature_definition_id: Number(realDefinition.id),
         text_answer: value,
       });
       if (error) {
@@ -459,12 +866,13 @@ export async function saveInstructorFeaturesClient(
     }
   }
 
-  const singleSelectFeatures = definitions.filter(
-    (f) =>
-      (f.input_type === "single_select" || isSchoolHoursInstructorFeature(f)) && shouldPersist(f.id),
+  const singleSelectFeatures = persistableDefinitions.filter(
+    (f) => f.input_type === "single_select" || isSchoolHoursInstructorFeature(f),
   );
 
   for (const feature of singleSelectFeatures) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
     const raw = (form.singleSelectValues[feature.id] ?? "").trim();
     const existing = findEntry(feature.id);
     if (!raw) {
@@ -472,7 +880,8 @@ export async function saveInstructorFeaturesClient(
         const { error } = await supabase
           .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
           .delete()
-          .eq("id", existing.id);
+          .eq("id", existing.id)
+          .eq("instructor_id", instructorId);
         if (error) {
           logInstructorFeaturesSupabaseError("single select delete", error);
           return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
@@ -480,8 +889,15 @@ export async function saveInstructorFeaturesClient(
       }
       continue;
     }
-    const choiceId = Number(raw);
-    if (!Number.isFinite(choiceId)) continue;
+    const choiceId = realChoiceIdByUiFeatureIdAndChoiceId.get(`${feature.id}:${raw}`);
+    if (!Number.isFinite(choiceId)) {
+      console.warn("[instructor-features] gerçek single_select choice id bulunamadı, atlanıyor:", {
+        featureId: feature.id,
+        selectedChoiceId: raw,
+        featureName: feature.name,
+      });
+      continue;
+    }
     if (existing) {
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
@@ -495,7 +911,7 @@ export async function saveInstructorFeaturesClient(
     } else {
       const { error } = await supabase.from(INSTRUCTOR_FEATURE_ENTRIES_TABLE).insert({
         instructor_id: instructorId,
-        feature_definition_id: feature.id,
+        feature_definition_id: Number(realDefinition.id),
         selected_choice_id: choiceId,
       });
       if (error) {
@@ -505,18 +921,31 @@ export async function saveInstructorFeaturesClient(
     }
   }
 
-  const multiSelectFeatures = definitions.filter(
-    (f) => f.input_type === "multi_select" && !isSchoolHoursInstructorFeature(f) && shouldPersist(f.id),
+  const multiSelectFeatures = persistableDefinitions.filter(
+    (f) => f.input_type === "multi_select" && !isSchoolHoursInstructorFeature(f),
   );
 
   for (const feature of multiSelectFeatures) {
+    const realDefinition = uiFeatureIdToRealDefinition.get(feature.id);
+    if (!realDefinition) continue;
+
+    const uiSelectedIds = form.multiSelectValues[feature.id] ?? [];
     const selectedIds = Array.from(
       new Set(
-        (form.multiSelectValues[feature.id] ?? [])
-          .map((id) => Number(id))
-          .filter((id) => Number.isFinite(id)),
+        uiSelectedIds
+          .map((choiceId) =>
+            realChoiceIdByUiFeatureIdAndChoiceId.get(`${feature.id}:${choiceId}`) ?? null,
+          )
+          .filter((id): id is number => Number.isFinite(id ?? NaN)),
       ),
     );
+    if (uiSelectedIds.length > 0 && selectedIds.length === 0) {
+      console.warn("[instructor-features] gerçek multi_select choice id bulunamadı, atlanıyor:", {
+        featureId: feature.id,
+        featureName: feature.name,
+        selectedChoiceIds: uiSelectedIds,
+      });
+    }
     let existing = findEntry(feature.id);
 
     if (selectedIds.length === 0) {
@@ -543,7 +972,7 @@ export async function saveInstructorFeaturesClient(
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
         .insert({
           instructor_id: instructorId,
-          feature_definition_id: feature.id,
+          feature_definition_id: Number(realDefinition.id),
         })
         .select("id")
         .single();
@@ -554,7 +983,7 @@ export async function saveInstructorFeaturesClient(
       existing = {
         id: inserted.id as number,
         instructor_id: instructorId,
-        feature_definition_id: feature.id,
+        feature_definition_id: Number(realDefinition.id),
         text_answer: null,
         number_answer: null,
         boolean_answer: null,

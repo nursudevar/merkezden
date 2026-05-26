@@ -17,7 +17,7 @@ import {
 export const INSTRUCTORS_TABLE = "instructors" as const;
 
 export const INSTRUCTOR_PROFILE_ROW_SELECT =
-  "id, user_id, owner_auth_id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, city, district, address, title, branch, experience_years, education_level, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url, category_id";
+  "id, user_id, owner_auth_id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, city, district, address, title, branch, experience_years, education_level, lesson_type, service_type, price_range, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url, category_id";
 
 export type InstructorProfileRow = {
   id: number;
@@ -41,6 +41,9 @@ export type InstructorProfileRow = {
   branch?: string | null;
   experience_years?: number | null;
   education_level?: string | null;
+  lesson_type?: string | null;
+  service_type?: string | null;
+  price_range?: string | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
   is_verified?: boolean | null;
@@ -203,7 +206,7 @@ export function instructorProfileFormsEqual(
 }
 
 const INSTRUCTOR_PROFILE_SAVE_SELECT =
-  "id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, city, district, address, title, branch, experience_years, education_level, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url";
+  "id, name, surname, email, phone, tc_identity_no, birth_date, reference, school, bio, about, website, city, district, address, title, branch, experience_years, education_level, lesson_type, service_type, price_range, working_hours_start, working_hours_end, is_verified, is_active, profile_picture, cv_url";
 
 /** Panel: yalnızca oturum sahibinin instructors satırını günceller. */
 export async function updateInstructorProfileForAuthUserClient(
