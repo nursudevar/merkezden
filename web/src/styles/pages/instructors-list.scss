@@ -3,9 +3,11 @@
 @import '../typography';
 
 .public-instructors-page {
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto 72px;
-  padding-top: 30px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .public-instructors-featured {
@@ -315,7 +317,6 @@
 @media (max-width: 767px) {
   .public-instructors-page {
     margin-bottom: 56px;
-    padding-top: 8px;
   }
 
   .public-instructors-featured {

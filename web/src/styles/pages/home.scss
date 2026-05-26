@@ -2069,11 +2069,12 @@ a.service-card {
   max-height: 200px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
+  text-align: center;
 
   @media (max-width: 1180px) {
     min-height: 162px;
@@ -2084,13 +2085,12 @@ a.service-card {
 
 @media (min-width: 1024px) {
   .home-main-category-card-icon {
-    width: 36px;
-    height: 36px;
+    height: 52px;
   }
 
   .home-main-category-card-title {
-    margin: 10px 0 8px;
-    font-size: 14px;
+    margin: 12px 0 10px;
+    font-size: 16px;
     line-height: 1.2;
   }
 
@@ -2113,21 +2113,25 @@ a.service-card {
 }
 
 .home-main-category-card-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9999px;
-  color: #ffffff;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background-image: linear-gradient(90deg, #6a75f6, #a95fd4, #e9878d, #FF9807);
-  background-size: 300% 300%;
-  animation: 3.5s infinite gradient-text;
+  height: 60px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.home-main-category-card-logo {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-width: 116px;
+  object-fit: contain;
 }
 
 .home-main-category-card-title {
-  margin: 10px 0 8px;
-  font-size: 14px;
+  margin: 0px 0 5px;
+  font-size: 15px;
   line-height: 1.25;
   font-weight: 700;
   color: #2b2f37;
@@ -2139,17 +2143,17 @@ a.service-card {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 6px 0;
+  padding: 2px 0 6px;
 }
 
 .home-main-category-card-list-wrap:not(.is-expanded) {
   flex: 0 0 auto;
-  min-height: calc(3 * 1.35 * 12px + 2 * 7px);
+  min-height: calc(2 * 1.35 * 12px + 1 * 7px);
 }
 
 @media (min-width: 1024px) {
   .home-main-category-card-list-wrap:not(.is-expanded) {
-    min-height: calc(3 * 1.25 * 13px + 2 * 8px);
+    min-height: calc(2 * 1.25 * 13px + 1 * 8px);
   }
 }
 
@@ -2183,27 +2187,24 @@ a.service-card {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  align-items: center;
 }
 
 .home-main-category-card-item {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-size: 12px;
   line-height: 1.35;
   font-weight: 500;
   color: #7a7f89;
+  text-align: center;
 }
 
-
-.home-main-category-card-item-bullet {
-  color: $purple-main;
-  flex-shrink: 0;
-  fill: currentColor;
-}
 
 .home-main-category-card-more-btn {
-  margin-top: 6px;
+  margin-top: auto;
   border: none;
   background: transparent;
   color: #5f2fd1;
@@ -2211,6 +2212,7 @@ a.service-card {
   font-weight: 600;
   padding: 0;
   cursor: pointer;
+  align-self: center;
 }
 
 .categories-nav-btn {
@@ -2483,11 +2485,19 @@ a.service-card {
   @media (max-width: 1023px) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
+
+    > *:nth-child(n + 21) {
+      display: none;
+    }
   }
 
   @media (max-width: 640px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+
+    > *:nth-child(n + 16) {
+      display: none;
+    }
   }
 }
 
@@ -2977,11 +2987,22 @@ a.search-result-card {
 
 .cta-section {
   @include rounded-2xl;
-  background: linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff);
+  background-color: #4f33d8;
+  background-image: url("/images/gradient-bg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% auto;
   padding: 48px 32px;
   text-align: center;
   @include shadow-lg;
   margin: 30px 0;
+
+  @media (max-width: 639px) {
+    background-repeat: repeat-x;
+    background-position: center top;
+    background-size: auto 100%;
+    padding: 32px 20px;
+  }
 }
 
 .cta-section-title {
@@ -2989,6 +3010,12 @@ a.search-result-card {
   font-weight: $font-extrabold;
   color: $bg-white;
   margin-bottom: 16px;
+
+  @media (max-width: 639px) {
+    font-size: 28px;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
 }
 
 .cta-section-subtitle {
@@ -2999,6 +3026,13 @@ a.search-result-card {
   max-width: 672px;
   margin-left: auto;
   margin-right: auto;
+
+  @media (max-width: 639px) {
+    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 24px;
+  }
 }
 
 .cta-section-buttons {
@@ -3824,11 +3858,17 @@ a.home-individual-instructor-card {
   }
 
   .home-individual-instructors-actions {
-    align-items: flex-end;
+    width: 100%;
+    align-items: center;
   }
 
   .home-individual-instructors-nav {
-    justify-content: flex-end;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .home-individual-instructors-all-link {
+    align-self: center;
   }
 
   .home-individual-instructors-title {

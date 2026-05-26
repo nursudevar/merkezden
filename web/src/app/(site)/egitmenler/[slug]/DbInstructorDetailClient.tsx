@@ -206,6 +206,138 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const hasAnnouncements = announcements.length > 0;
   const hasGallery = galleryUrls.length > 0;
 
+  const renderInstructorSidebar = (className: string) => (
+    <aside className={className}>
+      <div className="instructor-sidebar-header">
+        <Phone size={20} aria-hidden />
+        <span>İletişim Bilgileri</span>
+      </div>
+      <div className="instructor-sidebar-body">
+        <div className="instructor-map-preview">
+          {hasPhoto ? (
+            <Image
+              src={photoUrl}
+              alt={displayName}
+              fill
+              className="instructor-map-image"
+              sizes="(max-width: 1024px) 100vw, 33vw"
+              unoptimized
+              onError={() => setPhotoLoadFailed(true)}
+            />
+          ) : (
+            <div className="instructor-map-preview-empty">
+              <GraduationCap size={40} aria-hidden />
+            </div>
+          )}
+        </div>
+        <div className="instructor-contact-list">
+          {email ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <Mail size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">E-POSTA</div>
+                <a href={`mailto:${email}`} className="instructor-contact-value instructor-contact-link">
+                  {email}
+                </a>
+              </div>
+            </div>
+          ) : null}
+          {location ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <MapPin size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">KONUM</div>
+                <div className="instructor-contact-value">{location}</div>
+              </div>
+            </div>
+          ) : null}
+          {phone ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <Phone size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">TELEFON</div>
+                <a href={`tel:${phone.replace(/\s/g, "")}`} className="instructor-contact-value instructor-contact-link">
+                  {phone}
+                </a>
+              </div>
+            </div>
+          ) : null}
+          {website ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <Globe size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">WEB SİTESİ</div>
+                <a
+                  href={website.startsWith("http") ? website : `https://${website}`}
+                  className="instructor-contact-value instructor-contact-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {website}
+                </a>
+              </div>
+            </div>
+          ) : null}
+          {socialLinks.length > 0 ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <Globe size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">SOSYAL MEDYA</div>
+                <div className="instructor-contact-value">
+                  {socialLinks.map((item, index) => (
+                    <span key={item.label}>
+                      {index > 0 ? " • " : ""}
+                      <a
+                        href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
+                        className="instructor-contact-link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {item.label}
+                      </a>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          {address ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <MapPin size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">ADRES</div>
+                <div className="instructor-contact-value">{address}</div>
+              </div>
+            </div>
+          ) : null}
+          {workingHoursText ? (
+            <div className="instructor-contact-item">
+              <div className="instructor-contact-icon">
+                <Clock size={18} aria-hidden />
+              </div>
+              <div>
+                <div className="instructor-contact-label">ÇALIŞMA SAATLERİ</div>
+                <div className="instructor-contact-value">{workingHoursText}</div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </aside>
+  );
+
   const formatAnnouncementDateTr = useCallback((iso: string | null): string => {
     if (!iso) return "";
     const d = new Date(iso);
@@ -321,6 +453,8 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
             </div>
           </CardContent>
         </Card>
+
+        {renderInstructorSidebar("instructor-sidebar instructor-sidebar--mobile")}
 
         <div className="instructor-tabs-sticky">
           <div className="instructor-tabs-list">
@@ -580,135 +714,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
             ) : null}
           </div>
 
-          <aside className="instructor-sidebar">
-            <div className="instructor-sidebar-header">
-              <Phone size={20} aria-hidden />
-              <span>İletişim Bilgileri</span>
-            </div>
-            <div className="instructor-sidebar-body">
-              <div className="instructor-map-preview">
-                {hasPhoto ? (
-                  <Image
-                    src={photoUrl}
-                    alt={displayName}
-                    fill
-                    className="instructor-map-image"
-                    sizes="(max-width: 1024px) 100vw, 33vw"
-                    unoptimized
-                    onError={() => setPhotoLoadFailed(true)}
-                  />
-                ) : (
-                  <div className="instructor-map-preview-empty">
-                    <GraduationCap size={40} aria-hidden />
-                  </div>
-                )}
-              </div>
-              <div className="instructor-contact-list">
-                {email ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <Mail size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">E-POSTA</div>
-                      <a href={`mailto:${email}`} className="instructor-contact-value instructor-contact-link">
-                        {email}
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {location ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <MapPin size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">KONUM</div>
-                      <div className="instructor-contact-value">{location}</div>
-                    </div>
-                  </div>
-                ) : null}
-                {phone ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <Phone size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">TELEFON</div>
-                      <a href={`tel:${phone.replace(/\s/g, "")}`} className="instructor-contact-value instructor-contact-link">
-                        {phone}
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {website ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <Globe size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">WEB SİTESİ</div>
-                      <a
-                        href={website.startsWith("http") ? website : `https://${website}`}
-                        className="instructor-contact-value instructor-contact-link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {website}
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {socialLinks.length > 0 ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <Globe size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">SOSYAL MEDYA</div>
-                      <div className="instructor-contact-value">
-                        {socialLinks.map((item, index) => (
-                          <span key={item.label}>
-                            {index > 0 ? " • " : ""}
-                            <a
-                              href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
-                              className="instructor-contact-link"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {item.label}
-                            </a>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-                {address ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <MapPin size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">ADRES</div>
-                      <div className="instructor-contact-value">{address}</div>
-                    </div>
-                  </div>
-                ) : null}
-                {workingHoursText ? (
-                  <div className="instructor-contact-item">
-                    <div className="instructor-contact-icon">
-                      <Clock size={18} aria-hidden />
-                    </div>
-                    <div>
-                      <div className="instructor-contact-label">ÇALIŞMA SAATLERİ</div>
-                      <div className="instructor-contact-value">{workingHoursText}</div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </aside>
+          {renderInstructorSidebar("instructor-sidebar instructor-sidebar--desktop")}
         </div>
 
         <section id="features" className="instructor-section">

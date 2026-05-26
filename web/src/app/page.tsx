@@ -5,7 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, Sparkle, SlidersHorizontal, ImageOff } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Heart, Building2, Landmark, UserRound, X, Utensils, ShoppingBag, Car, Briefcase, Palette, PawPrint, SlidersHorizontal, ImageOff } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
@@ -19,7 +19,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
-import { getCategoryHref, getCategoryIcon } from "@/lib/categoryHelpers";
+import { getCategoryHref } from "@/lib/categoryHelpers";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
@@ -179,6 +179,19 @@ const homeMainCategoryOrder = [
   "MESLEKİ EĞİTİM",
   "ÖZEL EĞİTİM",
 ];
+
+function getMainCategoryLogoSrc(name: string, slug: string): string | null {
+  const key = normalizeCategoryKey(`${name} ${slug}`);
+  if (key.includes("okul")) return "/images/okul-logo.png";
+  if (key.includes("kurs") || key.includes("sinav")) return "/images/kurs-logo.png";
+  if (key.includes("spor")) return "/images/spor-logo.png";
+  if (key.includes("sanat")) return "/images/sanat-logo.png";
+  if (key.includes("yabanci dil")) return "/images/yabanci-dil-logo.png";
+  if (key.includes("kisisel gelisim")) return "/images/kisisel-gelisim-logo.png";
+  if (key.includes("mesleki egitim")) return "/images/mesleki-egitim-logo.png";
+  if (key.includes("ozel egitim")) return "/images/ozel-egitim-logo.png";
+  return null;
+}
 
 /** Sol panelde seçilen alt kurum tipleri + «Tümü» ile seçilen ana kategorilerden türetilen `institution_types.id` listesi (OR). */
 function computeSidebarSelectedInstitutionTypeIds(
@@ -1306,15 +1319,15 @@ export default function Home() {
             <div className="home-main-categories-slider">
               <div className="categories-scroller home-main-categories-grid">
                 {mainCategoryCards.map((category) => {
-                  const Icon = getCategoryIcon(category.name, category.slug);
                   const categoryHref = getCategoryHref(category.name, category.slug);
+                  const categoryLogoSrc = getMainCategoryLogoSrc(category.name, category.slug);
                   const cardKey = String(category.id);
                   const isExpanded = Boolean(expandedCategoryCards[cardKey]);
-                  const hasMoreThanThree = category.subcategories.length > 3;
+                  const hasMoreThanVisibleCount = category.subcategories.length > 2;
                   const sortedSubcategories = [...category.subcategories].sort(
                     (a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name, "tr")
                   );
-                  const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 3);
+                  const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 2);
                   return (
                     <article
                       key={category.id}
@@ -1324,30 +1337,30 @@ export default function Home() {
                         router.push(categoryHref);
                       }}
                     >
-                      <span className="home-main-category-card-icon" aria-hidden>
-                        <Icon size={15} />
-                      </span>
+                      {categoryLogoSrc ? (
+                        <span className="home-main-category-card-icon" aria-hidden>
+                          <Image
+                            src={categoryLogoSrc}
+                            alt=""
+                            width={88}
+                            height={40}
+                            className="home-main-category-card-logo"
+                          />
+                        </span>
+                      ) : null}
                       <h3 className="home-main-category-card-title">{category.name.toLocaleUpperCase("tr-TR")}</h3>
                       {category.subcategories.length > 0 ? (
                         <div className={`home-main-category-card-list-wrap ${isExpanded ? "is-expanded" : ""}`}>
                         <ul className="home-main-category-card-list">
                           {visibleSubcategories.map((subcategory) => (
                             <li key={`${category.id}-${subcategory.id}`} className="home-main-category-card-item">
-                              <Sparkle
-                                className="home-main-category-card-item-bullet"
-                                size={16}
-                                aria-hidden
-                                fill="currentColor"
-                                stroke="transparent"
-                                strokeWidth={0}
-                              />
                               <span>{subcategory.name}</span>
                             </li>
                           ))}
                         </ul>
                         </div>
                       ) : null}
-                      {hasMoreThanThree ? (
+                      {hasMoreThanVisibleCount ? (
                         <button
                           type="button"
                           className="home-main-category-card-more-btn"

@@ -122,3 +122,18 @@
   background: rgba(109, 93, 252, 0.08);
   border: 1px solid rgba(109, 93, 252, 0.14);
 }
+
+.instructor-sidebar--mobile {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .instructor-sidebar--mobile {
+    display: flex;
+    margin-bottom: 1.5rem;
+  }
+
+  .instructor-sidebar--desktop {
+    display: none;
+  }
+}
