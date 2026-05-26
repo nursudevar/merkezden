@@ -629,7 +629,8 @@ export default function SearchResults({
                 | undefined;
               const mainCategory = String(institutionType?.category?.name ?? "").trim();
               const subCategory = String(institutionType?.name ?? "").trim() || type;
-              const imageUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
+              const logoValue = typeof row.logo === "string" ? row.logo : null;
+              const imageUrl = resolveInstitutionLogoPublicUrl(supabase, logoValue);
 
               return {
                 id: id.toString(),
