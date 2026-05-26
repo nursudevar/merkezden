@@ -26,7 +26,7 @@ function ContactAnimation() {
     <div className="contact-animation" aria-hidden="true">
       <video
         className="contact-animation-video"
-        src="/gifs/meko_iletisim.mp4"
+        src="/gifs/meko-iletisim.mp4"
         autoPlay
         muted
         loop

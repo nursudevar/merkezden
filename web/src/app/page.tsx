@@ -1212,7 +1212,7 @@ export default function Home() {
           <div className="pet-filter-row">
             <div className="pet-filter-media">
               <video
-                src="/gifs/meko_pet.mp4"
+                src="/gifs/meko-pet.mp4"
                 autoPlay
                 loop
                 muted
@@ -1730,7 +1730,7 @@ export default function Home() {
         icon={(
           <video
             ref={chatMascotVideoRef}
-            src="/gifs/meko_soru.mp4"
+            src="/gifs/meko-soru.mp4"
             className="expandable-chat-toggle-video"
             autoPlay
             muted
