@@ -169,6 +169,17 @@ function normalizeCategoryKey(value: string): string {
     .trim();
 }
 
+const homeMainCategoryOrder = [
+  "OKUL",
+  "KURS & SINAVA HAZIRLIK",
+  "SPOR",
+  "SANAT",
+  "YABANCI DİL",
+  "KİŞİSEL GELİŞİM",
+  "MESLEKİ EĞİTİM",
+  "ÖZEL EĞİTİM",
+];
+
 /** Sol panelde seçilen alt kurum tipleri + «Tümü» ile seçilen ana kategorilerden türetilen `institution_types.id` listesi (OR). */
 function computeSidebarSelectedInstitutionTypeIds(
   selectedKeys: Set<string>,
@@ -694,7 +705,21 @@ export default function Home() {
         };
       });
 
-      setMainCategoryCards(cards);
+      const orderMap = new Map(
+        homeMainCategoryOrder.map((label, index) => [normalizeCategoryKey(label), index]),
+      );
+
+      const orderedCards = [...cards].sort((a, b) => {
+        const aIndex = orderMap.get(normalizeCategoryKey(a.name));
+        const bIndex = orderMap.get(normalizeCategoryKey(b.name));
+
+        if (aIndex != null && bIndex != null) return aIndex - bIndex;
+        if (aIndex != null) return -1;
+        if (bIndex != null) return 1;
+        return 0;
+      });
+
+      setMainCategoryCards(orderedCards);
     })();
 
     return () => {
