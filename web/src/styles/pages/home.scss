@@ -2711,7 +2711,6 @@ a.featured-institutions-list-card {
   width: max-content;
   padding: 8px 0 30px;
   will-change: transform;
-  animation: featured-marquee-scroll 48s linear infinite;
 
   @media (min-width: 640px) {
     padding: 8px 0 26px;
@@ -2720,6 +2719,10 @@ a.featured-institutions-list-card {
   @media (min-width: 1024px) {
     padding: 8px 0 26px;
   }
+}
+
+.featured-institutions-scroller--animated {
+  animation: featured-marquee-scroll 48s linear infinite;
 }
 
 @keyframes featured-marquee-scroll {

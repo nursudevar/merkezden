@@ -124,9 +124,20 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
   },
 ];
 
+const PRIORITY_INSTRUCTOR_ID = 1;
+
+function prioritizeInstructor(items: InstructorListItem[], instructorId: number): InstructorListItem[] {
+  const targetIndex = items.findIndex((item) => item.id === instructorId);
+  if (targetIndex <= 0) return items;
+  const nextItems = [...items];
+  const [targetItem] = nextItems.splice(targetIndex, 1);
+  nextItems.unshift(targetItem);
+  return nextItems;
+}
+
 function withTemporaryMockInstructors(items: InstructorListItem[]): InstructorListItem[] {
   const realItems = items.filter((item) => item.id > 0);
-  return [...TEMP_MOCK_INSTRUCTORS, ...realItems];
+  return prioritizeInstructor([...TEMP_MOCK_INSTRUCTORS, ...realItems], PRIORITY_INSTRUCTOR_ID);
 }
 
 function hasSupabaseResponseError(error: unknown): boolean {

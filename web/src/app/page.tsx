@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -318,6 +318,7 @@ const premiumPicksMotionVariants = {
 
 export default function Home() {
   const router = useRouter();
+  const chatMascotVideoRef = useRef<HTMLVideoElement | null>(null);
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -379,6 +380,29 @@ export default function Home() {
     const maxPage = Math.max(0, premiumPicksPageCount - 1);
     setPremiumPicksPage((p) => (p > maxPage ? maxPage : p));
   }, [premiumPicksPageCount]);
+
+  useEffect(() => {
+    const video = chatMascotVideoRef.current;
+    if (!video) return;
+
+    const ensurePlayback = () => {
+      video.muted = true;
+      video.defaultMuted = true;
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {
+          // Bazı production tarayıcıları videoyu media hazır olmadan başlatmayabilir.
+        });
+      }
+    };
+
+    ensurePlayback();
+    video.addEventListener("canplay", ensurePlayback);
+
+    return () => {
+      video.removeEventListener("canplay", ensurePlayback);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1706,6 +1730,7 @@ export default function Home() {
         position="bottom-right"
         icon={(
           <video
+            ref={chatMascotVideoRef}
             className="expandable-chat-toggle-video"
             autoPlay
             muted

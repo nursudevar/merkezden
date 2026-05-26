@@ -31,11 +31,16 @@ export function HomeFeaturedInstitutionsMarquee({
   mode?: "home" | "standalone";
   viewAllHref?: string;
 }) {
+  const [isMarqueeMounted, setIsMarqueeMounted] = useState(false);
   const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState<FeaturedInstitution[]>([]);
   const [brokenFeaturedImageIds, setBrokenFeaturedImageIds] = useState<Set<number>>(() => new Set());
   const [featuredPinnedInstitutions, setFeaturedPinnedInstitutions] = useState<FeaturedInstitution[]>(
     [],
   );
+
+  useEffect(() => {
+    setIsMarqueeMounted(true);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,7 +121,13 @@ export function HomeFeaturedInstitutionsMarquee({
         </div>
       ) : null}
       <div className="featured-institutions-slider">
-        <div className="featured-institutions-scroller">
+        <div
+          className={`featured-institutions-scroller${
+            isMarqueeMounted && featuredList.length > 0
+              ? " featured-institutions-scroller--animated"
+              : ""
+          }`}
+        >
           {marqueeList.map((institution, index) => {
             const isDuplicate = index >= featuredList.length;
             const key = `${institution.id}-${index}`;
