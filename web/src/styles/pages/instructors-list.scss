@@ -1,0 +1,356 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.public-instructors-page {
+  max-width: 1280px;
+  margin: 0 auto 72px;
+  padding-top: 30px;
+}
+
+.public-instructors-featured {
+  margin-bottom: 32px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba($purple-main, 0.18), transparent 34%),
+    linear-gradient(135deg, #111827 0%, #0f172a 100%);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
+}
+
+.public-instructors-featured-header {
+  margin-bottom: 18px;
+}
+
+.public-instructors-featured-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: $font-bold;
+  line-height: 1.1;
+  color: $bg-white;
+  letter-spacing: -0.02em;
+}
+
+.public-instructors-featured-scroller {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+  }
+}
+
+.public-instructors-featured-card {
+  position: relative;
+  display: flex;
+  flex: 0 0 250px;
+  min-width: 250px;
+  height: 80px;
+  padding: 14px;
+  border: 1px solid rgba($purple-main, 0.34);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  &:hover {
+    border-color: rgba($purple-main, 0.52);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 18px 28px rgba(15, 23, 42, 0.18);
+  }
+}
+
+.public-instructors-featured-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fffaf0;
+  font-size: 10px;
+  font-weight: $font-bold;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.public-instructors-featured-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.public-instructors-featured-card-name {
+  margin: 0;
+  padding-right: 64px;
+  font-size: 16px;
+  font-weight: $font-semibold;
+  line-height: 1.15;
+  color: $bg-white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.public-instructors-featured-card-branch {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.public-instructors-featured-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.public-instructors-featured-card-price {
+  font-size: 13px;
+  font-weight: $font-semibold;
+  line-height: 1.2;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.public-instructors-featured-card-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.public-instructors-directory-header {
+  margin-bottom: 20px;
+}
+
+.public-instructors-directory-title {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: $font-bold;
+  line-height: 1.1;
+  color: $text-zinc-900;
+  letter-spacing: -0.02em;
+}
+
+.public-instructors-directory-subtitle {
+  margin: 0;
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: $text-zinc-600;
+}
+
+.public-instructors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+  justify-content: flex-start;
+  gap: 16px;
+}
+
+.public-instructor-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: $bg-white;
+  border: 1px solid rgba(228, 231, 236, 1);
+  border-radius: 18px;
+  overflow: hidden;
+  text-decoration: none;
+  box-shadow: 0 7px 18px rgba(16, 24, 40, 0.06);
+  @include transition;
+  transition-property: transform, box-shadow, border-color;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba($purple-main, 0.2);
+    box-shadow: 0 12px 24px rgba(16, 24, 40, 0.1);
+  }
+}
+
+.public-instructor-card-media {
+  position: relative;
+  aspect-ratio: 16 / 8;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba($purple-main, 0.08), rgba($purple-main, 0.18));
+}
+
+.public-instructor-card-image {
+  object-fit: cover;
+  object-position: center;
+}
+
+.public-instructor-card-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba($purple-main, 0.84);
+  background: linear-gradient(135deg, rgba($purple-main, 0.08), rgba($purple-main, 0.18));
+}
+
+.public-instructor-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+}
+
+.public-instructor-card-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: $font-semibold;
+  line-height: 1.2;
+  color: $text-zinc-900;
+}
+
+.public-instructor-card-branch {
+  margin: 0;
+  font-size: 13px;
+  font-weight: $font-medium;
+  line-height: 1.45;
+  color: $purple-main;
+}
+
+.public-instructor-card-school,
+.public-instructor-card-location {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: $text-zinc-600;
+}
+
+.public-instructor-card-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-instructor-card-location-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: $text-zinc-500;
+}
+
+.public-instructor-card-price {
+  margin: 3px 0 0;
+  font-size: 14px;
+  font-weight: $font-semibold;
+  line-height: 1.2;
+  color: $purple-main;
+}
+
+.public-instructors-page-empty {
+  margin: 0;
+  padding: 18px 0;
+  font-size: 15px;
+  color: $text-zinc-600;
+}
+
+.public-instructors-page-empty--dark {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+@media (max-width: 1279px) {
+  .public-instructors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .public-instructors-featured {
+    padding: 24px;
+    border-radius: 24px;
+  }
+
+  .public-instructors-featured-title,
+  .public-instructors-directory-title {
+    font-size: 28px;
+  }
+
+  .public-instructors-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .public-instructors-page {
+    margin-bottom: 56px;
+    padding-top: 8px;
+  }
+
+  .public-instructors-featured {
+    margin-bottom: 24px;
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .public-instructors-featured-title,
+  .public-instructors-directory-title {
+    font-size: 24px;
+  }
+
+  .public-instructors-featured-subtitle,
+  .public-instructors-directory-subtitle,
+  .public-instructors-page-empty {
+    font-size: 14px;
+  }
+
+  .public-instructors-featured-card {
+    flex-basis: min(280px, calc(100vw - 72px));
+    min-width: min(280px, calc(100vw - 72px));
+    height: 100px;
+  }
+
+  .public-instructors-featured-card-name {
+    font-size: 15px;
+  }
+
+  .public-instructors-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .public-instructor-card-name {
+    font-size: 16px;
+  }
+}

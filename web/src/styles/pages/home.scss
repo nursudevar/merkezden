@@ -3806,58 +3806,9 @@ a.home-individual-instructor-card {
   white-space: nowrap;
 }
 
-.public-instructors-page {
-  max-width: 1280px;
-  margin: 0 auto 72px;
-  padding: 12px 0 0;
-}
-
-.public-instructors-page-header {
-  margin-bottom: 22px;
-}
-
-.public-instructors-page-title {
-  margin: 0 0 8px;
-  font-size: 32px;
-  font-weight: $font-bold;
-  color: $text-zinc-900;
-  letter-spacing: -0.02em;
-}
-
-.public-instructors-page-subtitle {
-  margin: 0;
-  max-width: 720px;
-  font-size: 15px;
-  line-height: 1.65;
-  color: $text-zinc-600;
-}
-
-.public-instructors-page-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-
-  .home-individual-instructor-card {
-    width: 100%;
-    min-width: 0;
-    flex: initial;
-  }
-}
-
-.public-instructors-page-empty {
-  margin: 0;
-  padding: 18px 0;
-  font-size: 15px;
-  color: $text-zinc-600;
-}
-
 @media (max-width: 1023px) {
   .home-individual-instructors-title {
     font-size: 26px;
-  }
-
-  .public-instructors-page-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -3913,22 +3864,6 @@ a.home-individual-instructor-card {
     font-size: 12px;
   }
 
-  .public-instructors-page {
-    margin-bottom: 56px;
-  }
-
-  .public-instructors-page-title {
-    font-size: 26px;
-  }
-
-  .public-instructors-page-subtitle {
-    font-size: 14px;
-  }
-
-  .public-instructors-page-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
 }
 
 .purple-featured-section {
