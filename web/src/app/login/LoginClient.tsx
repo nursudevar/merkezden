@@ -61,6 +61,7 @@ function LoginPageContent() {
                   muted
                   loop
                   playsInline
+                  preload="auto"
                   aria-label="Giriş görseli"
                 />
               {/* auth-orbit

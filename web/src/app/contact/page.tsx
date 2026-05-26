@@ -31,6 +31,7 @@ function ContactAnimation() {
         muted
         loop
         playsInline
+        preload="auto"
       />
     </div>
   );
