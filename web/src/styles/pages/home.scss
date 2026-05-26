@@ -503,6 +503,7 @@
   overflow: hidden;
   flex: none;
   min-width: 0;
+  background: transparent;
 }
 
 .pet-filter-media-video {
@@ -511,6 +512,7 @@
   height: auto;
   aspect-ratio: 1 / 1.15;
   object-fit: contain;
+  background: transparent;
 }
 
 .pet-filter-card {

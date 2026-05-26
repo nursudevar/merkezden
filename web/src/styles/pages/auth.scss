@@ -76,7 +76,8 @@
   }
 
   @media (max-width: 640px) {
-    display: none;
+    padding: 28px 24px 8px;
+    min-height: 220px;
   }
 }
 
@@ -96,6 +97,7 @@
   height: 80%;
   object-fit: cover;
   border-radius: 10%;
+  background: transparent;
 }
 
 /*
