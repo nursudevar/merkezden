@@ -215,7 +215,7 @@ async function queryInstructorRows(
 
   const { data, error } = await query;
   return {
-    rows: Array.isArray(data) ? (data as unknown as InstructorDirectoryRow[]) : [],
+    rows: ((data ?? []) as unknown as InstructorDirectoryRow[]) ?? [],
     error,
   };
 }
