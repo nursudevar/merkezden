@@ -1212,7 +1212,7 @@ export default function Home() {
           <div className="pet-filter-row">
             <div className="pet-filter-media">
               <video
-                src="/gifs/meko-pet.mp4"
+                src="/gifs/meko-pet.gif"
                 autoPlay
                 loop
                 muted
