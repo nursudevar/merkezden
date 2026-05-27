@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import MekoChromaVideo from '@/components/MekoChromaVideo';
 import '@/styles/main.scss';
 import '@/styles/pages/auth.scss';
 
@@ -54,18 +55,12 @@ function LoginPageContent() {
         <div className="auth-main-container">
           <div className="auth-layout">
             <div className="auth-visual">
-                <video
+                <MekoChromaVideo
                   className="auth-visual-video"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                  aria-label="Giriş görseli"
-                >
-                  <source src="/gifs/meko-giris.mov" type='video/quicktime; codecs="hvc1"' />
-                  <source src="/gifs/meko-giris.webm" type="video/webm" />
-                </video>
+                  src="/gifs/meko-giris.mp4"
+                  ariaLabel="Giriş görseli"
+                  threshold={18}
+                />
               {/* auth-orbit
               <div className="auth-orbit">
                 <div className="auth-orbit-circle auth-orbit-circle-outer"></div>

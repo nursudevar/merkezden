@@ -15,6 +15,7 @@ import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeatu
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
+import MekoChromaVideo from "@/components/MekoChromaVideo";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
@@ -318,7 +319,6 @@ const premiumPicksMotionVariants = {
 
 export default function Home() {
   const router = useRouter();
-  const chatMascotVideoRef = useRef<HTMLVideoElement | null>(null);
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -380,29 +380,6 @@ export default function Home() {
     const maxPage = Math.max(0, premiumPicksPageCount - 1);
     setPremiumPicksPage((p) => (p > maxPage ? maxPage : p));
   }, [premiumPicksPageCount]);
-
-  useEffect(() => {
-    const video = chatMascotVideoRef.current;
-    if (!video) return;
-
-    const ensurePlayback = () => {
-      video.muted = true;
-      video.defaultMuted = true;
-      const playPromise = video.play();
-      if (playPromise && typeof playPromise.catch === "function") {
-        playPromise.catch(() => {
-          // Bazı production tarayıcıları videoyu media hazır olmadan başlatmayabilir.
-        });
-      }
-    };
-
-    ensurePlayback();
-    video.addEventListener("canplay", ensurePlayback);
-
-    return () => {
-      video.removeEventListener("canplay", ensurePlayback);
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1211,17 +1188,12 @@ export default function Home() {
 
           <div className="pet-filter-row">
             <div className="pet-filter-media">
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
+              <MekoChromaVideo
+                src="/gifs/meko-pet.mp4"
                 className="pet-filter-media-video"
-              >
-                <source src="/gifs/meko-pet.mov" type='video/quicktime; codecs="hvc1"' />
-                <source src="/gifs/meko-pet.webm" type="video/webm" />
-              </video>
+                ariaLabel="Meko animation"
+                threshold={18}
+              />
             </div>
 
             <div className="pet-filter-card">
@@ -1730,19 +1702,12 @@ export default function Home() {
         size="lg"
         position="bottom-right"
         icon={(
-          <video
-            ref={chatMascotVideoRef}
+          <MekoChromaVideo
+            src="/gifs/meko-soru.mp4"
             className="expandable-chat-toggle-video"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-hidden
-          >
-            <source src="/gifs/meko-soru.mov" type='video/quicktime; codecs="hvc1"' />
-            <source src="/gifs/meko-soru.webm" type="video/webm" />
-          </video>
+            ariaLabel="Meko animation"
+            threshold={18}
+          />
         )}
       >
         <ExpandableChatHeader>

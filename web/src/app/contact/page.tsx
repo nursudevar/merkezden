@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import MekoChromaVideo from "@/components/MekoChromaVideo";
 import "@/styles/main.scss";
 import "@/styles/pages/contact.scss";
 
@@ -24,17 +25,12 @@ declare module "react" {
 function ContactAnimation() {
   return (
     <div className="contact-animation" aria-hidden="true">
-      <video
+      <MekoChromaVideo
         className="contact-animation-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      >
-        <source src="/gifs/meko-iletisim.mov" type='video/quicktime; codecs="hvc1"' />
-        <source src="/gifs/meko-iletisim.webm" type="video/webm" />
-      </video>
+        src="/gifs/meko-iletisim.mp4"
+        ariaLabel="Meko animation"
+        threshold={18}
+      />
     </div>
   );
 }
