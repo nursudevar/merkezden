@@ -1212,14 +1212,16 @@ export default function Home() {
           <div className="pet-filter-row">
             <div className="pet-filter-media">
               <video
-                src="/gifs/meko-pet.webm"
                 autoPlay
                 loop
                 muted
                 playsInline
                 preload="auto"
                 className="pet-filter-media-video"
-              />
+              >
+                <source src="/gifs/meko-pet.mov" type='video/quicktime; codecs="hvc1"' />
+                <source src="/gifs/meko-pet.webm" type="video/webm" />
+              </video>
             </div>
 
             <div className="pet-filter-card">
@@ -1730,7 +1732,6 @@ export default function Home() {
         icon={(
           <video
             ref={chatMascotVideoRef}
-            src="/gifs/meko-soru.mp4"
             className="expandable-chat-toggle-video"
             autoPlay
             muted
@@ -1738,7 +1739,10 @@ export default function Home() {
             playsInline
             preload="auto"
             aria-hidden
-          />
+          >
+            <source src="/gifs/meko-soru.mov" type='video/quicktime; codecs="hvc1"' />
+            <source src="/gifs/meko-soru.webm" type="video/webm" />
+          </video>
         )}
       >
         <ExpandableChatHeader>

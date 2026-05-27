@@ -26,13 +26,15 @@ function ContactAnimation() {
     <div className="contact-animation" aria-hidden="true">
       <video
         className="contact-animation-video"
-        src="/gifs/meko-iletisim.mp4"
         autoPlay
         muted
         loop
         playsInline
         preload="auto"
-      />
+      >
+        <source src="/gifs/meko-iletisim.mov" type='video/quicktime; codecs="hvc1"' />
+        <source src="/gifs/meko-iletisim.webm" type="video/webm" />
+      </video>
     </div>
   );
 }

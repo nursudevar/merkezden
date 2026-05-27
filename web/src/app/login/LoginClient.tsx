@@ -56,14 +56,16 @@ function LoginPageContent() {
             <div className="auth-visual">
                 <video
                   className="auth-visual-video"
-                  src="/gifs/meko-giris.mp4"
                   autoPlay
                   muted
                   loop
                   playsInline
                   preload="auto"
                   aria-label="Giriş görseli"
-                />
+                >
+                  <source src="/gifs/meko-giris.mov" type='video/quicktime; codecs="hvc1"' />
+                  <source src="/gifs/meko-giris.webm" type="video/webm" />
+                </video>
               {/* auth-orbit
               <div className="auth-orbit">
                 <div className="auth-orbit-circle auth-orbit-circle-outer"></div>
