@@ -12,6 +12,7 @@ import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeatured
 import { HomeFeaturedInstitutionsMarquee } from "@/components/featured/HomeFeaturedInstitutionsMarquee";
 import { HomeIndividualInstructorsSection } from "@/components/featured/HomeIndividualInstructorsSection";
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
+import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
@@ -1320,60 +1321,24 @@ export default function Home() {
                   const categoryLogoSrc = getMainCategoryLogoSrc(category.name, category.slug);
                   const cardKey = String(category.id);
                   const isExpanded = Boolean(expandedCategoryCards[cardKey]);
-                  const hasMoreThanVisibleCount = category.subcategories.length > 2;
-                  const sortedSubcategories = [...category.subcategories].sort(
-                    (a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name, "tr")
-                  );
-                  const visibleSubcategories = isExpanded ? sortedSubcategories : sortedSubcategories.slice(0, 2);
                   return (
-                    <article
+                    <HomeMainCategoryCard
                       key={category.id}
-                      className={`home-main-category-card ${categoryHref ? "home-main-category-card--clickable" : ""}`}
-                      onClick={() => {
+                      category={category}
+                      categoryHref={categoryHref}
+                      categoryLogoSrc={categoryLogoSrc}
+                      isExpanded={isExpanded}
+                      onToggleExpand={() => {
+                        setExpandedCategoryCards((prev) => ({
+                          ...prev,
+                          [cardKey]: !isExpanded,
+                        }));
+                      }}
+                      onCardClick={() => {
                         if (!categoryHref) return;
                         router.push(categoryHref);
                       }}
-                    >
-                      {categoryLogoSrc ? (
-                        <span className="home-main-category-card-icon" aria-hidden>
-                          <Image
-                            src={categoryLogoSrc}
-                            alt=""
-                            width={88}
-                            height={40}
-                            className="home-main-category-card-logo"
-                          />
-                        </span>
-                      ) : null}
-                      <h3 className="home-main-category-card-title">{category.name.toLocaleUpperCase("tr-TR")}</h3>
-                      {category.subcategories.length > 0 ? (
-                        <div className={`home-main-category-card-list-wrap ${isExpanded ? "is-expanded" : ""}`}>
-                        <ul className="home-main-category-card-list">
-                          {visibleSubcategories.map((subcategory) => (
-                            <li key={`${category.id}-${subcategory.id}`} className="home-main-category-card-item">
-                              <span>{subcategory.name}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        </div>
-                      ) : null}
-                      {hasMoreThanVisibleCount ? (
-                        <button
-                          type="button"
-                          className="home-main-category-card-more-btn"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setExpandedCategoryCards((prev) => ({
-                              ...prev,
-                              [cardKey]: !isExpanded,
-                            }));
-                          }}
-                        >
-                          {isExpanded ? "Daha Az Göster" : "Daha Fazla Gör"}
-                        </button>
-                      ) : null}
-                    </article>
+                    />
                   );
                 })}
               </div>

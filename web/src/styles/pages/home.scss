@@ -2092,12 +2092,12 @@ a.service-card {
 
   .home-main-category-card-title {
     margin: 12px 0 10px;
-    font-size: 16px;
-    line-height: 1.2;
+    font-size: 14px;
+    line-height: 1;
   }
 
   .home-main-category-card-list-wrap {
-    padding: 6px 0;
+    padding: 3px 0;
   }
 
   .home-main-category-card-list {
@@ -2118,7 +2118,7 @@ a.service-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 60px;
+  height: 80px;
   width: 100%;
   flex-shrink: 0;
 }
@@ -2145,7 +2145,7 @@ a.service-card {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 2px 0 6px;
+  padding: 2px 0 2px;
 }
 
 .home-main-category-card-list-wrap:not(.is-expanded) {
@@ -2153,9 +2153,17 @@ a.service-card {
   min-height: calc(2 * 1.35 * 12px + 1 * 7px);
 }
 
+.home-main-category-card-list-wrap:not(.is-expanded).is-single-item {
+  min-height: calc(1 * 1.35 * 12px);
+}
+
 @media (min-width: 1024px) {
   .home-main-category-card-list-wrap:not(.is-expanded) {
     min-height: calc(2 * 1.25 * 13px + 1 * 8px);
+  }
+
+  .home-main-category-card-list-wrap:not(.is-expanded).is-single-item {
+    min-height: calc(1 * 1.25 * 13px);
   }
 }
 
@@ -2188,7 +2196,7 @@ a.service-card {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 2px;
   align-items: center;
 }
 
