@@ -24,6 +24,10 @@
 }
 
 .signup-header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
   margin-left: auto;
   justify-content: flex-end;
 }
@@ -597,6 +601,10 @@
   }
 }
 
+$signup-layout-stack: 900px;
+$signup-layout-compact: 1180px;
+$signup-layout-tight: 1020px;
+
 .signup-layout {
   display: flex;
   justify-content: center;
@@ -604,7 +612,8 @@
 
 .signup-layout--with-features {
   display: grid;
-  grid-template-columns: minmax(210px, 1fr) minmax(0, 480px) minmax(210px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px) minmax(0, 1fr);
+  grid-template-areas: "features-left form features-right";
   column-gap: 20px;
   align-items: start;
   justify-content: center;
@@ -613,26 +622,32 @@
 }
 
 .signup-form-center {
+  grid-area: form;
   min-width: 0;
   display: flex;
+  width: 100%;
 }
 
 .signup-layout--with-features .signup-card {
   max-width: 100%;
+  width: 100%;
 }
 
 .signup-feature-column {
   display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto auto;
   gap: 30px;
   min-width: 0;
+  align-content: start;
 }
 
 .signup-feature-column--left {
+  grid-area: features-left;
   justify-items: start;
 }
 
 .signup-feature-column--right {
+  grid-area: features-right;
   justify-items: end;
 }
 
@@ -650,6 +665,7 @@
   overflow: hidden;
   width: 100%;
   max-width: 270px;
+  box-sizing: border-box;
   animation: signup-tab-fade-in 920ms ease;
 }
 
@@ -714,21 +730,118 @@
   }
 }
 
-@media (max-width: 1280px) {
+// Tablet (901px–1180px): 3 sütun, kutular üstte ve formdan ayrık
+@media (max-width: $signup-layout-compact) and (min-width: #{$signup-layout-stack + 1px}) {
   .signup-layout--with-features {
-    grid-template-columns: minmax(0, 480px);
-    row-gap: 14px;
+    column-gap: clamp(24px, 3vw, 36px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, min(420px, 100%)) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .signup-feature-column {
+    gap: 26px;
+    align-content: start;
+    justify-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+  }
+
+  .signup-feature-column--left,
+  .signup-feature-column--right {
+    justify-items: center;
+  }
+
+
+  .signup-feature-card {
+    max-width: 224px;
+    min-height: 220px;
+    padding: 10px 8px;
+    border-radius: 16px;
+  }
+
+  .signup-feature-icon-wrap {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 8px;
+  }
+
+  .signup-feature-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .signup-feature-title {
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+
+  .signup-feature-description {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: $signup-layout-tight) and (min-width: #{$signup-layout-stack + 1px}) {
+  .signup-feature-card {
+    max-width: 208px;
+    min-height: 200px;
+  }
+
+  .signup-feature-title {
+    font-size: 16px;
+  }
+}
+
+// Dar ekran: üstte sol 2 kutu, ortada form, altta sağ 2 kutu
+@media (max-width: $signup-layout-stack) {
+  .signup-layout--with-features {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "features-left"
+      "form"
+      "features-right";
+    row-gap: 20px;
+    max-width: min(560px, 100%);
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .signup-feature-column {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: none;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .signup-feature-column--left,
+  .signup-feature-column--right {
+    justify-items: stretch;
+  }
+
+  .signup-feature-card {
+    max-width: none;
+    min-height: 170px;
   }
 }
 
 @media (max-width: 640px) {
+  .auth-content-wrapper:has(.signup-layout--with-features) {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .signup-layout--with-features {
+    row-gap: 16px;
+    max-width: 100%;
+  }
+
   .signup-feature-column {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .signup-feature-card {
+    min-height: 0;
   }
 }
 
