@@ -17,13 +17,10 @@ import { resolveInstructorNameFromInstructorsClient } from "@/lib/instructorProf
 import { Button } from "@/components/ui";
 import SearchBar from "@/components/SearchBar";
 import {
-  GraduationCap,
-  Info,
-  Phone,
-  HelpCircle,
   LogIn,
   LogOut,
   LayoutDashboard,
+  Menu,
   Shield,
   User,
   UserPlus,
@@ -155,10 +152,16 @@ export function HeaderWithSearchClient({
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      setDesktopMenuOpen(false);
+    }
+  }, [user]);
+
   return (
     <>
       <div className="top-bar" />
-      <header className="header">
+      <header className={`header${user ? "" : " header--guest"}`}>
         <div className="header-container">
           <div className={`header-top-row navbar ${menuOpen ? "is-open" : ""}`}>
             <div className="header-brand">
@@ -167,7 +170,7 @@ export function HeaderWithSearchClient({
             <div className="header-hamburger header-hamburger-mobile" ref={menuRef}>
               <button
                 type="button"
-                className="header-hamburger-btn nav-toggle"
+                className="header-hamburger-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuOpen((prev) => !prev);
@@ -175,9 +178,11 @@ export function HeaderWithSearchClient({
                 aria-expanded={menuOpen}
                 aria-label="Menü"
               >
-                <span></span>
-                <span></span>
-                <span></span>
+                {user ? (
+                  <User className="header-hamburger-btn-icon" aria-hidden />
+                ) : (
+                  <Menu className="header-hamburger-btn-icon" aria-hidden />
+                )}
               </button>
               {menuOpen && (
                 <div className="header-hamburger-dropdown">
@@ -232,30 +237,16 @@ export function HeaderWithSearchClient({
                       <span>Admin Panel</span>
                     </Link>
                   )}
-                  <Link href="/okullar" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                    <GraduationCap className="header-hamburger-icon" aria-hidden />
-                    <span>Tüm Okullar</span>
-                  </Link>
-                  <Link
-                    href={NASIL_CALISIR_HREF}
-                    className="header-hamburger-link"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <ListOrdered className="header-hamburger-icon" aria-hidden />
-                    <span>Nasıl Çalışır?</span>
-                  </Link>
-                  <Link href="/about" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                    <Info className="header-hamburger-icon" aria-hidden />
-                    <span>Hakkımızda</span>
-                  </Link>
-                  <Link href="/contact" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                    <Phone className="header-hamburger-icon" aria-hidden />
-                    <span>İletişim</span>
-                  </Link>
-                  <Link href="/faq" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
-                    <HelpCircle className="header-hamburger-icon" aria-hidden />
-                    <span>S.S.S</span>
-                  </Link>
+                  {!user ? (
+                    <Link
+                      href={NASIL_CALISIR_HREF}
+                      className="header-hamburger-link"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <ListOrdered className="header-hamburger-icon" aria-hidden />
+                      <span>Nasıl Çalışır?</span>
+                    </Link>
+                  ) : null}
                   {user ? (
                     <>
                       {shouldShowCTA &&
@@ -308,18 +299,8 @@ export function HeaderWithSearchClient({
             </div>
           )}
           <div className="header-actions">
-            <Link href="/okullar" className="header-actions-nav header-actions-okullar">
-              <Button className="button-primary btn-gradient-primary" variant="default">
-                OKULLAR
-              </Button>
-            </Link>
             {user ? (
               <>
-                <Link href={NASIL_CALISIR_HREF} className="header-actions-how">
-                  <Button className="button-primary btn-gradient-primary" variant="default">
-                    NASIL ÇALIŞIR?
-                  </Button>
-                </Link>
                 <Link href={getCTAHref()} className="header-actions-nav header-actions-profile">
                   <Button className="button-primary btn-gradient-primary" variant="default">
                     {getCTALabel()}
@@ -352,10 +333,11 @@ export function HeaderWithSearchClient({
                 </Link>
               </div>
             )}
+            {user ? (
             <div className={`header-actions-desktop-menu ${desktopMenuOpen ? "is-open" : ""}`} ref={menuRefDesktop}>
               <button
                 type="button"
-                className="header-hamburger-btn header-hamburger-btn-desktop nav-toggle"
+                className="header-hamburger-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   setDesktopMenuOpen((prev) => !prev);
@@ -363,9 +345,7 @@ export function HeaderWithSearchClient({
                 aria-expanded={desktopMenuOpen}
                 aria-label="Menü"
               >
-                <span />
-                <span />
-                <span />
+                <User className="header-hamburger-btn-icon" aria-hidden />
               </button>
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
@@ -436,32 +416,7 @@ export function HeaderWithSearchClient({
                       <span>ADMIN PANEL</span>
                     </Link>
                   )}
-                  <Link href="/okullar" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                    <GraduationCap className="header-hamburger-icon" aria-hidden />
-                    <span>OKULLAR</span>
-                  </Link>
-                  <Link
-                    href={NASIL_CALISIR_HREF}
-                    className="header-hamburger-link"
-                    onClick={() => setDesktopMenuOpen(false)}
-                  >
-                    <ListOrdered className="header-hamburger-icon" aria-hidden />
-                    <span>NASIL ÇALIŞIR?</span>
-                  </Link>
-                  <Link href="/about" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                    <Info className="header-hamburger-icon" aria-hidden />
-                    <span>HAKKIMIZDA</span>
-                  </Link>
-                  <Link href="/contact" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                    <Phone className="header-hamburger-icon" aria-hidden />
-                    <span>İLETİŞİM</span>
-                  </Link>
-                  <Link href="/faq" className="header-hamburger-link" onClick={() => setDesktopMenuOpen(false)}>
-                    <HelpCircle className="header-hamburger-icon" aria-hidden />
-                    <span>S.S.S</span>
-                  </Link>
-                  {user &&
-                    shouldShowCTA &&
+                  {shouldShowCTA &&
                     userType !== "institution" &&
                     userType !== "individual" &&
                     userType !== "instructor" && (
@@ -487,6 +442,7 @@ export function HeaderWithSearchClient({
                 </div>
               )}
             </div>
+            ) : null}
           </div>
         </div>
       </header>

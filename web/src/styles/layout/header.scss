@@ -2,6 +2,9 @@
 @import '../mixins';
 @import '../typography';
 
+// Kompakt header varsayılan; masaüstü düzen yalnızca min-width ile (859px dahil kompakt kalır)
+$header-layout-desktop: 860px;
+
 .top-bar {
   height: 10px;
   width: 100%;
@@ -20,7 +23,7 @@
     @include flex-col;
   gap: 16px;
 
-    @media (min-width: 768px) {
+    @media (min-width: $header-layout-desktop) {
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
@@ -37,7 +40,7 @@
   flex-shrink: 0;
   min-width: 0;
 
-  @media (min-width: 768px) {
+  @media (min-width: $header-layout-desktop) {
     width: auto;
     flex-shrink: 1;
   }
@@ -71,7 +74,7 @@
     max-width: min(340px, 82vw);
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: $header-layout-desktop) {
     height: 52px;
     max-width: min(400px, 55vw);
   }
@@ -83,16 +86,21 @@
 }
 
 .header-search {
-  flex: 1;
-  display: none;
+  display: flex;
+  width: 100%;
+  margin-top: 8px;
   min-width: 0;
   order: 3;
+  flex: none;
 
-  @media (min-width: 768px) {
-    display: flex;
+  @media (min-width: $header-layout-desktop) {
+    flex: 1;
+    width: auto;
+    margin-top: 0;
     justify-content: center;
     max-width: 700px;
-    margin: 0 auto;
+    margin-left: auto;
+    margin-right: auto;
     order: 2;
   }
 
@@ -101,28 +109,16 @@
   }
 }
 
-.header-container {
-  @media (max-width: 767px) {
-    .header-search {
-      display: flex;
-      width: 100%;
-      margin-top: 8px;
-    }
-  }
-}
-
 .header-actions {
-  @include flex-center;
+  display: none;
   gap: 12px;
   flex-shrink: 0;
   order: 2;
 
-  @media (min-width: 768px) {
+  @media (min-width: $header-layout-desktop) {
+    @include flex-center;
+    display: flex;
     order: 3;
-  }
-
-  @media (max-width: 767px) {
-    display: none;
   }
 }
 
@@ -161,7 +157,7 @@
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: $header-layout-desktop) {
   .header-actions-nav {
     display: none;
   }
@@ -172,55 +168,28 @@
   position: relative;
   flex-shrink: 0;
 
-  @media (min-width: 768px) {
+  @media (min-width: $header-layout-desktop) {
     display: flex;
     align-items: center;
     justify-content: center;
   }
 }
 
-// Desktop hamburger: birebir mobil ile aynı görünüm ve animasyon (auth butonlarıyla ortak sınıf yok)
-@media (min-width: 768px) {
-  .header-hamburger-btn-desktop.nav-toggle {
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(to right, rgb(109, 93, 252), rgb(127, 86, 217), rgb(148, 84, 255));
-    border: none;
-    padding: 0;
-    @include rounded-6;
-    @include transition-colors;
-  }
+// Giriş yapmamış: masaüstü menü yok
+.header--guest .header-actions-desktop-menu {
+  display: none !important;
+}
 
-  .header-hamburger-btn-desktop.nav-toggle span {
-    display: block;
-    width: 50%;
-    height: 2px;
-    background-color: white;
-    border-radius: 10px;
-    transform-origin: center center;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-  }
-
-  .header-actions-desktop-menu.is-open .header-hamburger-btn-desktop.nav-toggle span:nth-child(1) {
-    transform: rotate(45deg) translate(6px, 6px);
-  }
-
-  .header-actions-desktop-menu.is-open .header-hamburger-btn-desktop.nav-toggle span:nth-child(2) {
-    opacity: 0;
-  }
-
-  .header-actions-desktop-menu.is-open .header-hamburger-btn-desktop.nav-toggle span:nth-child(3) {
-    transform: rotate(-45deg) translate(6px, -6px);
+.header--guest .header-hamburger-mobile {
+  @media (min-width: $header-layout-desktop) {
+    display: none !important;
   }
 }
 
 .header-hamburger-dropdown-desktop {
   display: none;
 
-  @media (min-width: 768px) {
+  @media (min-width: $header-layout-desktop) {
     display: flex;
     position: absolute;
     top: 100%;
@@ -238,14 +207,14 @@
 }
 
 .header-hamburger {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   flex-shrink: 0;
 
-  @media (max-width: 767px) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  @media (min-width: $header-layout-desktop) {
+    display: none;
   }
 }
 
@@ -263,39 +232,24 @@
   @include rounded-6;
   @include transition-colors;
 
+  @media (min-width: $header-layout-desktop) {
+    width: 36px;
+    height: 36px;
+  }
 
-
-  @media (max-width: 767px) {
-    &.nav-toggle {
-      flex-direction: column;
-      justify-content: center;
-      gap: 6px;
-      width: 36px;
-      height: 36px;
-    }
-
-    &.nav-toggle span {
-      display: block;
-      width: 100%;
-      height: 2px;
-      background-color: $default-text-color;
-      border-radius: 1px;
-      transition: transform 0.25s ease, opacity 0.25s ease;
-    }
+  &:hover {
+    color: $purple-main;
   }
 }
 
-@media (max-width: 767px) {
-  .navbar.is-open .nav-toggle span:nth-child(1) {
-    transform: rotate(45deg) translate(6px, 6px);
-  }
+.header-hamburger-btn-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 
-  .navbar.is-open .nav-toggle span:nth-child(2) {
-    opacity: 0;
-  }
-
-  .navbar.is-open .nav-toggle span:nth-child(3) {
-    transform: rotate(-45deg) translate(6px, -6px);
+  @media (min-width: $header-layout-desktop) {
+    width: 20px;
+    height: 20px;
   }
 }
 
