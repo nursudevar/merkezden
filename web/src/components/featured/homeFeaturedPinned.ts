@@ -11,9 +11,8 @@ export const HOME_FEATURED_PINNED_NAME_BY_ID: Record<number, readonly string[]> 
   200: ["ÖZEL BİLFEN ÇAYYOLU FEN LİSESİ"],
 };
 
-/** Sabit kurum sorgusu: join yok (institution_type embed hata verebilir) */
 export const HOME_FEATURED_PINNED_ROW_SELECT =
-  "id, slug, source, institution_name, type, city, district, logo";
+  "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))";
 
 function rowId(row: Record<string, unknown>): number {
   return Number(row.id);

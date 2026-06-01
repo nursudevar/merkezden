@@ -132,8 +132,6 @@ export default function MebInstitutionDetailPage() {
     );
   }
 
-  const subcategoryBadgeText =
-    institution.institution_type?.name?.trim() || institution.type?.trim() || "";
   const categoryBadgeText =
     institution.institution_type?.category?.name?.trim() || "";
 
@@ -172,18 +170,11 @@ export default function MebInstitutionDetailPage() {
                   <h1 className="institution-name">{institution.institution_name ?? "Kurum"}</h1>
                 </div>
 
-                {categoryBadgeText || subcategoryBadgeText ? (
+                {categoryBadgeText ? (
                   <div className="institution-meb-badges">
-                    {categoryBadgeText ? (
-                      <div className="institution-meb-type-badge institution-meb-type-badge--category">
-                        {categoryBadgeText}
-                      </div>
-                    ) : null}
-                    {subcategoryBadgeText ? (
-                      <div className="institution-meb-type-badge institution-meb-type-badge--subcategory">
-                        {subcategoryBadgeText}
-                      </div>
-                    ) : null}
+                    <div className="institution-meb-type-badge institution-meb-type-badge--category">
+                      {categoryBadgeText}
+                    </div>
                     {isMebInstitution(institution.source) ? (
                       <div className="institution-meb-approval-badge">
                         <BadgeCheck size={16} aria-hidden />

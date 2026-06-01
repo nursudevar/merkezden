@@ -1037,38 +1037,6 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
 
           {hasDynamicFeatureMode ? (
             <>
-              {subcategoryTypes.length > 0 ? (
-                <div className="category-filter-section">
-                  <h3 className="category-filter-section-title">ALT KATEGORİ</h3>
-                  <div className="category-filter-section-inputs">
-                    <Select
-                      value={selectedSubcategoryId || ALL_SUBCATEGORY_VALUE}
-                      onValueChange={(value) =>
-                        setSelectedSubcategoryId(value === ALL_SUBCATEGORY_VALUE ? "" : value)
-                      }
-                    >
-                      <SelectTrigger className="category-filter-select">
-                        <SelectValue placeholder="Alt Kategori Seçin" />
-                      </SelectTrigger>
-                      <SelectContent
-                        className="select-content home-location-dropdown"
-                        side="bottom"
-                        avoidCollisions={false}
-                      >
-                        <SelectItem value={ALL_SUBCATEGORY_VALUE} className="select-item">
-                          Tümü
-                        </SelectItem>
-                        {subcategoryTypes.map((t) => (
-                          <SelectItem key={t.id} value={String(t.id)} className="select-item">
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : null}
-
               {commonFields.map((field) => {
                 if (field.kind === "single_select") {
                   const selectedValue = selectedCommonSingle[field.definitionId] ?? "";

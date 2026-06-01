@@ -24,12 +24,23 @@ const COLS = [
 
 const COL_LABELS: Record<(typeof COLS)[number], string> = {
   institution_name: 'Kurum Adı',
-  type: 'Alt Kategori',
+  type: 'Kategori',
   city: 'Şehir',
   district: 'İlçe',
   official_phone: 'Telefon',
   address: 'Adres',
 };
+
+function resolveInstitutionCategoryLabel(row: Record<string, unknown>): string {
+  const typeJoin = row.institution_type;
+  const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
+  if (!typeRow || typeof typeRow !== 'object') return '-';
+  const categoryJoin = (typeRow as { category?: unknown }).category;
+  const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
+  if (!categoryRow || typeof categoryRow !== 'object') return '-';
+  const name = String((categoryRow as { name?: unknown }).name ?? '').trim();
+  return name || '-';
+}
 
 const normalizeSearchText = (value: string) =>
   value
@@ -176,7 +187,7 @@ export default function OkullarPageClient() {
         setLoading(true);
         setError(null);
         const supabase = createSupabaseBrowserClient();
-        const selectCols = `id, slug, source, ${COLS.join(', ')}`;
+        const selectCols = `id, slug, source, ${COLS.join(', ')}, institution_type:institution_types(category:institution_categories(name))`;
         const from = (page - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
         const searchTerm = debouncedSearchText.trim();
@@ -567,55 +578,6 @@ export default function OkullarPageClient() {
                 )}
               </div>
 
-              <div className="okullar-category-dropdown" ref={subcategoryMenuRef}>
-                <button
-                  type="button"
-                  className={`okullar-filter-select okullar-filter-select--category ${isSubcategoryMenuOpen ? 'okullar-filter-select--open' : ''}`}
-                  onClick={() => {
-                    if (!selectedCategoryId) return;
-                    setIsSubcategoryMenuOpen((prev) => !prev);
-                  }}
-                  aria-haspopup="listbox"
-                  aria-expanded={isSubcategoryMenuOpen}
-                  aria-label="Alt Kategori"
-                  disabled={!selectedCategoryId}
-                >
-                  <span
-                    className="okullar-category-dropdown-label"
-                    title={typeRows.find((t) => String(t.id) === selectedSubcategoryId)?.name || 'Alt Kategori'}
-                  >
-                    {typeRows.find((t) => String(t.id) === selectedSubcategoryId)?.name || 'Alt Kategori'}
-                  </span>
-                </button>
-                {isSubcategoryMenuOpen && (
-                  <div className="okullar-category-dropdown-menu" role="listbox" aria-label="Alt kategori seçenekleri">
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={selectedSubcategoryId === ''}
-                      className={`okullar-category-dropdown-option ${selectedSubcategoryId === '' ? 'okullar-category-dropdown-option--selected' : ''}`}
-                      onClick={() => handleSubcategoryChange('')}
-                    >
-                      Tüm Alt Kategoriler
-                    </button>
-                    {typeRows
-                      .filter((t) => String(t.category_id) === selectedCategoryId)
-                      .map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          role="option"
-                          aria-selected={selectedSubcategoryId === String(t.id)}
-                          className={`okullar-category-dropdown-option ${selectedSubcategoryId === String(t.id) ? 'okullar-category-dropdown-option--selected' : ''}`}
-                          onClick={() => handleSubcategoryChange(String(t.id))}
-                          title={t.name}
-                        >
-                          {t.name}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
               <div className="okullar-generic-dropdown" ref={cityMenuRef}>
                 <button
                   type="button"
@@ -775,9 +737,13 @@ export default function OkullarPageClient() {
                         ) : null}
                         {COLS.map((col) => {
                           const val = row[col];
-                          const display = val == null ? '-' : String(val);
-                          const isAddress = col === 'address';
                           const isCategory = col === 'type';
+                          const display = isCategory
+                            ? resolveInstitutionCategoryLabel(row)
+                            : val == null
+                              ? '-'
+                              : String(val);
+                          const isAddress = col === 'address';
                           const isInstitutionName = col === 'institution_name';
                           const isPhone = col === 'official_phone';
                           const isTruncate = col === 'city' || col === 'district';

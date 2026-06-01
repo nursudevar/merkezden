@@ -76,9 +76,10 @@ export function FeaturedInstitutionCardLink({
         </motion.button>
       </div>
       <div className="featured-institution-content">
-        <span className="featured-institution-body-category">{institution.bodyMainCategory}</span>
+        {institution.bodyMainCategory ? (
+          <span className="featured-institution-body-category">{institution.bodyMainCategory}</span>
+        ) : null}
         <h3 className="featured-institution-name">{institution.name}</h3>
-        <p className="featured-institution-subcategory">{institution.bodySubCategory}</p>
         <div className="featured-institution-location">
           <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path

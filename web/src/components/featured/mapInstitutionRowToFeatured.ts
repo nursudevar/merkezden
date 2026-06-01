@@ -4,9 +4,17 @@ import type { FeaturedInstitution } from "./featuredInstitutionTypes";
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
-type InstitutionTypeJoin =
-  | { name?: string | null; category?: { name?: string | null } | null }
-  | undefined;
+function resolveInstitutionCategoryName(row: Record<string, unknown>): string {
+  const typeJoin = row.institution_type;
+  const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
+  if (!typeRow || typeof typeRow !== "object") return "";
+
+  const categoryJoin = (typeRow as { category?: unknown }).category;
+  const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
+  if (!categoryRow || typeof categoryRow !== "object") return "";
+
+  return String((categoryRow as { name?: unknown }).name ?? "").trim();
+}
 
 export function mapInstitutionRowToFeatured(
   supabase: SupabaseBrowser,
@@ -16,10 +24,7 @@ export function mapInstitutionRowToFeatured(
   const name = String(row.institution_name ?? "").trim();
   if (!Number.isFinite(id) || !name) return null;
 
-  const institutionType = row.institution_type as InstitutionTypeJoin;
-  const mainCategory = String(institutionType?.category?.name ?? "").trim();
-  const subCategory =
-    String(institutionType?.name ?? "").trim() || String(row.type ?? "").trim();
+  const mainCategory = resolveInstitutionCategoryName(row);
   const city = String(row.city ?? "").trim();
   const district = String(row.district ?? "").trim();
   const location = [district, city].filter(Boolean).join(", ");
@@ -31,8 +36,8 @@ export function mapInstitutionRowToFeatured(
     imageUrl: logoUrl,
     slug: String(row.slug ?? "").trim(),
     source: String(row.source ?? "").trim(),
-    bodyMainCategory: mainCategory || "Kategori",
-    bodySubCategory: subCategory || "Alt kategori belirtilmedi",
+    bodyMainCategory: mainCategory,
+    bodySubCategory: "",
     bodyLocation: location || "Konum bilgisi yok",
   };
 }

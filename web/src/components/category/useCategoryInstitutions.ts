@@ -816,7 +816,10 @@ function mapRow(
   const slug = String(row.slug ?? "").trim();
   const typeJoin = row.institution_type;
   const typeRow = Array.isArray(typeJoin) ? typeJoin[0] ?? null : typeJoin ?? null;
-  const subcategoryName = String(typeRow?.name ?? "").trim();
+  const categoryJoin = (typeRow as { category?: { name?: string | null } | { name?: string | null }[] | null } | null)
+    ?.category;
+  const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] ?? null : categoryJoin ?? null;
+  const categoryName = String(categoryRow?.name ?? "").trim();
 
   return {
     id: String(row.id),
@@ -832,6 +835,6 @@ function mapRow(
     imageUrl,
     slug: slug || undefined,
     source: row.source ?? null,
-    subcategoryName: subcategoryName || undefined,
+    subcategoryName: categoryName || undefined,
   };
 }

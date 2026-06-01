@@ -77,7 +77,6 @@ type OverviewMissingFieldId =
   | "email"
   | "logo"
   | "category"
-  | "sub_type"
   | "address"
   | "about";
 
@@ -148,8 +147,6 @@ function renderOverviewMissingFieldIcon(id: OverviewMissingFieldId) {
       return <Image className={c} aria-hidden />;
     case "category":
       return <Tags className={c} aria-hidden />;
-    case "sub_type":
-      return <List className={c} aria-hidden />;
     case "address":
       return <MapPin className={c} aria-hidden />;
     case "about":
@@ -1375,14 +1372,10 @@ interface InstitutionDetailPreparedData {
       (institutionCategoryId ?? "").trim() ||
         (overviewSelectedType ? String(overviewSelectedType.category_id) : "")
     );
-    const overviewHasType = Boolean((institutionTypeId ?? "").trim());
     const overviewCanEvaluateCategory =
       institutionTypes.length > 0 || Boolean((institutionCategoryId ?? "").trim());
-    if ((!overviewHasType || overviewCanEvaluateCategory) && !overviewHasCategory) {
+    if (overviewCanEvaluateCategory && !overviewHasCategory) {
       items.push({ id: "category", label: "Kategori", tab: "institutions" });
-    }
-    if (!overviewHasType) {
-      items.push({ id: "sub_type", label: "Alt Kategori", tab: "institutions" });
     }
     if (!(institutionFormData.address ?? "").trim()) {
       items.push({ id: "address", label: "Adres", tab: "institution-profile" });
@@ -1712,29 +1705,6 @@ interface InstitutionDetailPreparedData {
     setInstitutionFeaturesSaveMessage(null);
 
     try {
-      // Kurum tipi seçimi (institutions.institution_type_id)
-      const nextTypeId = (institutionTypeId ?? "").trim();
-      if (user?.id) {
-        const parsedTypeId = nextTypeId ? Number(nextTypeId) : null;
-        const selectedTypeName =
-          parsedTypeId && Number.isFinite(parsedTypeId)
-            ? institutionTypes.find((t) => t.id === parsedTypeId)?.name ?? null
-            : null;
-
-        const { error: typeUpdateError } = await supabase
-          .from("institutions")
-          .update({
-            institution_type_id: parsedTypeId,
-            ...(selectedTypeName ? { type: selectedTypeName } : {}),
-          })
-          .eq("id", Number(institutionId));
-
-        if (typeUpdateError) {
-          console.error("Institution type save error:", typeUpdateError);
-          throw typeUpdateError;
-        }
-      }
-
       const upperFeatureIds = new Set<number>();
       for (const { features } of institutionSelectionUpperGroups) {
         for (const f of features) upperFeatureIds.add(f.id);
@@ -2679,7 +2649,7 @@ interface InstitutionDetailPreparedData {
                           <Tags className="panel-overview-welcome-icon-svg" />
                         </span>
                         <span className="panel-overview-welcome-row-text">
-                          <strong>Kurum Özellikleri</strong> bölümünde seçeceğiniz kategori, alt kategori ve diğer
+                          <strong>Kurum Özellikleri</strong> bölümünde seçeceğiniz kategori ve diğer
                           kurum özellikleri, kurum sayfanızda ziyaretçilere gösterilir. Aynı zamanda bu bilgiler
                           filtreleme alanlarında da kullanılacağı için, kurumunuzun daha kolay bulunması ve öne
                           çıkması adına tüm alanları doğru ve eksiksiz doldurmanızı öneririz.
@@ -3334,7 +3304,7 @@ interface InstitutionDetailPreparedData {
                           className="panel-institutions-group-title-icon panel-institutions-group-title-icon--academic"
                           aria-hidden
                         />
-                        Kategori / Alt Kategori
+                        Kategori
                       </h4>
                       {institutionTypeLoading ? (
                         <p className="panel-institutions-empty-text">Kategoriler yükleniyor…</p>
@@ -3417,89 +3387,6 @@ interface InstitutionDetailPreparedData {
                           </div>
                               )}
                         </div>
-                            </div>
-
-                          <div
-                            className={`panel-institutions-feature-input-wrap ${
-                              !(institutionCategoryId ?? "").trim()
-                                ? "panel-institutions-type-picker-disabled"
-                                : ""
-                            }`}
-                          >
-                            <p className="panel-institutions-feature-name">Alt Kategori</p>
-                            <div className="panel-institutions-single-select-dropdown">
-                              <button
-                                type="button"
-                                disabled={!(institutionCategoryId ?? "").trim()}
-                                className={`panel-institutions-feature-select panel-institutions-feature-select--button ${
-                                  openInstitutionTypePickerSelect === "type"
-                                    ? "panel-institutions-feature-select--open"
-                                    : ""
-                                }`}
-                                onClick={() => {
-                                  if (!(institutionCategoryId ?? "").trim()) return;
-                                  setOpenInstitutionTypePickerSelect((prev) =>
-                                    prev === "type" ? null : "type"
-                                  );
-                                }}
-                                aria-haspopup="listbox"
-                                aria-expanded={openInstitutionTypePickerSelect === "type"}
-                              >
-                                <span
-                                  className="panel-institutions-feature-select-label"
-                                  title={
-                                    institutionTypes.find((t) => String(t.id) === (institutionTypeId ?? ""))
-                                      ?.name || "Seçiniz"
-                                  }
-                                >
-                                  {institutionTypes.find((t) => String(t.id) === (institutionTypeId ?? ""))
-                                    ?.name || "Seçiniz"}
-                                </span>
-                              </button>
-                              {openInstitutionTypePickerSelect === "type" && (
-                                <div className="panel-institutions-feature-select-menu" role="listbox">
-                                  <button
-                                    type="button"
-                                    role="option"
-                                    aria-selected={(institutionTypeId ?? "") === ""}
-                                    className={`panel-institutions-feature-select-option ${
-                                      (institutionTypeId ?? "") === ""
-                                        ? "panel-institutions-feature-select-option--selected"
-                                        : ""
-                                    }`}
-                                    onClick={() => {
-                                      setInstitutionTypeId("");
-                                      setOpenInstitutionTypePickerSelect(null);
-                                    }}
-                                  >
-                                    Seçiniz
-                                  </button>
-                                  {institutionTypes
-                                    .filter((t) => String(t.category_id) === (institutionCategoryId ?? ""))
-                                    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-                                    .map((t) => (
-                                      <button
-                                        key={t.id}
-                                        type="button"
-                                        role="option"
-                                        aria-selected={(institutionTypeId ?? "") === String(t.id)}
-                                        className={`panel-institutions-feature-select-option ${
-                                          (institutionTypeId ?? "") === String(t.id)
-                                            ? "panel-institutions-feature-select-option--selected"
-                                            : ""
-                                        }`}
-                                        onClick={() => {
-                                          setInstitutionTypeId(String(t.id));
-                                          setOpenInstitutionTypePickerSelect(null);
-                                        }}
-                                        title={t.name || undefined}
-                                      >
-                                        {t.name}
-                                      </button>
-                                    ))}
-                              </div>
-                            )}
-                            </div>
                             </div>
                           </div>
                       )}

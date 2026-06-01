@@ -19,7 +19,6 @@ interface SearchResult {
   description: string;
   location: string;
   mainCategory: string;
-  subCategory: string;
   rating: number;
   reviewCount: number;
   imageUrl: string;
@@ -625,10 +624,13 @@ export default function SearchResults({
               const address = String(row.address ?? "").trim();
               const description = type || address || "Kurum bilgisi";
               const institutionType = row.institution_type as
-                | { name?: string | null; category?: { name?: string | null } | null }
+                | { name?: string | null; category?: { name?: string | null } | Array<{ name?: string | null }> | null }
+                | Array<{ name?: string | null; category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
                 | undefined;
-              const mainCategory = String(institutionType?.category?.name ?? "").trim();
-              const subCategory = String(institutionType?.name ?? "").trim() || type;
+              const typeRow = Array.isArray(institutionType) ? institutionType[0] : institutionType;
+              const categoryJoin = typeRow?.category;
+              const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
+              const mainCategory = String(categoryRow?.name ?? "").trim();
               const logoValue = typeof row.logo === "string" ? row.logo : null;
               const imageUrl = resolveInstitutionLogoPublicUrl(supabase, logoValue);
 
@@ -638,7 +640,6 @@ export default function SearchResults({
                 description,
                 location,
                 mainCategory,
-                subCategory,
                 rating: 4.8,
                 reviewCount: Math.floor(4.8 * 25),
                 imageUrl,
@@ -655,8 +656,7 @@ export default function SearchResults({
                   matchesSearch(institution.name, trimmedQuery) ||
                   matchesSearch(institution.location, trimmedQuery) ||
                   matchesSearch(institution.description, trimmedQuery) ||
-                  matchesSearch(institution.mainCategory, trimmedQuery) ||
-                  matchesSearch(institution.subCategory, trimmedQuery)
+                  matchesSearch(institution.mainCategory, trimmedQuery)
               )
             : mappedRows;
 

@@ -482,7 +482,7 @@ function FavoritesSection() {
           normalizedFavorites.map((inst) => {
             const title = inst.institution_name ?? 'Kurum';
             const desc = inst.address || inst.about || `${inst.city ?? ''}${inst.district ? ` / ${inst.district}` : ''}` || '—';
-            const category = (inst.type ?? '').trim();
+            const category = (inst.categoryName ?? '').trim();
             const city = (inst.city ?? '').trim();
             const district = (inst.district ?? '').trim();
             const locationLabel = [city, district].filter(Boolean).join(' / ');

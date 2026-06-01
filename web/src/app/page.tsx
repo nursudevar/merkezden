@@ -1108,7 +1108,7 @@ export default function Home() {
                                     key={`${group.id}-__all__`}
                                     type="button"
                                     className={`category-option ${allSelected ? "category-option-selected" : ""}`}
-                                    aria-label={`${group.title} — tüm alt kategoriler`}
+                                    aria-label={`${group.title} — tümü`}
                                     onClick={() => {
                                       const turningOn = !selectedCategoryAllGroups.has(group.id);
                                       setSelectedCategoryAllGroups((prev) => {

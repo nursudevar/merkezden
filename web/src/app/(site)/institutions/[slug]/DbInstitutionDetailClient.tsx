@@ -398,7 +398,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     : row?.institution_type ?? null;
   const categoryName = (institutionTypeRow?.category?.name ?? "").trim();
   const institutionCategorySlug = (institutionTypeRow?.category?.slug ?? "").trim();
-  const subcategoryName = (institutionTypeRow?.name ?? row?.type ?? "").trim();
   const subheading = (row?.subheading ?? "").trim();
   const about = (row?.about ?? "").trim();
   const address = (row?.address ?? "").trim();
@@ -838,8 +837,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   }
 
   if (detailBranch === "meb") {
-    const subcategoryBadgeText =
-      institutionTypeRow?.name?.trim() || row.type?.trim() || "";
     const categoryBadgeText =
       institutionTypeRow?.category?.name?.trim() || "";
 
@@ -888,18 +885,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     <h1 className="institution-name">{name}</h1>
                   </div>
 
-                  {categoryBadgeText || subcategoryBadgeText ? (
+                  {categoryBadgeText ? (
                     <div className="institution-meb-badges">
-                      {categoryBadgeText ? (
-                        <div className="institution-meb-type-badge institution-meb-type-badge--category">
-                          {categoryBadgeText}
-                        </div>
-                      ) : null}
-                      {subcategoryBadgeText ? (
-                        <div className="institution-meb-type-badge institution-meb-type-badge--subcategory">
-                          {subcategoryBadgeText}
-                        </div>
-                      ) : null}
+                      <div className="institution-meb-type-badge institution-meb-type-badge--category">
+                        {categoryBadgeText}
+                      </div>
                       <div className="institution-meb-approval-badge">
                         <CheckCircle2 size={16} aria-hidden />
                         Meb Onaylı
@@ -999,12 +989,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   <div className="institution-meta-item">
                     <span className="institution-meta-badge institution-meta-badge--category">
                       {categoryName || "Okul"}
-                    </span>
-                  </div>
-                  <div className="institution-meta-item">
-                    <span className="institution-meta-badge institution-meta-badge--subcategory">
-                      <GraduationCap size={16} />
-                      {subcategoryName || emptyText}
                     </span>
                   </div>
                   {Boolean(row.is_verified) ? (
