@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { HeaderBrandLogo } from "@/components/layout/header.client";
 import { Button } from "@/components/ui";
-import Footer from "@/components/layout/Footer";
 import AuthModal from "@/components/AuthModal";
 import {
   ClipboardList,
@@ -17,7 +16,6 @@ import {
 } from "lucide-react";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
-import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ComponentType } from "react";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
@@ -110,9 +108,36 @@ function SignupFeatureCard({
   );
 }
 
-export default function SignupClient() {
-  const router = useRouter();
+function SignupPasswordToggle({
+  showPassword,
+  onToggle,
+}: {
+  showPassword: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="auth-input-icon"
+      onClick={onToggle}
+      aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+    >
+      {showPassword ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      )}
+    </button>
+  );
+}
 
+export default function SignupClient() {
   const [activeTab, setActiveTab] = useState<"bireysel" | "kurumsal">("bireysel");
   const isIndividualTab = activeTab === "bireysel";
   const activeFeatures = isIndividualTab ? INDIVIDUAL_FEATURES : CORPORATE_FEATURES;
@@ -232,7 +257,7 @@ export default function SignupClient() {
         metadata.full_name = companyName;
       }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -566,16 +591,23 @@ export default function SignupClient() {
                   <label htmlFor="signup-password" className="signup-label">
                     Şifre
                   </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="signup-password"
-                    name="password"
-                    className="signup-input"
-                    placeholder="En az 8 karakter"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                  />
+                  <div className="auth-input-with-icon">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="signup-password"
+                      name="password"
+                      className="signup-input"
+                      style={{ paddingRight: 44 }}
+                      placeholder="En az 8 karakter"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                    />
+                    <SignupPasswordToggle
+                      showPassword={showPassword}
+                      onToggle={() => setShowPassword((prev) => !prev)}
+                    />
+                  </div>
                 </div>
                 </>
               ) : (
@@ -616,16 +648,23 @@ export default function SignupClient() {
                   <label htmlFor="signup-password-kurumsal" className="signup-label">
                     Şifre
                   </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="signup-password-kurumsal"
-                    name="password"
-                    className="signup-input"
-                    placeholder="En az 8 karakter"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                  />
+                  <div className="auth-input-with-icon">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="signup-password-kurumsal"
+                      name="password"
+                      className="signup-input"
+                      style={{ paddingRight: 44 }}
+                      placeholder="En az 8 karakter"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                    />
+                    <SignupPasswordToggle
+                      showPassword={showPassword}
+                      onToggle={() => setShowPassword((prev) => !prev)}
+                    />
+                  </div>
                 </div>
 
                 <div className="signup-field">
@@ -805,16 +844,23 @@ export default function SignupClient() {
                     <label htmlFor="signup-instructor-password" className="signup-label">
                       Şifre
                     </label>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      id="signup-instructor-password"
-                      name="password"
-                      className={`signup-input${instructorErrors.password ? " signup-input--error" : ""}`}
-                      placeholder="En az 8 karakter"
-                      value={instructorFormData.password}
-                      onChange={handleInstructorChange}
-                      autoComplete="new-password"
-                    />
+                    <div className="auth-input-with-icon">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        id="signup-instructor-password"
+                        name="password"
+                        className={`signup-input${instructorErrors.password ? " signup-input--error" : ""}`}
+                        style={{ paddingRight: 44 }}
+                        placeholder="En az 8 karakter"
+                        value={instructorFormData.password}
+                        onChange={handleInstructorChange}
+                        autoComplete="new-password"
+                      />
+                      <SignupPasswordToggle
+                        showPassword={showPassword}
+                        onToggle={() => setShowPassword((prev) => !prev)}
+                      />
+                    </div>
                     {instructorErrors.password ? (
                       <p className="signup-field-error" role="alert">
                         {instructorErrors.password}

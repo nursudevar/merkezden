@@ -61,18 +61,6 @@ function LoginPageContent() {
                   ariaLabel="Giriş görseli"
                   threshold={18}
                 />
-              {/* auth-orbit
-              <div className="auth-orbit">
-                <div className="auth-orbit-circle auth-orbit-circle-outer"></div>
-                <div className="auth-orbit-circle auth-orbit-circle-inner"></div>
-                <div className="auth-orbit-track auth-orbit-track-outer">
-                  <div className="auth-orbit-dot"></div>
-                </div>
-                <div className="auth-orbit-track auth-orbit-track-inner">
-                  <div className="auth-orbit-dot"></div>
-                </div>
-              </div>
-              */}
             </div>
 
             <div className="auth-form-panel">

@@ -37,7 +37,6 @@ export function mapInstitutionRowToFeatured(
     slug: String(row.slug ?? "").trim(),
     source: String(row.source ?? "").trim(),
     bodyMainCategory: mainCategory,
-    bodySubCategory: "",
     bodyLocation: location || "Konum bilgisi yok",
   };
 }

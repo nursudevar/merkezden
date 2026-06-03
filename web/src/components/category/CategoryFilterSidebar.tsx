@@ -120,7 +120,6 @@ type CommonField =
 const FEATURE_OPTIONS_VISIBLE_LIMIT = 10;
 const COMMON_GROUP_NAME_KEY = "başlıca özellikler";
 const ALL_DISTRICTS_VALUE = "__all__";
-const ALL_SUBCATEGORY_VALUE = "__all_sub__";
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
 
 function describeSupabaseError(err: unknown): {
@@ -914,9 +913,6 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
     featureGroupsError,
     selectedFeatureOptionsByGroup,
     expandedGroupIds,
-    subcategoryTypes,
-    selectedSubcategoryId,
-    setSelectedSubcategoryId,
     commonFields,
     selectedCommonSingle,
     setSelectedCommonSingle,

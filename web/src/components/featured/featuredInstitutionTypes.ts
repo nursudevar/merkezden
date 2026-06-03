@@ -5,6 +5,5 @@ export type FeaturedInstitution = {
   slug: string;
   source: string;
   bodyMainCategory: string;
-  bodySubCategory: string;
   bodyLocation: string;
 };

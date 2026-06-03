@@ -104,134 +104,6 @@
   background: transparent;
 }
 
-/*
-.auth-orbit {
-  position: relative;
-  width: 280px;
-  height: 280px;
-
-  @media (max-width: 900px) {
-    width: 200px;
-    height: 200px;
-  }
-}
-
-.auth-orbit-circle {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid rgba(109, 93, 252, 0.25);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.auth-orbit-circle-outer {
-  width: 280px;
-  height: 280px;
-  animation: auth-orbit-rotate 24s linear infinite;
-  box-shadow: 0 0 20px rgba(109, 93, 252, 0.15);
-  border-color: rgba(109, 93, 252, 0.3);
-
-  @media (max-width: 900px) {
-    width: 200px;
-    height: 200px;
-  }
-}
-
-.auth-orbit-circle-inner {
-  width: 180px;
-  height: 180px;
-  animation: auth-orbit-rotate 16s linear infinite reverse;
-  border-color: rgba(139, 92, 246, 0.25);
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.12);
-
-  @media (max-width: 900px) {
-    width: 130px;
-    height: 130px;
-  }
-}
-
-.auth-orbit-track {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  border-radius: 50%;
-  animation: auth-orbit-track-rotate 18s linear infinite;
-}
-
-.auth-orbit-track-outer {
-  width: 280px;
-  height: 280px;
-  margin-top: -140px;
-  margin-left: -140px;
-
-  @media (max-width: 900px) {
-    width: 200px;
-    height: 200px;
-    margin-top: -100px;
-    margin-left: -100px;
-  }
-}
-
-.auth-orbit-track-inner {
-  width: 180px;
-  height: 180px;
-  margin-top: -90px;
-  margin-left: -90px;
-  animation-duration: 12s;
-  animation-direction: reverse;
-
-  @media (max-width: 900px) {
-    width: 130px;
-    height: 130px;
-    margin-top: -65px;
-    margin-left: -65px;
-  }
-}
-
-.auth-orbit-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: $purple-main;
-  box-shadow: 0 0 12px rgba(109, 93, 252, 0.5);
-  transform: translate(-50%, -50%) translateX(140px);
-
-  @media (max-width: 900px) {
-    transform: translate(-50%, -50%) translateX(100px);
-  }
-}
-
-.auth-orbit-track-inner .auth-orbit-dot {
-  transform: translate(-50%, -50%) translateX(90px);
-
-  @media (max-width: 900px) {
-    transform: translate(-50%, -50%) translateX(65px);
-  }
-}
-
-@keyframes auth-orbit-rotate {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-
-@keyframes auth-orbit-track-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-*/
-
 .auth-form-panel {
   display: flex;
   align-items: center;
@@ -730,7 +602,6 @@ $signup-layout-tight: 1020px;
   }
 }
 
-// Tablet (901px–1180px): 3 sütun, kutular üstte ve formdan ayrık
 @media (max-width: $signup-layout-compact) and (min-width: #{$signup-layout-stack + 1px}) {
   .signup-layout--with-features {
     column-gap: clamp(24px, 3vw, 36px);
@@ -792,7 +663,6 @@ $signup-layout-tight: 1020px;
   }
 }
 
-// Dar ekran: üstte sol 2 kutu, ortada form, altta sağ 2 kutu
 @media (max-width: $signup-layout-stack) {
   .signup-layout--with-features {
     grid-template-columns: minmax(0, 1fr);
