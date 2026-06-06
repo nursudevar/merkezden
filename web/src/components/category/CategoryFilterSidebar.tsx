@@ -119,6 +119,12 @@ type CommonField =
     };
 
 const FEATURE_OPTIONS_VISIBLE_LIMIT = 10;
+
+function sortCheckboxOptionsByLabel<T>(options: T[], getLabel: (option: T) => string): T[] {
+  return [...options].sort((a, b) =>
+    getLabel(a).localeCompare(getLabel(b), "tr", { sensitivity: "base" }),
+  );
+}
 const COMMON_GROUP_NAME_KEY = "başlıca özellikler";
 const ALL_DISTRICTS_VALUE = "__all__";
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
@@ -157,6 +163,58 @@ function getDisplayFeatureName(name: string): string {
   const key = trimmed.toLocaleLowerCase("tr-TR");
   if (key === "fiyat aralığı") return "Aylık Ortalama Fiyat Aralığı";
   return trimmed;
+}
+
+function normalizeCommonFieldNameKey(name: string): string {
+  return name
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i");
+}
+
+/** Ortalama Sınıf Mevcudu + Aylık Ortalama Fiyat Aralığı → Okul Saatleri'nin hemen altına. */
+function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonField[] {
+  if (fields.length === 0) return fields;
+
+  const isOkulSaatleriField = (field: CommonField) =>
+    normalizeCommonFieldNameKey(field.name) === "okul saatleri";
+
+  const isOrtalamaSinifMevcuduField = (field: CommonField) => {
+    const key = normalizeCommonFieldNameKey(field.name);
+    return key.includes("ortalama sinif mevcudu");
+  };
+
+  const isAylikFiyatAraligiField = (field: CommonField) => {
+    const key = normalizeCommonFieldNameKey(field.name);
+    return (
+      key.includes("aylik ortalama fiyat") ||
+      key.includes("fiyat araligi") ||
+      key.includes("ortalama fiyat araligi")
+    );
+  };
+
+  const okulSaatleriIndex = fields.findIndex(isOkulSaatleriField);
+  if (okulSaatleriIndex === -1) return fields;
+
+  const ortalamaSinifField = fields.find(isOrtalamaSinifMevcuduField);
+  const fiyatAraligiField = fields.find(isAylikFiyatAraligiField);
+  const fieldsToMove = [ortalamaSinifField, fiyatAraligiField].filter(
+    (field): field is CommonField => field != null,
+  );
+  if (fieldsToMove.length === 0) return fields;
+
+  const moveIds = new Set(fieldsToMove.map((field) => field.definitionId));
+  const withoutMoved = fields.filter((field) => !moveIds.has(field.definitionId));
+  const anchorIndex = withoutMoved.findIndex(isOkulSaatleriField);
+  if (anchorIndex === -1) return fields;
+
+  return [
+    ...withoutMoved.slice(0, anchorIndex + 1),
+    ...fieldsToMove,
+    ...withoutMoved.slice(anchorIndex + 1),
+  ];
 }
 
 type UseCategoryFilterSidebarModelArgs = {
@@ -589,7 +647,7 @@ function useCategoryFilterSidebarModel({
         // boolean / text → bu sürümde Başlıca Özellikler bloğunda atla.
       });
 
-      setCommonFields(fields);
+      setCommonFields(reorderCommonFieldsAfterOkulSaatleri(fields));
     })();
 
     return () => {
@@ -1120,10 +1178,11 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
                   const selectedSet =
                     selectedCommonMulti[field.definitionId] ?? new Set<string>();
                   const isExpanded = expandedCommonMultiIds.has(field.definitionId);
+                  const sortedChoices = sortCheckboxOptionsByLabel(field.choices, (c) => c.name);
                   const visibleChoices = isExpanded
-                    ? field.choices
-                    : field.choices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
-                  const hasMore = field.choices.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
+                    ? sortedChoices
+                    : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
+                  const hasMore = sortedChoices.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
                   return (
                     <div
                       className="category-filter-section"
@@ -1165,7 +1224,7 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
                         >
                           {isExpanded
                             ? "Daha Az Göster"
-                            : `Daha Fazla Göster (+${field.choices.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
+                            : `Daha Fazla Göster (+${sortedChoices.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
                         </button>
                       ) : null}
                     </div>
@@ -1187,10 +1246,11 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
                 renderedFeatureGroups.map((group) => {
                   const selectedKeys = selectedFeatureOptionsByGroup[group.id] ?? new Set<string>();
                   const isExpanded = expandedGroupIds.has(group.id);
+                  const sortedOptions = sortCheckboxOptionsByLabel(group.options, (o) => o.label);
                   const optionsToShow = isExpanded
-                    ? group.options
-                    : group.options.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
-                  const hasMore = group.options.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
+                    ? sortedOptions
+                    : sortedOptions.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
+                  const hasMore = sortedOptions.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
 
                   return (
                     <div className="category-filter-section" key={`feature-group-${group.id}`}>
@@ -1229,7 +1289,7 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
                         >
                           {isExpanded
                             ? "Daha Az Göster"
-                            : `Daha Fazla Göster (+${group.options.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
+                            : `Daha Fazla Göster (+${sortedOptions.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
                         </button>
                       ) : null}
                     </div>
