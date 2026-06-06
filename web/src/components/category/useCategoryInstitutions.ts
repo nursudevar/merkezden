@@ -321,6 +321,59 @@ async function resolveInstitutionIdsForBooleanDefinition(
   return out;
 }
 
+async function resolveDefinitionIdForChoiceId(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  choiceId: number,
+): Promise<number | null> {
+  const { data: entryLinks, error: linkErr } = await supabase
+    .from("institution_feature_entry_choices")
+    .select("institution_feature_entry_id")
+    .eq("choice_id", choiceId)
+    .limit(1);
+  if (linkErr) throw linkErr;
+
+  const entryId = Number(
+    (entryLinks?.[0] as { institution_feature_entry_id?: number } | undefined)?.institution_feature_entry_id,
+  );
+  if (Number.isFinite(entryId)) {
+    const { data: entryRow, error: entryErr } = await supabase
+      .from("institution_feature_entries")
+      .select("feature_definition_id")
+      .eq("id", entryId)
+      .maybeSingle();
+    if (entryErr) throw entryErr;
+    const defId = Number((entryRow as { feature_definition_id?: number } | null)?.feature_definition_id);
+    if (Number.isFinite(defId)) return defId;
+  }
+
+  const { data: directRows, error: directErr } = await supabase
+    .from("institution_feature_entries")
+    .select("feature_definition_id")
+    .eq("selected_choice_id", choiceId)
+    .limit(1);
+  if (directErr) throw directErr;
+  const defId = Number(
+    (directRows?.[0] as { feature_definition_id?: number } | undefined)?.feature_definition_id,
+  );
+  return Number.isFinite(defId) ? defId : null;
+}
+
+function parseChoiceKey(key: string): { choiceId: number | null; definitionId: number | null } {
+  const trimmed = String(key ?? "").trim();
+  if (!trimmed.startsWith("choice:")) return { choiceId: null, definitionId: null };
+
+  const parts = trimmed.split(":");
+  const choiceId = Number(parts[1]);
+  const defMarkerIndex = parts.indexOf("def");
+  const definitionId =
+    defMarkerIndex >= 0 ? Number(parts[defMarkerIndex + 1]) : Number.NaN;
+
+  return {
+    choiceId: Number.isFinite(choiceId) ? choiceId : null,
+    definitionId: Number.isFinite(definitionId) ? definitionId : null,
+  };
+}
+
 async function resolveInstitutionIdsForChoiceKey(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   inputTypeByDefId: Map<number, string>,
@@ -332,16 +385,15 @@ async function resolveInstitutionIdsForChoiceKey(
     return resolveInstitutionIdsForBooleanDefinition(supabase, defId);
   }
   if (key.startsWith("choice:")) {
-    const choiceId = Number(key.slice(7));
-    if (!Number.isFinite(choiceId)) return new Set();
-    const { data: ch, error } = await supabase
-      .from("institution_feature_choices")
-      .select("feature_definition_id")
-      .eq("id", choiceId)
-      .maybeSingle();
-    if (error) throw error;
-    const defId = Number((ch as { feature_definition_id: number | null } | null)?.feature_definition_id);
-    if (!Number.isFinite(defId)) return new Set();
+    const { choiceId, definitionId: embeddedDefId } = parseChoiceKey(key);
+    if (choiceId == null) return new Set();
+
+    let defId = embeddedDefId;
+    if (defId == null) {
+      defId = await resolveDefinitionIdForChoiceId(supabase, choiceId);
+    }
+    if (defId == null) return new Set();
+
     const it = String(inputTypeByDefId.get(defId) ?? "").toLowerCase();
     if (it === "multi_select") return resolveInstitutionIdsForMultiSelectChoice(supabase, defId, choiceId);
     return resolveInstitutionIdsForSingleSelectChoice(supabase, defId, choiceId);
@@ -418,12 +470,13 @@ async function resolveInstitutionIdsPriceRangeForDefinitionIds(
     .select("id, feature_definition_id, name")
     .in("feature_definition_id", defIds)
     .eq("is_active", true);
-  if (chErr) throw chErr;
-  for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
-    const cid = Number(c.id);
-    if (!Number.isFinite(cid)) continue;
-    const r = parsePriceRangeFromText(String(c.name ?? ""));
-    if (r) choiceRangeById.set(cid, r);
+  if (!chErr) {
+    for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
+      const cid = Number(c.id);
+      if (!Number.isFinite(cid)) continue;
+      const r = parsePriceRangeFromText(String(c.name ?? ""));
+      if (r) choiceRangeById.set(cid, r);
+    }
   }
 
   const { data: entriesRaw, error: entErr } = await supabase
@@ -541,15 +594,7 @@ export function useCategoryInstitutions(
     return () => window.clearTimeout(timeout);
   }, [rawSearch]);
 
-  const [debouncedSchoolFilters, setDebouncedSchoolFilters] = useState(schoolFilters);
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setDebouncedSchoolFilters(schoolFilters);
-    }, 350);
-    return () => window.clearTimeout(timeout);
-  }, [schoolFilters]);
-
-  const schoolFiltersKey = useMemo(() => JSON.stringify(debouncedSchoolFilters ?? null), [debouncedSchoolFilters]);
+  const schoolFiltersKey = useMemo(() => JSON.stringify(schoolFilters ?? null), [schoolFilters]);
 
   useEffect(() => {
     const targetName = String(categoryName ?? "").trim();
@@ -574,7 +619,7 @@ export function useCategoryInstitutions(
       const idQuerySelect =
         "id, institution_type:institution_types!inner(category:institution_categories!inner(name))";
 
-        const useSchoolPipeline = hasAnySchoolPayloadFilters(debouncedSchoolFilters ?? undefined);
+        const useSchoolPipeline = hasAnySchoolPayloadFilters(schoolFilters ?? undefined);
 
       try {
         if (!useSchoolPipeline) {
@@ -629,7 +674,7 @@ export function useCategoryInstitutions(
           return;
         }
 
-        const payload = debouncedSchoolFilters!;
+        const payload = schoolFilters!;
         let idQuery = supabase
           .from("institutions")
           .select(idQuerySelect)
@@ -797,7 +842,7 @@ export function useCategoryInstitutions(
     return () => {
       cancelled = true;
     };
-    // debouncedSchoolFilters için kararlı JSON anahtarı kullanılıyor.
+    // schoolFilters için kararlı JSON anahtarı kullanılıyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryName, debouncedSearch, district, schoolFiltersKey]);
 

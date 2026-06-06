@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Shapes } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { InstructorProfileRow } from "@/lib/instructorProfileClient";
@@ -36,6 +36,8 @@ type Props = {
   authUserId: string;
   instructorRow: InstructorProfileRow;
   onInstructorRowChange: (row: InstructorProfileRow) => void;
+  splitLayout?: boolean;
+  header?: ReactNode;
 };
 
 const EMPTY_FORM: InstructorFeatureFormState = {
@@ -47,7 +49,13 @@ const EMPTY_FORM: InstructorFeatureFormState = {
   multiSelectValues: {},
 };
 
-export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorRowChange }: Props) {
+export function InstructorFeaturesTab({
+  authUserId,
+  instructorRow,
+  onInstructorRowChange,
+  splitLayout = false,
+  header = null,
+}: Props) {
   const instructorId = Number(instructorRow.id);
   const hasValidInstructorId = Number.isFinite(instructorId) && instructorId > 0;
 
@@ -366,155 +374,189 @@ export function InstructorFeaturesTab({ authUserId, instructorRow, onInstructorR
     );
   }
 
-  return (
-    <>
-    <div className="egitmen-panel-features-content">
-      <div className="egitmen-panel-features-groups">
-        <section className="egitmen-panel-features-section egitmen-panel-features-section--type-picker">
-          <h4 className="egitmen-panel-features-group-title egitmen-panel-features-group-title--academic">
-            <Shapes
-              className="egitmen-panel-features-group-title-icon egitmen-panel-features-group-title-icon--academic"
-              aria-hidden
-            />
-            Kategori
-          </h4>
-          {categories.length === 0 ? (
-            <p className="egitmen-panel-features-empty-text">Aktif kategori bulunamadı.</p>
-          ) : (
-            <div className="egitmen-panel-features-feature-input-wrap">
-              <p className="egitmen-panel-features-feature-name">Kategori</p>
-              <div className="egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown">
+  const selectionListProps = {
+    getDisplayFeatureName: getDisplayInstructorFeatureName,
+    instructorTextFeatureValues: form.textValues,
+    setInstructorTextFeatureValues: setText,
+    instructorNumberFeatureValues: form.numberValues,
+    setInstructorNumberFeatureValues: setNumber,
+    instructorDateFeatureValues: form.dateValues,
+    setInstructorDateFeatureValues: setDate,
+    instructorBooleanFeatureValues: form.booleanValues,
+    setInstructorBooleanFeatureValues: setBoolean,
+    instructorSingleSelectValues: form.singleSelectValues,
+    setInstructorSingleSelectValues: setSingle,
+    instructorMultiSelectValues: form.multiSelectValues,
+    setInstructorMultiSelectValues: setMulti,
+    instructorFeatureChoices: featureChoices,
+    openInstructorSelectId,
+    setOpenInstructorSelectId,
+  };
+
+  const saveButton = (
+    <div className="egitmen-panel-features-actions">
+      <Button
+        type="button"
+        variant="default"
+        className="egitmen-panel-features-save-btn"
+        onClick={() => void handleSave()}
+        disabled={saving}
+      >
+        {saving ? "Kaydediliyor..." : "Kaydet"}
+      </Button>
+    </div>
+  );
+
+  const categorySection = (
+    <section className="egitmen-panel-features-section egitmen-panel-features-section--type-picker">
+      <h4 className="egitmen-panel-features-group-title egitmen-panel-features-group-title--academic">
+        <Shapes
+          className="egitmen-panel-features-group-title-icon egitmen-panel-features-group-title-icon--academic"
+          aria-hidden
+        />
+        Kategori
+      </h4>
+      {categories.length === 0 ? (
+        <p className="egitmen-panel-features-empty-text">Aktif kategori bulunamadı.</p>
+      ) : (
+        <div className="egitmen-panel-features-feature-input-wrap">
+          <p className="egitmen-panel-features-feature-name">Kategori</p>
+          <div className="egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown">
+            <button
+              type="button"
+              className={`egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button ${
+                openCategoryPicker ? "egitmen-panel-features-feature-select--open" : ""
+              }`}
+              onClick={() => setOpenCategoryPicker((prev) => !prev)}
+              aria-haspopup="listbox"
+              aria-expanded={openCategoryPicker}
+            >
+              <span className="egitmen-panel-features-feature-select-label">
+                {categories.find((c) => String(c.id) === categoryId)?.name || "Seçiniz"}
+              </span>
+            </button>
+            {openCategoryPicker ? (
+              <div className="egitmen-panel-features-feature-select-menu" role="listbox">
                 <button
                   type="button"
-                  className={`egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button ${
-                    openCategoryPicker ? "egitmen-panel-features-feature-select--open" : ""
+                  role="option"
+                  className={`egitmen-panel-features-feature-select-option ${
+                    categoryId === "" ? "egitmen-panel-features-feature-select-option--selected" : ""
                   }`}
-                  onClick={() => setOpenCategoryPicker((prev) => !prev)}
-                  aria-haspopup="listbox"
-                  aria-expanded={openCategoryPicker}
+                  onClick={() => {
+                    setCategoryId("");
+                    setOpenCategoryPicker(false);
+                  }}
                 >
-                  <span className="egitmen-panel-features-feature-select-label">
-                    {categories.find((c) => String(c.id) === categoryId)?.name || "Seçiniz"}
-                  </span>
+                  Seçiniz
                 </button>
-                {openCategoryPicker ? (
-                  <div className="egitmen-panel-features-feature-select-menu" role="listbox">
-                    <button
-                      type="button"
-                      role="option"
-                      className={`egitmen-panel-features-feature-select-option ${
-                        categoryId === "" ? "egitmen-panel-features-feature-select-option--selected" : ""
-                      }`}
-                      onClick={() => {
-                        setCategoryId("");
-                        setOpenCategoryPicker(false);
-                      }}
-                    >
-                      Seçiniz
-                    </button>
-                    {categories.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        role="option"
-                        className={`egitmen-panel-features-feature-select-option ${
-                          categoryId === String(c.id)
-                            ? "egitmen-panel-features-feature-select-option--selected"
-                            : ""
-                        }`}
-                        onClick={() => {
-                          setCategoryId(String(c.id));
-                          setOpenCategoryPicker(false);
-                        }}
-                      >
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="option"
+                    className={`egitmen-panel-features-feature-select-option ${
+                      categoryId === String(c.id)
+                        ? "egitmen-panel-features-feature-select-option--selected"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      setCategoryId(String(c.id));
+                      setOpenCategoryPicker(false);
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
               </div>
-            </div>
-          )}
-        </section>
-
-        <InstructorFeatureSelectionGroupList
-          groups={upperGroups}
-          getDisplayFeatureName={getDisplayInstructorFeatureName}
-          instructorTextFeatureValues={form.textValues}
-          setInstructorTextFeatureValues={setText}
-          instructorNumberFeatureValues={form.numberValues}
-          setInstructorNumberFeatureValues={setNumber}
-          instructorDateFeatureValues={form.dateValues}
-          setInstructorDateFeatureValues={setDate}
-          instructorBooleanFeatureValues={form.booleanValues}
-          setInstructorBooleanFeatureValues={setBoolean}
-          instructorSingleSelectValues={form.singleSelectValues}
-          setInstructorSingleSelectValues={setSingle}
-          instructorMultiSelectValues={form.multiSelectValues}
-          setInstructorMultiSelectValues={setMulti}
-          instructorFeatureChoices={featureChoices}
-          openInstructorSelectId={openInstructorSelectId}
-          setOpenInstructorSelectId={setOpenInstructorSelectId}
-        />
-
-        {lowerGroups.length > 0 ? (
-          <InstructorFeatureSelectionGroupList
-            groups={lowerGroups}
-            getDisplayFeatureName={getDisplayInstructorFeatureName}
-            instructorTextFeatureValues={form.textValues}
-            setInstructorTextFeatureValues={setText}
-            instructorNumberFeatureValues={form.numberValues}
-            setInstructorNumberFeatureValues={setNumber}
-            instructorDateFeatureValues={form.dateValues}
-            setInstructorDateFeatureValues={setDate}
-            instructorBooleanFeatureValues={form.booleanValues}
-            setInstructorBooleanFeatureValues={setBoolean}
-            instructorSingleSelectValues={form.singleSelectValues}
-            setInstructorSingleSelectValues={setSingle}
-            instructorMultiSelectValues={form.multiSelectValues}
-            setInstructorMultiSelectValues={setMulti}
-            instructorFeatureChoices={featureChoices}
-            openInstructorSelectId={openInstructorSelectId}
-            setOpenInstructorSelectId={setOpenInstructorSelectId}
-          />
-        ) : null}
-
-        <div className="egitmen-panel-features-actions">
-          <Button
-            type="button"
-            variant="default"
-            className="egitmen-panel-features-save-btn"
-            onClick={() => void handleSave()}
-            disabled={saving}
-          >
-            {saving ? "Kaydediliyor..." : "Kaydet"}
-          </Button>
+            ) : null}
+          </div>
         </div>
+      )}
+    </section>
+  );
+
+  const upperContent = (
+    <div className="egitmen-panel-features-content">
+      <div className="egitmen-panel-features-groups">
+        {categorySection}
+        <InstructorFeatureSelectionGroupList groups={upperGroups} {...selectionListProps} />
+        {!splitLayout || lowerGroups.length === 0 ? saveButton : null}
       </div>
     </div>
+  );
 
-    <SavingOverlay visible={saving} text="Kaydediliyor" />
-
-    {saveToastMessage ? (
-      <div className="panel-features-save-toast-overlay" role="presentation">
-        <div
-          className={`panel-features-save-toast-modal${
-            saveToastMessage.toLocaleLowerCase("tr-TR").includes("hata") ||
-            saveToastMessage.toLocaleLowerCase("tr-TR").includes("lütfen")
-              ? " panel-features-save-toast-modal--error"
-              : ""
-          }`}
-          role="alertdialog"
-          aria-modal="true"
-          aria-live="assertive"
-          aria-describedby="egitmen-features-save-toast-desc"
-        >
-          <p id="egitmen-features-save-toast-desc" className="panel-features-save-toast-text">
-            {saveToastMessage}
-          </p>
+  const lowerContent =
+    lowerGroups.length > 0 ? (
+      <div className="egitmen-panel-features-content">
+        <div className="egitmen-panel-features-groups">
+          <InstructorFeatureSelectionGroupList groups={lowerGroups} {...selectionListProps} />
+          {saveButton}
         </div>
       </div>
-    ) : null}
+    ) : null;
+
+  const overlays = (
+    <>
+      <SavingOverlay visible={saving} text="Kaydediliyor" />
+
+      {saveToastMessage ? (
+        <div className="panel-features-save-toast-overlay" role="presentation">
+          <div
+            className={`panel-features-save-toast-modal${
+              saveToastMessage.toLocaleLowerCase("tr-TR").includes("hata") ||
+              saveToastMessage.toLocaleLowerCase("tr-TR").includes("lütfen")
+                ? " panel-features-save-toast-modal--error"
+                : ""
+            }`}
+            role="alertdialog"
+            aria-modal="true"
+            aria-live="assertive"
+            aria-describedby="egitmen-features-save-toast-desc"
+          >
+            <p id="egitmen-features-save-toast-desc" className="panel-features-save-toast-text">
+              {saveToastMessage}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (splitLayout) {
+    return (
+      <>
+        <div className="egitmen-panel-page-main">
+          <section className="egitmen-panel-main-card" aria-labelledby="instructor-card-title">
+            {header}
+            {upperContent}
+          </section>
+        </div>
+        {lowerContent ? (
+          <div className="egitmen-panel-features-feature-wide">
+            <section className="egitmen-panel-main-card" aria-label="Eğitmen özellikleri (devam)">
+              {lowerContent}
+            </section>
+          </div>
+        ) : null}
+        {overlays}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="egitmen-panel-features-content">
+        <div className="egitmen-panel-features-groups">
+          {categorySection}
+          <InstructorFeatureSelectionGroupList groups={upperGroups} {...selectionListProps} />
+          {lowerContent ? (
+            <InstructorFeatureSelectionGroupList groups={lowerGroups} {...selectionListProps} />
+          ) : null}
+          {saveButton}
+        </div>
+      </div>
+      {overlays}
     </>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { HeaderClientWrapper } from '@/components/layout/header.client';
 import LoginClient from './LoginClient';
+import '@/styles/pages/login.scss';
 
 export default async function LoginPage() {
   noStore();
@@ -16,7 +17,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="page-container">
+    <div className="page-container page-container--login">
       <HeaderClientWrapper />
       <LoginClient />
     </div>

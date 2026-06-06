@@ -620,9 +620,7 @@ export default function SearchResults({
 
               const district = String(row.district ?? "").trim();
               const location = district || "Konum bilgisi yok";
-              const type = String(row.type ?? "").trim();
               const address = String(row.address ?? "").trim();
-              const description = type || address || "Kurum bilgisi";
               const institutionType = row.institution_type as
                 | { name?: string | null; category?: { name?: string | null } | Array<{ name?: string | null }> | null }
                 | Array<{ name?: string | null; category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
@@ -631,6 +629,7 @@ export default function SearchResults({
               const categoryJoin = typeRow?.category;
               const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
               const mainCategory = String(categoryRow?.name ?? "").trim();
+              const description = address || mainCategory;
               const logoValue = typeof row.logo === "string" ? row.logo : null;
               const imageUrl = resolveInstitutionLogoPublicUrl(supabase, logoValue);
 
@@ -867,7 +866,9 @@ export default function SearchResults({
                   <span>{result.location}</span>
                 </div>
                 <h3 className="search-result-name">{result.name}</h3>
-                <p className="search-result-description">{result.description}</p>
+                {result.description ? (
+                  <p className="search-result-description">{result.description}</p>
+                ) : null}
               </div>
             </Link>
             );

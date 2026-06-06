@@ -1,0 +1,23 @@
+.page-container.page-container--login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  background-color: #fafafa;
+  background-image: url("/images/merkezden-lg-light-bg.png");
+  background-repeat: repeat;
+  background-size: auto;
+  background-position: top left;
+
+  .login-page-content {
+    width: 100%;
+    background-color: transparent;
+    background-image: none;
+    min-height: auto;
+  }
+}
+
+body:has(.page-container--login) .footer {
+  margin-top: 0;
+  background: linear-gradient(#2b3442 0%, #1f2733 0% 100%);
+}

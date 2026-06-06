@@ -117,11 +117,9 @@ export default function OkullarPageClient() {
   const [cities, setCities] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
-  const [isSubcategoryMenuOpen, setIsSubcategoryMenuOpen] = useState(false);
   const [isCityMenuOpen, setIsCityMenuOpen] = useState(false);
   const [isDistrictMenuOpen, setIsDistrictMenuOpen] = useState(false);
   const categoryMenuRef = useRef<HTMLDivElement | null>(null);
-  const subcategoryMenuRef = useRef<HTMLDivElement | null>(null);
   const cityMenuRef = useRef<HTMLDivElement | null>(null);
   const districtMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -461,11 +459,6 @@ export default function OkullarPageClient() {
     setIsCategoryMenuOpen(false);
     setPage(1);
   };
-  const handleSubcategoryChange = (value: string) => {
-    setSelectedSubcategoryId(value);
-    setIsSubcategoryMenuOpen(false);
-    setPage(1);
-  };
   const handleCityChange = (value: string) => {
     setSelectedCity(value);
     setIsCityMenuOpen(false);
@@ -482,9 +475,6 @@ export default function OkullarPageClient() {
       if (!categoryMenuRef.current) return;
       if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
         setIsCategoryMenuOpen(false);
-      }
-      if (subcategoryMenuRef.current && !subcategoryMenuRef.current.contains(event.target as Node)) {
-        setIsSubcategoryMenuOpen(false);
       }
       if (cityMenuRef.current && !cityMenuRef.current.contains(event.target as Node)) {
         setIsCityMenuOpen(false);

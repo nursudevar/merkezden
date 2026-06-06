@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 export type HomeMainCategoryCardSubcategory = {
   id: number;
@@ -15,78 +16,172 @@ export type HomeMainCategoryCardData = {
   subcategories: HomeMainCategoryCardSubcategory[];
 };
 
+const VISIBLE_SUBCATEGORY_COUNT = 2;
+
+const SCHOOL_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -1, name: "Anaokul / İlkokul" },
+  { id: -2, name: "Ortaokul / Lise" },
+];
+
+const EXAM_PREP_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -3, name: "YKS / KPSS / ALES" },
+];
+
+const SPORTS_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -4, name: "Tenis / Basketbol" },
+  { id: -5, name: "Yüzme / Futbol" },
+];
+
+const ARTS_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -6, name: "Dans / Tiyatro" },
+  { id: -7, name: "Seramik / Müzik" },
+];
+
+const VOCATIONAL_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -8, name: "Pastacılık / Aşçılık" },
+  { id: -9, name: "Yazılım / Muhasebe" },
+];
+
+const PERSONAL_DEV_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -10, name: "Diksiyon / Yaşam Koçluğu" },
+  { id: -11, name: "Zaman Yönetimi / Meditasyon" },
+];
+
+const LANGUAGE_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -12, name: "İngilizce / Rusça" },
+  { id: -13, name: "Almanca / Fransızca" },
+];
+
+const SPECIAL_ED_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
+  { id: -14, name: "Oyun Terapisi / Disleksi Eğitimi" },
+  { id: -15, name: "Duyu Bütünleme / ABA Terapisi" },
+];
+
+function normalizeMainCategoryKey(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSchoolMainCategory(category: HomeMainCategoryCardData): boolean {
+  const name = category.name.trim().toLocaleLowerCase("tr-TR");
+  const slug = category.slug.trim().toLocaleLowerCase("tr-TR");
+  return name === "okul" || slug === "okul";
+}
+
+function isExamPrepMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return (
+    key.includes("kurs") &&
+    (key.includes("sinav") || key.includes("sinava") || key.includes("hazirlik"))
+  );
+}
+
+function isSportsMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return key.includes("spor");
+}
+
+function isArtsMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return key.includes("sanat");
+}
+
+function isVocationalMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return key.includes("mesleki") && key.includes("egitim");
+}
+
+function isPersonalDevMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return key.includes("kisisel") && key.includes("gelisim");
+}
+
+function isLanguageMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return key.includes("yabanci") && key.includes("dil");
+}
+
+function isSpecialEdMainCategory(category: HomeMainCategoryCardData): boolean {
+  const key = normalizeMainCategoryKey(`${category.name} ${category.slug}`);
+  return key.includes("ozel") && key.includes("egitim");
+}
+
 type HomeMainCategoryCardProps = {
   category: HomeMainCategoryCardData;
   categoryHref: string | null;
   categoryLogoSrc: string | null;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
   onCardClick: () => void;
 };
-
-function checkTitleWrapped(titleEl: HTMLHeadingElement): boolean {
-  const styles = window.getComputedStyle(titleEl);
-  let lineHeight = parseFloat(styles.lineHeight);
-  if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
-    const fontSize = parseFloat(styles.fontSize);
-    lineHeight = Number.isFinite(fontSize) && fontSize > 0 ? fontSize * 1.25 : 1;
-  }
-  const lines = Math.round(titleEl.scrollHeight / lineHeight);
-  return lines > 1;
-}
 
 export function HomeMainCategoryCard({
   category,
   categoryHref,
   categoryLogoSrc,
-  isExpanded,
-  onToggleExpand,
   onCardClick,
 }: HomeMainCategoryCardProps) {
-  const titleRef = useRef<HTMLHeadingElement | null>(null);
-  const [isTitleWrapped, setIsTitleWrapped] = useState(false);
-
   const titleText = category.name.toLocaleUpperCase("tr-TR");
 
-  const sortedSubcategories = useMemo(
-    () =>
-      [...category.subcategories].sort(
-        (a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name, "tr"),
-      ),
-    [category.subcategories],
-  );
+  const isSchoolCategory = isSchoolMainCategory(category);
+  const isExamPrepCategory = isExamPrepMainCategory(category);
+  const isSportsCategory = isSportsMainCategory(category);
+  const isArtsCategory = isArtsMainCategory(category);
+  const isVocationalCategory = isVocationalMainCategory(category);
+  const isPersonalDevCategory = isPersonalDevMainCategory(category);
+  const isLanguageCategory = isLanguageMainCategory(category);
+  const isSpecialEdCategory = isSpecialEdMainCategory(category);
 
-  const collapsedVisibleCount = isTitleWrapped ? 1 : 2;
-  const visibleSubcategories = isExpanded
-    ? sortedSubcategories
-    : sortedSubcategories.slice(0, collapsedVisibleCount);
-  const hasMoreThanVisibleCount = sortedSubcategories.length > collapsedVisibleCount;
-
-  useEffect(() => {
-    const checkTitleWrap = () => {
-      const el = titleRef.current;
-      if (!el) return;
-      setIsTitleWrapped(checkTitleWrapped(el));
-    };
-
-    checkTitleWrap();
-    const rafId = window.requestAnimationFrame(checkTitleWrap);
-
-    window.addEventListener("resize", checkTitleWrap);
-
-    const el = titleRef.current;
-    let resizeObserver: ResizeObserver | null = null;
-    if (el && typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(checkTitleWrap);
-      resizeObserver.observe(el);
+  const visibleSubcategories = useMemo(() => {
+    if (isSchoolCategory) {
+      return SCHOOL_HOME_DISPLAY_ITEMS;
     }
+    if (isExamPrepCategory) {
+      return EXAM_PREP_HOME_DISPLAY_ITEMS;
+    }
+    if (isSportsCategory) {
+      return SPORTS_HOME_DISPLAY_ITEMS;
+    }
+    if (isArtsCategory) {
+      return ARTS_HOME_DISPLAY_ITEMS;
+    }
+    if (isVocationalCategory) {
+      return VOCATIONAL_HOME_DISPLAY_ITEMS;
+    }
+    if (isPersonalDevCategory) {
+      return PERSONAL_DEV_HOME_DISPLAY_ITEMS;
+    }
+    if (isLanguageCategory) {
+      return LANGUAGE_HOME_DISPLAY_ITEMS;
+    }
+    if (isSpecialEdCategory) {
+      return SPECIAL_ED_HOME_DISPLAY_ITEMS;
+    }
+    return [...category.subcategories]
+      .sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name, "tr"))
+      .slice(0, VISIBLE_SUBCATEGORY_COUNT);
+  }, [
+    category.subcategories,
+    isArtsCategory,
+    isExamPrepCategory,
+    isLanguageCategory,
+    isPersonalDevCategory,
+    isSchoolCategory,
+    isSpecialEdCategory,
+    isSportsCategory,
+    isVocationalCategory,
+  ]);
 
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", checkTitleWrap);
-      resizeObserver?.disconnect();
-    };
-  }, [titleText]);
+  const showMoreLink = Boolean(categoryHref) && (
+    isExamPrepCategory
+      ? category.subcategories.length > EXAM_PREP_HOME_DISPLAY_ITEMS.length
+      : category.subcategories.length > VISIBLE_SUBCATEGORY_COUNT
+  );
 
   return (
     <article
@@ -104,13 +199,11 @@ export function HomeMainCategoryCard({
           />
         </span>
       ) : null}
-      <h3 ref={titleRef} className="home-main-category-card-title">
-        {titleText}
-      </h3>
-      {category.subcategories.length > 0 ? (
+      <h3 className="home-main-category-card-title">{titleText}</h3>
+      {visibleSubcategories.length > 0 ? (
         <div
-          className={`home-main-category-card-list-wrap ${isExpanded ? "is-expanded" : ""} ${
-            !isExpanded && isTitleWrapped ? "is-single-item" : ""
+          className={`home-main-category-card-list-wrap${
+            visibleSubcategories.length === 1 ? " home-main-category-card-list-wrap--single" : ""
           }`}
         >
           <ul className="home-main-category-card-list">
@@ -122,18 +215,16 @@ export function HomeMainCategoryCard({
           </ul>
         </div>
       ) : null}
-      {hasMoreThanVisibleCount ? (
-        <button
-          type="button"
+      {showMoreLink ? (
+        <Link
+          href={categoryHref!}
           className="home-main-category-card-more-btn"
           onClick={(e) => {
-            e.preventDefault();
             e.stopPropagation();
-            onToggleExpand();
           }}
         >
-          {isExpanded ? "Daha Az Göster" : "Daha Fazla Gör"}
-        </button>
+          Daha Fazla Gör
+        </Link>
       ) : null}
     </article>
   );

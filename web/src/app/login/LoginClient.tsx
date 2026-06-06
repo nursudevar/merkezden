@@ -50,7 +50,7 @@ function LoginPageContent() {
     : null;
 
   return (
-    <div className="page-container">
+    <div className="login-page-content">
       <div className="auth-content-wrapper">
         <div className="auth-main-container">
           <div className="auth-layout">
@@ -169,7 +169,7 @@ function LoginPageContent() {
 export default function LoginClient() {
   return (
     <Suspense fallback={
-      <div className="page-container">
+      <div className="login-page-content">
         <div className="auth-content-wrapper">
           <div className="auth-main-container">
             <div className="auth-layout">

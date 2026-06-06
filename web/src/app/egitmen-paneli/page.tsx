@@ -621,6 +621,24 @@ export default function InstructorPanelPage() {
           </div>
         </aside>
 
+        {isFeatures && instructorRow && user?.id ? (
+          <InstructorFeaturesTab
+            splitLayout
+            header={
+              <div className="egitmen-panel-main-card-header">
+                <div className="egitmen-panel-main-card-header-left">
+                  <Shapes className="egitmen-panel-main-card-icon" aria-hidden />
+                  <h2 id="instructor-card-title" className="egitmen-panel-main-card-title">
+                    {activeTabConfig.label}
+                  </h2>
+                </div>
+              </div>
+            }
+            authUserId={user.id}
+            instructorRow={instructorRow}
+            onInstructorRowChange={setInstructorRow}
+          />
+        ) : (
         <div className="egitmen-panel-page-main">
           <section
             className={
@@ -1190,13 +1208,7 @@ export default function InstructorPanelPage() {
                 ) : null}
 
                 {isFeatures ? (
-                  instructorRow && user?.id ? (
-                    <InstructorFeaturesTab
-                      authUserId={user.id}
-                      instructorRow={instructorRow}
-                      onInstructorRowChange={setInstructorRow}
-                    />
-                  ) : profileLoading ? (
+                  profileLoading ? (
                     <p className="egitmen-panel-form-loading">Eğitmen bilgileri yükleniyor…</p>
                   ) : (
                     <p className="egitmen-panel-form-error" role="alert">
@@ -1242,6 +1254,7 @@ export default function InstructorPanelPage() {
             )}
           </section>
         </div>
+        )}
       </div>
 
       {showProfileSuccessPopup ? (

@@ -3,12 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Button, Card, CardContent } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui";
 import {
   MapPin,
   GraduationCap,
   CheckCircle2,
-  Star,
   Image as ImageIcon,
   BookOpen,
   Phone,
@@ -126,9 +125,6 @@ type AcademicFeatureLine = {
 };
 
 type DetailBranch = "meb" | "auto" | "default";
-
-const FALLBACK_LOGO_SVG =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' rx='28' fill='%23F1EEFF'/%3E%3Cpath d='M95 144c0-7.18 5.82-13 13-13h104c7.18 0 13 5.82 13 13v66c0 7.18-5.82 13-13 13H108c-7.18 0-13-5.82-13-13v-66z' fill='%236D5DFC' fill-opacity='.12'/%3E%3Cpath d='M120 176l22-22 20 20 36-36 22 22v38H120v-22z' fill='%236D5DFC' fill-opacity='.45'/%3E%3Ccircle cx='136' cy='156' r='10' fill='%236D5DFC' fill-opacity='.55'/%3E%3C/svg%3E";
 
 function serializeSupabaseError(err: unknown) {
   if (!err || typeof err !== "object") return null;

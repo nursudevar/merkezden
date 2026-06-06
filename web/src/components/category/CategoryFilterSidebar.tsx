@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -362,7 +363,7 @@ function useCategoryFilterSidebarModel({
                 const labelKey = label.toLocaleLowerCase("tr-TR");
                 if (seenLabels.has(labelKey)) return;
                 seenLabels.add(labelKey);
-                options.push({ key: `choice:${choice.id}`, label });
+                options.push({ key: `choice:${choice.id}:def:${def.id}`, label });
               });
               return;
             }
@@ -690,6 +691,9 @@ function useCategoryFilterSidebarModel({
     });
   };
 
+  const onSchoolFilterPayloadChangeRef = useRef(onSchoolFilterPayloadChange);
+  onSchoolFilterPayloadChangeRef.current = onSchoolFilterPayloadChange;
+
   const commonSingleKey = useMemo(() => JSON.stringify(selectedCommonSingle), [selectedCommonSingle]);
   const commonRangeKey = useMemo(() => JSON.stringify(selectedCommonRange), [selectedCommonRange]);
 
@@ -714,7 +718,8 @@ function useCategoryFilterSidebarModel({
   }, [selectedFeatureOptionsByGroup]);
 
   useEffect(() => {
-    if (!onSchoolFilterPayloadChange || !hasDynamicFeatureMode) return;
+    const emitPayload = onSchoolFilterPayloadChangeRef.current;
+    if (!emitPayload || !hasDynamicFeatureMode) return;
 
     const rawSub = selectedSubcategoryId.trim();
     const institutionTypeId =
@@ -756,7 +761,7 @@ function useCategoryFilterSidebarModel({
       groupSelections[id] = keys;
     }
 
-    onSchoolFilterPayloadChange({
+    emitPayload({
       institutionTypeId,
       commonSingle,
       commonMulti,
@@ -768,7 +773,6 @@ function useCategoryFilterSidebarModel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     hasDynamicFeatureMode,
-    onSchoolFilterPayloadChange,
     selectedSubcategoryId,
     commonSingleKey,
     commonMultiKey,

@@ -10,7 +10,7 @@ export type SchoolCategoryFilterPayload = {
   commonMulti: Record<number, string[]>;
   /** Başlıca Özellikler number (aralık): definitionId → min/max string (boş = sınır yok). */
   commonRange: Record<number, { min: string; max: string }>;
-  /** Kategori-spesifik gruplar: groupId → seçilen anahtarlar (`choice:123` | `def:456`). */
+  /** Kategori-spesifik gruplar: groupId → seçilen anahtarlar (`choice:123:def:456` | `def:456`). */
   groupSelections: Record<number, string[]>;
 };
 

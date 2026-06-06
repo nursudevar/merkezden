@@ -345,7 +345,6 @@ export default function Home() {
       });
     });
   }, []);
-  const [expandedCategoryCards, setExpandedCategoryCards] = useState<Record<string, boolean>>({});
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<Set<"face" | "online" | "individual" | "group">>(
     () => new Set()
   );
@@ -905,6 +904,41 @@ export default function Home() {
                 </div>
               </div>
               <Separator />
+              <div className="price-filter">
+                <div className="price-filter-title">
+                  <Image 
+                    src="/images/banknotes.svg" 
+                    alt="Fiyat" 
+                    width={20} 
+                    height={20}
+                  />
+                  <span>Fiyat Filtresi</span>
+                </div>
+                <div className="price-filter-inputs">
+                  <Input
+                    type="number"
+                    value={priceRange[0]}
+                    onChange={(e) => handlePriceInput(0, e.target.value)}
+                    className="price-filter-input"
+                  />
+                  <span className="price-filter-separator">-</span>
+                  <Input
+                    type="number"
+                    value={priceRange[1]}
+                    onChange={(e) => handlePriceInput(1, e.target.value)}
+                    className="price-filter-input"
+                  />
+                </div>
+                <div className="price-filter-slider">
+                  <Slider value={priceRange} onValueChange={handleSliderPriceChange} min={PRICE_FILTER_MIN} max={PRICE_FILTER_MAX} step={500} />
+                </div>
+                <div className="price-filter-labels">
+                  <span>0₺</span>
+                  <span>50K₺</span>
+                  <span>100K₺</span>
+                </div>
+              </div>
+              <Separator />
               <div className="filter-section">
                 <div className="filter-section-title">
                   <Image 
@@ -1017,41 +1051,6 @@ export default function Home() {
                       </button>
                     );
                   })}
-                </div>
-              </div>
-              <Separator />
-              <div className="price-filter">
-                <div className="price-filter-title">
-                  <Image 
-                    src="/images/banknotes.svg" 
-                    alt="Fiyat" 
-                    width={20} 
-                    height={20}
-                  />
-                  <span>Fiyat Filtresi</span>
-                </div>
-                <div className="price-filter-inputs">
-                  <Input
-                    type="number"
-                    value={priceRange[0]}
-                    onChange={(e) => handlePriceInput(0, e.target.value)}
-                    className="price-filter-input"
-                  />
-                  <span className="price-filter-separator">-</span>
-                  <Input
-                    type="number"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceInput(1, e.target.value)}
-                    className="price-filter-input"
-                  />
-                </div>
-                <div className="price-filter-slider">
-                  <Slider value={priceRange} onValueChange={handleSliderPriceChange} min={PRICE_FILTER_MIN} max={PRICE_FILTER_MAX} step={500} />
-                </div>
-                <div className="price-filter-labels">
-                  <span>0₺</span>
-                  <span>50K₺</span>
-                  <span>100K₺</span>
                 </div>
               </div>
               <Separator />
@@ -1308,21 +1307,12 @@ export default function Home() {
                 {mainCategoryCards.map((category) => {
                   const categoryHref = getCategoryHref(category.name, category.slug);
                   const categoryLogoSrc = getMainCategoryLogoSrc(category.name, category.slug);
-                  const cardKey = String(category.id);
-                  const isExpanded = Boolean(expandedCategoryCards[cardKey]);
                   return (
                     <HomeMainCategoryCard
                       key={category.id}
                       category={category}
                       categoryHref={categoryHref}
                       categoryLogoSrc={categoryLogoSrc}
-                      isExpanded={isExpanded}
-                      onToggleExpand={() => {
-                        setExpandedCategoryCards((prev) => ({
-                          ...prev,
-                          [cardKey]: !isExpanded,
-                        }));
-                      }}
                       onCardClick={() => {
                         if (!categoryHref) return;
                         router.push(categoryHref);
