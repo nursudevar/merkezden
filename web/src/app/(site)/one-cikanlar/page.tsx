@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import LoginModal from "@/components/LoginModal";
+import { AppNoticeBar } from "@/components/AppNoticeBar";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
+import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import type { FeaturedInstitution } from "@/components/featured/featuredInstitutionTypes";
 import {
   FEATURED_PAGE_CATEGORY_SECTIONS,
@@ -29,6 +30,7 @@ export default function OneCikanlarPage() {
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
   const [brokenFeaturedImageIds, setBrokenFeaturedImageIds] = useState<Set<number>>(() => new Set());
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   const [allInstitutions, setAllInstitutions] = useState<FeaturedInstitution[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -139,7 +141,7 @@ export default function OneCikanlarPage() {
         return;
       }
       if (!favoritesEnabled) {
-        window.alert("Favoriler yalnızca bireysel hesaplarda kullanılabilir.");
+        setNoticeMessage(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
         return;
       }
       if (favoriteActionLoadingIds.has(institutionId)) return;
@@ -250,6 +252,11 @@ export default function OneCikanlarPage() {
       </div>
 
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <AppNoticeBar
+        message={noticeMessage}
+        onDismiss={() => setNoticeMessage(null)}
+        variant={noticeMessage === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+      />
     </div>
   );
 }

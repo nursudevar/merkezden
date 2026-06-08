@@ -68,6 +68,9 @@ export class FavoritesError extends Error {
   }
 }
 
+export const NOT_INDIVIDUAL_FAVORITES_MESSAGE =
+  'Favoriler yalnızca bireysel hesaplarda kullanılabilir.';
+
 function logSupabaseError(scope: string, error: unknown) {
   if (error == null) {
     console.error(scope, error);
@@ -172,7 +175,7 @@ async function getCurrentAppUserRequired(): Promise<AppUserRow> {
 async function getCurrentIndividualProfileIdRequired(): Promise<number> {
   const appUser = await getCurrentAppUserRequired();
   if (appUser.user_type !== 'individual') {
-    throw new FavoritesError('NOT_INDIVIDUAL', 'Favoriler yalnızca bireysel hesaplarda kullanılabilir.');
+    throw new FavoritesError('NOT_INDIVIDUAL', NOT_INDIVIDUAL_FAVORITES_MESSAGE);
   }
 
   const supabase = createSupabaseBrowserClient();

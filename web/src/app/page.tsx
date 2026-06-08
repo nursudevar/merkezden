@@ -16,10 +16,11 @@ import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
+import { AppNoticeBar } from "@/components/AppNoticeBar";
 import MekoChromaVideo from "@/components/MekoChromaVideo";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
-import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from "@/lib/favorites/favoritesClient";
+import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { getCategoryHref } from "@/lib/categoryHelpers";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
@@ -316,7 +317,7 @@ export default function Home() {
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
-  const [, setFavoritesError] = useState<string | null>(null);
+  const [favoritesError, setFavoritesError] = useState<string | null>(null);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
   const districts = ANKARA_DISTRICTS;
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
@@ -472,7 +473,7 @@ export default function Home() {
       return;
     }
     if (!favoritesEnabled) {
-      window.alert("Favoriler yalnızca bireysel hesaplarda kullanılabilir.");
+      setFavoritesError(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
       return;
     }
     if (favoriteActionLoadingIds.has(institutionId)) return;
@@ -511,7 +512,6 @@ export default function Home() {
           ? err.message
           : "Favori işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.";
       setFavoritesError(msg);
-      window.alert(msg);
     } finally {
       setFavoriteActionLoadingIds((prev) => {
         const next = new Set(prev);
@@ -1324,7 +1324,13 @@ export default function Home() {
             </div>
           </section>
 
-          <HomeFeaturedInstitutionsList />
+          <HomeFeaturedInstitutionsList
+            onToggleFavorite={handleFavoriteToggle}
+            favoriteIds={favoriteIds}
+            favoritesEnabled={favoritesEnabled && !favoritesLoading}
+            favoriteActionLoadingIds={favoriteActionLoadingIds}
+            isAuthenticated={Boolean(user)}
+          />
 
           <HomeFeaturedInstitutionsMarquee
             onToggleFavorite={handleFavoriteToggle}
@@ -1606,6 +1612,11 @@ export default function Home() {
         </div>
       </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <AppNoticeBar
+        message={favoritesError}
+        onDismiss={() => setFavoritesError(null)}
+        variant={favoritesError === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+      />
 
       {showInstitutionMapModal ? (
         <div className="institution-map-modal-root" role="presentation">

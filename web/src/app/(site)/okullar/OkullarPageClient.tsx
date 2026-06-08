@@ -7,7 +7,8 @@ import { motion } from 'framer-motion';
 import { Heart, Phone, Search, X } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import LoginModal from '@/components/LoginModal';
-import { FavoritesError, getMyFavoriteInstitutionIds, toggleFavorite } from '@/lib/favorites/favoritesClient';
+import { AppNoticeBar } from '@/components/AppNoticeBar';
+import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from '@/lib/favorites/favoritesClient';
 import { getInstitutionDetailHref } from '@/lib/institutionHelpers';
 import { resolveUserTypeFromUsersClient } from '@/lib/auth/authBrowserClient';
 
@@ -105,6 +106,7 @@ export default function OkullarPageClient() {
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
@@ -376,7 +378,7 @@ export default function OkullarPageClient() {
       return;
     }
     if (!favoritesEnabled) {
-      window.alert('Favoriler yalnızca bireysel hesaplarda kullanılabilir.');
+      setNoticeMessage(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
       return;
     }
     if (favoritesLoading || favoriteActionLoadingIds.has(institutionId)) return;
@@ -840,6 +842,11 @@ export default function OkullarPageClient() {
         </div>
       </main>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <AppNoticeBar
+        message={noticeMessage}
+        onDismiss={() => setNoticeMessage(null)}
+        variant={noticeMessage === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? 'warning' : 'error'}
+      />
     </div>
   );
 }

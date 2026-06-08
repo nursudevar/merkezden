@@ -1,0 +1,114 @@
+@import '../colors';
+@import '../mixins';
+
+.app-notice-bar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  width: min(720px, calc(100vw - 32px));
+  pointer-events: none;
+
+  @media (max-width: 640px) {
+    top: 12px;
+    width: calc(100vw - 24px);
+  }
+}
+
+.app-notice-bar-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba($purple-primary, 0.22);
+  background: linear-gradient(135deg, rgba($purple-primary, 0.12) 0%, rgba($purple-main, 0.08) 100%);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  color: $text-zinc-800;
+  pointer-events: auto;
+  animation: app-notice-bar-enter 0.25s ease-out;
+}
+
+.app-notice-bar-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: $purple-primary;
+}
+
+.app-notice-bar-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  line-height: 1.5;
+}
+
+.app-notice-bar-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -4px -4px 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: $text-zinc-500;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    background: rgba($purple-primary, 0.08);
+    color: $text-zinc-800;
+  }
+}
+
+.app-notice-bar--warning {
+  .app-notice-bar-inner {
+    border-color: rgba($orange-primary, 0.35);
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    color: #9a3412;
+  }
+
+  .app-notice-bar-icon {
+    color: $orange-primary;
+  }
+
+  .app-notice-bar-close:hover {
+    background: rgba($orange-primary, 0.12);
+  }
+}
+
+.app-notice-bar--error {
+  .app-notice-bar-inner {
+    border-color: #fca5a5;
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .app-notice-bar-icon {
+    color: #dc2626;
+  }
+
+  .app-notice-bar-close:hover {
+    background: rgba(220, 38, 38, 0.08);
+  }
+}
+
+@keyframes app-notice-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

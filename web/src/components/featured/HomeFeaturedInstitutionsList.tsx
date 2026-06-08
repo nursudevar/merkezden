@@ -2,18 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import {
-  FeaturedInstitutionListCard,
-  type FeaturedInstitutionListItem,
-} from "./FeaturedInstitutionListCard";
+import type { FeaturedInstitution } from "./featuredInstitutionTypes";
+import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
 import { fetchHomeFeaturedPinnedRows } from "./homeFeaturedPinned";
-import { mapInstitutionRowToListItem } from "./mapInstitutionRowToListItem";
+import { mapInstitutionRowToFeatured } from "./mapInstitutionRowToFeatured";
 
 const LIST_SIZE = 25;
 const FETCH_LIMIT = 300;
 
 const INSTITUTION_SELECT =
-  "id, slug, source, institution_name, district, logo";
+  "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))";
 
 function shuffleInstitutions<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -24,8 +22,20 @@ function shuffleInstitutions<T>(items: T[]): T[] {
   return shuffled;
 }
 
-export function HomeFeaturedInstitutionsList() {
-  const [institutions, setInstitutions] = useState<FeaturedInstitutionListItem[]>([]);
+export function HomeFeaturedInstitutionsList({
+  onToggleFavorite,
+  favoriteIds,
+  favoritesEnabled,
+  favoriteActionLoadingIds,
+  isAuthenticated,
+}: {
+  onToggleFavorite: (institutionId: number, e: React.MouseEvent) => void;
+  favoriteIds: Set<number>;
+  favoritesEnabled: boolean;
+  favoriteActionLoadingIds: Set<number>;
+  isAuthenticated: boolean;
+}) {
+  const [institutions, setInstitutions] = useState<FeaturedInstitution[]>([]);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
@@ -45,11 +55,11 @@ export function HomeFeaturedInstitutionsList() {
 
       if (cancelled) return;
 
-      const pinned: FeaturedInstitutionListItem[] = [];
+      const pinned: FeaturedInstitution[] = [];
       const pinnedIds = new Set<number>();
 
       for (const row of pinnedRows) {
-        const item = mapInstitutionRowToListItem(supabase, row);
+        const item = mapInstitutionRowToFeatured(supabase, row);
         if (item && !pinnedIds.has(item.id)) {
           pinned.push(item);
           pinnedIds.add(item.id);
@@ -62,8 +72,8 @@ export function HomeFeaturedInstitutionsList() {
       }
 
       const mapped = (listResult.data as Array<Record<string, unknown>>)
-        .map((row) => mapInstitutionRowToListItem(supabase, row))
-        .filter((item): item is FeaturedInstitutionListItem => item !== null);
+        .map((row) => mapInstitutionRowToFeatured(supabase, row))
+        .filter((item): item is FeaturedInstitution => item !== null);
 
       if (mapped.length === 0) {
         if (pinned.length > 0) setInstitutions(pinned);
@@ -98,11 +108,19 @@ export function HomeFeaturedInstitutionsList() {
         {institutions.map((institution) => {
           const canRenderImage =
             Boolean(institution.imageUrl) && !brokenImageIds.has(institution.id);
+          const isFavorite = favoriteIds.has(institution.id);
+          const isActionLoading = favoriteActionLoadingIds.has(institution.id);
+
           return (
-            <FeaturedInstitutionListCard
+            <FeaturedInstitutionCardLink
               key={institution.id}
               institution={institution}
+              isFavorite={isFavorite}
+              isActionLoading={isActionLoading}
+              favoritesEnabled={favoritesEnabled}
+              isAuthenticated={isAuthenticated}
               canRenderImage={canRenderImage}
+              onToggleFavorite={onToggleFavorite}
               onImageError={() =>
                 setBrokenImageIds((prev) => {
                   const next = new Set(prev);
