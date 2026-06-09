@@ -39,6 +39,14 @@
   }
 }
 
+.blog-listing-loading {
+  margin: 0 0 24px;
+  text-align: center;
+  color: $text-zinc-600;
+  font-size: $text-sm;
+  line-height: 1.5;
+}
+
 .blog-listing-title {
   font-size: 28px;
   font-weight: $font-bold;

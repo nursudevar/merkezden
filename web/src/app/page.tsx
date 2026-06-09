@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
 import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Building2, Landmark, UserRound, PawPrint, SlidersHorizontal, ImageOff } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import BlogCard from "@/components/BlogCard";
+import { HomeBlogSection } from "@/components/blog/HomeBlogSection";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
 import { HomeFeaturedInstitutionsMarquee } from "@/components/featured/HomeFeaturedInstitutionsMarquee";
 import { HomeIndividualInstructorsSection } from "@/components/featured/HomeIndividualInstructorsSection";
@@ -186,45 +186,6 @@ function findSubcategoryForDisplayName(
 
   return null;
 }
-
-const blogPosts = [
-  {
-    title: "Etkili Zaman Yönetimi İçin 5 İpucu",
-    excerpt: "Günlük verimliliğinizi artırmak ve hedeflerinize daha hızlı ulaşmak için bu teknikleri uygulayın.",
-    imageUrl: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&h=450&fit=crop",
-    slug: "etkili-zaman-yonetimi-ipuclari",
-  },
-  {
-    title: "Liderlik Becerilerinizi Nasıl Geliştirirsiniz?",
-    excerpt: "İyi bir lider olmak doğuştan gelen bir yetenek değil, öğrenilebilen bir beceridir. İşte başlangıç noktaları.",
-    imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=450&fit=crop",
-    slug: "liderlik-becerileri-gelistirme",
-  },
-  {
-    title: "Çocuğunuz İçin Doğru Okul Nasıl Seçilir?",
-    excerpt: "Okul seçimi yaparken dikkat edilmesi gereken kriterler, eğitim kalitesi ve çocuğunuzun gelişimi için önemli faktörler...",
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=450&fit=crop",
-    slug: "dogru-okul-secimi",
-  },
-  {
-    title: "LGS'ye Hazırlık: Başarı İçin 10 Altın Kural",
-    excerpt: "LGS sınavına etkili hazırlık stratejileri, zaman yönetimi ve motivasyon teknikleri ile başarıya giden yol...",
-    imageUrl: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=450&fit=crop",
-    slug: "lgs-hazirlik-altin-kurallar",
-  },
-  {
-    title: "Çocuklarda Spor Alışkanlığı Nasıl Kazandırılır?",
-    excerpt: "Çocuğunuzun yaşına uygun spor dalları, fiziksel gelişim ve sosyal beceriler için sporun önemi...",
-    imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop",
-    slug: "cocuklarda-spor-aliskanligi",
-  },
-  {
-    title: "Sanatın Çocuk Gelişimine Etkisi",
-    excerpt: "Resim, müzik ve dans gibi sanat dallarının çocukların yaratıcılık, motor beceri ve duygusal gelişimine katkıları...",
-    imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=450&fit=crop",
-    slug: "sanatin-cocuk-gelisimine-etkisi",
-  },
-];
 
 type CategoryRow = {
   id: number;
@@ -1623,30 +1584,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="blog-section">
-            <div className="blog-section-header">
-              <h2 className="blog-section-title">Blog Yazıları</h2>
-              <p className="blog-section-subtitle">Uzmanlardan öneriler ve faydalı bilgiler</p>
-            </div>
-            <div className="blog-section-grid">
-              {blogPosts.slice(0, 5).map((post, index) => (
-                <BlogCard
-                  key={index}
-                  title={post.title}
-                  excerpt={post.excerpt}
-                  imageUrl={post.imageUrl}
-                  slug={post.slug}
-                />
-              ))}
-            </div>
-            <div className="blog-section-button-wrapper">
-              <Link href="/blog">
-                <button className="blog-section-button">
-                  Daha fazlasını gör
-                </button>
-              </Link>
-            </div>
-          </section>
+          <HomeBlogSection />
 
         </div>
       </div>

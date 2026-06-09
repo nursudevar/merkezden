@@ -61,6 +61,7 @@ const INSTITUTIONS_PAGE_SIZE = 10;
 const INDIVIDUAL_USERS_PAGE_SIZE = 10;
 const INSTRUCTORS_PAGE_SIZE = 10;
 const ANNOUNCEMENTS_PAGE_SIZE = 10;
+const BLOG_POSTS_PAGE_SIZE = 10;
 
 type IndividualUserListRow = {
   id: number;
@@ -123,11 +124,40 @@ type AnnouncementEditForm = {
   isActive: boolean;
 };
 
+type BlogPostListRow = {
+  id: string;
+  title: string | null;
+  content: string | null;
+  author_full_name: string | null;
+  author_type: string | null;
+  category_id: number | null;
+  cover_image_url: string | null;
+  cover_image_path: string | null;
+  is_published: boolean | null;
+  published_at: string | null;
+  created_at: string | null;
+  category?: { name?: string | null } | Array<{ name?: string | null }> | null;
+};
+
+type BlogCategoryOption = {
+  id: number;
+  name: string;
+};
+
+type BlogPostEditForm = {
+  title: string;
+  content: string;
+  categoryId: string;
+  coverImageUrl: string;
+  isPublished: boolean;
+};
+
 type DeleteConfirmTarget =
   | { type: "individual-user"; id: number }
   | { type: "institution"; id: number }
   | { type: "instructor"; id: number }
-  | { type: "announcement"; id: string };
+  | { type: "announcement"; id: string }
+  | { type: "blog-post"; id: string };
 
 async function fetchAdminRoleIdentifiers(
   supabase: ReturnType<typeof createSupabaseBrowserClient>
@@ -196,6 +226,23 @@ function buildAnnouncementContentPreview(content: string | null, maxLength = 80)
   if (!normalized) return "-";
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, maxLength)}…`;
+}
+
+function resolveBlogCategoryName(
+  category: BlogPostListRow["category"]
+): string {
+  const categoryRow = Array.isArray(category) ? category[0] : category;
+  return String(categoryRow?.name ?? "").trim() || "-";
+}
+
+function resolveBlogAuthorTypeLabel(authorType: string | null): string {
+  if (authorType === "instructor") return "Eğitmen";
+  if (authorType === "individual") return "Bireysel Kullanıcı";
+  return "-";
+}
+
+function formatBlogPostAdminDate(publishedAt: string | null, createdAt: string | null): string {
+  return formatAnnouncementDate(publishedAt ?? createdAt);
 }
 
 function resolveInstructorFullName(row: InstructorListRow): string {
@@ -320,6 +367,27 @@ export default function AdminPageClient() {
   });
   const [announcementEditSaving, setAnnouncementEditSaving] = useState(false);
   const [announcementEditError, setAnnouncementEditError] = useState<string | null>(null);
+  const [blogPostsList, setBlogPostsList] = useState<BlogPostListRow[]>([]);
+  const [blogPostsListLoading, setBlogPostsListLoading] = useState(false);
+  const [blogPostsListError, setBlogPostsListError] = useState<string | null>(null);
+  const [blogPostsPage, setBlogPostsPage] = useState(1);
+  const [blogPostsPageInput, setBlogPostsPageInput] = useState("1");
+  const [blogPostsSearchInput, setBlogPostsSearchInput] = useState("");
+  const [blogPostsSearchQuery, setBlogPostsSearchQuery] = useState("");
+  const [blogPostsTotalCount, setBlogPostsTotalCount] = useState(0);
+  const [blogPostsReloadKey, setBlogPostsReloadKey] = useState(0);
+  const [deletingBlogPostId, setDeletingBlogPostId] = useState<string | null>(null);
+  const [editingBlogPost, setEditingBlogPost] = useState<BlogPostListRow | null>(null);
+  const [blogPostEditForm, setBlogPostEditForm] = useState<BlogPostEditForm>({
+    title: "",
+    content: "",
+    categoryId: "",
+    coverImageUrl: "",
+    isPublished: true,
+  });
+  const [blogPostEditSaving, setBlogPostEditSaving] = useState(false);
+  const [blogPostEditError, setBlogPostEditError] = useState<string | null>(null);
+  const [blogCategoryOptions, setBlogCategoryOptions] = useState<BlogCategoryOption[]>([]);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<DeleteConfirmTarget | null>(null);
   const [deleteConfirmError, setDeleteConfirmError] = useState<string | null>(null);
 
@@ -737,6 +805,107 @@ export default function AdminPageClient() {
     };
   }, [activeTab, announcementsPage, announcementsReloadKey, announcementsSearchQuery]);
 
+  useEffect(() => {
+    if (activeTab !== "blog-posts") return;
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    const loadBlogPostsPage = async () => {
+      setBlogPostsListLoading(true);
+      setBlogPostsListError(null);
+
+      const from = (blogPostsPage - 1) * BLOG_POSTS_PAGE_SIZE;
+      const to = from + BLOG_POSTS_PAGE_SIZE - 1;
+
+      let blogQuery = supabase
+        .from("blog_posts")
+        .select(
+          "id, title, content, author_full_name, author_type, category_id, cover_image_url, cover_image_path, is_published, published_at, created_at, category:institution_categories(name)",
+          { count: "exact" }
+        )
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+
+      const normalizedSearch = blogPostsSearchQuery.trim();
+      if (normalizedSearch.length > 0) {
+        blogQuery = blogQuery.or(
+          `title.ilike.%${normalizedSearch}%,author_full_name.ilike.%${normalizedSearch}%,content.ilike.%${normalizedSearch}%`
+        );
+      }
+
+      const { data, count, error } = await blogQuery.range(from, to);
+
+      if (cancelled) return;
+
+      if (error) {
+        setBlogPostsList([]);
+        setBlogPostsTotalCount(0);
+        setBlogPostsListError("Blog yazıları listesi alınamadı.");
+        setBlogPostsListLoading(false);
+        return;
+      }
+
+      setBlogPostsList((data ?? []) as BlogPostListRow[]);
+      setBlogPostsTotalCount(count ?? 0);
+      setBlogPostsListLoading(false);
+    };
+
+    void loadBlogPostsPage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, blogPostsPage, blogPostsReloadKey, blogPostsSearchQuery]);
+
+  useEffect(() => {
+    if (activeTab !== "blog-posts") return;
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("institution_categories")
+        .select("id, name, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        const fallback = await supabase
+          .from("institution_categories")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("id", { ascending: true });
+
+        if (cancelled) return;
+
+        setBlogCategoryOptions(
+          ((fallback.data ?? []) as Array<{ id: number; name: string | null }>)
+            .map((row) => ({
+              id: row.id,
+              name: String(row.name ?? "").trim(),
+            }))
+            .filter((row) => row.name.length > 0)
+        );
+        return;
+      }
+
+      setBlogCategoryOptions(
+        ((data ?? []) as Array<{ id: number; name: string | null }>)
+          .map((row) => ({
+            id: row.id,
+            name: String(row.name ?? "").trim(),
+          }))
+          .filter((row) => row.name.length > 0)
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, blogPostsReloadKey]);
+
   const institutionsPageCount = Math.max(1, Math.ceil(institutionsTotalCount / INSTITUTIONS_PAGE_SIZE));
   const institutionsVisibleRangeStart = institutionsTotalCount === 0 ? 0 : (institutionsPage - 1) * INSTITUTIONS_PAGE_SIZE + 1;
   const institutionsVisibleRangeEnd = Math.min(
@@ -778,6 +947,14 @@ export default function AdminPageClient() {
     announcementsTotalCount
   );
 
+  const blogPostsPageCount = Math.max(1, Math.ceil(blogPostsTotalCount / BLOG_POSTS_PAGE_SIZE));
+  const blogPostsVisibleRangeStart =
+    blogPostsTotalCount === 0 ? 0 : (blogPostsPage - 1) * BLOG_POSTS_PAGE_SIZE + 1;
+  const blogPostsVisibleRangeEnd = Math.min(
+    blogPostsPage * BLOG_POSTS_PAGE_SIZE,
+    blogPostsTotalCount
+  );
+
   useEffect(() => {
     setInstitutionsPageInput(String(institutionsPage));
   }, [institutionsPage]);
@@ -793,6 +970,10 @@ export default function AdminPageClient() {
   useEffect(() => {
     setAnnouncementsPageInput(String(announcementsPage));
   }, [announcementsPage]);
+
+  useEffect(() => {
+    setBlogPostsPageInput(String(blogPostsPage));
+  }, [blogPostsPage]);
 
   const handleGoToInstitutionsPage = () => {
     const parsed = Number.parseInt(institutionsPageInput, 10);
@@ -932,6 +1113,92 @@ export default function AdminPageClient() {
   const handleAnnouncementSearch = () => {
     setAnnouncementsPage(1);
     setAnnouncementsSearchQuery(announcementsSearchInput.trim());
+  };
+
+  const handleGoToBlogPostsPage = () => {
+    const parsed = Number.parseInt(blogPostsPageInput, 10);
+    if (!Number.isFinite(parsed)) {
+      setBlogPostsPageInput(String(blogPostsPage));
+      return;
+    }
+    const targetPage = Math.min(Math.max(parsed, 1), blogPostsPageCount);
+    setBlogPostsPage(targetPage);
+  };
+
+  const handleBlogPostsSearch = () => {
+    setBlogPostsPage(1);
+    setBlogPostsSearchQuery(blogPostsSearchInput.trim());
+  };
+
+  const handleOpenBlogPostEdit = (row: BlogPostListRow) => {
+    setEditingBlogPost(row);
+    setBlogPostEditForm({
+      title: String(row.title ?? "").trim(),
+      content: String(row.content ?? "").trim(),
+      categoryId: row.category_id != null ? String(row.category_id) : "",
+      coverImageUrl: String(row.cover_image_url ?? "").trim(),
+      isPublished: row.is_published !== false,
+    });
+    setBlogPostEditError(null);
+  };
+
+  const handleCloseBlogPostEdit = () => {
+    if (blogPostEditSaving) return;
+    setEditingBlogPost(null);
+    setBlogPostEditError(null);
+  };
+
+  const handleSaveBlogPostEdit = async () => {
+    if (!editingBlogPost) return;
+
+    const title = blogPostEditForm.title.trim();
+    const content = blogPostEditForm.content.trim();
+    const categoryId = blogPostEditForm.categoryId.trim();
+
+    if (!title) {
+      setBlogPostEditError("Başlık zorunludur.");
+      return;
+    }
+    if (!content) {
+      setBlogPostEditError("İçerik zorunludur.");
+      return;
+    }
+    if (!categoryId) {
+      setBlogPostEditError("Kategori seçimi zorunludur.");
+      return;
+    }
+
+    setBlogPostEditSaving(true);
+    setBlogPostEditError(null);
+    const supabase = createSupabaseBrowserClient();
+
+    try {
+      const { error } = await supabase
+        .from("blog_posts")
+        .update({
+          title,
+          content,
+          category_id: Number.parseInt(categoryId, 10),
+          cover_image_url: blogPostEditForm.coverImageUrl.trim() || null,
+          is_published: blogPostEditForm.isPublished,
+        })
+        .eq("id", editingBlogPost.id);
+
+      if (error) {
+        setBlogPostEditError("Blog yazısı güncellenemedi.");
+        return;
+      }
+
+      setEditingBlogPost(null);
+      setBlogPostsReloadKey((prev) => prev + 1);
+    } finally {
+      setBlogPostEditSaving(false);
+    }
+  };
+
+  const handleRequestDeleteBlogPost = (blogPostId: string) => {
+    setDeleteConfirmError(null);
+    setDeleteConfirmTarget({ type: "blog-post", id: blogPostId });
   };
 
   const handleOpenAnnouncementEdit = (row: AnnouncementListRow) => {
@@ -1089,7 +1356,8 @@ export default function AdminPageClient() {
       deletingIndividualUserId !== null ||
       deletingInstitutionId !== null ||
       deletingInstructorId !== null ||
-      deletingAnnouncementId !== null
+      deletingAnnouncementId !== null ||
+      deletingBlogPostId !== null
     ) {
       return;
     }
@@ -1200,6 +1468,33 @@ export default function AdminPageClient() {
       return;
     }
 
+    if (deleteConfirmTarget.type === "blog-post") {
+      const blogPostId = deleteConfirmTarget.id;
+      const supabase = createSupabaseBrowserClient();
+      setDeletingBlogPostId(blogPostId);
+      setDeleteConfirmError(null);
+      try {
+        const { error } = await supabase.from("blog_posts").delete().eq("id", blogPostId);
+        if (error) {
+          setDeleteConfirmError("Blog yazısı silinirken bir hata oluştu.");
+          return;
+        }
+
+        const nextTotal = Math.max(0, blogPostsTotalCount - 1);
+        setBlogPostsTotalCount(nextTotal);
+        if (blogPostsPage > 1 && (blogPostsPage - 1) * BLOG_POSTS_PAGE_SIZE >= nextTotal) {
+          setBlogPostsPage((prev) => Math.max(1, prev - 1));
+        } else {
+          setBlogPostsReloadKey((prev) => prev + 1);
+        }
+        setDeleteConfirmTarget(null);
+        setDeleteConfirmError(null);
+      } finally {
+        setDeletingBlogPostId(null);
+      }
+      return;
+    }
+
     const institutionId = deleteConfirmTarget.id;
     const supabase = createSupabaseBrowserClient();
     setDeletingInstitutionId(institutionId);
@@ -1276,6 +1571,18 @@ export default function AdminPageClient() {
     }));
   }, [announcementsList]);
 
+  const blogPostsRows = useMemo(() => {
+    return blogPostsList.map((row) => ({
+      id: row.id,
+      title: String(row.title ?? "").trim() || "-",
+      authorName: String(row.author_full_name ?? "").trim() || "-",
+      authorType: row.author_type,
+      authorTypeLabel: resolveBlogAuthorTypeLabel(row.author_type),
+      publishedDate: formatBlogPostAdminDate(row.published_at, row.created_at),
+      categoryName: resolveBlogCategoryName(row.category),
+    }));
+  }, [blogPostsList]);
+
   const deleteConfirmModal = useMemo(() => {
     if (!deleteConfirmTarget) return null;
 
@@ -1306,6 +1613,15 @@ export default function AdminPageClient() {
       };
     }
 
+    if (deleteConfirmTarget.type === "blog-post") {
+      return {
+        title: "Blog Yazısını Sil",
+        message: "Bu blog yazısını silmek istediğinize emin misiniz?",
+        confirmLabel: "Sil",
+        loading: deletingBlogPostId === deleteConfirmTarget.id,
+      };
+    }
+
     return {
       title: "Kurumu Sil",
       message: "Bu kurumu silmek istediğinize emin misiniz?",
@@ -1318,6 +1634,7 @@ export default function AdminPageClient() {
     deletingInstitutionId,
     deletingInstructorId,
     deletingAnnouncementId,
+    deletingBlogPostId,
   ]);
 
   const activeTabTitle =
@@ -2495,6 +2812,328 @@ export default function AdminPageClient() {
             </div>
           ) : null}
 
+          {activeTab === "blog-posts" ? (
+            <Card className="admin-main-card">
+              <CardContent className="admin-main-card-content admin-main-card-content--blog-posts">
+                <div className="admin-main-card-header admin-main-card-header--blog-posts">
+                  <div className="admin-blog-posts-header-left">
+                    <h1 className="admin-main-card-title">Blog Yazıları</h1>
+                    <span className="admin-blog-posts-total-badge">
+                      {`${blogPostsTotalCount.toLocaleString("tr-TR")} TOPLAM`}
+                    </span>
+                  </div>
+                  <div className="admin-blog-posts-header-actions">
+                    <div className="admin-blog-posts-header-search">
+                      <input
+                        type="search"
+                        className="admin-blog-posts-page-search-input"
+                        value={blogPostsSearchInput}
+                        onChange={(event) => setBlogPostsSearchInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") handleBlogPostsSearch();
+                        }}
+                        placeholder="Blog yazısı ara..."
+                        aria-label="Blog yazısı ara"
+                      />
+                      <button
+                        type="button"
+                        className="admin-blog-posts-page-jump-btn"
+                        onClick={handleBlogPostsSearch}
+                      >
+                        Ara
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {blogPostsListLoading ? (
+                  <div className="admin-blog-posts-empty">Yükleniyor...</div>
+                ) : blogPostsListError ? (
+                  <div className="admin-blog-posts-empty">{blogPostsListError}</div>
+                ) : blogPostsRows.length === 0 ? (
+                  <div className="admin-blog-posts-empty">Blog yazısı bulunamadı.</div>
+                ) : (
+                  <>
+                    <div className="admin-blog-posts-table-wrap">
+                      <table className="admin-blog-posts-table">
+                        <colgroup>
+                          <col className="admin-blog-posts-col-title" />
+                          <col className="admin-blog-posts-col-author" />
+                          <col className="admin-blog-posts-col-type" />
+                          <col className="admin-blog-posts-col-date" />
+                          <col className="admin-blog-posts-col-category" />
+                          <col className="admin-blog-posts-col-action" />
+                          <col className="admin-blog-posts-col-action" />
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            <th>Blog Yazısı Adı</th>
+                            <th>Yayınlayan Adı</th>
+                            <th>Yayınlayanın Üyelik Tipi</th>
+                            <th>Yayınlanma Tarihi</th>
+                            <th>Kategorisi</th>
+                            <th>Düzenleme</th>
+                            <th>Silme</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {blogPostsRows.map((row) => (
+                            <tr key={row.id}>
+                              <td>
+                                <span className="admin-blog-posts-table-clip" title={row.title}>
+                                  {row.title}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="admin-blog-posts-table-clip" title={row.authorName}>
+                                  {row.authorName}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  className={`admin-blog-posts-type-badge${
+                                    row.authorType === "individual"
+                                      ? " admin-blog-posts-type-badge--individual"
+                                      : row.authorType === "instructor"
+                                        ? " admin-blog-posts-type-badge--instructor"
+                                        : ""
+                                  }`}
+                                  title={row.authorTypeLabel}
+                                >
+                                  {row.authorTypeLabel}
+                                </span>
+                              </td>
+                              <td>{row.publishedDate}</td>
+                              <td className="admin-blog-posts-table-category-cell">
+                                <span
+                                  className="admin-blog-posts-category-badge"
+                                  title={
+                                    row.categoryName !== "-" ? row.categoryName : undefined
+                                  }
+                                >
+                                  {row.categoryName}
+                                </span>
+                              </td>
+                              <td className="admin-blog-posts-table-action-cell">
+                                <button
+                                  type="button"
+                                  className="admin-blog-posts-action-btn"
+                                  aria-label="Blog yazısını düzenle"
+                                  onClick={() => {
+                                    const source = blogPostsList.find((item) => item.id === row.id);
+                                    if (source) handleOpenBlogPostEdit(source);
+                                  }}
+                                >
+                                  <PencilLine className="admin-blog-posts-action-icon" aria-hidden />
+                                </button>
+                              </td>
+                              <td className="admin-blog-posts-table-action-cell">
+                                <button
+                                  type="button"
+                                  className="admin-blog-posts-action-btn admin-blog-posts-action-btn--danger"
+                                  aria-label="Blog yazısını sil"
+                                  onClick={() => handleRequestDeleteBlogPost(row.id)}
+                                  disabled={deletingBlogPostId === row.id}
+                                >
+                                  <Trash2 className="admin-blog-posts-action-icon" aria-hidden />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="admin-blog-posts-pagination">
+                      <p className="admin-blog-posts-pagination-info">
+                        {`${blogPostsVisibleRangeStart} - ${blogPostsVisibleRangeEnd} / ${blogPostsTotalCount} blog yazısı gösteriliyor`}
+                      </p>
+                      <div className="admin-blog-posts-pagination-controls">
+                        <button
+                          type="button"
+                          className="admin-blog-posts-page-btn"
+                          disabled={blogPostsPage <= 1}
+                          onClick={() => setBlogPostsPage((prev) => Math.max(1, prev - 1))}
+                        >
+                          ‹
+                        </button>
+                        <span className="admin-blog-posts-page-indicator">
+                          {blogPostsPage} / {blogPostsPageCount}
+                        </span>
+                        <button
+                          type="button"
+                          className="admin-blog-posts-page-btn"
+                          disabled={blogPostsPage >= blogPostsPageCount}
+                          onClick={() =>
+                            setBlogPostsPage((prev) => Math.min(blogPostsPageCount, prev + 1))
+                          }
+                        >
+                          ›
+                        </button>
+                        <div className="admin-blog-posts-page-jump">
+                          <span className="admin-blog-posts-page-jump-label">Sayfaya git</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={blogPostsPageCount}
+                            className="admin-blog-posts-page-jump-input"
+                            value={blogPostsPageInput}
+                            onChange={(event) => setBlogPostsPageInput(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                handleGoToBlogPostsPage();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="admin-blog-posts-page-jump-btn"
+                            onClick={handleGoToBlogPostsPage}
+                          >
+                            Git
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {editingBlogPost ? (
+            <div
+              className="admin-blog-posts-modal-overlay"
+              role="presentation"
+              onPointerDown={onBackdropPointerDown}
+              onClick={getBackdropClickHandler(handleCloseBlogPostEdit)}
+            >
+              <div
+                className="admin-blog-posts-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-blog-posts-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="admin-blog-posts-modal-header">
+                  <h2 id="admin-blog-posts-modal-title" className="admin-blog-posts-modal-title">
+                    Blog Yazısı Düzenle
+                  </h2>
+                  <button
+                    type="button"
+                    className="admin-blog-posts-modal-close-btn"
+                    onClick={handleCloseBlogPostEdit}
+                    disabled={blogPostEditSaving}
+                    aria-label="Kapat"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <form
+                  className="admin-blog-posts-modal-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleSaveBlogPostEdit();
+                  }}
+                >
+                  <label className="admin-blog-posts-modal-field">
+                    <span>Başlık</span>
+                    <input
+                      type="text"
+                      value={blogPostEditForm.title}
+                      onChange={(event) =>
+                        setBlogPostEditForm((prev) => ({
+                          ...prev,
+                          title: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-blog-posts-modal-field">
+                    <span>İçerik</span>
+                    <textarea
+                      rows={5}
+                      value={blogPostEditForm.content}
+                      onChange={(event) =>
+                        setBlogPostEditForm((prev) => ({
+                          ...prev,
+                          content: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-blog-posts-modal-field">
+                    <span>Kategori</span>
+                    <select
+                      value={blogPostEditForm.categoryId}
+                      onChange={(event) =>
+                        setBlogPostEditForm((prev) => ({
+                          ...prev,
+                          categoryId: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Kategori seçin</option>
+                      {blogCategoryOptions.map((option) => (
+                        <option key={option.id} value={String(option.id)}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-blog-posts-modal-field">
+                    <span>Kapak Görseli URL</span>
+                    <input
+                      type="url"
+                      value={blogPostEditForm.coverImageUrl}
+                      onChange={(event) =>
+                        setBlogPostEditForm((prev) => ({
+                          ...prev,
+                          coverImageUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://"
+                    />
+                  </label>
+                  <label className="admin-blog-posts-modal-field admin-blog-posts-modal-field--checkbox">
+                    <input
+                      type="checkbox"
+                      checked={blogPostEditForm.isPublished}
+                      onChange={(event) =>
+                        setBlogPostEditForm((prev) => ({
+                          ...prev,
+                          isPublished: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Yayında</span>
+                  </label>
+                  {blogPostEditError ? (
+                    <p className="admin-blog-posts-modal-error">{blogPostEditError}</p>
+                  ) : null}
+                  <div className="admin-blog-posts-modal-actions">
+                    <button
+                      type="button"
+                      className="admin-blog-posts-modal-cancel-btn"
+                      onClick={handleCloseBlogPostEdit}
+                      disabled={blogPostEditSaving}
+                    >
+                      İptal
+                    </button>
+                    <button
+                      type="submit"
+                      className="admin-blog-posts-modal-save-btn"
+                      disabled={blogPostEditSaving}
+                    >
+                      {blogPostEditSaving ? "Kaydediliyor..." : "Kaydet"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) : null}
+
           {activeTab === "settings" ? <ChangePasswordCard /> : null}
 
           {activeTab !== "overview" &&
@@ -2502,6 +3141,7 @@ export default function AdminPageClient() {
           activeTab !== "users" &&
           activeTab !== "instructors" &&
           activeTab !== "announcements" &&
+          activeTab !== "blog-posts" &&
           activeTab !== "settings" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content">

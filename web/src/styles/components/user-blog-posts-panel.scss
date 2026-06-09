@@ -1,0 +1,39 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.user-blog-posts-panel {
+  background-color: $bg-white;
+  @include rounded-24;
+  @include shadow-md;
+  border: 1px solid $border-light;
+  overflow: hidden;
+}
+
+.user-blog-posts-panel--embedded {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.user-blog-posts-message {
+  margin: 0 0 16px;
+  font-size: $text-sm;
+  line-height: 1.5;
+
+  &--success {
+    color: #15803d;
+  }
+
+  &--error {
+    color: $red-error;
+  }
+}
+
+select.panel-institution-form-input.user-blog-category-select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+@import '../pages/panel.scss';

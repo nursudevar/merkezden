@@ -3108,6 +3108,14 @@ a.search-result-card {
   text-align: center;
 }
 
+.blog-section-loading {
+  margin: 0;
+  text-align: center;
+  color: $text-zinc-600;
+  font-size: $text-sm;
+  line-height: 1.5;
+}
+
 .blog-section-title {
   font-size: 24px;
   font-weight: $font-bold;

@@ -6,18 +6,75 @@ import Image from "next/image";
 import { Grid3x3, List } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import { fetchPublishedBlogPosts } from "@/lib/blog/blogClient";
+import {
+  mapMockPostToDisplay,
+  mapPublishedPostToDisplay,
+  mergeDisplayBlogPosts,
+  type DisplayBlogPost,
+} from "@/lib/blog/blogDisplay";
 import { allBlogPosts } from "@/lib/data/blog";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
 
-const allCategories = ["Hepsi", ...Array.from(new Set(allBlogPosts.map((post) => post.category)))];
+const mockDisplayPosts = allBlogPosts.map(mapMockPostToDisplay);
+
+function toListingPost(post: DisplayBlogPost): ListingPost {
+  return {
+    title: post.title,
+    excerpt: post.excerpt,
+    coverImage: post.imageUrl,
+    slug: post.slug,
+    category: post.categoryName,
+    author: post.authorName,
+    date: post.publishedDate,
+  };
+}
 
 function BlogPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [displayPosts, setDisplayPosts] = useState<DisplayBlogPost[]>(() =>
+    mergeDisplayBlogPosts([], mockDisplayPosts)
+  );
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("Hepsi");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const realRows = await fetchPublishedBlogPosts();
+        if (cancelled) return;
+        const realPosts = realRows.map(mapPublishedPostToDisplay);
+        setDisplayPosts(mergeDisplayBlogPosts(realPosts, mockDisplayPosts));
+        setLoadError(false);
+      } catch {
+        if (!cancelled) {
+          setDisplayPosts(mergeDisplayBlogPosts([], mockDisplayPosts));
+          setLoadError(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const allCategories = useMemo(() => {
+    const names = new Set<string>();
+    for (const post of displayPosts) {
+      if (post.categoryName) names.add(post.categoryName);
+    }
+    return ["Hepsi", ...Array.from(names)];
+  }, [displayPosts]);
 
   useEffect(() => {
     const categoryParam = searchParams.get("category");
@@ -35,7 +92,7 @@ function BlogPageContent() {
         setViewMode(savedView);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, allCategories]);
 
   const updateURL = (category: string, view: "grid" | "list") => {
     const params = new URLSearchParams();
@@ -62,19 +119,26 @@ function BlogPageContent() {
 
   const filteredPosts = useMemo(() => {
     if (selectedCategory === "Hepsi") {
-      return allBlogPosts;
+      return displayPosts;
     }
-    return allBlogPosts.filter((post) => post.category === selectedCategory);
-  }, [selectedCategory]);
+    return displayPosts.filter((post) => post.categoryName === selectedCategory);
+  }, [displayPosts, selectedCategory]);
 
   const featuredPost = useMemo(() => {
-    const featured = filteredPosts.find((post) => post.featured);
-    return featured || filteredPosts[0];
+    const realFeatured = filteredPosts.find((post) => !post.isMock);
+    if (realFeatured) return toListingPost(realFeatured);
+    const mockFeatured = filteredPosts.find((post) => post.featured);
+    if (mockFeatured) return toListingPost(mockFeatured);
+    return filteredPosts[0] ? toListingPost(filteredPosts[0]) : null;
   }, [filteredPosts]);
 
   const remainingPosts = useMemo(() => {
-    if (!featuredPost) return filteredPosts;
-    return filteredPosts.filter((post) => post.slug !== featuredPost.slug);
+    if (!featuredPost) {
+      return filteredPosts.map(toListingPost);
+    }
+    return filteredPosts
+      .filter((post) => post.slug !== featuredPost.slug)
+      .map(toListingPost);
   }, [filteredPosts, featuredPost]);
 
   return (
@@ -96,6 +160,13 @@ function BlogPageContent() {
             onCategoryChange={handleCategoryChange}
           />
 
+          {loading ? (
+            <p className="blog-listing-loading">Blog yazıları yükleniyor…</p>
+          ) : null}
+          {loadError ? (
+            <p className="blog-listing-loading">Güncel yazılar yüklenemedi. Örnek içerikler gösteriliyor.</p>
+          ) : null}
+
           {featuredPost && (
             <div className="blog-featured-section">
               <FeaturedPost
@@ -104,7 +175,7 @@ function BlogPageContent() {
                 imageUrl={featuredPost.coverImage}
                 slug={featuredPost.slug}
                 category={featuredPost.category}
-                author={featuredPost.authorName}
+                author={featuredPost.author}
                 date={featuredPost.date}
               />
             </div>
@@ -269,16 +340,18 @@ function ViewToggle({ view, onViewChange }: ViewToggleProps) {
   );
 }
 
-type Post = {
+type ListingPost = {
   title: string;
   excerpt: string;
   coverImage: string;
   slug: string;
   category?: string;
+  author?: string;
+  date?: string;
 };
 
 type PostGridProps = {
-  posts: Post[];
+  posts: ListingPost[];
 };
 
 function PostGrid({ posts }: PostGridProps) {
@@ -306,7 +379,7 @@ function PostGrid({ posts }: PostGridProps) {
 }
 
 type PostListProps = {
-  posts: Post[];
+  posts: ListingPost[];
 };
 
 function PostList({ posts }: PostListProps) {
@@ -339,10 +412,10 @@ function PostList({ posts }: PostListProps) {
               )}
               <h3 className="blog-list-item-title">{post.title}</h3>
               <p className="blog-list-item-excerpt">{post.excerpt}</p>
-              {(post as any).author || (post as any).date ? (
+              {post.author || post.date ? (
                 <div className="blog-list-item-meta">
-                  {(post as any).author && <span className="blog-list-item-author">{(post as any).author}</span>}
-                  {(post as any).date && <span className="blog-list-item-date">{(post as any).date}</span>}
+                  {post.author ? <span className="blog-list-item-author">{post.author}</span> : null}
+                  {post.date ? <span className="blog-list-item-date">{post.date}</span> : null}
                 </div>
               ) : null}
             </div>

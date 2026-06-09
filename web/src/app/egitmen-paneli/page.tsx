@@ -39,6 +39,7 @@ import {
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
+import { UserBlogPostsPanel } from "@/components/blog/UserBlogPostsPanel";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { Button, Input } from "@/components/ui";
 import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
@@ -55,6 +56,7 @@ type InstructorPanelTabId =
   | "features"
   | "media"
   | "announcements"
+  | "my-blogs"
   | "settings";
 
 const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
@@ -63,6 +65,7 @@ const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
   { id: "features", label: "Eğitmen Özellikleri" },
   { id: "media", label: "Fotoğraflar / CV" },
   { id: "announcements", label: "Duyurular" },
+  { id: "my-blogs", label: "Blog Yazılarım" },
   { id: "settings", label: "Ayarlar" },
 ];
 
@@ -526,6 +529,7 @@ export default function InstructorPanelPage() {
     features: <Shapes className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     media: <Images className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     announcements: <Megaphone className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
+    "my-blogs": <FileText className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     settings: <Settings className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
   };
 
@@ -579,6 +583,7 @@ export default function InstructorPanelPage() {
   const isFeatures = activeTab === "features";
   const isMedia = activeTab === "media";
   const isAnnouncements = activeTab === "announcements";
+  const isMyBlogs = activeTab === "my-blogs";
   const isSettings = activeTab === "settings";
 
   return (
@@ -801,7 +806,7 @@ export default function InstructorPanelPage() {
               </>
             ) : (
               <>
-                {!isAnnouncements ? (
+                {!isAnnouncements && !isMyBlogs ? (
                 <div className="egitmen-panel-main-card-header">
                   <div className="egitmen-panel-main-card-header-left">
                     {isProfile ? <User className="egitmen-panel-main-card-icon" aria-hidden /> : null}
@@ -1249,6 +1254,15 @@ export default function InstructorPanelPage() {
                   <div className="egitmen-panel-tab-content">
                     <ChangePasswordCard className="change-password-card--embedded" />
                   </div>
+                ) : null}
+
+                {isMyBlogs && user?.id ? (
+                  <UserBlogPostsPanel
+                    embedded
+                    authorType="instructor"
+                    authorAuthId={user.id}
+                    authorFullName={instructorName}
+                  />
                 ) : null}
               </>
             )}

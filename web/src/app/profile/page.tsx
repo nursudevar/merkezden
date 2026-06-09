@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X } from 'lucide-react';
+import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X, FileText } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveInstitutionLogoPublicUrl } from '@/lib/institutionLogoUrl';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -10,6 +10,7 @@ import { HeaderClientWrapper } from '@/components/layout/header.client';
 import { ChangePasswordCard } from '@/components/settings/ChangePasswordCard';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { FavoritesError, getMyFavoriteInstitutions, removeFavorite, type FavoriteInstitution } from '@/lib/favorites/favoritesClient';
+import { UserBlogPostsPanel } from '@/components/blog/UserBlogPostsPanel';
 import '@/styles/main.scss';
 import '@/styles/pages/profile.scss';
 
@@ -34,21 +35,44 @@ interface IndividualProfile {
   birth_date: string | null;
 }
 
-type ProfileSectionId = 'profile-info' | 'favorites' | 'settings';
+type ProfileSectionId = 'profile-info' | 'favorites' | 'my-blogs' | 'settings';
 
 function resolveProfileSectionFromHash(hash: string): ProfileSectionId {
   if (hash === 'favorites') return 'favorites';
+  if (hash === 'my-blogs') return 'my-blogs';
   if (hash === 'settings') return 'settings';
   return 'profile-info';
+}
+
+function resolveIndividualAuthorFullName(
+  user: SupabaseUser,
+  profile: IndividualProfile | null,
+  usersRow: UsersRow | null
+): string {
+  const profileName = [profile?.name, profile?.surname]
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+    .join(' ');
+  if (profileName) return profileName;
+
+  const usersName = [usersRow?.first_name, usersRow?.last_name]
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+    .join(' ');
+  if (usersName) return usersName;
+
+  return user.email?.split('@')[0] || 'Kullanıcı';
 }
 
 function ProfileSidebar({
   user,
   profile,
+  usersRow,
   activeSection,
 }: {
   user: SupabaseUser;
   profile: IndividualProfile | null;
+  usersRow: UsersRow | null;
   activeSection: ProfileSectionId;
 }) {
 
@@ -59,9 +83,8 @@ function ProfileSidebar({
     window.location.href = '/';
   };
 
-  const fullName = profile?.name && profile?.surname
-    ? `${profile.name} ${profile.surname}`
-    : user.email?.split('@')[0] || 'Kullanıcı';
+  const fullName = resolveIndividualAuthorFullName(user, profile, usersRow);
+  const showMyBlogsTab = usersRow?.user_type === 'individual';
 
   return (
     <aside className="profile-sidebar">
@@ -88,6 +111,15 @@ function ProfileSidebar({
             <Heart className="profile-sidebar-nav-icon" />
             <span>Favorilerim</span>
           </a>
+          {showMyBlogsTab ? (
+            <a
+              href="#my-blogs"
+              className={`profile-sidebar-nav-item ${activeSection === 'my-blogs' ? 'profile-sidebar-nav-item--active' : ''}`}
+            >
+              <FileText className="profile-sidebar-nav-icon" />
+              <span>Blog Yazılarım</span>
+            </a>
+          ) : null}
           <a 
             href="#settings" 
             className={`profile-sidebar-nav-item ${activeSection === 'settings' ? 'profile-sidebar-nav-item--active' : ''}`}
@@ -661,7 +693,7 @@ export default function ProfilePage() {
     <div className="profile-page">
       <HeaderClientWrapper />
       <div className="profile-page-container">
-        <ProfileSidebar user={user} profile={profile} activeSection={activeSection} />
+        <ProfileSidebar user={user} profile={profile} usersRow={usersRow} activeSection={activeSection} />
         <div className="profile-page-main">
           {activeSection === 'profile-info' ? (
             <div id="profile-info">
@@ -676,6 +708,15 @@ export default function ProfilePage() {
           {activeSection === 'favorites' ? (
             <div id="favorites">
               <FavoritesSection />
+            </div>
+          ) : null}
+          {activeSection === 'my-blogs' && usersRow?.user_type === 'individual' ? (
+            <div id="my-blogs">
+              <UserBlogPostsPanel
+                authorType="individual"
+                authorAuthId={user.id}
+                authorFullName={resolveIndividualAuthorFullName(user, profile, usersRow)}
+              />
             </div>
           ) : null}
           {activeSection === 'settings' ? (
