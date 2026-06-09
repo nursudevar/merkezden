@@ -1,0 +1,117 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.app-modal-content {
+  background-color: $bg-white;
+  @include rounded-2xl;
+  @include shadow-lg;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.app-modal-title {
+  margin: 0;
+  padding: 24px 24px 0;
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+  line-height: 1.3;
+}
+
+.app-modal-body {
+  padding: 16px 24px 0;
+}
+
+.app-modal-message {
+  margin: 0;
+  font-size: $text-base;
+  color: $text-zinc-600;
+  line-height: 1.5;
+}
+
+.app-modal-error {
+  margin: 12px 0 0;
+  font-size: $text-sm;
+  color: $red-error;
+  line-height: 1.45;
+}
+
+.app-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px 24px;
+  border-top: 1px solid $border-light;
+  margin-top: 20px;
+}
+
+.app-modal-btn {
+  min-width: 100px;
+  min-height: 40px;
+  padding: 8px 20px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: 12px;
+}
+
+.app-modal-btn--cancel {
+  background-color: $bg-white !important;
+  border: 1px solid $border-light !important;
+  color: $text-zinc-700 !important;
+
+  &:hover:not(:disabled) {
+    background-color: $bg-zinc-50 !important;
+  }
+}
+
+.app-modal-btn--primary {
+  @include gradient-purple-top;
+  color: $bg-white !important;
+  border: none !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    @include shadow-md;
+    opacity: 1;
+  }
+}
+
+.app-modal-btn--danger {
+  background-color: $red-error !important;
+  color: $bg-white !important;
+  border: none !important;
+
+  &:hover:not(:disabled) {
+    background-color: $red-error-hover !important;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.app-modal-content--warning {
+  .app-modal-title {
+    color: #b45309;
+  }
+}
+
+.app-modal-content--error {
+  .app-modal-title {
+    color: $red-error;
+  }
+}

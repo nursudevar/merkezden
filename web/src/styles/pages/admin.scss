@@ -562,3 +562,788 @@
   font-size: 14px;
 }
 
+.admin-main-card-content--individual-users {
+  padding: 0px 0 20px;
+
+  .admin-main-card-header {
+    padding: 0 30px;
+  }
+
+  .admin-individual-users-pagination {
+    padding: 0 30px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 20px 0 16px;
+
+    .admin-main-card-header,
+    .admin-individual-users-pagination {
+      padding: 0 20px;
+    }
+  }
+}
+
+.admin-main-card-header--individual-users {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-individual-users-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-individual-users-total-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba($purple-main, 0.12);
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  letter-spacing: 0.04em;
+}
+
+.admin-individual-users-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-individual-users-header-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-individual-users-header-action-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @include transition;
+
+  &:hover {
+    color: $text-zinc-700;
+    background: rgba(lightgray, 0.9);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-main-card-header--individual-users {
+    flex-wrap: wrap;
+  }
+
+  .admin-individual-users-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.admin-individual-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid $border-light;
+
+  th,
+  td {
+    padding: 12px 30px;
+    border-bottom: 1px solid $border-light;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: $font-semibold;
+    color: $text-zinc-600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: rgba($text-light, 0.07);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  @media (max-width: 640px) {
+    th,
+    td {
+      padding: 10px 20px;
+    }
+  }
+}
+
+.admin-individual-users-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+}
+
+.admin-individual-users-action-btn--danger {
+  &:hover {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+}
+
+.admin-individual-users-pagination {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.admin-individual-users-pagination-info {
+  margin: 0;
+  font-size: 13px;
+  color: $text-zinc-600;
+}
+
+.admin-individual-users-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-individual-users-page-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-700;
+  cursor: pointer;
+  @include transition;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.admin-individual-users-page-indicator {
+  min-width: 64px;
+  text-align: center;
+  font-size: 13px;
+  color: $text-zinc-700;
+}
+
+.admin-individual-users-page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+
+.admin-individual-users-page-jump-label {
+  font-size: 12px;
+  color: $text-zinc-600;
+}
+
+.admin-individual-users-page-jump-input {
+  width: 64px;
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: $text-zinc-700;
+  background: #fff;
+}
+
+.admin-individual-users-page-search-input {
+  width: 140px;
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: $text-zinc-700;
+  background: #fff;
+}
+
+.admin-individual-users-page-jump-btn {
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: $font-medium;
+  color: $text-zinc-700;
+  background: #fff;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+}
+
+.admin-individual-users-empty {
+  border: 1px dashed $border-light;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: $text-zinc-600;
+  font-size: 14px;
+  margin: 0 30px;
+
+  @media (max-width: 640px) {
+    margin: 0 20px;
+  }
+}
+
+.admin-individual-users-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-individual-users-modal {
+  width: min(100%, 480px);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid $border-light;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  padding: 20px;
+}
+
+.admin-individual-users-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-individual-users-modal-title {
+  margin: 0;
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+}
+
+.admin-individual-users-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: $text-zinc-600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @include transition;
+
+  &:hover {
+    background: rgba($text-light, 0.12);
+    color: $text-zinc-800;
+  }
+}
+
+.admin-individual-users-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-individual-users-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: $text-zinc-700;
+
+  input {
+    height: 38px;
+    border: 1px solid $border-light;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 14px;
+    color: $text-zinc-800;
+    background: #fff;
+  }
+}
+
+.admin-individual-users-modal-field-input--error {
+  border-color: $red-error !important;
+}
+
+.admin-individual-users-modal-field-error {
+  margin: 0;
+  font-size: 12px;
+  color: $red-error;
+}
+
+.admin-individual-users-modal-error {
+  margin: 0;
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.admin-individual-users-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.admin-individual-users-modal-cancel-btn,
+.admin-individual-users-modal-save-btn {
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+}
+
+.admin-individual-users-modal-cancel-btn {
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-700;
+
+  &:hover {
+    border-color: rgba($purple-main, 0.35);
+    color: $purple-main;
+  }
+}
+
+.admin-individual-users-modal-save-btn {
+  border: 1px solid rgba($purple-main, 0.35);
+  background: $purple-main;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.admin-main-card-content--instructors {
+  padding: 0px 0 20px;
+
+  .admin-main-card-header {
+    padding: 0 30px;
+  }
+
+  .admin-instructors-pagination {
+    padding: 0 30px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 20px 0 16px;
+
+    .admin-main-card-header,
+    .admin-instructors-pagination {
+      padding: 0 20px;
+    }
+  }
+}
+
+.admin-main-card-header--instructors {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-instructors-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-instructors-total-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba($purple-main, 0.12);
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  letter-spacing: 0.04em;
+}
+
+.admin-instructors-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-instructors-header-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .admin-main-card-header--instructors {
+    flex-wrap: wrap;
+  }
+
+  .admin-instructors-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.admin-instructors-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid $border-light;
+
+  th,
+  td {
+    padding: 12px 30px;
+    border-bottom: 1px solid $border-light;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: $font-semibold;
+    color: $text-zinc-600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: rgba($text-light, 0.07);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  @media (max-width: 640px) {
+    th,
+    td {
+      padding: 10px 20px;
+    }
+  }
+}
+
+.admin-instructors-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+}
+
+.admin-instructors-action-btn--danger {
+  &:hover {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+}
+
+.admin-instructors-pagination {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.admin-instructors-pagination-info {
+  margin: 0;
+  font-size: 13px;
+  color: $text-zinc-600;
+}
+
+.admin-instructors-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-instructors-page-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-700;
+  cursor: pointer;
+  @include transition;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.admin-instructors-page-indicator {
+  min-width: 64px;
+  text-align: center;
+  font-size: 13px;
+  color: $text-zinc-700;
+}
+
+.admin-instructors-page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+
+.admin-instructors-page-jump-label {
+  font-size: 12px;
+  color: $text-zinc-600;
+}
+
+.admin-instructors-page-jump-input,
+.admin-instructors-page-search-input {
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: $text-zinc-700;
+  background: #fff;
+}
+
+.admin-instructors-page-search-input {
+  width: 140px;
+}
+
+.admin-instructors-page-jump-input {
+  width: 64px;
+}
+
+.admin-instructors-page-jump-btn {
+  height: 32px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: $font-medium;
+  color: $text-zinc-700;
+  background: #fff;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+}
+
+.admin-instructors-empty {
+  border: 1px dashed $border-light;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: $text-zinc-600;
+  font-size: 14px;
+  margin: 0 30px;
+
+  @media (max-width: 640px) {
+    margin: 0 20px;
+  }
+}
+
+.admin-instructors-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-instructors-modal {
+  width: min(100%, 480px);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid $border-light;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  padding: 20px;
+}
+
+.admin-instructors-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-instructors-modal-title {
+  margin: 0;
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+}
+
+.admin-instructors-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: $text-zinc-600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @include transition;
+
+  &:hover {
+    background: rgba($text-light, 0.12);
+    color: $text-zinc-800;
+  }
+}
+
+.admin-instructors-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-instructors-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: $text-zinc-700;
+
+  input {
+    height: 38px;
+    border: 1px solid $border-light;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 14px;
+    color: $text-zinc-800;
+    background: #fff;
+  }
+}
+
+.admin-instructors-modal-field-input--error {
+  border-color: $red-error !important;
+}
+
+.admin-instructors-modal-field-error,
+.admin-instructors-modal-error {
+  margin: 0;
+  font-size: 12px;
+  color: $red-error;
+}
+
+.admin-instructors-modal-error {
+  font-size: 13px;
+}
+
+.admin-instructors-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.admin-instructors-modal-cancel-btn,
+.admin-instructors-modal-save-btn {
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+}
+
+.admin-instructors-modal-cancel-btn {
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-700;
+
+  &:hover {
+    border-color: rgba($purple-main, 0.35);
+    color: $purple-main;
+  }
+}
+
+.admin-instructors-modal-save-btn {
+  border: 1px solid rgba($purple-main, 0.35);
+  background: $purple-main;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+

@@ -80,6 +80,113 @@ const sidebarCategoryGroups: ReadonlyArray<{
   { id: "special", title: "Özel Eğitim", icon: "🧩", headerClassName: "category-header-special", matchKeys: ["ozel egitim"] },
 ];
 
+/** Ana sayfa sol panel kategori accordion — sabit alt öğe etiketleri (gösterim) */
+const HOME_SIDEBAR_CATEGORY_DISPLAY_ITEMS: Readonly<Record<string, readonly string[]>> = {
+  school: ["Anaokulu/Kreş", "İlkokul", "Ortaokul", "Lise", "Oyun Grubu"],
+  exam: [
+    "YKS",
+    "KPSS",
+    "LGS",
+    "Sürücü Kursu",
+    "Matematik",
+    "YDS",
+    "Etüt",
+    "TOEFL",
+    "Fizik",
+    "Kimya",
+  ],
+  language: [
+    "İngilizce",
+    "Almanca",
+    "Fransızca",
+    "Rusça",
+    "İspanyolca",
+    "İtalyanca",
+    "Çince",
+    "Japonca",
+  ],
+  sport: [
+    "Futbol",
+    "Voleybol",
+    "Basketbol",
+    "Tenis",
+    "Yüzme",
+    "Cimnastik",
+    "Binicilik",
+    "Karate",
+    "Pilates",
+    "Yoga",
+    "Fitness",
+    "Boks",
+  ],
+  art: [
+    "Resim",
+    "Dans",
+    "Seramik",
+    "Piyano",
+    "Keman",
+    "Bale",
+    "Drama",
+    "Gitar",
+    "Fotoğrafçılık",
+    "El Sanatları",
+  ],
+  special: [
+    "Masal Terapisi",
+    "Oyun Terapisi",
+    "Dil ve Konuşma Terapisi",
+    "Otizm Spektrum Bozukluğu",
+    "Duyu Bütünleme",
+    "Dikkat Eksikliği",
+    "Hiperaktivite Bozukluğu",
+    "Disleksi Eğitimi",
+    "Down Sendromu",
+    "Asperger Sendromu",
+  ],
+  professional: [
+    "Pastacılık",
+    "Aşçılık",
+    "Muhasebe",
+    "Güzellik Uzmanlığı",
+    "İş Sağlığı ve Güvenliği (İSG)",
+    "Yazılım",
+    "Grafik Tasarım",
+    "Finans-Bankacılık",
+    "Dijital Pazarlama",
+    "Butik Çikolata Yapımı",
+    "Bilgisayar",
+    "Sekreterlik ve Büro Yönetimi",
+  ],
+  "personal-dev": [
+    "Etkili İletişim Teknikleri",
+    "Diksiyon ve Güzel Konuşma",
+    "Beden Dili",
+    "Topluluk Önünde Konuşma",
+    "Zaman Yönetimi",
+    "Stres Yönetimi",
+    "Liderlik ve Yöneticilik",
+    "Satış Teknikleri",
+    "Girişimcilik",
+    "Dijital Pazarlama",
+  ],
+};
+
+function findSubcategoryForDisplayName(
+  subcategories: MainCategorySubcategory[],
+  displayName: string,
+): MainCategorySubcategory | null {
+  const displayKey = normalizeCategoryKey(displayName);
+  const displayCompact = displayKey.replace(/\s+/g, "");
+
+  for (const sub of subcategories) {
+    const subKey = normalizeCategoryKey(sub.name);
+    if (subKey === displayKey) return sub;
+    if (subKey.replace(/\s+/g, "") === displayCompact) return sub;
+  }
+
+  return null;
+}
+
 const blogPosts = [
   {
     title: "Etkili Zaman Yönetimi İçin 5 İpucu",
@@ -320,7 +427,6 @@ export default function Home() {
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
   const [priceRange, setPriceRange] = useState<number[]>([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [openCategoryId, setOpenCategoryId] = useState<string>(() => sidebarCategoryGroups[0]?.id ?? "");
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   /** Ana kategori «Tümü»: ilgili `institution_categories` altındaki tüm `institution_types.id` (OR). */
@@ -757,12 +863,6 @@ export default function Home() {
     scrollToResultsOnMobile();
   };
 
-  const toggleCategoryExpansion = (categoryId: string) => {
-    setExpandedCategories((prev) =>
-      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
-    );
-  };
-
   return (
     <div className="page-container">
       <HeaderWithSearch 
@@ -1037,14 +1137,20 @@ export default function Home() {
                       return group.matchKeys.some((k) => k === nameKey || k === slugKey);
                     });
                     const subcategories = matchedCard?.subcategories ?? [];
-                    const showAllRow = subcategories.length > 0;
-                    type AccordionRow = { kind: "all" } | { kind: "sub"; item: MainCategorySubcategory };
-                    const rows: AccordionRow[] = showAllRow
-                      ? [{ kind: "all" }, ...subcategories.map((item) => ({ kind: "sub" as const, item }))]
-                      : [];
-                    const isExpanded = expandedCategories.includes(group.id);
-                    const hasMore = rows.length > 4;
-                    const itemsToShow = isExpanded ? rows : rows.slice(0, hasMore ? 4 : rows.length);
+                    const displayLabels = HOME_SIDEBAR_CATEGORY_DISPLAY_ITEMS[group.id] ?? [];
+                    type AccordionRow = { kind: "sub"; item: MainCategorySubcategory; label: string };
+                    const rows: AccordionRow[] = [];
+                    for (const label of displayLabels) {
+                      const matchedSub = findSubcategoryForDisplayName(subcategories, label);
+                      rows.push({
+                        kind: "sub",
+                        label,
+                        item: matchedSub ?? { id: -1, name: label },
+                      });
+                    }
+                    const categoryHref = matchedCard
+                      ? getCategoryHref(matchedCard.name, matchedCard.slug)
+                      : getCategoryHref(group.title, group.id);
 
                     return (
                       <AccordionItem key={group.id} value={group.id} className="category-accordion-item">
@@ -1053,53 +1159,21 @@ export default function Home() {
                         </AccordionTrigger>
                         <AccordionContent className="category-accordion-content">
                           <div className="category-accordion-options">
-                            {itemsToShow.map((row) => {
-                              if (row.kind === "all") {
-                                const allSelected = selectedCategoryAllGroups.has(group.id);
-                                return (
-                                  <button
-                                    key={`${group.id}-__all__`}
-                                    type="button"
-                                    className={`category-option ${allSelected ? "category-option-selected" : ""}`}
-                                    aria-label={`${group.title} — tümü`}
-                                    onClick={() => {
-                                      const turningOn = !selectedCategoryAllGroups.has(group.id);
-                                      setSelectedCategoryAllGroups((prev) => {
-                                        const next = new Set(prev);
-                                        if (turningOn) next.add(group.id);
-                                        else next.delete(group.id);
-                                        return next;
-                                      });
-                                      if (turningOn) {
-                                        setSelectedCategoryItems((prev) => {
-                                          const next = new Set(prev);
-                                          const prefix = `${group.id}-`;
-                                          for (const k of prev) {
-                                            if (k.startsWith(prefix)) {
-                                              const suf = k.slice(prefix.length);
-                                              if (/^\d+$/.test(suf)) next.delete(k);
-                                            }
-                                          }
-                                          return next;
-                                        });
-                                      }
-                                      scrollToResultsOnMobile();
-                                    }}
-                                  >
-                                    Tümü
-                                  </button>
-                                );
-                              }
+                            {rows.map((row) => {
                               const item = row.item;
                               const itemKey = `${group.id}-${item.id}`;
-                              const isSelected = selectedCategoryItems.has(itemKey);
+                              const isSelected =
+                                item.id > 0 && selectedCategoryItems.has(itemKey);
                               return (
                                 <button
-                                  key={item.id}
+                                  key={`${group.id}-${row.label}`}
                                   type="button"
                                   className={`category-option ${isSelected ? "category-option-selected" : ""}`}
-                                  data-institution-type-id={item.id}
+                                  {...(item.id > 0
+                                    ? { "data-institution-type-id": item.id }
+                                    : {})}
                                   onClick={() => {
+                                    if (item.id <= 0) return;
                                     setSelectedCategoryAllGroups((prev) => {
                                       const next = new Set(prev);
                                       next.delete(group.id);
@@ -1117,20 +1191,20 @@ export default function Home() {
                                     scrollToResultsOnMobile();
                                   }}
                                 >
-                                  {item.name}
+                                  {row.label}
                                 </button>
                               );
                             })}
                           </div>
-                          {hasMore && (
+                          {categoryHref ? (
                             <button
                               type="button"
                               className="category-accordion-expand"
-                              onClick={() => toggleCategoryExpansion(group.id)}
+                              onClick={() => router.push(categoryHref)}
                             >
-                              {isExpanded ? "Daha Az Göster" : "Daha Fazla Göster"}
+                              Daha Fazla Göster
                             </button>
-                          )}
+                          ) : null}
                         </AccordionContent>
                       </AccordionItem>
                     );

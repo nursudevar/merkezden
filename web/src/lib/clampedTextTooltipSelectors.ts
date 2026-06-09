@@ -8,6 +8,7 @@ export const CLAMPED_TEXT_TOOLTIP_SELECTORS = [
   ".category-results-card-location span",
   ".category-results-card-subcategory-badge",
   ".category-filter-checkbox-label",
+  ".category-option",
   ".blog-card-title-new",
   ".blog-card-excerpt",
   ".search-result-name",

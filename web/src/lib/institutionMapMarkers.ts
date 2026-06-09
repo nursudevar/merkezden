@@ -119,6 +119,30 @@ function mergeLocationRowsWithSources(
     .filter((item): item is InstitutionMapMarker => Boolean(item));
 }
 
+async function fetchInstitutionRowsByIds(
+  institutionIds: number[],
+): Promise<Map<number, InstitutionRow>> {
+  if (institutionIds.length === 0) return new Map();
+
+  const supabase = createSupabaseBrowserClient();
+  const institutionsById = new Map<number, InstitutionRow>();
+
+  for (let i = 0; i < institutionIds.length; i += LOCATION_CHUNK) {
+    const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
+    const { data, error } = await supabase
+      .from("institutions")
+      .select("id, institution_name, address, official_phone, official_email, slug")
+      .in("id", chunk);
+
+    if (error || !Array.isArray(data)) continue;
+    (data as InstitutionRow[]).forEach((row) => {
+      institutionsById.set(row.id, row);
+    });
+  }
+
+  return institutionsById;
+}
+
 async function fetchSuccessLocationsForIds(
   institutionIds: number[],
 ): Promise<InstitutionLocationRow[]> {
@@ -174,28 +198,13 @@ async function fetchAllSuccessLocationRows(): Promise<InstitutionLocationRow[]> 
 
 /** Ana sayfa: tüm geocode edilmiş kurum konumları */
 export async function fetchAllInstitutionMapMarkers(): Promise<InstitutionMapMarker[]> {
-  const supabase = createSupabaseBrowserClient();
-
   const locationRows = await fetchAllSuccessLocationRows();
   if (locationRows.length === 0) return [];
   const institutionIds = locationRows
     .map((row) => row.institution_id)
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 
-  const institutionsById = new Map<number, InstitutionRow>();
-
-  for (let i = 0; i < institutionIds.length; i += LOCATION_CHUNK) {
-    const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
-    const { data: institutionData, error: institutionError } = await supabase
-      .from("institutions")
-      .select("id, institution_name, address, official_phone, official_email, slug")
-      .in("id", chunk);
-
-    if (institutionError || !Array.isArray(institutionData)) continue;
-    (institutionData as InstitutionRow[]).forEach((row) => {
-      institutionsById.set(row.id, row);
-    });
-  }
+  const institutionsById = await fetchInstitutionRowsByIds(institutionIds);
 
   return dedupeMarkersByInstitutionId(
     mergeLocationRowsWithInstitutionRows(locationRows, institutionsById),
@@ -211,13 +220,11 @@ export async function fetchInstitutionMapMarkersForSources(
   );
   if (validSources.length === 0) return [];
 
-  const sourcesById = new Map<number, InstitutionMapMarkerSource>();
-  validSources.forEach((source) => {
-    sourcesById.set(source.id, source);
-  });
+  const institutionIds = validSources.map((source) => source.id);
+  const locationRows = await fetchSuccessLocationsForIds(institutionIds);
+  const institutionsById = await fetchInstitutionRowsByIds(institutionIds);
 
-  const locationRows = await fetchSuccessLocationsForIds(validSources.map((s) => s.id));
   return dedupeMarkersByInstitutionId(
-    mergeLocationRowsWithSources(locationRows, sourcesById),
+    mergeLocationRowsWithInstitutionRows(locationRows, institutionsById),
   );
 }
