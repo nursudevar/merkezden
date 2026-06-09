@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,6 +15,7 @@ import {
   BookOpenText,
   PencilLine,
   Trash2,
+  Check,
   X,
 } from "lucide-react";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
@@ -59,6 +60,7 @@ type InstitutionListRow = {
 const INSTITUTIONS_PAGE_SIZE = 10;
 const INDIVIDUAL_USERS_PAGE_SIZE = 10;
 const INSTRUCTORS_PAGE_SIZE = 10;
+const ANNOUNCEMENTS_PAGE_SIZE = 10;
 
 type IndividualUserListRow = {
   id: number;
@@ -66,6 +68,7 @@ type IndividualUserListRow = {
   last_name: string | null;
   email: string | null;
   auth_user_id: string | null;
+  is_email_verified: boolean | null;
   phone: string | null;
   profile_name: string | null;
   profile_surname: string | null;
@@ -102,10 +105,29 @@ type InstructorEditForm = {
   district: string;
 };
 
+type AnnouncementListRow = {
+  id: string;
+  title: string | null;
+  content: string | null;
+  announcement_image_url: string | null;
+  link_url: string | null;
+  created_at: string | null;
+  is_active: boolean | null;
+};
+
+type AnnouncementEditForm = {
+  title: string;
+  content: string;
+  announcementImageUrl: string;
+  linkUrl: string;
+  isActive: boolean;
+};
+
 type DeleteConfirmTarget =
   | { type: "individual-user"; id: number }
   | { type: "institution"; id: number }
-  | { type: "instructor"; id: number };
+  | { type: "instructor"; id: number }
+  | { type: "announcement"; id: string };
 
 async function fetchAdminRoleIdentifiers(
   supabase: ReturnType<typeof createSupabaseBrowserClient>
@@ -143,6 +165,39 @@ function isValidIndividualUserPhone(phone: string): boolean {
   return digits.length >= 10 && digits.length <= 15;
 }
 
+function useAdminModalBackdropClose() {
+  const pointerDownOnBackdropRef = useRef(false);
+
+  const onBackdropPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    pointerDownOnBackdropRef.current = event.target === event.currentTarget;
+  }, []);
+
+  const getBackdropClickHandler = useCallback((onClose: () => void) => {
+    return (event: React.MouseEvent<HTMLDivElement>) => {
+      if (pointerDownOnBackdropRef.current && event.target === event.currentTarget) {
+        onClose();
+      }
+      pointerDownOnBackdropRef.current = false;
+    };
+  }, []);
+
+  return { onBackdropPointerDown, getBackdropClickHandler };
+}
+
+function formatAnnouncementDate(value: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("tr-TR");
+}
+
+function buildAnnouncementContentPreview(content: string | null, maxLength = 80): string {
+  const normalized = String(content ?? "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "-";
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength)}…`;
+}
+
 function resolveInstructorFullName(row: InstructorListRow): string {
   const fullName = [row.name, row.surname]
     .map((part) => String(part ?? "").trim())
@@ -170,6 +225,7 @@ function resolveIndividualUserFullName(row: IndividualUserListRow): string {
 
 export default function AdminPageClient() {
   const router = useRouter();
+  const { onBackdropPointerDown, getBackdropClickHandler } = useAdminModalBackdropClose();
   const [activeTab, setActiveTab] = useState<AdminTabId>("overview");
 
   const [usersCount, setUsersCount] = useState<number | null>(null);
@@ -244,6 +300,26 @@ export default function AdminPageClient() {
   const [instructorEditSaving, setInstructorEditSaving] = useState(false);
   const [instructorEditError, setInstructorEditError] = useState<string | null>(null);
   const [instructorEditPhoneError, setInstructorEditPhoneError] = useState<string | null>(null);
+  const [announcementsList, setAnnouncementsList] = useState<AnnouncementListRow[]>([]);
+  const [announcementsListLoading, setAnnouncementsListLoading] = useState(false);
+  const [announcementsListError, setAnnouncementsListError] = useState<string | null>(null);
+  const [announcementsPage, setAnnouncementsPage] = useState(1);
+  const [announcementsPageInput, setAnnouncementsPageInput] = useState("1");
+  const [announcementsSearchInput, setAnnouncementsSearchInput] = useState("");
+  const [announcementsSearchQuery, setAnnouncementsSearchQuery] = useState("");
+  const [announcementsTotalCount, setAnnouncementsTotalCount] = useState(0);
+  const [deletingAnnouncementId, setDeletingAnnouncementId] = useState<string | null>(null);
+  const [announcementsReloadKey, setAnnouncementsReloadKey] = useState(0);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementListRow | null>(null);
+  const [announcementEditForm, setAnnouncementEditForm] = useState<AnnouncementEditForm>({
+    title: "",
+    content: "",
+    announcementImageUrl: "",
+    linkUrl: "",
+    isActive: true,
+  });
+  const [announcementEditSaving, setAnnouncementEditSaving] = useState(false);
+  const [announcementEditError, setAnnouncementEditError] = useState<string | null>(null);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<DeleteConfirmTarget | null>(null);
   const [deleteConfirmError, setDeleteConfirmError] = useState<string | null>(null);
 
@@ -468,7 +544,9 @@ export default function AdminPageClient() {
 
       let usersQuery = supabase
         .from("users")
-        .select("id, first_name, last_name, email, auth_user_id", { count: "exact" })
+        .select("id, first_name, last_name, email, auth_user_id, is_email_verified", {
+          count: "exact",
+        })
         .eq("user_type", "individual")
         .order("id", { ascending: false });
 
@@ -608,6 +686,57 @@ export default function AdminPageClient() {
     };
   }, [activeTab, instructorsPage, instructorsReloadKey, instructorsSearchQuery]);
 
+  useEffect(() => {
+    if (activeTab !== "announcements") return;
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    const loadAnnouncementsPage = async () => {
+      setAnnouncementsListLoading(true);
+      setAnnouncementsListError(null);
+
+      const from = (announcementsPage - 1) * ANNOUNCEMENTS_PAGE_SIZE;
+      const to = from + ANNOUNCEMENTS_PAGE_SIZE - 1;
+
+      let announcementsQuery = supabase
+        .from("announcements")
+        .select(
+          "id, title, content, announcement_image_url, link_url, created_at, is_active",
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false });
+
+      const normalizedSearch = announcementsSearchQuery.trim();
+      if (normalizedSearch.length > 0) {
+        announcementsQuery = announcementsQuery.or(
+          `title.ilike.%${normalizedSearch}%,content.ilike.%${normalizedSearch}%,link_url.ilike.%${normalizedSearch}%`
+        );
+      }
+
+      const { data, count, error } = await announcementsQuery.range(from, to);
+
+      if (cancelled) return;
+
+      if (error) {
+        setAnnouncementsList([]);
+        setAnnouncementsTotalCount(0);
+        setAnnouncementsListError("Duyuru listesi alınamadı.");
+        setAnnouncementsListLoading(false);
+        return;
+      }
+
+      setAnnouncementsList((data ?? []) as AnnouncementListRow[]);
+      setAnnouncementsTotalCount(count ?? 0);
+      setAnnouncementsListLoading(false);
+    };
+
+    void loadAnnouncementsPage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, announcementsPage, announcementsReloadKey, announcementsSearchQuery]);
+
   const institutionsPageCount = Math.max(1, Math.ceil(institutionsTotalCount / INSTITUTIONS_PAGE_SIZE));
   const institutionsVisibleRangeStart = institutionsTotalCount === 0 ? 0 : (institutionsPage - 1) * INSTITUTIONS_PAGE_SIZE + 1;
   const institutionsVisibleRangeEnd = Math.min(
@@ -636,6 +765,19 @@ export default function AdminPageClient() {
     instructorsTotalCount
   );
 
+  const announcementsPageCount = Math.max(
+    1,
+    Math.ceil(announcementsTotalCount / ANNOUNCEMENTS_PAGE_SIZE)
+  );
+  const announcementsVisibleRangeStart =
+    announcementsTotalCount === 0
+      ? 0
+      : (announcementsPage - 1) * ANNOUNCEMENTS_PAGE_SIZE + 1;
+  const announcementsVisibleRangeEnd = Math.min(
+    announcementsPage * ANNOUNCEMENTS_PAGE_SIZE,
+    announcementsTotalCount
+  );
+
   useEffect(() => {
     setInstitutionsPageInput(String(institutionsPage));
   }, [institutionsPage]);
@@ -647,6 +789,10 @@ export default function AdminPageClient() {
   useEffect(() => {
     setInstructorsPageInput(String(instructorsPage));
   }, [instructorsPage]);
+
+  useEffect(() => {
+    setAnnouncementsPageInput(String(announcementsPage));
+  }, [announcementsPage]);
 
   const handleGoToInstitutionsPage = () => {
     const parsed = Number.parseInt(institutionsPageInput, 10);
@@ -773,6 +919,86 @@ export default function AdminPageClient() {
     setDeleteConfirmTarget({ type: "instructor", id: instructorId });
   };
 
+  const handleGoToAnnouncementsPage = () => {
+    const parsed = Number.parseInt(announcementsPageInput, 10);
+    if (!Number.isFinite(parsed)) {
+      setAnnouncementsPageInput(String(announcementsPage));
+      return;
+    }
+    const targetPage = Math.min(Math.max(parsed, 1), announcementsPageCount);
+    setAnnouncementsPage(targetPage);
+  };
+
+  const handleAnnouncementSearch = () => {
+    setAnnouncementsPage(1);
+    setAnnouncementsSearchQuery(announcementsSearchInput.trim());
+  };
+
+  const handleOpenAnnouncementEdit = (row: AnnouncementListRow) => {
+    setEditingAnnouncement(row);
+    setAnnouncementEditForm({
+      title: String(row.title ?? "").trim(),
+      content: String(row.content ?? "").trim(),
+      announcementImageUrl: String(row.announcement_image_url ?? "").trim(),
+      linkUrl: String(row.link_url ?? "").trim(),
+      isActive: row.is_active === true,
+    });
+    setAnnouncementEditError(null);
+  };
+
+  const handleCloseAnnouncementEdit = () => {
+    if (announcementEditSaving) return;
+    setEditingAnnouncement(null);
+    setAnnouncementEditError(null);
+  };
+
+  const handleSaveAnnouncementEdit = async () => {
+    if (!editingAnnouncement) return;
+
+    const title = announcementEditForm.title.trim();
+    const content = announcementEditForm.content.trim();
+    if (!title) {
+      setAnnouncementEditError("Başlık zorunludur.");
+      return;
+    }
+    if (!content) {
+      setAnnouncementEditError("İçerik zorunludur.");
+      return;
+    }
+
+    setAnnouncementEditSaving(true);
+    setAnnouncementEditError(null);
+    const supabase = createSupabaseBrowserClient();
+
+    try {
+      const { error } = await supabase
+        .from("announcements")
+        .update({
+          title,
+          content,
+          announcement_image_url: announcementEditForm.announcementImageUrl.trim() || null,
+          link_url: announcementEditForm.linkUrl.trim() || null,
+          is_active: announcementEditForm.isActive,
+        })
+        .eq("id", editingAnnouncement.id);
+
+      if (error) {
+        setAnnouncementEditError("Duyuru güncellenemedi.");
+        return;
+      }
+
+      setEditingAnnouncement(null);
+      setAnnouncementsReloadKey((prev) => prev + 1);
+    } finally {
+      setAnnouncementEditSaving(false);
+    }
+  };
+
+  const handleRequestDeleteAnnouncement = (announcementId: string) => {
+    setDeleteConfirmError(null);
+    setDeleteConfirmTarget({ type: "announcement", id: announcementId });
+  };
+
   const handleOpenIndividualUserEdit = (row: IndividualUserListRow) => {
     setEditingIndividualUser(row);
     setIndividualUserEditForm({
@@ -862,7 +1088,8 @@ export default function AdminPageClient() {
     if (
       deletingIndividualUserId !== null ||
       deletingInstitutionId !== null ||
-      deletingInstructorId !== null
+      deletingInstructorId !== null ||
+      deletingAnnouncementId !== null
     ) {
       return;
     }
@@ -942,6 +1169,37 @@ export default function AdminPageClient() {
       return;
     }
 
+    if (deleteConfirmTarget.type === "announcement") {
+      const announcementId = deleteConfirmTarget.id;
+      const supabase = createSupabaseBrowserClient();
+      setDeletingAnnouncementId(announcementId);
+      setDeleteConfirmError(null);
+      try {
+        const { error } = await supabase.from("announcements").delete().eq("id", announcementId);
+        if (error) {
+          setDeleteConfirmError("Duyuru silinirken bir hata oluştu.");
+          return;
+        }
+
+        const nextTotal = Math.max(0, announcementsTotalCount - 1);
+        setAnnouncementsTotalCount(nextTotal);
+        setAnnouncementsCount((prev) => (typeof prev === "number" ? Math.max(0, prev - 1) : prev));
+        if (
+          announcementsPage > 1 &&
+          (announcementsPage - 1) * ANNOUNCEMENTS_PAGE_SIZE >= nextTotal
+        ) {
+          setAnnouncementsPage((prev) => Math.max(1, prev - 1));
+        } else {
+          setAnnouncementsReloadKey((prev) => prev + 1);
+        }
+        setDeleteConfirmTarget(null);
+        setDeleteConfirmError(null);
+      } finally {
+        setDeletingAnnouncementId(null);
+      }
+      return;
+    }
+
     const institutionId = deleteConfirmTarget.id;
     const supabase = createSupabaseBrowserClient();
     setDeletingInstitutionId(institutionId);
@@ -989,6 +1247,7 @@ export default function AdminPageClient() {
       fullName: resolveIndividualUserFullName(row),
       email: String(row.email ?? "").trim() || "-",
       phone: String(row.phone ?? "").trim() || "-",
+      isEmailVerified: row.is_email_verified === true,
       sourceRow: row,
     }));
   }, [individualUsersList]);
@@ -1004,6 +1263,18 @@ export default function AdminPageClient() {
       sourceRow: row,
     }));
   }, [instructorsList]);
+
+  const announcementsRows = useMemo(() => {
+    return announcementsList.map((row) => ({
+      id: row.id,
+      title: String(row.title ?? "").trim() || "-",
+      contentPreview: buildAnnouncementContentPreview(row.content),
+      linkUrl: String(row.link_url ?? "").trim() || "-",
+      isActive: row.is_active === true,
+      createdAt: formatAnnouncementDate(row.created_at),
+      sourceRow: row,
+    }));
+  }, [announcementsList]);
 
   const deleteConfirmModal = useMemo(() => {
     if (!deleteConfirmTarget) return null;
@@ -1026,6 +1297,15 @@ export default function AdminPageClient() {
       };
     }
 
+    if (deleteConfirmTarget.type === "announcement") {
+      return {
+        title: "Duyuruyu Sil",
+        message: "Bu duyuruyu silmek istediğinize emin misiniz?",
+        confirmLabel: "Sil",
+        loading: deletingAnnouncementId === deleteConfirmTarget.id,
+      };
+    }
+
     return {
       title: "Kurumu Sil",
       message: "Bu kurumu silmek istediğinize emin misiniz?",
@@ -1037,6 +1317,7 @@ export default function AdminPageClient() {
     deletingIndividualUserId,
     deletingInstitutionId,
     deletingInstructorId,
+    deletingAnnouncementId,
   ]);
 
   const activeTabTitle =
@@ -1370,6 +1651,7 @@ export default function AdminPageClient() {
                           <th>Ad Soyad</th>
                           <th>E-posta</th>
                           <th>Telefon</th>
+                          <th>E-posta Onayı</th>
                           <th>Düzenle</th>
                           <th>Sil</th>
                         </tr>
@@ -1380,6 +1662,27 @@ export default function AdminPageClient() {
                             <td>{row.fullName}</td>
                             <td>{row.email}</td>
                             <td>{row.phone}</td>
+                            <td className="admin-individual-users-email-verified-cell">
+                              <span
+                                className={
+                                  row.isEmailVerified
+                                    ? "admin-individual-users-email-verified-badge admin-individual-users-email-verified-badge--verified"
+                                    : "admin-individual-users-email-verified-badge admin-individual-users-email-verified-badge--unverified"
+                                }
+                                aria-label={
+                                  row.isEmailVerified ? "E-posta onaylı" : "E-posta onaylanmadı"
+                                }
+                                title={
+                                  row.isEmailVerified ? "E-posta onaylı" : "E-posta onaylanmadı"
+                                }
+                              >
+                                {row.isEmailVerified ? (
+                                  <Check size={14} aria-hidden />
+                                ) : (
+                                  <X size={14} aria-hidden />
+                                )}
+                              </span>
+                            </td>
                             <td>
                               <button
                                 type="button"
@@ -1614,11 +1917,195 @@ export default function AdminPageClient() {
             </Card>
           ) : null}
 
+          {activeTab === "announcements" ? (
+            <Card className="admin-main-card">
+              <CardContent className="admin-main-card-content admin-main-card-content--announcements">
+                <div className="admin-main-card-header admin-main-card-header--announcements">
+                  <div className="admin-announcements-header-left">
+                    <h1 className="admin-main-card-title">Duyurular</h1>
+                    <span className="admin-announcements-total-badge">
+                      {`${announcementsTotalCount.toLocaleString("tr-TR")} TOPLAM`}
+                    </span>
+                  </div>
+                  <div className="admin-announcements-header-actions">
+                    <div className="admin-announcements-header-search">
+                      <input
+                        type="text"
+                        className="admin-announcements-page-search-input"
+                        value={announcementsSearchInput}
+                        onChange={(event) => setAnnouncementsSearchInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleAnnouncementSearch();
+                          }
+                        }}
+                        placeholder="Duyuru ara"
+                      />
+                      <button
+                        type="button"
+                        className="admin-announcements-page-jump-btn"
+                        onClick={handleAnnouncementSearch}
+                      >
+                        Ara
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {announcementsListLoading ? (
+                  <div className="admin-announcements-empty">Yükleniyor...</div>
+                ) : announcementsListError ? (
+                  <div className="admin-announcements-empty">{announcementsListError}</div>
+                ) : announcementsRows.length === 0 ? (
+                  <div className="admin-announcements-empty">Duyuru bulunamadı.</div>
+                ) : (
+                  <>
+                    <div className="admin-announcements-table-wrap">
+                      <table className="admin-announcements-table">
+                        <colgroup>
+                          <col className="admin-announcements-col-title" />
+                          <col className="admin-announcements-col-content" />
+                          <col className="admin-announcements-col-link" />
+                          <col className="admin-announcements-col-status" />
+                          <col className="admin-announcements-col-date" />
+                          <col className="admin-announcements-col-action" />
+                          <col className="admin-announcements-col-action" />
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            <th>Başlık</th>
+                            <th>İçerik</th>
+                            <th>Link</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>Düzenle</th>
+                            <th>Sil</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {announcementsRows.map((row) => (
+                            <tr key={row.id}>
+                              <td>
+                                <span className="admin-announcements-table-clip" title={row.title}>
+                                  {row.title}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="admin-announcements-table-clip" title={row.contentPreview}>
+                                  {row.contentPreview}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="admin-announcements-table-clip" title={row.linkUrl}>
+                                  {row.linkUrl}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  className={
+                                    row.isActive
+                                      ? "admin-announcements-status-badge admin-announcements-status-badge--active"
+                                      : "admin-announcements-status-badge"
+                                  }
+                                >
+                                  {row.isActive ? "Aktif" : "Pasif"}
+                                </span>
+                              </td>
+                              <td>{row.createdAt}</td>
+                              <td className="admin-announcements-table-action-cell">
+                                <button
+                                  type="button"
+                                  className="admin-announcements-action-btn"
+                                  onClick={() => handleOpenAnnouncementEdit(row.sourceRow)}
+                                  aria-label="Duyuru düzenle"
+                                >
+                                  <PencilLine size={16} />
+                                </button>
+                              </td>
+                              <td className="admin-announcements-table-action-cell">
+                                <button
+                                  type="button"
+                                  className="admin-announcements-action-btn admin-announcements-action-btn--danger"
+                                  onClick={() => handleRequestDeleteAnnouncement(row.id)}
+                                  disabled={deletingAnnouncementId === row.id}
+                                  aria-label="Duyuru sil"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="admin-announcements-pagination">
+                      <p className="admin-announcements-pagination-info">
+                        {`${announcementsVisibleRangeStart} - ${announcementsVisibleRangeEnd} / ${announcementsTotalCount} duyuru gösteriliyor`}
+                      </p>
+                      <div className="admin-announcements-pagination-controls">
+                        <button
+                          type="button"
+                          className="admin-announcements-page-btn"
+                          disabled={announcementsPage <= 1}
+                          onClick={() => setAnnouncementsPage((prev) => Math.max(1, prev - 1))}
+                        >
+                          ‹
+                        </button>
+                        <span className="admin-announcements-page-indicator">
+                          {announcementsPage} / {announcementsPageCount}
+                        </span>
+                        <button
+                          type="button"
+                          className="admin-announcements-page-btn"
+                          disabled={announcementsPage >= announcementsPageCount}
+                          onClick={() =>
+                            setAnnouncementsPage((prev) =>
+                              Math.min(announcementsPageCount, prev + 1)
+                            )
+                          }
+                        >
+                          ›
+                        </button>
+                        <div className="admin-announcements-page-jump">
+                          <span className="admin-announcements-page-jump-label">Sayfaya git</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={announcementsPageCount}
+                            className="admin-announcements-page-jump-input"
+                            value={announcementsPageInput}
+                            onChange={(event) => setAnnouncementsPageInput(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                handleGoToAnnouncementsPage();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="admin-announcements-page-jump-btn"
+                            onClick={handleGoToAnnouncementsPage}
+                          >
+                            Git
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
           {editingIndividualUser ? (
             <div
               className="admin-individual-users-modal-overlay"
               role="presentation"
-              onClick={handleCloseIndividualUserEdit}
+              onPointerDown={onBackdropPointerDown}
+              onClick={getBackdropClickHandler(handleCloseIndividualUserEdit)}
             >
               <div
                 className="admin-individual-users-modal"
@@ -1738,7 +2225,8 @@ export default function AdminPageClient() {
             <div
               className="admin-instructors-modal-overlay"
               role="presentation"
-              onClick={handleCloseInstructorEdit}
+              onPointerDown={onBackdropPointerDown}
+              onClick={getBackdropClickHandler(handleCloseInstructorEdit)}
             >
               <div
                 className="admin-instructors-modal"
@@ -1880,12 +2368,140 @@ export default function AdminPageClient() {
             </div>
           ) : null}
 
+          {editingAnnouncement ? (
+            <div
+              className="admin-announcements-modal-overlay"
+              role="presentation"
+              onPointerDown={onBackdropPointerDown}
+              onClick={getBackdropClickHandler(handleCloseAnnouncementEdit)}
+            >
+              <div
+                className="admin-announcements-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-announcements-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="admin-announcements-modal-header">
+                  <h2 id="admin-announcements-modal-title" className="admin-announcements-modal-title">
+                    Duyuru Düzenle
+                  </h2>
+                  <button
+                    type="button"
+                    className="admin-announcements-modal-close-btn"
+                    onClick={handleCloseAnnouncementEdit}
+                    disabled={announcementEditSaving}
+                    aria-label="Kapat"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <form
+                  className="admin-announcements-modal-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleSaveAnnouncementEdit();
+                  }}
+                >
+                  <label className="admin-announcements-modal-field">
+                    <span>Başlık</span>
+                    <input
+                      type="text"
+                      value={announcementEditForm.title}
+                      onChange={(event) =>
+                        setAnnouncementEditForm((prev) => ({
+                          ...prev,
+                          title: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-announcements-modal-field">
+                    <span>İçerik</span>
+                    <textarea
+                      rows={5}
+                      value={announcementEditForm.content}
+                      onChange={(event) =>
+                        setAnnouncementEditForm((prev) => ({
+                          ...prev,
+                          content: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="admin-announcements-modal-field">
+                    <span>Görsel URL</span>
+                    <input
+                      type="url"
+                      value={announcementEditForm.announcementImageUrl}
+                      onChange={(event) =>
+                        setAnnouncementEditForm((prev) => ({
+                          ...prev,
+                          announcementImageUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://"
+                    />
+                  </label>
+                  <label className="admin-announcements-modal-field">
+                    <span>Link URL</span>
+                    <input
+                      type="url"
+                      value={announcementEditForm.linkUrl}
+                      onChange={(event) =>
+                        setAnnouncementEditForm((prev) => ({
+                          ...prev,
+                          linkUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://"
+                    />
+                  </label>
+                  <label className="admin-announcements-modal-field admin-announcements-modal-field--checkbox">
+                    <input
+                      type="checkbox"
+                      checked={announcementEditForm.isActive}
+                      onChange={(event) =>
+                        setAnnouncementEditForm((prev) => ({
+                          ...prev,
+                          isActive: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Aktif</span>
+                  </label>
+                  {announcementEditError ? (
+                    <p className="admin-announcements-modal-error">{announcementEditError}</p>
+                  ) : null}
+                  <div className="admin-announcements-modal-actions">
+                    <button
+                      type="button"
+                      className="admin-announcements-modal-cancel-btn"
+                      onClick={handleCloseAnnouncementEdit}
+                      disabled={announcementEditSaving}
+                    >
+                      İptal
+                    </button>
+                    <button
+                      type="submit"
+                      className="admin-announcements-modal-save-btn"
+                      disabled={announcementEditSaving}
+                    >
+                      {announcementEditSaving ? "Kaydediliyor..." : "Kaydet"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) : null}
+
           {activeTab === "settings" ? <ChangePasswordCard /> : null}
 
           {activeTab !== "overview" &&
           activeTab !== "institutions" &&
           activeTab !== "users" &&
           activeTab !== "instructors" &&
+          activeTab !== "announcements" &&
           activeTab !== "settings" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content">

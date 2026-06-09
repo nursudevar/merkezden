@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 type ConfirmModalProps = {
@@ -25,6 +26,22 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const pointerDownOnBackdropRef = useRef(false);
+
+  const handleBackdropPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    pointerDownOnBackdropRef.current = event.target === event.currentTarget;
+  }, []);
+
+  const handleBackdropClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (pointerDownOnBackdropRef.current && event.target === event.currentTarget) {
+        onCancel();
+      }
+      pointerDownOnBackdropRef.current = false;
+    },
+    [onCancel]
+  );
+
   if (!open) return null;
 
   return (
@@ -33,7 +50,8 @@ export function ConfirmModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="app-confirm-modal-title"
-      onClick={onCancel}
+      onPointerDown={handleBackdropPointerDown}
+      onClick={handleBackdropClick}
     >
       <div className="app-modal-content" onClick={(event) => event.stopPropagation()}>
         <h2 id="app-confirm-modal-title" className="app-modal-title">
