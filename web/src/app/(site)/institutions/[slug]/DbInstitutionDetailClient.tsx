@@ -151,6 +151,27 @@ function isUnauthorizedSupabaseError(err: unknown) {
   );
 }
 
+function normalizeFeatureDisplayNameKey(name: string): string {
+  return (name ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getDisplayFeatureName(name: string): string {
+  const trimmed = (name ?? "").trim();
+  const key = normalizeFeatureDisplayNameKey(trimmed);
+  if (key === "fiyat araligi") return "Aylık Ortalama Fiyat Aralığı";
+  if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
+  if (key === "okul saatleri" || key === "kurum saatleri") return "Kurum Saatleri";
+  return trimmed;
+}
+
 export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [row, setRow] = useState<DbInstitutionRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -654,7 +675,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           if (!entry) return;
 
           if (feature.input_type === "boolean") {
-            if (entry.boolean_answer === true) badges.push(feature.name);
+            if (entry.boolean_answer === true) badges.push(getDisplayFeatureName(feature.name));
             return;
           }
 
@@ -678,14 +699,14 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           if (feature.input_type === "text") {
             const value = (entry.text_answer ?? "").trim();
             if (!value) return;
-            badges.push(`${feature.name}: ${value}`);
+            badges.push(`${getDisplayFeatureName(feature.name)}: ${value}`);
             return;
           }
 
           if (feature.input_type === "number") {
             if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return;
             const unit = (feature.unit ?? "").trim();
-            badges.push(`${feature.name}: ${entry.number_answer}${unit ? ` ${unit}` : ""}`);
+            badges.push(`${getDisplayFeatureName(feature.name)}: ${entry.number_answer}${unit ? ` ${unit}` : ""}`);
           }
         });
         return Array.from(new Set(badges));
@@ -748,10 +769,24 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           usedFeatureIds.add(feature.id);
           nextAcademicLines.push({ label, value, isBadgeList });
         };
-        pull("Okul Türü", hasAny("okul durumu", "okul turu", "okul_turu", "kurum turu"));
+        pull(
+          "Kurum Türü",
+          hasAny("okul durumu", "okul turu", "okul_turu", "okul-turu", "kurum turu", "kurum-turu", "kurum_turu"),
+        );
         pull("Eğitim Türü", hasAny("egitim turu", "egitim_turu"));
         pull("Eğitim Dili", hasAny("egitim dili", "egitim_dili"));
-        pull("Okul Saatleri", hasAny("okul saatleri", "okul_saatleri", "saat"));
+        pull(
+          "Kurum Saatleri",
+          hasAny(
+            "okul saatleri",
+            "okul_saatleri",
+            "okul-saatleri",
+            "kurum saatleri",
+            "kurum_saatleri",
+            "kurum-saatleri",
+            "saat",
+          ),
+        );
         pull("Öğrenci Yaşı", hasAny("ogrenci yasi", "yas araligi", "yas", "ogrenci_yasi"));
         pull("Ortalama Sınıf Mevcudu", hasAny("ortalama sinif mevcudu", "sinif mevcudu", "mevcud"));
         pull("Hizmet Tipi", hasAny("hizmet tipi", "hizmet_tipi", "servis tipi", "service_type", "service type"));
@@ -775,7 +810,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           if (usedFeatureIds.has(feature.id)) continue;
           const value = extractFeatureValue(feature);
           if (!value || (Array.isArray(value) && value.length === 0)) continue;
-          const label = (feature.name ?? "").trim();
+          const label = getDisplayFeatureName(feature.name ?? "");
           if (!label) continue;
           usedFeatureIds.add(feature.id);
           nextAcademicLines.push({

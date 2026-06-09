@@ -203,6 +203,11 @@
   overflow: visible;
 }
 
+/* Eğitmen özellikleri: tek seçim açılır listesi kartın altında kesilmesin */
+.egitmen-panel-main-card:has(.egitmen-panel-features-content) {
+  overflow: visible;
+}
+
 .egitmen-panel-overview-card {
   overflow: visible;
 }

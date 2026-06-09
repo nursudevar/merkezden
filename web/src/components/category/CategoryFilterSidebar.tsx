@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
+import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
+import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 
 export interface CategoryFilterConfig {
   categories?: Array<{ label: string; count: number; value: string }>;
@@ -32,6 +34,9 @@ interface CategoryFilterSidebarProps {
    * "Başlıca Özellikler" alanları (slug'tan bağımsız ortak grup) bu modda gösterilir.
    */
   categorySlug?: string;
+  /** CategoryPageLayout tarafından sağlanır; yalnızca sidebar yerleşimi için kullanılır. */
+  mapMarkers?: InstitutionMapMarker[];
+  mapLoading?: boolean;
 }
 
 interface FilterState {
@@ -160,8 +165,10 @@ function describeSupabaseError(err: unknown): {
 /** Detay sayfasındaki kuralla uyumlu: bazı feature isimlerini sidebar'da farklı göster. */
 function getDisplayFeatureName(name: string): string {
   const trimmed = (name ?? "").trim();
-  const key = trimmed.toLocaleLowerCase("tr-TR");
-  if (key === "fiyat aralığı") return "Aylık Ortalama Fiyat Aralığı";
+  const key = normalizeCommonFieldNameKey(trimmed);
+  if (key === "fiyat araligi") return "Aylık Ortalama Fiyat Aralığı";
+  if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
+  if (key === "okul saatleri" || key === "kurum saatleri") return "Kurum Saatleri";
   return trimmed;
 }
 
@@ -171,15 +178,20 @@ function normalizeCommonFieldNameKey(name: string): string {
     .toLocaleLowerCase("tr-TR")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i");
+    .replace(/ı/g, "i")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-/** Ortalama Sınıf Mevcudu + Aylık Ortalama Fiyat Aralığı → Okul Saatleri'nin hemen altına. */
+/** Ortalama Sınıf Mevcudu + Aylık Ortalama Fiyat Aralığı → Kurum Saatleri'nin hemen altına. */
 function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonField[] {
   if (fields.length === 0) return fields;
 
-  const isOkulSaatleriField = (field: CommonField) =>
-    normalizeCommonFieldNameKey(field.name) === "okul saatleri";
+  const isKurumSaatleriField = (field: CommonField) => {
+    const key = normalizeCommonFieldNameKey(field.name);
+    return key === "okul saatleri" || key === "kurum saatleri";
+  };
 
   const isOrtalamaSinifMevcuduField = (field: CommonField) => {
     const key = normalizeCommonFieldNameKey(field.name);
@@ -195,8 +207,8 @@ function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonFiel
     );
   };
 
-  const okulSaatleriIndex = fields.findIndex(isOkulSaatleriField);
-  if (okulSaatleriIndex === -1) return fields;
+  const kurumSaatleriIndex = fields.findIndex(isKurumSaatleriField);
+  if (kurumSaatleriIndex === -1) return fields;
 
   const ortalamaSinifField = fields.find(isOrtalamaSinifMevcuduField);
   const fiyatAraligiField = fields.find(isAylikFiyatAraligiField);
@@ -207,7 +219,7 @@ function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonFiel
 
   const moveIds = new Set(fieldsToMove.map((field) => field.definitionId));
   const withoutMoved = fields.filter((field) => !moveIds.has(field.definitionId));
-  const anchorIndex = withoutMoved.findIndex(isOkulSaatleriField);
+  const anchorIndex = withoutMoved.findIndex(isKurumSaatleriField);
   if (anchorIndex === -1) return fields;
 
   return [
@@ -962,7 +974,15 @@ export function SchoolCategoryFilterPanelProvider({
   );
 }
 
-function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarModel }) {
+function CategoryFilterSidebarView({
+  model,
+  mapMarkers,
+  mapLoading = false,
+}: {
+  model: CategoryFilterSidebarModel;
+  mapMarkers?: InstitutionMapMarker[];
+  mapLoading?: boolean;
+}) {
   const {
     categories,
     hasDynamicFeatureMode,
@@ -1033,6 +1053,14 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
         </div>
 
         <div className="category-filter-sidebar-content">
+          {mapMarkers !== undefined ? (
+            <InstitutionMapSearchSection
+              markers={mapMarkers}
+              loading={mapLoading}
+              mapKeyPrefix="category-institution-map"
+              showSeparatorAfter
+            />
+          ) : null}
           <div className="category-filter-section">
             <h3 className="category-filter-section-title">ARAMA</h3>
             <div className="category-filter-section-inputs">
@@ -1358,7 +1386,13 @@ function CategoryFilterSidebarView({ model }: { model: CategoryFilterSidebarMode
   );
 }
 
-export default function CategoryFilterSidebar({ config, onFilterChange, categorySlug }: CategoryFilterSidebarProps) {
+export default function CategoryFilterSidebar({
+  config,
+  onFilterChange,
+  categorySlug,
+  mapMarkers,
+  mapLoading,
+}: CategoryFilterSidebarProps) {
   const ctxModel = useContext(SchoolCategoryFilterPanelContext);
   const fallbackModel = useCategoryFilterSidebarModel({
     enabled: ctxModel == null,
@@ -1367,7 +1401,13 @@ export default function CategoryFilterSidebar({ config, onFilterChange, category
     categorySlug,
   });
   const model = ctxModel ?? fallbackModel;
-  return <CategoryFilterSidebarView model={model} />;
+  return (
+    <CategoryFilterSidebarView
+      model={model}
+      mapMarkers={mapMarkers}
+      mapLoading={mapLoading}
+    />
+  );
 }
 
 /**

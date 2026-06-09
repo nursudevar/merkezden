@@ -35,7 +35,7 @@ interface SearchResultsProps {
   query: string;
   cityFilter?: string;
   districtFilter?: string;
-  /** Okul durumu: `private` = Özel, `public` = Devlet; birden fazla seçimde OR mantığı */
+  /** Kurum türü: `private` = Özel, `public` = Devlet; birden fazla seçimde OR mantığı */
   schoolStatusFilters?: ("private" | "public")[];
   /** Öğrenci yaşı: `child` = Çocuk (0-17), `adult` = Yetişkin (18+); birden fazla seçimde OR mantığı */
   studentAgeFilters?: ("child" | "adult")[];

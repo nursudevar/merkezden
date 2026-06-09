@@ -2040,18 +2040,41 @@ interface InstitutionDetailPreparedData {
     .filter((item) => item.features.length > 0);
   const getDisplayFeatureName = (name: string) => {
     const trimmed = (name ?? "").trim();
-    const key = trimmed.toLocaleLowerCase("tr-TR");
+    const key = trimmed
+      .toLocaleLowerCase("tr-TR")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ı/g, "i")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     if (key === "engelliye uygun".toLocaleLowerCase("tr-TR")) {
       return "Engellilere Uygun";
     }
-    if (key === "fiyat aralığı".toLocaleLowerCase("tr-TR")) {
+    if (key === "fiyat araligi") {
       return "Aylık Ortalama Fiyat Aralığı";
+    }
+    if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") {
+      return "Kurum Türü";
+    }
+    if (key === "okul saatleri" || key === "kurum saatleri") {
+      return "Kurum Saatleri";
     }
     return trimmed;
   };
 
-  const isSchoolHoursFeature = (feature: InstitutionFeatureDefinitionRow) =>
-    (feature.name ?? "").trim().toLocaleLowerCase("tr-TR") === "okul saatleri";
+  const isSchoolHoursFeature = (feature: InstitutionFeatureDefinitionRow) => {
+    const key = (feature.name ?? "")
+      .trim()
+      .toLocaleLowerCase("tr-TR")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ı/g, "i")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return key === "okul saatleri" || key === "kurum saatleri";
+  };
 
   const selectionGroups = institutionGroupsWithFeatures
     .map(({ group, features }) => ({

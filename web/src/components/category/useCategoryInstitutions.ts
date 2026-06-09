@@ -48,6 +48,116 @@ type InstitutionRow = {
 const FALLBACK = "-";
 const FIXED_CITY = "Ankara";
 const IN_CHUNK = 120;
+/** PostgREST varsayılan max_rows (1000) */
+const QUERY_PAGE_SIZE = 1000;
+const MAX_QUERY_PAGES = 50;
+
+type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
+
+function applyInstitutionSearchFilter<
+  T extends { or: (filters: string) => T },
+>(query: T, searchTerm: string): T {
+  const variants = buildSearchVariants(searchTerm)
+    .map(escapeLikeValue)
+    .filter(Boolean);
+  if (variants.length === 0) return query;
+
+  const searchColumns = [
+    "institution_name",
+    "city",
+    "district",
+    "official_phone",
+    "address",
+  ] as const;
+  const orParts = variants.flatMap((term) => {
+    const q = `%${term}%`;
+    return searchColumns.map((col) => `${col}.ilike.${q}`);
+  });
+  return query.or(orParts.join(","));
+}
+
+async function fetchAllCategoryInstitutionRows(
+  supabase: SupabaseBrowser,
+  fullSelect: string,
+  targetName: string,
+  district: string,
+  searchTerm: string,
+): Promise<InstitutionRow[]> {
+  const rows: InstitutionRow[] = [];
+
+  for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
+    const from = page * QUERY_PAGE_SIZE;
+    const to = from + QUERY_PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("institutions")
+      .select(fullSelect)
+      .ilike("institution_type.category.name", targetName)
+      .ilike("city", FIXED_CITY);
+
+    if (district) query = query.eq("district", district);
+    if (searchTerm) query = applyInstitutionSearchFilter(query, searchTerm);
+
+    const { data, error } = await query.order("id", { ascending: true }).range(from, to);
+    if (error) throw error;
+
+    const batch = ((data as unknown as InstitutionRow[] | null) ?? []);
+    rows.push(...batch);
+    if (batch.length < QUERY_PAGE_SIZE) break;
+  }
+
+  rows.sort((a, b) =>
+    String(a.institution_name ?? "").localeCompare(String(b.institution_name ?? ""), "tr", {
+      sensitivity: "base",
+    }),
+  );
+  return rows;
+}
+
+async function fetchAllCategoryInstitutionIds(
+  supabase: SupabaseBrowser,
+  idQuerySelect: string,
+  targetName: string,
+  district: string,
+  searchTerm: string,
+  institutionTypeId?: number | null,
+): Promise<number[]> {
+  const ids: number[] = [];
+
+  for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
+    const from = page * QUERY_PAGE_SIZE;
+    const to = from + QUERY_PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("institutions")
+      .select(idQuerySelect)
+      .ilike("institution_type.category.name", targetName)
+      .ilike("city", FIXED_CITY);
+
+    if (district) query = query.eq("district", district);
+    if (searchTerm) query = applyInstitutionSearchFilter(query, searchTerm);
+    if (
+      institutionTypeId != null &&
+      Number.isFinite(institutionTypeId) &&
+      institutionTypeId > 0
+    ) {
+      query = query.eq("institution_type_id", institutionTypeId);
+    }
+
+    const { data, error } = await query.order("id", { ascending: true }).range(from, to);
+    if (error) throw error;
+
+    const batch = ((data as unknown as Array<{ id: number }> | null) ?? []);
+    ids.push(
+      ...batch
+        .map((row) => Number(row.id))
+        .filter((id) => Number.isFinite(id)),
+    );
+    if (batch.length < QUERY_PAGE_SIZE) break;
+  }
+
+  return ids;
+}
 
 /**
  * PostgrestError / Error nesnelerini console.error'da `{}` olarak değil,
@@ -622,52 +732,19 @@ export function useCategoryInstitutions(
         const useSchoolPipeline = hasAnySchoolPayloadFilters(schoolFilters ?? undefined);
 
       try {
+        const searchTerm = debouncedSearch.trim();
+
         if (!useSchoolPipeline) {
-          let query = supabase
-            .from("institutions")
-            .select(fullSelect)
-            .ilike("institution_type.category.name", targetName)
-            .ilike("city", FIXED_CITY)
-            .order("institution_name", { ascending: true });
-
-          if (district) {
-            query = query.eq("district", district);
-          }
-
-          const searchTerm = debouncedSearch.trim();
-          if (searchTerm) {
-            const variants = buildSearchVariants(searchTerm)
-              .map(escapeLikeValue)
-              .filter(Boolean);
-            if (variants.length > 0) {
-              const searchColumns = [
-                "institution_name",
-                "city",
-                "district",
-                "official_phone",
-                "address",
-              ] as const;
-              const orParts = variants.flatMap((term) => {
-                const q = `%${term}%`;
-                return searchColumns.map((col) => `${col}.ilike.${q}`);
-              });
-              query = query.or(orParts.join(","));
-            }
-          }
-
-          const { data, error: qErr } = await query;
+          const rows = await fetchAllCategoryInstitutionRows(
+            supabase,
+            fullSelect,
+            targetName,
+            district,
+            searchTerm,
+          );
 
           if (cancelled) return;
 
-          if (qErr) {
-            console.error("[category][institutions][query-error]", describeSupabaseError(qErr));
-            setResults([]);
-            setError("Kurumlar yüklenirken bir hata oluştu.");
-            setIsLoading(false);
-            return;
-          }
-
-          const rows = (data as InstitutionRow[] | null) ?? [];
           const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
           setResults(mapped);
           setIsLoading(false);
@@ -675,52 +752,17 @@ export function useCategoryInstitutions(
         }
 
         const payload = schoolFilters!;
-        let idQuery = supabase
-          .from("institutions")
-          .select(idQuerySelect)
-          .ilike("institution_type.category.name", targetName)
-          .ilike("city", FIXED_CITY);
-
-        if (district) idQuery = idQuery.eq("district", district);
-
-        const searchTerm = debouncedSearch.trim();
-        if (searchTerm) {
-          const variants = buildSearchVariants(searchTerm)
-            .map(escapeLikeValue)
-            .filter(Boolean);
-          if (variants.length > 0) {
-            const searchColumns = [
-              "institution_name",
-              "city",
-              "district",
-              "official_phone",
-              "address",
-            ] as const;
-            const orParts = variants.flatMap((term) => {
-              const q = `%${term}%`;
-              return searchColumns.map((col) => `${col}.ilike.${q}`);
-            });
-            idQuery = idQuery.or(orParts.join(","));
-          }
-        }
-
-        if (
-          payload.institutionTypeId != null &&
-          Number.isFinite(payload.institutionTypeId) &&
-          payload.institutionTypeId > 0
-        ) {
-          idQuery = idQuery.eq("institution_type_id", payload.institutionTypeId);
-        }
-
-        const { data: idRows, error: idErr } = await idQuery;
-        if (cancelled) return;
-        if (idErr) throw idErr;
-
-        let current = new Set<number>(
-          ((idRows ?? []) as Array<{ id: number }>)
-            .map((r) => Number(r.id))
-            .filter((id) => Number.isFinite(id)),
+        const baseIds = await fetchAllCategoryInstitutionIds(
+          supabase,
+          idQuerySelect,
+          targetName,
+          district,
+          searchTerm,
+          payload.institutionTypeId,
         );
+        if (cancelled) return;
+
+        let current = new Set<number>(baseIds);
 
         if (current.size === 0) {
           setResults([]);

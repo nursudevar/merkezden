@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 
 /** Inline SVG building — avoids broken Leaflet default PNG paths in Next.js bundler */
 const BUILDING_MARKER_SVG = `
@@ -38,33 +38,6 @@ function createClusterIcon(cluster: { getChildCount: () => number }): L.DivIcon 
     iconSize: [44, 44],
   });
 }
-
-type InstitutionLocationRow = {
-  institution_id: number;
-  latitude: number | null;
-  longitude: number | null;
-  geocode_status: string | null;
-};
-
-type InstitutionRow = {
-  id: number;
-  institution_name: string | null;
-  address: string | null;
-  official_phone: string | null;
-  official_email: string | null;
-  slug: string | null;
-};
-
-type MarkerItem = {
-  id: number;
-  slug: string;
-  institution_name: string;
-  address: string;
-  official_phone: string;
-  official_email: string;
-  latitude: number;
-  longitude: number;
-};
 
 const DEFAULT_CENTER: [number, number] = [39.9334, 32.8597];
 
@@ -99,13 +72,17 @@ function MapInvalidateSize() {
 
 export type InstitutionLocationsMapProps = {
   variant?: "inline" | "modal";
+  markers: InstitutionMapMarker[];
+  loading?: boolean;
 };
 
-export default function InstitutionLocationsMap({ variant = "inline" }: InstitutionLocationsMapProps) {
+export default function InstitutionLocationsMap({
+  variant = "inline",
+  markers,
+  loading = false,
+}: InstitutionLocationsMapProps) {
   const router = useRouter();
   const mapInstanceId = useId().replace(/:/g, "");
-  const [markers, setMarkers] = useState<MarkerItem[]>([]);
-  const [loading, setLoading] = useState(true);
   /** Leaflet tek DOM konteyneri iki kez bağlamasın diye (Strict Mode / modal) haritayı yalnızca mount sonrası çiz */
   const [domReady, setDomReady] = useState(false);
   /** Bir sonraki frame'de MapContainer aç: paneller hazır olsun, appendChild / container reuse hatalarını önler */
@@ -134,93 +111,6 @@ export default function InstitutionLocationsMap({ variant = "inline" }: Institut
       setLeafletMountReady(false);
     };
   }, [loading, markers.length, domReady]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const supabase = createSupabaseBrowserClient();
-
-        const { data: locationData, error: locationError } = await supabase
-          .from("institution_locations")
-          .select("institution_id, latitude, longitude, geocode_status")
-          .eq("geocode_status", "success")
-          .not("latitude", "is", null)
-          .not("longitude", "is", null)
-          .limit(5000);
-
-        if (locationError || !Array.isArray(locationData) || cancelled) {
-          if (!cancelled) setMarkers([]);
-          return;
-        }
-
-        const locationRows = locationData as InstitutionLocationRow[];
-        const institutionIds = Array.from(
-          new Set(
-            locationRows
-              .map((row) => row.institution_id)
-              .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
-          )
-        );
-
-        if (institutionIds.length === 0) {
-          if (!cancelled) setMarkers([]);
-          return;
-        }
-
-        const { data: institutionData, error: institutionError } = await supabase
-          .from("institutions")
-          .select("id, institution_name, address, official_phone, official_email, slug")
-          .in("id", institutionIds);
-
-        if (institutionError || !Array.isArray(institutionData) || cancelled) {
-          if (!cancelled) setMarkers([]);
-          return;
-        }
-
-        const institutionsById = new Map<number, InstitutionRow>();
-        (institutionData as InstitutionRow[]).forEach((row) => {
-          institutionsById.set(row.id, row);
-        });
-
-        const merged: MarkerItem[] = locationRows
-          .map((location) => {
-            const institution = institutionsById.get(location.institution_id);
-            const lat = Number(location.latitude);
-            const lng = Number(location.longitude);
-            const slug = String(institution?.slug ?? "").trim();
-
-            if (!institution || !slug || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-              return null;
-            }
-
-            return {
-              id: institution.id,
-              slug,
-              institution_name: String(institution.institution_name ?? "Kurum").trim() || "Kurum",
-              address: String(institution.address ?? "").trim() || "Adres bilgisi bulunamadı",
-              official_phone: String(institution.official_phone ?? "").trim(),
-              official_email: String(institution.official_email ?? "").trim(),
-              latitude: lat,
-              longitude: lng,
-            };
-          })
-          .filter((item): item is MarkerItem => Boolean(item));
-
-        if (!cancelled) {
-          setMarkers(merged);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const center = useMemo<[number, number]>(() => {
     if (markers.length > 0) {
@@ -298,4 +188,3 @@ export default function InstitutionLocationsMap({ variant = "inline" }: Institut
     </div>
   );
 }
-

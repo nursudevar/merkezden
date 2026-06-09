@@ -2,10 +2,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Building2, Landmark, UserRound, X, PawPrint, SlidersHorizontal, ImageOff } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Building2, Landmark, UserRound, PawPrint, SlidersHorizontal, ImageOff } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import BlogCard from "@/components/BlogCard";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
@@ -18,6 +17,8 @@ import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
 import { AppNoticeBar } from "@/components/AppNoticeBar";
 import MekoChromaVideo from "@/components/MekoChromaVideo";
+import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
+import { useAllInstitutionMapMarkers } from "@/hooks/useAllInstitutionMapMarkers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
@@ -27,11 +28,6 @@ import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { User } from "@supabase/supabase-js";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
-
-const InstitutionLocationsMap = dynamic(
-  () => import("@/components/map/InstitutionLocationsMap"),
-  { ssr: false }
-);
 
 /** Ana sayfa sol panel — Fiyat filtresi (TL) */
 const PRICE_FILTER_MIN = 0;
@@ -355,9 +351,9 @@ export default function Home() {
   const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
   const [premiumPicks, setPremiumPicks] = useState<PremiumPickItem[]>([]);
   const [homeAnnouncements, setHomeAnnouncements] = useState<HomeAnnouncement[]>([]);
-  const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const reduceMotion = useReducedMotion();
+  const { markers: institutionMapMarkers, loading: institutionMapLoading } = useAllInstitutionMapMarkers();
 
   const sidebarInstitutionTypeIds = useMemo(
     () => computeSidebarSelectedInstitutionTypeIds(selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards),
@@ -730,20 +726,6 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!showInstitutionMapModal) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowInstitutionMapModal(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [showInstitutionMapModal]);
-
   const handlePriceInput = (index: number, value: string) => {
     const numeric = Math.max(PRICE_FILTER_MIN, Math.min(PRICE_FILTER_MAX, Number(value) || 0));
     setPriceRange((prev) => {
@@ -799,28 +781,11 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="filter-sidebar-content">
-              <div className="filter-section filter-section-map">
-                <div className="filter-section-map-heading">
-                  <div className="filter-section-title filter-section-title--map-row">
-                    <Image
-                      src="/images/map.svg"
-                      alt="Kurum Haritası"
-                      width={20}
-                      height={20}
-                    />
-                    <span>Kurum Haritası</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="institution-map-detail-link"
-                    onClick={() => setShowInstitutionMapModal(true)}
-                  >
-                    Haritada Ara
-                  </button>
-                </div>
-                <InstitutionLocationsMap key="institution-map-sidebar" />
-              </div>
-              <Separator />
+              <InstitutionMapSearchSection
+                markers={institutionMapMarkers}
+                loading={institutionMapLoading}
+                showSeparatorAfter
+              />
               <div className="filter-section">
                 <div className="filter-section-title">
                   <Image 
@@ -943,11 +908,11 @@ export default function Home() {
                 <div className="filter-section-title">
                   <Image 
                     src="/images/services.svg" 
-                    alt="Okul Durumu" 
+                    alt="Kurum türü" 
                     width={20} 
                     height={20}
                   />
-                  <span>Okul Durumu</span>
+                  <span>Kurum Türü</span>
                 </div>
                 <div className="education-type-pills">
                   {schoolStatusOptions.map((option) => {
@@ -1617,41 +1582,6 @@ export default function Home() {
         onDismiss={() => setFavoritesError(null)}
         variant={favoritesError === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
       />
-
-      {showInstitutionMapModal ? (
-        <div className="institution-map-modal-root" role="presentation">
-          <button
-            type="button"
-            className="institution-map-modal-backdrop"
-            aria-label="Haritayı kapat"
-            onClick={() => setShowInstitutionMapModal(false)}
-          />
-          <div
-            className="institution-map-modal-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="institution-map-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="institution-map-modal-header">
-              <h2 id="institution-map-modal-title" className="institution-map-modal-title">
-                Kurum Haritası
-              </h2>
-              <button
-                type="button"
-                className="institution-map-modal-close"
-                onClick={() => setShowInstitutionMapModal(false)}
-                aria-label="Kapat"
-              >
-                <X size={22} strokeWidth={2} />
-              </button>
-            </div>
-            <div className="institution-map-modal-body">
-              <InstitutionLocationsMap key="institution-map-modal" variant="modal" />
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <ExpandableChat
         size="lg"

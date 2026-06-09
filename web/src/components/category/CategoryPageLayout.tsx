@@ -9,6 +9,7 @@ import CategoryFilterSidebar, {
 import CategoryResultsList from "./CategoryResultsList";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
+import { useCategoryInstitutionMapMarkers } from "@/hooks/useCategoryInstitutionMapMarkers";
 
 /**
  * Drawer (mobil/tablet filtre modalı) açıkken yeni gelen payload'da gerçek bir
@@ -64,6 +65,8 @@ export default function CategoryPageLayout({
   categorySlug,
   schoolModeProps,
 }: CategoryPageLayoutProps) {
+  const { markers: categoryMapMarkers, loading: categoryMapLoading } =
+    useCategoryInstitutionMapMarkers(results, isLoading);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isFilterOpenRef = useRef(false);
   isFilterOpenRef.current = isFilterOpen;
@@ -131,7 +134,12 @@ export default function CategoryPageLayout({
     <div className="category-page-layout">
       <div className="category-page-layout-container">
         <aside className="category-page-layout-sidebar">
-          <CategoryFilterSidebar config={filterConfig} categorySlug={categorySlug} />
+          <CategoryFilterSidebar
+            config={filterConfig}
+            categorySlug={categorySlug}
+            mapMarkers={categorySlug ? categoryMapMarkers : undefined}
+            mapLoading={categoryMapLoading}
+          />
         </aside>
 
         <div className="category-page-layout-results">
@@ -154,7 +162,12 @@ export default function CategoryPageLayout({
               onClick={() => setIsFilterOpen(false)}
             />
             <div className="category-page-layout-filter-drawer-content">
-              <CategoryFilterSidebar config={filterConfig} categorySlug={categorySlug} />
+              <CategoryFilterSidebar
+                config={filterConfig}
+                categorySlug={categorySlug}
+                mapMarkers={categorySlug ? categoryMapMarkers : undefined}
+                mapLoading={categoryMapLoading}
+              />
             </div>
           </div>
 
