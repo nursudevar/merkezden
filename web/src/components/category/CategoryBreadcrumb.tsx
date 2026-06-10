@@ -12,6 +12,7 @@ const categoryMap: Record<string, string> = {
   "personal-development": "KİŞİSEL GELİŞİM",
   "vocational-training": "MESLEKİ EĞİTİM",
   "special-education": "ÖZEL EĞİTİM",
+  "patili-dostlar": "PATİLİ DOSTLAR",
 };
 
 function getCategoryLabel(pathname: string): string {

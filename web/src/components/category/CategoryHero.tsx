@@ -59,6 +59,9 @@ const categoryData: Record<string, { title: string }> = {
   "special-education": {
     title: "Özel Eğitim",
   },
+  "patili-dostlar": {
+    title: "Patili Dostlar",
+  },
 };
 
 function getCategoryData(pathname: string): { title: string } {

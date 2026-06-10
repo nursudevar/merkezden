@@ -1195,30 +1195,18 @@ export default function Home() {
               <div className="pet-filter-main">
                 <div className="pet-filter-body">
                   <div className="pet-filter-options">
-                    {petFilterGroup.items.map((item) => {
-                      const itemKey = `${petFilterGroup.id}-${item}`;
-                      const isSelected = selectedCategoryItems.has(itemKey);
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          className={`pet-filter-option ${isSelected ? "pet-filter-option--selected" : ""}`}
-                          onClick={() => {
-                            setSelectedCategoryItems((prev) => {
-                              const next = new Set(prev);
-                              if (isSelected) {
-                                next.delete(itemKey);
-                              } else {
-                                next.add(itemKey);
-                              }
-                              return next;
-                            });
-                          }}
-                        >
-                          {item}
-                        </button>
-                      );
-                    })}
+                    {petFilterGroup.items.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        className="pet-filter-option"
+                        onClick={() => {
+                          router.push("/patili-dostlar");
+                        }}
+                      >
+                        {item}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

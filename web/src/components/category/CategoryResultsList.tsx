@@ -17,6 +17,7 @@ interface CategoryResultsListProps {
   results?: CategoryResultItem[];
   isLoading?: boolean;
   errorMessage?: string | null;
+  emptyResultsMessage?: string;
 }
 
 type ViewMode = "recommended" | "two";
@@ -30,6 +31,7 @@ export default function CategoryResultsList({
   results = [],
   isLoading = false,
   errorMessage = null,
+  emptyResultsMessage = "Bu kategoriye ait kurum veya eğitmen bulunmuyor.",
 }: CategoryResultsListProps) {
   void categoryName;
   void subtitle;
@@ -91,7 +93,7 @@ export default function CategoryResultsList({
         ) : errorMessage ? (
           <p className="category-results-empty">{errorMessage}</p>
         ) : totalCount === 0 ? (
-          <p className="category-results-empty">Bu kategoriye ait kurum veya eğitmen bulunmuyor.</p>
+          <p className="category-results-empty">{emptyResultsMessage}</p>
         ) : (
           visibleResults.map((result) => <CategoryResultsCard key={result.id} {...result} />)
         )}

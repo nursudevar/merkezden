@@ -35,6 +35,7 @@ interface CategoryPageLayoutProps {
   results?: CategoryResultItem[];
   isLoading?: boolean;
   errorMessage?: string | null;
+  emptyResultsMessage?: string;
   /**
    * Verildiğinde sidebar mock kategori filtreleri yerine ilgili kategoriye ait
    * gerçek feature_groups verilerini DB'den çekip render eder.
@@ -62,6 +63,7 @@ export default function CategoryPageLayout({
   results,
   isLoading,
   errorMessage,
+  emptyResultsMessage,
   categorySlug,
   schoolModeProps,
 }: CategoryPageLayoutProps) {
@@ -178,6 +180,7 @@ export default function CategoryPageLayout({
               results={results}
               isLoading={isLoading}
               errorMessage={errorMessage}
+              emptyResultsMessage={emptyResultsMessage}
             />
           </div>
         </div>
