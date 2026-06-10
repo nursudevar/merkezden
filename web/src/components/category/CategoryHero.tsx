@@ -7,6 +7,12 @@ import { GraduationCap } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { normalizeCategoryKey } from "@/lib/categoryHelpers";
+import {
+  buildPublicInstructorLocation,
+  fetchFeaturedPublicInstructors,
+  getPublicInstructorDetailHref,
+  mapPublicInstructorDisplayName,
+} from "@/lib/publicInstructorSearch";
 import CategoryBreadcrumb from "./CategoryBreadcrumb";
 import CategorySearchBar from "./CategorySearchBar";
 
@@ -18,8 +24,8 @@ interface CategoryHeroProps {
   districts?: string[];
 }
 
-type CategoryHeroPopularInstitutionItem = {
-  id: number;
+type CategoryHeroPopularItem = {
+  key: string;
   href: string;
   name: string;
   meta: string;
@@ -160,11 +166,11 @@ async function resolveCategorySlugForRoute(
   return resolved || fallback;
 }
 
-async function fetchCategoryPopularInstitutions(
+async function fetchCategoryPopularItems(
   routeSlug: string,
   title: string,
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<CategoryHeroPopularInstitutionItem[]> {
+): Promise<CategoryHeroPopularItem[]> {
   const categorySlug = await resolveCategorySlugForRoute(routeSlug, title, supabase);
 
   const { data: categoryDataRows, error: categoryError } = await supabase
@@ -229,8 +235,7 @@ async function fetchCategoryPopularInstitutions(
     return [];
   }
 
-  return shuffleRows(institutionRows as Array<Record<string, unknown>>)
-    .slice(0, 10)
+  const institutionItems = shuffleRows(institutionRows as Array<Record<string, unknown>>)
     .map((row) => {
       const id = Number(row.id);
       const name = String(row.institution_name ?? "").trim();
@@ -242,7 +247,7 @@ async function fetchCategoryPopularInstitutions(
       const meta = [district, city].filter(Boolean).join(" / ");
 
       return {
-        id,
+        key: `institution-${id}`,
         href: getInstitutionDetailHref({
           id,
           slug,
@@ -252,7 +257,40 @@ async function fetchCategoryPopularInstitutions(
         meta,
       };
     })
-    .filter((item): item is CategoryHeroPopularInstitutionItem => item !== null);
+    .filter((item): item is CategoryHeroPopularItem => item !== null);
+
+  let instructorItems: CategoryHeroPopularItem[] = [];
+  try {
+    const instructorRows = await fetchFeaturedPublicInstructors(supabase, {
+      categoryId,
+      limit: 10,
+    });
+    instructorItems = instructorRows
+      .map((row) => {
+        const id = Number(row.id);
+        if (!Number.isFinite(id) || id <= 0) return null;
+        const name = mapPublicInstructorDisplayName(row);
+        if (!name) return null;
+
+        const branch = String(row.branch ?? "").trim();
+        const titleLabel = String(row.title ?? "").trim();
+        const location = buildPublicInstructorLocation(row);
+        const priceRange = String(row.price_range ?? "").trim();
+        const meta = [branch || titleLabel, location, priceRange].filter(Boolean).join(" · ");
+
+        return {
+          key: `instructor-${id}`,
+          href: getPublicInstructorDetailHref(row.slug, id),
+          name,
+          meta,
+        };
+      })
+      .filter((item): item is CategoryHeroPopularItem => item !== null);
+  } catch (error) {
+    console.warn("[category-hero] instructors:", describeSupabaseError(error));
+  }
+
+  return shuffleRows([...institutionItems, ...instructorItems]).slice(0, 10);
 }
 
 export default function CategoryHero({
@@ -265,19 +303,19 @@ export default function CategoryHero({
   const pathname = usePathname();
   const routeSlug = pathname.split("/").filter(Boolean).pop() || "";
   const { title } = getCategoryData(pathname);
-  const [popularInstitutions, setPopularInstitutions] = useState<CategoryHeroPopularInstitutionItem[]>([]);
-  const [popularInstitutionsLoading, setPopularInstitutionsLoading] = useState(true);
+  const [popularItems, setPopularItems] = useState<CategoryHeroPopularItem[]>([]);
+  const [popularItemsLoading, setPopularItemsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      setPopularInstitutionsLoading(true);
+      setPopularItemsLoading(true);
       const supabase = createSupabaseBrowserClient();
-      const items = await fetchCategoryPopularInstitutions(routeSlug, title, supabase);
+      const items = await fetchCategoryPopularItems(routeSlug, title, supabase);
       if (cancelled) return;
-      setPopularInstitutions(items);
-      setPopularInstitutionsLoading(false);
+      setPopularItems(items);
+      setPopularItemsLoading(false);
     })();
 
     return () => {
@@ -316,14 +354,14 @@ export default function CategoryHero({
           <div className="category-hero-popular-header">
             <h2 className="category-hero-popular-title">Popüler Kurumlar</h2>
           </div>
-          {popularInstitutionsLoading ? (
-            <p className="category-hero-popular-empty">Kurumlar yükleniyor...</p>
-          ) : popularInstitutions.length === 0 ? (
-            <p className="category-hero-popular-empty">Henüz öne çıkan kurum bulunmuyor.</p>
+          {popularItemsLoading ? (
+            <p className="category-hero-popular-empty">Yükleniyor...</p>
+          ) : popularItems.length === 0 ? (
+            <p className="category-hero-popular-empty">Henüz öne çıkan içerik bulunmuyor.</p>
           ) : (
             <div className="category-hero-popular-scroller">
-              {popularInstitutions.map((item) => (
-                <Link key={item.id} href={item.href} className="category-hero-popular-card">
+              {popularItems.map((item) => (
+                <Link key={item.key} href={item.href} className="category-hero-popular-card">
                   <span className="category-hero-popular-badge">Popüler</span>
                   <div className="category-hero-popular-card-body">
                     <div className="category-hero-popular-card-title-wrap">

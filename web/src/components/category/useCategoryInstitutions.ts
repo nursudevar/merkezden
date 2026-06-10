@@ -5,9 +5,17 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
+import {
+  applyInstructorListingFilters,
+  buildInstructorListingFiltersFromSchoolPayload,
+  fetchPublicInstructorsForListing,
+  mapPublicInstructorToListItem,
+  resolveInstitutionCategoryIdByName,
+} from "@/lib/publicInstructorSearch";
 
 export type CategoryResultItem = {
   id: string;
+  resultType?: "institution" | "instructor";
   name: string;
   description: string;
   location: string;
@@ -22,6 +30,11 @@ export type CategoryResultItem = {
   slug?: string;
   source?: string | null;
   subcategoryName?: string;
+  detailUrl?: string;
+  instructorTitle?: string;
+  instructorBranch?: string;
+  priceRange?: string;
+  isVerified?: boolean;
 };
 
 type InstitutionTypeJoinRow =
@@ -673,6 +686,44 @@ async function fetchRowsByIdsChunked(
   return out;
 }
 
+async function fetchCategoryInstructorResults(
+  supabase: SupabaseBrowser,
+  categoryId: number | null,
+  district: string,
+  searchTerm: string,
+  schoolFilters?: SchoolCategoryFilterPayload,
+): Promise<CategoryResultItem[]> {
+  if (categoryId == null || !Number.isFinite(categoryId)) return [];
+
+  const instructorFilters = await buildInstructorListingFiltersFromSchoolPayload(
+    supabase,
+    schoolFilters,
+  );
+
+  const rows = applyInstructorListingFilters(
+    await fetchPublicInstructorsForListing(supabase, {
+      categoryId,
+      district,
+      city: FIXED_CITY,
+      searchTerm,
+    }),
+    instructorFilters,
+  );
+
+  return rows
+    .map((row) => mapPublicInstructorToListItem(row, supabase))
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
+function mergeCategoryResults(
+  institutions: CategoryResultItem[],
+  instructors: CategoryResultItem[],
+): CategoryResultItem[] {
+  return [...institutions, ...instructors].sort((a, b) =>
+    a.name.localeCompare(b.name, "tr", { sensitivity: "base" }),
+  );
+}
+
 export function useCategoryInstitutions(
   categoryName: string,
   options?: {
@@ -733,20 +784,19 @@ export function useCategoryInstitutions(
 
       try {
         const searchTerm = debouncedSearch.trim();
+        const categoryId = await resolveInstitutionCategoryIdByName(supabase, targetName);
+        if (cancelled) return;
 
         if (!useSchoolPipeline) {
-          const rows = await fetchAllCategoryInstitutionRows(
-            supabase,
-            fullSelect,
-            targetName,
-            district,
-            searchTerm,
-          );
+          const [rows, instructorResults] = await Promise.all([
+            fetchAllCategoryInstitutionRows(supabase, fullSelect, targetName, district, searchTerm),
+            fetchCategoryInstructorResults(supabase, categoryId, district, searchTerm, schoolFilters),
+          ]);
 
           if (cancelled) return;
 
           const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
-          setResults(mapped);
+          setResults(mergeCategoryResults(mapped, instructorResults));
           setIsLoading(false);
           return;
         }
@@ -765,7 +815,15 @@ export function useCategoryInstitutions(
         let current = new Set<number>(baseIds);
 
         if (current.size === 0) {
-          setResults([]);
+          const instructorOnly = await fetchCategoryInstructorResults(
+            supabase,
+            categoryId,
+            district,
+            searchTerm,
+            payload,
+          );
+          if (cancelled) return;
+          setResults(instructorOnly);
           setIsLoading(false);
           return;
         }
@@ -866,7 +924,15 @@ export function useCategoryInstitutions(
         if (cancelled) return;
 
         const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
-        setResults(mapped);
+        const instructorResults = await fetchCategoryInstructorResults(
+          supabase,
+          categoryId,
+          district,
+          searchTerm,
+          payload,
+        );
+        if (cancelled) return;
+        setResults(mergeCategoryResults(mapped, instructorResults));
         setIsLoading(false);
       } catch (e) {
         console.error(
@@ -910,6 +976,7 @@ function mapRow(
 
   return {
     id: String(row.id),
+    resultType: "institution",
     name,
     description,
     location,

@@ -10,10 +10,13 @@ import {
   Megaphone,
   Search,
   Sparkles,
+  Star,
   Table2,
+  Tags,
   TrendingUp,
   UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 import type { ComponentType } from "react";
 import "@/styles/pages/nasil-calisir.scss";
 
@@ -37,7 +40,7 @@ const INDIVIDUAL_FEATURES: FeatureCardItem[] = [
   },
   {
     title: "Filtreli Listeleme",
-    description: "Kriterlerinize göre hızlıca filtreleme yapın",
+    description: "Kriterlerinize uygun kurumlara hızlıca ulaşın.",
     icon: ListFilter,
   },
   {
@@ -47,13 +50,18 @@ const INDIVIDUAL_FEATURES: FeatureCardItem[] = [
   },
   {
     title: "Karşılaştırma Tablosu",
-    description: "Kurumları yan yana karşılaştırın",
+    description: "Kurumları karşılaştırın, size en uygun seçimi yapın.",
     icon: Table2,
   },
   {
     title: "Detaylı İnceleme",
     description: "Kapsamlı bilgileri inceleyip değerlendirin",
     icon: Search,
+  },
+  {
+    title: "Size Özel Avantajlar",
+    description: "İndirim ve kampanyalardan yararlanın.",
+    icon: Tags,
   },
 ];
 
@@ -80,8 +88,13 @@ const INSTITUTION_FEATURES: FeatureCardItem[] = [
   },
   {
     title: "Potansiyel Öğrenci Analizi",
-    description: "İstatistiksel Veri Raporları ile daha fazla öğrenciye ulaşın",
+    description: "Ziyaretçi verilerinizi analiz edin, stratejinizi güçlendirin.",
     icon: BarChart3,
+  },
+  {
+    title: "Öne Çıkanlar Sayfası",
+    description: "Daha fazla öğrenciye ulaşın.",
+    icon: Star,
   },
 ];
 
@@ -138,9 +151,9 @@ export default function NasilCalisirPage() {
               />
             </div>
 
-            <button type="button" className="nasil-calisir-big-card-cta">
+            <Link href="/login" className="nasil-calisir-big-card-cta">
               Hemen Keşfedin
-            </button>
+            </Link>
           </article>
 
           <article className="nasil-calisir-big-card">
@@ -168,9 +181,9 @@ export default function NasilCalisirPage() {
               />
             </div>
 
-            <button type="button" className="nasil-calisir-big-card-cta">
+            <Link href="/signup" className="nasil-calisir-big-card-cta">
               Ücretsiz Kayıt Olun
-            </button>
+            </Link>
           </article>
         </section>
 

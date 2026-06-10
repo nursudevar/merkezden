@@ -1,4 +1,9 @@
 import type { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
+import {
+  PUBLIC_INSTRUCTOR_LIST_SELECT,
+  type PublicInstructorListRow,
+} from "@/lib/publicInstructorSearch";
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
@@ -10,6 +15,10 @@ export const HOME_FEATURED_PINNED_NAME_BY_ID: Record<number, readonly string[]> 
   104: ["ODTÜ GELİŞTİRME VAKFI ÖZEL LİSESİ"],
   200: ["ÖZEL BİLFEN ÇAYYOLU FEN LİSESİ"],
 };
+
+/** Ana sayfa Öne Çıkanlar grid — sabit bireysel eğitmen (1 tabanlı 4. sıra) */
+export const HOME_FEATURED_PINNED_INSTRUCTOR_SLUG = "nur-sude-var-1";
+export const HOME_FEATURED_PINNED_INSTRUCTOR_POSITION = 3;
 
 export const HOME_FEATURED_PINNED_ROW_SELECT =
   "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))";
@@ -89,4 +98,24 @@ export async function fetchHomeFeaturedPinnedRows(
   }
 
   return ordered;
+}
+
+export async function fetchHomeFeaturedPinnedInstructorRow(
+  supabase: SupabaseBrowser,
+): Promise<PublicInstructorListRow | null> {
+  const { data, error } = await supabase
+    .from(PUBLIC_INSTRUCTORS_TABLE)
+    .select(PUBLIC_INSTRUCTOR_LIST_SELECT)
+    .eq("slug", HOME_FEATURED_PINNED_INSTRUCTOR_SLUG)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("[home-featured] Pinned instructor load error:", error.message);
+    return null;
+  }
+
+  const row = data as PublicInstructorListRow | null;
+  if (!row || !Number.isFinite(Number(row.id)) || Number(row.id) <= 0) return null;
+  return row;
 }

@@ -101,6 +101,9 @@
 }
 
 .nasil-calisir-big-card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   margin-top: 14px;
   height: 42px;
@@ -110,7 +113,9 @@
   font-weight: $font-semibold;
   line-height: 1;
   color: #ffffff;
+  text-decoration: none;
   background: linear-gradient(90deg, #5f7bf3 0%, #7d55da 100%);
+  box-sizing: border-box;
 }
 
 .nasil-calisir-section {
@@ -128,15 +133,15 @@
 
 .nasil-calisir-feature-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .nasil-calisir-feature-card {
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid transparent;
-  padding: 12px 12px 10px;
-  min-height: 144px;
+  padding: 10px 8px 8px;
+  min-height: 118px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -165,19 +170,20 @@
 }
 
 .nasil-calisir-feature-card-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   color: $text-zinc-800;
   display: block;
   margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .nasil-calisir-feature-card-title {
-  margin: 8px 0 4px;
+  margin: 6px 0 3px;
   text-align: center;
   width: 100%;
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 17px;
   font-weight: $font-semibold;
   color: $text-zinc-900;
 }
@@ -186,11 +192,11 @@
   margin: 0;
   text-align: center;
   width: 100%;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 11px;
+  line-height: 15px;
   font-weight: $font-medium;
   color: $text-zinc-600;
-  min-height: 34px;
+  min-height: 30px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;

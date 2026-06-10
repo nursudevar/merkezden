@@ -91,7 +91,7 @@ export default function CategoryResultsList({
         ) : errorMessage ? (
           <p className="category-results-empty">{errorMessage}</p>
         ) : totalCount === 0 ? (
-          <p className="category-results-empty">Bu kategoriye ait kurum bulunmuyor.</p>
+          <p className="category-results-empty">Bu kategoriye ait kurum veya eğitmen bulunmuyor.</p>
         ) : (
           visibleResults.map((result) => <CategoryResultsCard key={result.id} {...result} />)
         )}

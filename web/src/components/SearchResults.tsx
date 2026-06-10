@@ -3,18 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, Heart } from "lucide-react";
+import { Building2, Heart, UserRound } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import {
+  fetchPublicInstructorsForListing,
+  getPublicInstructorDetailHref,
+  mapPublicInstructorDisplayName,
+  buildPublicInstructorLocation,
+} from "@/lib/publicInstructorSearch";
+import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { matchesSearch } from "@/lib/utils";
 import "@/styles/pages/home.scss";
 
 type SearchResultsViewMode = "recommended" | "three" | "four";
 
 interface SearchResult {
-  id: string | number;
+  id: string;
+  resultType: "institution" | "instructor";
   name: string;
   description: string;
   location: string;
@@ -24,6 +32,7 @@ interface SearchResult {
   imageUrl: string;
   slug: string;
   source?: string | null;
+  detailUrl: string;
   badge: {
     icon: string;
     label: string;
@@ -481,7 +490,7 @@ export default function SearchResults({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(() => new Set());
   const [visibleCount, setVisibleCount] = useState(20);
   /**
    * Sayfa başına gösterilecek sonuç adımı.
@@ -606,7 +615,14 @@ export default function SearchResults({
             baseQuery = baseQuery.in("id", priceIds);
           }
 
-          const { data, error } = await baseQuery;
+          const [{ data, error }, instructorRows] = await Promise.all([
+            baseQuery,
+            fetchPublicInstructorsForListing(supabase, {
+              searchTerm: trimmedQuery || undefined,
+              city: trimmedCity || undefined,
+              district: trimmedDistrict || undefined,
+            }),
+          ]);
 
           if (error) {
             throw error;
@@ -632,9 +648,12 @@ export default function SearchResults({
               const description = address || mainCategory;
               const logoValue = typeof row.logo === "string" ? row.logo : null;
               const imageUrl = resolveInstitutionLogoPublicUrl(supabase, logoValue);
+              const slug = String(row.slug ?? "").trim();
+              const source = (row.source as string | null) ?? null;
 
               return {
-                id: id.toString(),
+                id: `institution-${id}`,
+                resultType: "institution",
                 name,
                 description,
                 location,
@@ -642,14 +661,19 @@ export default function SearchResults({
                 rating: 4.8,
                 reviewCount: Math.floor(4.8 * 25),
                 imageUrl,
-                slug: String(row.slug ?? "").trim(),
-                source: (row.source as string | null) ?? null,
-                badge: null,
+                slug,
+                source,
+                detailUrl: getInstitutionDetailHref({ id, slug, source }),
+                badge: {
+                  icon: "",
+                  label: "Kurum",
+                  color: "purple",
+                },
               } satisfies SearchResult;
             })
             .filter((item) => item !== null);
 
-          const mappedResults = trimmedQuery
+          const mappedInstitutions = trimmedQuery
             ? mappedRows.filter(
                 (institution) =>
                   matchesSearch(institution.name, trimmedQuery) ||
@@ -658,6 +682,48 @@ export default function SearchResults({
                   matchesSearch(institution.mainCategory, trimmedQuery)
               )
             : mappedRows;
+
+          const mappedInstructors: SearchResult[] = instructorRows.flatMap((row) => {
+            const numericId = Number(row.id);
+            if (!Number.isFinite(numericId) || numericId <= 0) return [];
+
+            const name = mapPublicInstructorDisplayName(row);
+            const title = String(row.title ?? "").trim();
+            const branch = String(row.branch ?? "").trim();
+            const about = String(row.about ?? "").trim();
+            const bio = String(row.bio ?? "").trim();
+            const description = about || bio || title || branch;
+            const imageUrl = resolvePublicInstructorProfilePictureUrl(
+              String(row.profile_picture ?? "").trim(),
+              supabase,
+            );
+
+            return [
+              {
+                id: `instructor-${numericId}`,
+                resultType: "instructor",
+                name,
+                description,
+                location: buildPublicInstructorLocation(row),
+                mainCategory: "Bireysel Eğitmen",
+                rating: 0,
+                reviewCount: 0,
+                imageUrl,
+                slug: String(row.slug ?? "").trim(),
+                source: null,
+                detailUrl: getPublicInstructorDetailHref(row.slug, numericId),
+                badge: {
+                  icon: "",
+                  label: "Bireysel Eğitmen",
+                  color: "orange",
+                },
+              },
+            ];
+          });
+
+          const mappedResults = [...mappedInstitutions, ...mappedInstructors].sort((a, b) =>
+            a.name.localeCompare(b.name, "tr", { sensitivity: "base" }),
+          );
 
           setResults(mappedResults);
           setVisibleCount(pageSizeRef.current);
@@ -677,7 +743,7 @@ export default function SearchResults({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, [...schoolStatuses].sort().join(","), [...studentAges].sort().join(","), [...serviceTypes].sort().join(","), priceFilterIsActive, priceMin, priceMax, [...institutionTypeIdList].sort((a, b) => a - b).join(",")]);
+  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, schoolStatuses.join(","), studentAges.join(","), serviceTypes.join(","), priceFilterIsActive, priceMin, priceMax, institutionTypeIdList.join(",")]);
 
   if (!hasActiveFilter) {
     return null;
@@ -685,7 +751,7 @@ export default function SearchResults({
 
   const emptyLabel = trimmedQuery
     ? `"${trimmedQuery}" için sonuç bulunamadı.`
-    : "Bu filtre ile eşleşen kurum bulunamadı.";
+    : "Bu filtre ile eşleşen kurum veya eğitmen bulunamadı.";
 
   if (loading) {
     return (
@@ -787,24 +853,24 @@ export default function SearchResults({
         </div>
         <div className={gridClassName}>
           {visibleResults.map((result) => {
-            const institutionId = Number(result.id);
-            const isFavorite = Number.isFinite(institutionId) ? Boolean(favoriteIds?.has(institutionId)) : false;
-            const isActionLoading = Number.isFinite(institutionId)
-              ? Boolean(favoriteActionLoadingIds?.has(institutionId))
-              : false;
-            const canRenderImage =
-              Number.isFinite(institutionId) &&
-              Boolean(result.imageUrl) &&
-              !brokenImageIds.has(institutionId);
+            const isInstructor = result.resultType === "instructor";
+            const institutionId = isInstructor
+              ? NaN
+              : Number(String(result.id).replace(/^institution-/, ""));
+            const isFavorite =
+              !isInstructor && Number.isFinite(institutionId)
+                ? Boolean(favoriteIds?.has(institutionId))
+                : false;
+            const isActionLoading =
+              !isInstructor && Number.isFinite(institutionId)
+                ? Boolean(favoriteActionLoadingIds?.has(institutionId))
+                : false;
+            const canRenderImage = Boolean(result.imageUrl) && !brokenImageIds.has(result.id);
 
             return (
             <Link
               key={result.id}
-              href={getInstitutionDetailHref({
-                id: result.id,
-                slug: result.slug,
-                source: result.source ?? null,
-              })}
+              href={result.detailUrl}
               className="search-result-card"
               aria-label={`${result.name} detayları`}
               onClick={onResultClick}
@@ -821,14 +887,14 @@ export default function SearchResults({
                     onError={() =>
                       setBrokenImageIds((prev) => {
                         const next = new Set(prev);
-                        next.add(institutionId);
+                        next.add(result.id);
                         return next;
                       })
                     }
                   />
                 ) : (
                   <div className="search-result-placeholder" aria-label="Logo bulunmuyor">
-                    <Building2 size={28} />
+                    {isInstructor ? <UserRound size={28} /> : <Building2 size={28} />}
                   </div>
                 )}
                 <div className="search-result-overlay" />
@@ -837,26 +903,32 @@ export default function SearchResults({
                     <span className="search-result-badge-label">{result.badge.label}</span>
                   </div>
                 )}
-                <button
-                  type="button"
-                  className="search-result-favorite"
-                  aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
-                  disabled={isActionLoading || !Number.isFinite(institutionId) || (isAuthenticated && !favoritesEnabled)}
-                  onClick={(e) => {
-                    if (!onToggleFavorite || !Number.isFinite(institutionId)) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      return;
+                {!isInstructor ? (
+                  <button
+                    type="button"
+                    className="search-result-favorite"
+                    aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
+                    disabled={
+                      isActionLoading ||
+                      !Number.isFinite(institutionId) ||
+                      (isAuthenticated && !favoritesEnabled)
                     }
-                    onToggleFavorite(institutionId, e);
-                  }}
-                >
-                  <Heart
-                    className={
-                      isFavorite ? "search-result-heart-icon search-result-heart-icon--active" : "search-result-heart-icon"
-                    }
-                  />
-                </button>
+                    onClick={(e) => {
+                      if (!onToggleFavorite || !Number.isFinite(institutionId)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
+                      onToggleFavorite(institutionId, e);
+                    }}
+                  >
+                    <Heart
+                      className={
+                        isFavorite ? "search-result-heart-icon search-result-heart-icon--active" : "search-result-heart-icon"
+                      }
+                    />
+                  </button>
+                ) : null}
               </div>
               <div className="search-result-content">
                 <div className="search-result-location">

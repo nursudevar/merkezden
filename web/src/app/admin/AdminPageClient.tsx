@@ -1574,6 +1574,7 @@ export default function AdminPageClient() {
   const blogPostsRows = useMemo(() => {
     return blogPostsList.map((row) => ({
       id: row.id,
+      
       title: String(row.title ?? "").trim() || "-",
       authorName: String(row.author_full_name ?? "").trim() || "-",
       authorType: row.author_type,

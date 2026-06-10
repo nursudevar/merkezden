@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, GraduationCap } from "lucide-react";
+import { MapPin, GraduationCap, UserRound } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 
 interface CategoryResultsCardProps {
   id: string;
+  resultType?: "institution" | "instructor";
   name: string;
   description: string;
   location: string;
@@ -21,10 +22,16 @@ interface CategoryResultsCardProps {
   slug?: string;
   source?: string | null;
   subcategoryName?: string;
+  detailUrl?: string;
+  instructorTitle?: string;
+  instructorBranch?: string;
+  priceRange?: string;
+  isVerified?: boolean;
 }
 
 export default function CategoryResultsCard({
   id,
+  resultType = "institution",
   name,
   description,
   location,
@@ -35,10 +42,23 @@ export default function CategoryResultsCard({
   slug,
   source,
   subcategoryName,
+  detailUrl,
+  instructorTitle,
+  instructorBranch,
+  priceRange,
 }: CategoryResultsCardProps) {
+  const isInstructor = resultType === "instructor";
   const institutionSlug = String(slug ?? "").trim();
   const descriptionText = String(description ?? "").trim();
   const subcategoryLabel = String(subcategoryName ?? "").trim();
+  const instructorTitleText = String(instructorTitle ?? "").trim();
+  const instructorBranchText = String(instructorBranch ?? "").trim();
+  const instructorPriceText = String(priceRange ?? "").trim();
+  const href = isInstructor
+    ? String(detailUrl ?? "").trim()
+    : institutionSlug
+      ? getInstitutionDetailHref({ id, slug: institutionSlug, source: source ?? null })
+      : "";
 
   const cardContent = (
     <>
@@ -61,18 +81,30 @@ export default function CategoryResultsCard({
               logoInitial
             )}
           </div>
-          <div className="category-results-card-badges">
-            {badges.map((badge, index) => (
-              <span key={index} className="category-results-card-badge">
-                {badge}
-              </span>
-            ))}
-          </div>
+          {!isInstructor ? (
+            <div className="category-results-card-badges">
+              {badges.map((badge, index) => (
+                <span key={index} className="category-results-card-badge">
+                  {badge}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="category-results-card-header-info">
           <h3 className="category-results-card-title">{name}</h3>
-          {subcategoryLabel ? (
+          {isInstructor ? (
+            <div className="category-results-card-instructor-meta">
+              {instructorBranchText ? (
+                <span className="category-results-card-instructor-branch">{instructorBranchText}</span>
+              ) : null}
+              <span className="category-results-card-badge category-results-card-badge--type">
+                Bireysel Eğitmen
+              </span>
+            </div>
+          ) : null}
+          {!isInstructor && subcategoryLabel ? (
             <span className="category-results-card-subcategory-badge">
               <GraduationCap size={12} />
               {subcategoryLabel}
@@ -82,7 +114,13 @@ export default function CategoryResultsCard({
       </div>
 
       <div className="category-results-card-content">
-        {descriptionText ? (
+        {isInstructor && instructorTitleText ? (
+          <p className="category-results-card-description category-results-card-description--instructor-title">
+            <UserRound size={14} aria-hidden />
+            <span>{instructorTitleText}</span>
+          </p>
+        ) : null}
+        {!isInstructor && descriptionText ? (
           <p className="category-results-card-description">{descriptionText}</p>
         ) : null}
 
@@ -90,14 +128,17 @@ export default function CategoryResultsCard({
           <MapPin size={14} />
           <span>{location}</span>
         </div>
+        {isInstructor && instructorPriceText ? (
+          <p className="category-results-card-price">{instructorPriceText}</p>
+        ) : null}
       </div>
     </>
   );
 
-  if (institutionSlug) {
+  if (href) {
     return (
       <Link
-        href={getInstitutionDetailHref({ id, slug: institutionSlug, source: source ?? null })}
+        href={href}
         className="category-results-card"
         aria-label={`${name} detayları`}
       >

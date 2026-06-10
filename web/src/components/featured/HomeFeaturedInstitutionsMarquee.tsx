@@ -3,12 +3,32 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  fetchFeaturedPublicInstructors,
+  mapPublicInstructorToFeaturedItem,
+  type FeaturedInstructorItem,
+} from "@/lib/publicInstructorSearch";
 import type { FeaturedInstitution } from "./featuredInstitutionTypes";
 import { fetchHomeFeaturedPinnedRows } from "./homeFeaturedPinned";
 import { mapInstitutionRowToFeatured } from "./mapInstitutionRowToFeatured";
 import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
+import { FeaturedInstructorCardLink } from "./FeaturedInstructorCardLink";
 
 const MARQUEE_FEATURED_COUNT = 8;
+const INSTRUCTOR_FETCH_LIMIT = 6;
+
+type FeaturedMarqueeEntry =
+  | { kind: "institution"; institution: FeaturedInstitution }
+  | { kind: "instructor"; instructor: FeaturedInstructorItem };
+
+function shuffleItems<T>(items: T[]): T[] {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 const MARQUEE_INSTITUTION_SELECT =
   "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))";
@@ -32,10 +52,12 @@ export function HomeFeaturedInstitutionsMarquee({
   viewAllHref?: string;
 }) {
   const [isMarqueeMounted, setIsMarqueeMounted] = useState(false);
-  const [shuffledFeaturedInstitutions, setShuffledFeaturedInstitutions] = useState<FeaturedInstitution[]>([]);
-  const [brokenFeaturedImageIds, setBrokenFeaturedImageIds] = useState<Set<number>>(() => new Set());
-  const [featuredPinnedInstitutions, setFeaturedPinnedInstitutions] = useState<FeaturedInstitution[]>(
-    [],
+  const [featuredList, setFeaturedList] = useState<FeaturedMarqueeEntry[]>([]);
+  const [brokenInstitutionImageIds, setBrokenInstitutionImageIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [brokenInstructorImageIds, setBrokenInstructorImageIds] = useState<Set<number>>(
+    () => new Set(),
   );
 
   useEffect(() => {
@@ -46,7 +68,16 @@ export function HomeFeaturedInstitutionsMarquee({
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const pinnedRows = await fetchHomeFeaturedPinnedRows(supabase);
+
+      const [pinnedRows, listResult, instructorRows] = await Promise.all([
+        fetchHomeFeaturedPinnedRows(supabase),
+        supabase
+          .from("institutions")
+          .select(MARQUEE_INSTITUTION_SELECT)
+          .not("institution_name", "is", null)
+          .limit(180),
+        fetchFeaturedPublicInstructors(supabase, { limit: INSTRUCTOR_FETCH_LIMIT }),
+      ]);
 
       if (cancelled) return;
 
@@ -61,37 +92,29 @@ export function HomeFeaturedInstitutionsMarquee({
         }
       }
 
-      setFeaturedPinnedInstitutions(pinned);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      const instructors = instructorRows
+        .map((row) => mapPublicInstructorToFeaturedItem(row, supabase))
+        .filter((item): item is FeaturedInstructorItem => item !== null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("institutions")
-        .select(MARQUEE_INSTITUTION_SELECT)
-        .not("institution_name", "is", null)
-        .limit(180);
+      const institutions =
+        listResult.error || !listResult.data
+          ? []
+          : (listResult.data as Array<Record<string, unknown>>)
+              .map((row) => mapInstitutionRowToFeatured(supabase, row))
+              .filter((item): item is FeaturedInstitution => item !== null);
 
-      if (cancelled || error || !data) return;
+      const pinnedEntries: FeaturedMarqueeEntry[] = pinned.map((institution) => ({
+        kind: "institution",
+        institution,
+      }));
 
-      const dynamicItems = (data as Array<Record<string, unknown>>)
-        .map((row) => mapInstitutionRowToFeatured(supabase, row))
-        .filter((item): item is FeaturedInstitution => item !== null);
+      const otherInstitutions = institutions.filter((item) => !pinnedIds.has(item.id));
+      const mixedOthers = shuffleItems<FeaturedMarqueeEntry>([
+        ...otherInstitutions.map((institution) => ({ kind: "institution" as const, institution })),
+        ...instructors.map((instructor) => ({ kind: "instructor" as const, instructor })),
+      ]).slice(0, Math.max(0, MARQUEE_FEATURED_COUNT - pinnedEntries.length));
 
-      if (dynamicItems.length > 0) {
-        const shuffled = [...dynamicItems];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        setShuffledFeaturedInstitutions(shuffled.slice(0, 8));
-      }
+      setFeaturedList([...pinnedEntries, ...mixedOthers].slice(0, MARQUEE_FEATURED_COUNT));
     })();
 
     return () => {
@@ -99,16 +122,6 @@ export function HomeFeaturedInstitutionsMarquee({
     };
   }, []);
 
-  const pinnedIds = new Set(featuredPinnedInstitutions.map((i) => i.id));
-  const featuredList =
-    featuredPinnedInstitutions.length > 0
-      ? [
-          ...featuredPinnedInstitutions,
-          ...shuffledFeaturedInstitutions
-            .filter((i) => !pinnedIds.has(i.id))
-            .slice(0, Math.max(0, MARQUEE_FEATURED_COUNT - featuredPinnedInstitutions.length)),
-        ]
-      : shuffledFeaturedInstitutions;
   const marqueeList = [...featuredList, ...featuredList];
 
   return (
@@ -128,12 +141,38 @@ export function HomeFeaturedInstitutionsMarquee({
               : ""
           }`}
         >
-          {marqueeList.map((institution, index) => {
+          {marqueeList.map((entry, index) => {
             const isDuplicate = index >= featuredList.length;
-            const key = `${institution.id}-${index}`;
+
+            if (entry.kind === "instructor") {
+              const instructor = entry.instructor;
+              const canRenderImage =
+                Boolean(instructor.imageUrl) && !brokenInstructorImageIds.has(instructor.id);
+
+              return (
+                <FeaturedInstructorCardLink
+                  key={`instructor-${instructor.id}-${index}`}
+                  instructor={instructor}
+                  isDuplicate={isDuplicate}
+                  canRenderImage={canRenderImage}
+                  onImageError={() =>
+                    setBrokenInstructorImageIds((prev) => {
+                      const next = new Set(prev);
+                      next.add(instructor.id);
+                      return next;
+                    })
+                  }
+                />
+              );
+            }
+
+            const institution = entry.institution;
+            const key = `institution-${institution.id}-${index}`;
             const isFavorite = favoriteIds.has(institution.id);
             const isActionLoading = favoriteActionLoadingIds.has(institution.id);
-            const canRenderImage = Boolean(institution.imageUrl) && !brokenFeaturedImageIds.has(institution.id);
+            const canRenderImage =
+              Boolean(institution.imageUrl) && !brokenInstitutionImageIds.has(institution.id);
+
             return (
               <FeaturedInstitutionCardLink
                 key={key}
@@ -146,7 +185,7 @@ export function HomeFeaturedInstitutionsMarquee({
                 canRenderImage={canRenderImage}
                 onToggleFavorite={onToggleFavorite}
                 onImageError={() =>
-                  setBrokenFeaturedImageIds((prev) => {
+                  setBrokenInstitutionImageIds((prev) => {
                     const next = new Set(prev);
                     next.add(institution.id);
                     return next;

@@ -9,20 +9,25 @@ import {
 } from "@/lib/institutionMapMarkers";
 
 function toMapSources(results: CategoryResultItem[]): InstitutionMapMarkerSource[] {
-  return results
-    .map((item) => {
-      const id = Number(item.id);
-      const slug = String(item.slug ?? "").trim();
-      const name = String(item.name ?? "").trim();
-      if (!Number.isFinite(id) || !slug || !name) return null;
-      return {
-        id,
-        slug,
-        name,
-        address: String(item.description ?? item.location ?? "").trim() || undefined,
-      };
-    })
-    .filter((item): item is InstitutionMapMarkerSource => item !== null);
+  const sources: InstitutionMapMarkerSource[] = [];
+
+  for (const item of results) {
+    if (item.resultType === "instructor") continue;
+
+    const id = Number(item.id);
+    const slug = String(item.slug ?? "").trim();
+    const name = String(item.name ?? "").trim();
+    if (!Number.isFinite(id) || !slug || !name) continue;
+
+    sources.push({
+      id,
+      slug,
+      name,
+      address: String(item.description ?? item.location ?? "").trim() || undefined,
+    });
+  }
+
+  return sources;
 }
 
 export function useCategoryInstitutionMapMarkers(

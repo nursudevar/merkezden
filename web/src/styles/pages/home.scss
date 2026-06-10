@@ -2847,6 +2847,10 @@ a.search-result-card {
   background-color: rgba(107, 114, 128, 0.414);
 }
 
+.search-result-badge--orange {
+  background-color: rgba($orange-primary, 0.88);
+}
+
 .featured-institution-badge-icon,
 .search-result-badge-icon {
   font-size: 14px;

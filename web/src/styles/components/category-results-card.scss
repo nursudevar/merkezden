@@ -174,6 +174,50 @@ a.category-results-card {
   letter-spacing: 0.3px;
 }
 
+.category-results-card-badge--type {
+  background-color: rgba($orange-primary, 0.85);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.category-results-card-instructor-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.category-results-card-instructor-branch {
+  font-size: 13px;
+  font-weight: $font-semibold;
+  color: $text-zinc-700;
+  line-height: 1.3;
+}
+
+.category-results-card-description--instructor-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: $purple-main;
+  font-weight: $font-medium;
+
+  svg {
+    flex-shrink: 0;
+    color: $purple-main;
+  }
+}
+
+.category-results-card-price {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: $font-semibold;
+  color: $text-zinc-700;
+}
+
 .category-results-card-title {
   font-size: 20px;
   font-weight: $font-bold;

@@ -507,8 +507,8 @@ $signup-layout-tight: 1020px;
 
 .signup-feature-column {
   display: grid;
-  grid-template-rows: auto auto;
-  gap: 30px;
+  grid-template-rows: repeat(3, auto);
+  gap: 20px;
   min-width: 0;
   align-content: start;
 }
@@ -530,13 +530,13 @@ $signup-layout-tight: 1020px;
   border: 1px solid rgba(122, 95, 255, 0.18);
   box-shadow: 0 10px 24px rgba(53, 45, 112, 0.06);
   text-align: center;
-  min-height: 270px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
   width: 100%;
-  max-width: 270px;
+  max-width: 250px;
   box-sizing: border-box;
   animation: signup-tab-fade-in 920ms ease;
 }
@@ -610,7 +610,7 @@ $signup-layout-tight: 1020px;
   }
 
   .signup-feature-column {
-    gap: 26px;
+    gap: 18px;
     align-content: start;
     justify-items: center;
     padding: 0 4px;
@@ -624,8 +624,8 @@ $signup-layout-tight: 1020px;
 
 
   .signup-feature-card {
-    max-width: 224px;
-    min-height: 220px;
+    max-width: 214px;
+    min-height: 168px;
     padding: 10px 8px;
     border-radius: 16px;
   }
@@ -654,8 +654,8 @@ $signup-layout-tight: 1020px;
 
 @media (max-width: $signup-layout-tight) and (min-width: #{$signup-layout-stack + 1px}) {
   .signup-feature-card {
-    max-width: 208px;
-    min-height: 200px;
+    max-width: 200px;
+    min-height: 160px;
   }
 
   .signup-feature-title {

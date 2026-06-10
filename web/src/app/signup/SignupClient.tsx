@@ -5,14 +5,17 @@ import { HeaderBrandLogo } from "@/components/layout/header.client";
 import { Button } from "@/components/ui";
 import AuthModal from "@/components/AuthModal";
 import {
-  ClipboardList,
+  BarChart3,
   FileText,
-  Grid2x2,
   ImagePlus,
+  ListFilter,
   MapPinned,
   Megaphone,
   Search,
   Sparkles,
+  Star,
+  Table2,
+  Tags,
 } from "lucide-react";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
@@ -44,47 +47,67 @@ type SignupFeatureItem = {
 
 const INDIVIDUAL_FEATURES: SignupFeatureItem[] = [
   {
-    title: "Haritada Ara",
-    description: "Konumunuza uygun kurumları harita üzerinden bulun.",
+    title: "Haritada Arama",
+    description: "Konumunuza yakın kurumları harita üzerinde bulun",
     icon: MapPinned,
   },
   {
-    title: "Kritere Gore Listeleme",
-    description: "Kriterlerinize gore hizli ve detayli filtreleme yapin.",
-    icon: ClipboardList,
+    title: "Filtreli Listeleme",
+    description: "Kriterlerinize uygun kurumlara hızlıca ulaşın.",
+    icon: ListFilter,
   },
   {
-    title: "Akilli Asistan",
-    description: "AI destekli oneriler ile dogru kurumlari kesfedin.",
+    title: "Akıllı Asistan",
+    description: "AI destekli önerileri alın",
     icon: Sparkles,
   },
   {
-    title: "Karsilastirma Tablosu",
-    description: "Kurumlari yan yana karsilastirin.",
-    icon: Grid2x2,
+    title: "Karşılaştırma Tablosu",
+    description: "Kurumları karşılaştırın, size en uygun seçimi yapın.",
+    icon: Table2,
+  },
+  {
+    title: "Detaylı İnceleme",
+    description: "Kapsamlı bilgileri inceleyip değerlendirin",
+    icon: Search,
+  },
+  {
+    title: "Size Özel Avantajlar",
+    description: "İndirim ve kampanyalardan yararlanın.",
+    icon: Tags,
   },
 ];
 
 const CORPORATE_FEATURES: SignupFeatureItem[] = [
   {
-    title: "Detayli Kurum Sayfasi",
-    description: "Kurumunuzu detayli tanitin.",
+    title: "Detaylı Profil Sayfası",
+    description: "Kurumunuzu detaylı tanıtın",
     icon: FileText,
   },
   {
-    title: "Fotograf / Video Ekleme",
-    description: "Kurumunuza ait fotograf ve videolar ekleyin.",
+    title: "Fotoğraf/Video Ekleme",
+    description: "Kurumunuza ait fotoğraf ve videoları ekleyin",
     icon: ImagePlus,
   },
   {
-    title: "SEO Avantajlari",
-    description: "Merkezden.com sayesinde Google gorunurlugunuzu artirin.",
+    title: "Duyuru/Etkinlik Paylaşma",
+    description: "Duyuru ve Etkinliklerinizi Yayınlayın",
+    icon: Megaphone,
+  },
+  {
+    title: "SEO Avantajları",
+    description: "Merkezden.com sayesinde Google'da Görünürlüğünüzü Artırın",
     icon: Search,
   },
   {
-    title: "Duyuru / Etkinlik Paylasma",
-    description: "Duyuru ve etkinliklerinizi yayinlayin.",
-    icon: Megaphone,
+    title: "Potansiyel Öğrenci Analizi",
+    description: "Ziyaretçi verilerinizi analiz edin, stratejinizi güçlendirin.",
+    icon: BarChart3,
+  },
+  {
+    title: "Öne Çıkanlar Sayfası",
+    description: "Daha fazla öğrenciye ulaşın.",
+    icon: Star,
   },
 ];
 
@@ -493,7 +516,7 @@ export default function SignupClient() {
       <div className="auth-content-wrapper">
         <div className="signup-layout signup-layout--with-features">
           <aside className="signup-feature-column signup-feature-column--left">
-            {activeFeatures.slice(0, 2).map((item) => (
+            {activeFeatures.slice(0, 3).map((item) => (
               <SignupFeatureCard key={item.title} item={item} accent={activeFeatureAccent} />
             ))}
           </aside>
@@ -947,7 +970,7 @@ export default function SignupClient() {
           </div>
 
           <aside className="signup-feature-column signup-feature-column--right">
-            {activeFeatures.slice(2).map((item) => (
+            {activeFeatures.slice(3).map((item) => (
               <SignupFeatureCard key={item.title} item={item} accent={activeFeatureAccent} />
             ))}
           </aside>
