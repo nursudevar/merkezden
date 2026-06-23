@@ -12,6 +12,11 @@ import {
   mapPublicInstructorToListItem,
   resolveInstitutionCategoryIdByName,
 } from "@/lib/publicInstructorSearch";
+import {
+  buildProfileSearchVariants,
+  escapeProfileLikeValue,
+  resolveInstitutionIdsByProfileSearch,
+} from "@/lib/profileSearch";
 
 export type CategoryResultItem = {
   id: string;
@@ -47,12 +52,17 @@ type InstitutionRow = {
   slug: string | null;
   institution_name: string | null;
   subheading: string | null;
+  about?: string | null;
   address: string | null;
   district: string | null;
   city: string | null;
   official_phone: string | null;
   official_email: string | null;
   website: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  x_url?: string | null;
+  linkedin_url?: string | null;
   logo: string | null;
   source: string | null;
   institution_type?: InstitutionTypeJoinRow;
@@ -69,23 +79,37 @@ type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
 function applyInstitutionSearchFilter<
   T extends { or: (filters: string) => T },
->(query: T, searchTerm: string): T {
-  const variants = buildSearchVariants(searchTerm)
-    .map(escapeLikeValue)
+>(query: T, searchTerm: string, relatedInstitutionIds: number[] = [], relatedInstitutionTypeIds: number[] = []): T {
+  const variants = buildProfileSearchVariants(searchTerm)
+    .map(escapeProfileLikeValue)
     .filter(Boolean);
   if (variants.length === 0) return query;
 
   const searchColumns = [
     "institution_name",
+    "subheading",
+    "about",
     "city",
     "district",
     "official_phone",
+    "official_email",
     "address",
+    "website",
+    "facebook_url",
+    "instagram_url",
+    "x_url",
+    "linkedin_url",
   ] as const;
   const orParts = variants.flatMap((term) => {
     const q = `%${term}%`;
     return searchColumns.map((col) => `${col}.ilike.${q}`);
   });
+  if (relatedInstitutionIds.length > 0) {
+    orParts.push(`id.in.(${relatedInstitutionIds.join(",")})`);
+  }
+  if (relatedInstitutionTypeIds.length > 0) {
+    orParts.push(`institution_type_id.in.(${relatedInstitutionTypeIds.join(",")})`);
+  }
   return query.or(orParts.join(","));
 }
 
@@ -97,6 +121,9 @@ async function fetchAllCategoryInstitutionRows(
   searchTerm: string,
 ): Promise<InstitutionRow[]> {
   const rows: InstitutionRow[] = [];
+  const relatedSearch = searchTerm
+    ? await resolveInstitutionIdsByProfileSearch(supabase, searchTerm)
+    : { institutionIds: [], institutionTypeIds: [] };
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -109,7 +136,14 @@ async function fetchAllCategoryInstitutionRows(
       .ilike("city", FIXED_CITY);
 
     if (district) query = query.eq("district", district);
-    if (searchTerm) query = applyInstitutionSearchFilter(query, searchTerm);
+    if (searchTerm) {
+      query = applyInstitutionSearchFilter(
+        query,
+        searchTerm,
+        relatedSearch.institutionIds,
+        relatedSearch.institutionTypeIds,
+      );
+    }
 
     const { data, error } = await query.order("id", { ascending: true }).range(from, to);
     if (error) throw error;
@@ -136,6 +170,9 @@ async function fetchAllCategoryInstitutionIds(
   institutionTypeId?: number | null,
 ): Promise<number[]> {
   const ids: number[] = [];
+  const relatedSearch = searchTerm
+    ? await resolveInstitutionIdsByProfileSearch(supabase, searchTerm)
+    : { institutionIds: [], institutionTypeIds: [] };
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -148,7 +185,14 @@ async function fetchAllCategoryInstitutionIds(
       .ilike("city", FIXED_CITY);
 
     if (district) query = query.eq("district", district);
-    if (searchTerm) query = applyInstitutionSearchFilter(query, searchTerm);
+    if (searchTerm) {
+      query = applyInstitutionSearchFilter(
+        query,
+        searchTerm,
+        relatedSearch.institutionIds,
+        relatedSearch.institutionTypeIds,
+      );
+    }
     if (
       institutionTypeId != null &&
       Number.isFinite(institutionTypeId) &&
@@ -231,39 +275,6 @@ function buildLocation(district?: string | null, city?: string | null): string {
   if (parts.length === 0) return FALLBACK;
   return parts.join(", ");
 }
-
-const normalizeSearchText = (value: string) =>
-  value
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i")
-    .replace(/[^a-z0-9\s]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const buildSearchVariants = (rawValue: string): string[] => {
-  const value = rawValue.trim();
-  if (!value) return [];
-  const normalized = normalizeSearchText(value);
-  const variants = [
-    value,
-    value.toLocaleLowerCase("tr-TR"),
-    value.toLocaleUpperCase("tr-TR"),
-    normalized,
-    normalized.toLocaleUpperCase("tr-TR"),
-  ]
-    .map((v) => v.trim())
-    .filter(Boolean);
-  return [...new Set(variants)];
-};
-
-const escapeLikeValue = (value: string) =>
-  value
-    .replace(/[(),]/g, " ")
-    .replace(/[.%]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 
 function normalizeFeatureKey(text: string): string {
   return text
@@ -774,7 +785,7 @@ export function useCategoryInstitutions(
       const supabase = createSupabaseBrowserClient();
 
       const fullSelect =
-        "id, slug, institution_name, subheading, address, district, city, official_phone, official_email, website, logo, source, institution_type:institution_types!inner(id, name, category:institution_categories!inner(id, name))";
+        "id, slug, institution_name, subheading, about, address, district, city, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, source, institution_type:institution_types!inner(id, name, category:institution_categories!inner(id, name))";
 
       /** PostgREST: gömülü ilişki üzerinde filtre için select'te aynı embed bulunmalı. */
       const idQuerySelect =

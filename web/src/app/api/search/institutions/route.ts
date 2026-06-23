@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { matchesSearch } from "@/lib/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import {
+  buildProfileSearchVariants,
+  escapeProfileLikeValue,
+  resolveInstitutionIdsByProfileSearch,
+} from "@/lib/profileSearch";
 
 type Institution = {
   id: number;
@@ -25,10 +29,20 @@ type InstitutionRow = {
   city: string | null;
   district: string | null;
   type: string | null;
+  subheading?: string | null;
+  about?: string | null;
   address: string | null;
+  official_phone?: string | null;
+  official_email?: string | null;
+  website?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  x_url?: string | null;
+  linkedin_url?: string | null;
   logo: string | null;
   slug: string | null;
   source: string | null;
+  institution_type_id?: number | null;
 };
 
 export async function GET(request: Request) {
@@ -41,12 +55,46 @@ export async function GET(request: Request) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
+    const relatedSearch = await resolveInstitutionIdsByProfileSearch(supabase, query);
+    let institutionQuery = supabase
       .from("institutions")
-      .select("id, institution_name, city, district, type, address, logo, slug, source")
+      .select("id, institution_name, city, district, type, subheading, about, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, slug, source, institution_type_id")
       .not("institution_name", "is", null)
       .order("institution_name", { ascending: true })
       .limit(600);
+
+    const variants = buildProfileSearchVariants(query).map(escapeProfileLikeValue).filter(Boolean);
+    const searchColumns = [
+      "institution_name",
+      "city",
+      "district",
+      "type",
+      "subheading",
+      "about",
+      "address",
+      "official_phone",
+      "official_email",
+      "website",
+      "facebook_url",
+      "instagram_url",
+      "x_url",
+      "linkedin_url",
+    ] as const;
+    const orParts = variants.flatMap((term) => {
+      const q = `%${term}%`;
+      return searchColumns.map((col) => `${col}.ilike.${q}`);
+    });
+    if (relatedSearch.institutionIds.length > 0) {
+      orParts.push(`id.in.(${relatedSearch.institutionIds.join(",")})`);
+    }
+    if (relatedSearch.institutionTypeIds.length > 0) {
+      orParts.push(`institution_type_id.in.(${relatedSearch.institutionTypeIds.join(",")})`);
+    }
+    if (orParts.length > 0) {
+      institutionQuery = institutionQuery.or(orParts.join(","));
+    }
+
+    const { data, error } = await institutionQuery;
 
     if (error) {
       throw error;
@@ -62,8 +110,10 @@ export async function GET(request: Request) {
         const city = String(row.city ?? "").trim();
         const location = [district, city].filter(Boolean).join(", ") || "Konum bilgisi yok";
         const type = String(row.type ?? "").trim();
+        const subheading = String(row.subheading ?? "").trim();
+        const about = String(row.about ?? "").trim();
         const address = String(row.address ?? "").trim();
-        const description = type || address || "Kurum bilgisi";
+        const description = subheading || about || type || address || "Kurum bilgisi";
         const imageUrl =
           resolveInstitutionLogoPublicUrl(supabase, row.logo) || "/images/hero-banner-car.jpg";
 
@@ -81,13 +131,6 @@ export async function GET(request: Request) {
       .filter((institution): institution is Institution => institution !== null);
 
     const results = allInstitutions
-      .filter((institution) => {
-        return (
-          matchesSearch(institution.name, query) ||
-          matchesSearch(institution.location, query) ||
-          matchesSearch(institution.description, query)
-        );
-      })
       .slice(0, 20)
       .map((institution) => ({
         id: institution.id.toString(),

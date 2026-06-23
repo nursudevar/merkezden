@@ -65,6 +65,72 @@
   margin-bottom: 24px;
 }
 
+// Öne çıkanlar sayfası — kaydırmalı şerit (ana sayfada kullanılmıyor)
+.featured-institutions-section {
+  @media (max-width: 1023px) {
+    margin: 20px 0;
+  }
+
+  @media (max-width: 640px) {
+    margin: 20px 0;
+  }
+}
+
+.featured-institutions-view-all {
+  text-align: center;
+  margin-top: 10px;
+
+  @media (max-width: 1023px) {
+    margin-top: 32px;
+  }
+
+  @media (max-width: 640px) {
+    margin-top: 24px;
+  }
+
+  a {
+    font-size: $text-base;
+    font-weight: $font-medium;
+    color: #5F2FD1;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    &:hover {
+      color: $purple-dark;
+      text-decoration: underline;
+    }
+  }
+}
+
+.featured-institutions-slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.featured-institutions-scroller {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  padding: 8px 0 30px;
+  will-change: transform;
+
+  @media (min-width: 640px) {
+    padding: 8px 0 26px;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 8px 0 26px;
+  }
+}
+
+.featured-institutions-scroller--animated {
+  animation: featured-marquee-scroll 48s linear infinite;
+}
+
 .featured-category-section {
   margin-top: 40px;
   min-width: 0;

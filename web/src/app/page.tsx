@@ -3,12 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Slider, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, CalendarDays, MapPin, Star, Building2, Landmark, UserRound, PawPrint, SlidersHorizontal, ImageOff } from "lucide-react";
+import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
+import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, MapPin, Star, Building2, Landmark, UserRound, SlidersHorizontal } from "lucide-react";
+import { HomeAnnouncementsMarquee } from "@/components/announcements/HomeAnnouncementsMarquee";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { HomeBlogSection } from "@/components/blog/HomeBlogSection";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
-import { HomeFeaturedInstitutionsMarquee } from "@/components/featured/HomeFeaturedInstitutionsMarquee";
 import { HomeIndividualInstructorsSection } from "@/components/featured/HomeIndividualInstructorsSection";
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
 import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
@@ -21,17 +21,25 @@ import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSear
 import { useAllInstitutionMapMarkers } from "@/hooks/useAllInstitutionMapMarkers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
-import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
+import {
+  FavoritesError,
+  getMyFavoriteInstitutionIds,
+  getMyFavoriteInstructorIds,
+  NOT_INDIVIDUAL_FAVORITES_MESSAGE,
+  toggleFavorite,
+  toggleInstructorFavorite,
+} from "@/lib/favorites/favoritesClient";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
-import { getCategoryHref } from "@/lib/categoryHelpers";
+import { getCategoryHref, HOME_MAIN_CATEGORY_ORDER } from "@/lib/categoryHelpers";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { User } from "@supabase/supabase-js";
+import { PriceRangeSliderFilter, type PriceRangeSliderValue } from "@/components/filters/PriceRangeSliderFilter";
+import {
+  INSTITUTION_PRICE_FILTER_MAX,
+  INSTITUTION_PRICE_FILTER_MIN,
+} from "@/lib/institutionPriceRangeFilter";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
-
-/** Ana sayfa sol panel — Fiyat filtresi (TL) */
-const PRICE_FILTER_MIN = 0;
-const PRICE_FILTER_MAX = 100_000;
 
 const ageOptions = [
   { value: "child", label: "Çocuk (0-17 yaş)", className: "filter-option filter-option-child" },
@@ -49,14 +57,6 @@ const schoolStatusOptions = [
   { value: "private", label: "Özel", icon: Building2 },
   { value: "public", label: "Devlet", icon: Landmark },
 ];
-
-const petFilterGroup = {
-  id: "pets",
-  title: "Patili Dostlar",
-  icon: "🐾",
-  headerClassName: "category-header-pets",
-  items: ["Pet Otel/Kreş", "Köpek Eğitimi", "Pet Kuaför"],
-} as const;
 
 /**
  * Sol filtre paneli ana kategori başlıkları + DB'deki `institution_categories` kayıtlarına
@@ -225,17 +225,6 @@ function normalizeCategoryKey(value: string): string {
     .trim();
 }
 
-const homeMainCategoryOrder = [
-  "OKUL",
-  "KURS & SINAVA HAZIRLIK",
-  "SPOR",
-  "SANAT",
-  "YABANCI DİL",
-  "KİŞİSEL GELİŞİM",
-  "MESLEKİ EĞİTİM",
-  "ÖZEL EĞİTİM",
-];
-
 function getMainCategoryLogoSrc(name: string, slug: string): string | null {
   const key = normalizeCategoryKey(`${name} ${slug}`);
   if (key.includes("okul")) return "/images/okul-logo.png";
@@ -320,29 +309,28 @@ function normalizeInstitutionNameKey(name: string): string {
   return name.trim().replace(/\s+/g, " ");
 }
 
-/** Ana sayfa «Duyurular» bölümü için kurum bilgisiyle birleştirilmiş duyuru kaydı. */
-type HomeAnnouncement = {
-  id: string;
-  title: string;
-  content: string;
-  imageUrl: string | null;
-  createdAt: string | null;
-  institutionName: string;
-  institutionCity: string;
+const PATILI_DOSTLAR_PAGE_HREF = "/patili-dostlar";
+
+const HOME_PATILI_DOSTLAR_FEATURED = {
+  title: "Pet Kuaför",
+  description: "Patili dostunuz için bakım ve tımar hizmetleri yakında burada listelenecek.",
+  imageUrl: "/images/pet_kuafor.png",
 };
 
-function formatAnnouncementDateTr(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function buildAnnouncementExcerpt(text: string, maxLen: number): string {
-  const t = String(text ?? "").trim().replace(/\s+/g, " ");
-  if (t.length <= maxLen) return t;
-  return `${t.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
-}
+const HOME_PATILI_DOSTLAR_SIDE_CARDS = [
+  {
+    id: "kopek-egitimi",
+    title: "Köpek Eğitimi",
+    description: "Profesyonel köpek eğitimi seçeneklerini keşfedin.",
+    imageUrl: "/images/kopek_egitimi.png",
+  },
+  {
+    id: "pet-otel-kres",
+    title: "Pet Otel / Kreş",
+    description: "Güvenilir pet otel ve kreş hizmetleri yakında burada.",
+    imageUrl: "/images/pet_otel.png",
+  },
+] as const;
 
 function shufflePremiumPicks<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -379,15 +367,19 @@ export default function Home() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
+  const [favoriteInstructorIds, setFavoriteInstructorIds] = useState<Set<number>>(() => new Set());
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoritesError, setFavoritesError] = useState<string | null>(null);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
+  const [favoriteInstructorActionLoadingIds, setFavoriteInstructorActionLoadingIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const districts = ANKARA_DISTRICTS;
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
-  const [priceRange, setPriceRange] = useState<number[]>([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRangeSliderValue>(null);
   const [openCategoryId, setOpenCategoryId] = useState<string>(() => sidebarCategoryGroups[0]?.id ?? "");
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   /** Ana kategori «Tümü»: ilgili `institution_categories` altındaki tüm `institution_types.id` (OR). */
@@ -417,7 +409,6 @@ export default function Home() {
   const [premiumPicksPage, setPremiumPicksPage] = useState(0);
   const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
   const [premiumPicks, setPremiumPicks] = useState<PremiumPickItem[]>([]);
-  const [homeAnnouncements, setHomeAnnouncements] = useState<HomeAnnouncement[]>([]);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const reduceMotion = useReducedMotion();
   const { markers: institutionMapMarkers, loading: institutionMapLoading } = useAllInstitutionMapMarkers();
@@ -425,6 +416,28 @@ export default function Home() {
   const sidebarInstitutionTypeIds = useMemo(
     () => computeSidebarSelectedInstitutionTypeIds(selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards),
     [selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards]
+  );
+
+  const showDefaultHomeContent = useMemo(
+    () =>
+      !(
+        (query && query.trim().length > 0) ||
+        selectedDistrict ||
+        selectedSchoolStatuses.size > 0 ||
+        selectedAgeOptions.size > 0 ||
+        selectedServiceTypes.size > 0 ||
+        selectedPriceRange != null ||
+        sidebarInstitutionTypeIds.length > 0
+      ),
+    [
+      query,
+      selectedDistrict,
+      selectedSchoolStatuses,
+      selectedAgeOptions,
+      selectedServiceTypes,
+      selectedPriceRange,
+      sidebarInstitutionTypeIds,
+    ],
   );
 
   const premiumPicksPageCount = Math.max(1, Math.ceil(premiumPicks.length / PREMIUM_PICKS_PER_PAGE));
@@ -584,6 +597,63 @@ export default function Home() {
     }
   };
 
+  const handleInstructorFavoriteToggle = async (instructorId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (!favoritesEnabled) {
+      setFavoritesError(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
+      return;
+    }
+    if (favoriteInstructorActionLoadingIds.has(instructorId)) return;
+
+    const wasFavorited = favoriteInstructorIds.has(instructorId);
+    setFavoritesError(null);
+    setFavoriteInstructorActionLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(instructorId);
+      return next;
+    });
+    setFavoriteInstructorIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorited) next.delete(instructorId);
+      else next.add(instructorId);
+      return next;
+    });
+
+    try {
+      const res = await toggleInstructorFavorite(instructorId);
+      setFavoriteInstructorIds((prev) => {
+        const next = new Set(prev);
+        if (res.isFavorited) next.add(instructorId);
+        else next.delete(instructorId);
+        return next;
+      });
+    } catch (err) {
+      setFavoriteInstructorIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorited) next.add(instructorId);
+        else next.delete(instructorId);
+        return next;
+      });
+      const msg =
+        err instanceof FavoritesError
+          ? err.message
+          : "Favori işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+      setFavoritesError(msg);
+    } finally {
+      setFavoriteInstructorActionLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(instructorId);
+        return next;
+      });
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
@@ -613,10 +683,12 @@ export default function Home() {
     let cancelled = false;
     if (!isAuthReady || !user) {
       setFavoriteIds(new Set());
+      setFavoriteInstructorIds(new Set());
       setFavoritesEnabled(false);
       setFavoritesLoading(false);
       setFavoritesError(null);
       setFavoriteActionLoadingIds(new Set());
+      setFavoriteInstructorActionLoadingIds(new Set());
       return;
     }
 
@@ -624,15 +696,20 @@ export default function Home() {
     setFavoritesError(null);
     (async () => {
       try {
-        const ids = await getMyFavoriteInstitutionIds();
+        const [ids, instructorIds] = await Promise.all([
+          getMyFavoriteInstitutionIds(),
+          getMyFavoriteInstructorIds(),
+        ]);
         if (cancelled) return;
         setFavoritesEnabled(true);
         setFavoriteIds(new Set(ids));
+        setFavoriteInstructorIds(new Set(instructorIds));
       } catch (err) {
         if (cancelled) return;
         if (err instanceof FavoritesError && err.code === "NOT_INDIVIDUAL") {
           setFavoritesEnabled(false);
           setFavoriteIds(new Set());
+          setFavoriteInstructorIds(new Set());
         } else {
           const msg =
             err instanceof FavoritesError ? err.message : "Favoriler yüklenemedi. Lütfen tekrar deneyin.";
@@ -655,63 +732,6 @@ export default function Home() {
       setSelectedNeighborhood("");
     }
   }, [selectedDistrict]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("announcements")
-        .select(
-          "id, title, content, announcement_image_url, created_at, institution:institutions(institution_name, city)"
-        )
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      if (cancelled) return;
-      if (error) {
-        console.error("[home][announcements] load error", error);
-        setHomeAnnouncements([]);
-        return;
-      }
-
-      const rows = (data ?? []) as Array<{
-        id: string | number;
-        title: string | null;
-        content: string | null;
-        announcement_image_url: string | null;
-        created_at: string | null;
-        institution:
-          | { institution_name: string | null; city: string | null }
-          | Array<{ institution_name: string | null; city: string | null }>
-          | null;
-      }>;
-
-      const mapped: HomeAnnouncement[] = rows
-        .map((r) => {
-          const inst = Array.isArray(r.institution) ? r.institution[0] ?? null : r.institution ?? null;
-          const title = String(r.title ?? "").trim();
-          if (!title) return null;
-          return {
-            id: String(r.id),
-            title,
-            content: String(r.content ?? "").trim(),
-            imageUrl: r.announcement_image_url ? String(r.announcement_image_url).trim() || null : null,
-            createdAt: r.created_at ? String(r.created_at) : null,
-            institutionName: String(inst?.institution_name ?? "").trim(),
-            institutionCity: String(inst?.city ?? "").trim(),
-          } as HomeAnnouncement;
-        })
-        .filter((item): item is HomeAnnouncement => item !== null);
-
-      setHomeAnnouncements(mapped);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -772,7 +792,7 @@ export default function Home() {
       });
 
       const orderMap = new Map(
-        homeMainCategoryOrder.map((label, index) => [normalizeCategoryKey(label), index]),
+        HOME_MAIN_CATEGORY_ORDER.map((label, index) => [normalizeCategoryKey(label), index]),
       );
 
       const orderedCards = [...cards].sort((a, b) => {
@@ -793,29 +813,8 @@ export default function Home() {
     };
   }, []);
 
-  const handlePriceInput = (index: number, value: string) => {
-    const numeric = Math.max(PRICE_FILTER_MIN, Math.min(PRICE_FILTER_MAX, Number(value) || 0));
-    setPriceRange((prev) => {
-      const next = [...prev];
-      next[index] = numeric;
-      if (index === 0 && numeric > next[1]) {
-        next[1] = numeric;
-      }
-      if (index === 1 && numeric < next[0]) {
-        next[0] = numeric;
-      }
-      return next;
-    });
-    scrollToResultsOnMobile();
-  };
-
   const handleHeaderSearchChange = (value: string) => {
     setQuery(value);
-    scrollToResultsOnMobile();
-  };
-
-  const handleSliderPriceChange = (next: number[]) => {
-    setPriceRange(next);
     scrollToResultsOnMobile();
   };
 
@@ -938,31 +937,15 @@ export default function Home() {
                     width={20} 
                     height={20}
                   />
-                  <span>Fiyat Filtresi</span>
+                  <span>Aylık Ortalama Fiyat Aralığı</span>
                 </div>
-                <div className="price-filter-inputs">
-                  <Input
-                    type="number"
-                    value={priceRange[0]}
-                    onChange={(e) => handlePriceInput(0, e.target.value)}
-                    className="price-filter-input"
-                  />
-                  <span className="price-filter-separator">-</span>
-                  <Input
-                    type="number"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceInput(1, e.target.value)}
-                    className="price-filter-input"
-                  />
-                </div>
-                <div className="price-filter-slider">
-                  <Slider value={priceRange} onValueChange={handleSliderPriceChange} min={PRICE_FILTER_MIN} max={PRICE_FILTER_MAX} step={500} />
-                </div>
-                <div className="price-filter-labels">
-                  <span>0₺</span>
-                  <span>50K₺</span>
-                  <span>100K₺</span>
-                </div>
+                <PriceRangeSliderFilter
+                  value={selectedPriceRange}
+                  onChange={(nextRange) => {
+                    setSelectedPriceRange(nextRange);
+                    scrollToResultsOnMobile();
+                  }}
+                />
               </div>
               <Separator />
               <div className="filter-section">
@@ -1112,11 +1095,24 @@ export default function Home() {
                     const categoryHref = matchedCard
                       ? getCategoryHref(matchedCard.name, matchedCard.slug)
                       : getCategoryHref(group.title, group.id);
+                    const categoryLogoSrc = matchedCard
+                      ? getMainCategoryLogoSrc(matchedCard.name, matchedCard.slug)
+                      : getMainCategoryLogoSrc(group.title, group.id);
 
                     return (
                       <AccordionItem key={group.id} value={group.id} className="category-accordion-item">
                         <AccordionTrigger className="category-accordion-trigger">
-                          <span>{group.title}</span>
+                          <span className="category-accordion-trigger-main">
+                            {categoryLogoSrc ? (
+                              <img
+                                src={categoryLogoSrc}
+                                alt=""
+                                className="category-accordion-trigger-icon"
+                                aria-hidden
+                              />
+                            ) : null}
+                            <span>{group.title}</span>
+                          </span>
                         </AccordionTrigger>
                         <AccordionContent className="category-accordion-content">
                           <div className="category-accordion-options">
@@ -1174,44 +1170,6 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-
-          <div className="pet-filter-row">
-            <div className="pet-filter-media">
-              <MekoChromaVideo
-                src="/gifs/meko-pet.mp4"
-                className="pet-filter-media-video"
-                ariaLabel="Meko animation"
-                threshold={18}
-              />
-            </div>
-
-            <div className="pet-filter-card">
-              <div className="pet-filter-header">
-                <div className="pet-filter-header-row">
-                  <PawPrint className="pet-filter-icon" aria-hidden />
-                  <h2 className="pet-filter-title">Patili Dostlar</h2>
-                </div>
-              </div>
-              <div className="pet-filter-main">
-                <div className="pet-filter-body">
-                  <div className="pet-filter-options">
-                    {petFilterGroup.items.map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        className="pet-filter-option"
-                        onClick={() => {
-                          router.push("/patili-dostlar");
-                        }}
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </aside>
 
         <main className="main-content">
@@ -1242,47 +1200,7 @@ export default function Home() {
             <SlidersHorizontal size={18} aria-hidden />
             <span>Filtrele</span>
           </button>
-          {(query && query.trim().length > 0) ||
-          selectedDistrict ||
-          selectedSchoolStatuses.size > 0 ||
-          selectedAgeOptions.size > 0 ||
-          selectedServiceTypes.size > 0 ||
-          priceRange[0] > PRICE_FILTER_MIN ||
-          priceRange[1] < PRICE_FILTER_MAX ||
-          sidebarInstitutionTypeIds.length > 0 ? (
-            <SearchResults 
-              query={query} 
-              cityFilter="Ankara"
-              districtFilter={selectedDistrict}
-              schoolStatusFilters={Array.from(selectedSchoolStatuses)}
-              studentAgeFilters={Array.from(selectedAgeOptions)}
-              serviceTypeFilters={Array.from(selectedServiceTypes)}
-              priceRangeFilter={{
-                min: priceRange[0],
-                max: priceRange[1],
-                defaultMin: PRICE_FILTER_MIN,
-                defaultMax: PRICE_FILTER_MAX,
-              }}
-              institutionTypeIds={sidebarInstitutionTypeIds}
-              onClearSearch={() => setQuery("")}
-              onClearAllFilters={() => {
-                setQuery("");
-                setSelectedDistrict("");
-                setSelectedNeighborhood("");
-                setSelectedSchoolStatuses(new Set());
-                setSelectedAgeOptions(new Set());
-                setSelectedServiceTypes(new Set());
-                setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
-                setSelectedCategoryItems(new Set());
-                setSelectedCategoryAllGroups(new Set());
-              }}
-              onToggleFavorite={handleFavoriteToggle}
-              favoriteIds={favoriteIds}
-              favoritesEnabled={favoritesEnabled && !favoritesLoading}
-              favoriteActionLoadingIds={favoriteActionLoadingIds}
-              isAuthenticated={Boolean(user)}
-            />
-          ) : (
+          {showDefaultHomeContent ? (
             <>
           <section className="home-main-categories">
             <header className="home-main-categories-header">
@@ -1314,17 +1232,12 @@ export default function Home() {
 
           <HomeFeaturedInstitutionsList
             onToggleFavorite={handleFavoriteToggle}
+            onToggleInstructorFavorite={handleInstructorFavoriteToggle}
             favoriteIds={favoriteIds}
+            favoriteInstructorIds={favoriteInstructorIds}
             favoritesEnabled={favoritesEnabled && !favoritesLoading}
             favoriteActionLoadingIds={favoriteActionLoadingIds}
-            isAuthenticated={Boolean(user)}
-          />
-
-          <HomeFeaturedInstitutionsMarquee
-            onToggleFavorite={handleFavoriteToggle}
-            favoriteIds={favoriteIds}
-            favoritesEnabled={favoritesEnabled && !favoritesLoading}
-            favoriteActionLoadingIds={favoriteActionLoadingIds}
+            favoriteInstructorActionLoadingIds={favoriteInstructorActionLoadingIds}
             isAuthenticated={Boolean(user)}
           />
 
@@ -1343,116 +1256,108 @@ export default function Home() {
             </div>
           </section>
 
-          {homeAnnouncements.length > 0 ? (
-            <section className="announcements-section" aria-label="Duyurular">
-              <div className="announcements-header">
-                <h2 className="announcements-title">Duyurular</h2>
-                <Link href="/announcements" className="announcements-view-all">
-                  tümünü gör
-                </Link>
-              </div>
-
-              <div className="announcements-grid">
-                {(() => {
-                  const featured = homeAnnouncements[0];
-                  const sideItems = homeAnnouncements.slice(1, 3);
-                  const featuredDate = formatAnnouncementDateTr(featured.createdAt);
-                  return (
-                    <>
-                      <Link href="/announcements" className="announcement-featured">
-                        <div
-                          className={`announcement-featured-media${featured.imageUrl ? "" : " announcement-featured-media--empty"}`}
-                          style={
-                            featured.imageUrl
-                              ? { backgroundImage: `url("${featured.imageUrl}")` }
-                              : undefined
-                          }
-                        >
-                          {!featured.imageUrl ? (
-                            <div className="announcement-featured-empty-icon" aria-hidden>
-                              <ImageOff size={48} strokeWidth={1.25} />
-                            </div>
-                          ) : null}
-                          <span className="announcement-badge">Yeni</span>
-                          <div className="announcement-featured-overlay" />
-                          <div className="announcement-featured-body">
-                            <h3 className="announcement-featured-title">{featured.title}</h3>
-                            {featured.content ? (
-                              <p className="announcement-featured-desc">
-                                {buildAnnouncementExcerpt(featured.content, 160)}
-                              </p>
-                            ) : null}
-                            <div className="announcement-featured-meta">
-                              {featuredDate ? (
-                                <span className="announcement-meta-item">
-                                  <CalendarDays className="announcement-meta-icon" />
-                                  {featuredDate}
-                                </span>
-                              ) : null}
-                              {featured.institutionCity ? (
-                                <span className="announcement-meta-item">
-                                  <MapPin className="announcement-meta-icon" />
-                                  {featured.institutionCity}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-
-                      {sideItems.length > 0 ? (
-                        <div className="announcements-side">
-                          {sideItems.map((item) => (
-                            <Link
-                              href="/announcements"
-                              key={item.id}
-                              className="announcement-small"
-                            >
-                              <div
-                                className={`announcement-small-thumb${item.imageUrl ? "" : " announcement-small-thumb--empty"}`}
-                                style={
-                                  item.imageUrl
-                                    ? { backgroundImage: `url("${item.imageUrl}")` }
-                                    : undefined
-                                }
-                                aria-hidden
-                              >
-                                {!item.imageUrl ? (
-                                  <ImageOff
-                                    className="announcement-small-thumb-icon"
-                                    size={22}
-                                    strokeWidth={1.25}
-                                  />
-                                ) : null}
-                              </div>
-                              <div className="announcement-small-body">
-                                {item.institutionName ? (
-                                  <div className="announcement-small-kicker">
-                                    {item.institutionName.toLocaleUpperCase("tr-TR")}
-                                  </div>
-                                ) : null}
-                                <h4 className="announcement-small-title">{item.title}</h4>
-                                {item.content ? (
-                                  <p className="announcement-small-desc">
-                                    {buildAnnouncementExcerpt(item.content, 110)}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      ) : null}
-                    </>
-                  );
-                })()}
-              </div>
-            </section>
-          ) : null}
+          <HomeAnnouncementsMarquee />
 
             </>
+          ) : (
+            <SearchResults 
+              query={query} 
+              cityFilter="Ankara"
+              districtFilter={selectedDistrict}
+              schoolStatusFilters={Array.from(selectedSchoolStatuses)}
+              studentAgeFilters={Array.from(selectedAgeOptions)}
+              serviceTypeFilters={Array.from(selectedServiceTypes)}
+              priceRangeFilter={
+                selectedPriceRange
+                  ? {
+                      min: selectedPriceRange.min,
+                      max: selectedPriceRange.max,
+                      defaultMin: INSTITUTION_PRICE_FILTER_MIN,
+                      defaultMax: INSTITUTION_PRICE_FILTER_MAX,
+                    }
+                  : undefined
+              }
+              institutionTypeIds={sidebarInstitutionTypeIds}
+              onClearSearch={() => setQuery("")}
+              onClearAllFilters={() => {
+                setQuery("");
+                setSelectedDistrict("");
+                setSelectedNeighborhood("");
+                setSelectedSchoolStatuses(new Set());
+                setSelectedAgeOptions(new Set());
+                setSelectedServiceTypes(new Set());
+                setSelectedPriceRange(null);
+                setSelectedCategoryItems(new Set());
+                setSelectedCategoryAllGroups(new Set());
+              }}
+              onToggleFavorite={handleFavoriteToggle}
+              favoriteIds={favoriteIds}
+              favoritesEnabled={favoritesEnabled && !favoritesLoading}
+              favoriteActionLoadingIds={favoriteActionLoadingIds}
+              isAuthenticated={Boolean(user)}
+            />
           )}
       </main>
       </div>
+
+      {showDefaultHomeContent ? (
+        <div className="home-patili-dostlar-row">
+          <div className="home-patili-dostlar-meko" aria-hidden>
+            <MekoChromaVideo
+              src="/gifs/meko-pet.mp4"
+              className="home-patili-dostlar-meko-video"
+              ariaLabel="Meko animation"
+              threshold={18}
+            />
+          </div>
+
+          <section className="patili-dostlar-section" aria-label="Patili Dostlar">
+            <div className="patili-dostlar-header">
+              <h2 className="patili-dostlar-title">Patili Dostlar</h2>
+              <Link href={PATILI_DOSTLAR_PAGE_HREF} className="patili-dostlar-view-all">
+                tümünü gör
+              </Link>
+            </div>
+
+            <div className="patili-dostlar-grid">
+              <Link href={PATILI_DOSTLAR_PAGE_HREF} className="patili-dostlar-feature-card">
+                <div
+                  className="patili-dostlar-feature-media"
+                  style={{ backgroundImage: `url("${HOME_PATILI_DOSTLAR_FEATURED.imageUrl}")` }}
+                >
+                  <div className="patili-dostlar-feature-overlay" />
+                  <div className="patili-dostlar-feature-body">
+                    <h3 className="patili-dostlar-feature-title">{HOME_PATILI_DOSTLAR_FEATURED.title}</h3>
+                    <p className="patili-dostlar-feature-desc">{HOME_PATILI_DOSTLAR_FEATURED.description}</p>
+                  </div>
+                </div>
+              </Link>
+
+              <div className="patili-dostlar-side">
+                {HOME_PATILI_DOSTLAR_SIDE_CARDS.map((item) => (
+                  <Link
+                    href={PATILI_DOSTLAR_PAGE_HREF}
+                    key={item.id}
+                    className="patili-dostlar-feature-card patili-dostlar-side-card"
+                  >
+                    <div
+                      className="patili-dostlar-feature-media"
+                      style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                    >
+                      <div className="patili-dostlar-feature-overlay" />
+                      <div className="patili-dostlar-feature-body">
+                        <h3 className="patili-dostlar-feature-title">{item.title}</h3>
+                        <p className="patili-dostlar-feature-desc">{item.description}</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       <div className="content-layout">
         <div className="content-layout-inner">
           <HomeIndividualInstructorsSection />
@@ -1473,7 +1378,7 @@ export default function Home() {
             <div className="premium-picks-header">
               <div className="premium-picks-header-text">
                 <span className="premium-picks-badge">PREMIUM KEŞİF</span>
-                <h2 className="premium-picks-title">Ankara'nın En İyileri</h2>
+                <h2 className="premium-picks-title">Ankara&apos;nın En İyileri</h2>
                 <p className="premium-picks-desc">Başkentin en prestijli eğitim kurumlarını keşfedin.</p>
               </div>
               {premiumPicksPageCount > 1 ? (
@@ -1549,7 +1454,6 @@ export default function Home() {
                             <Building2 className="premium-picks-card-placeholder-svg" strokeWidth={1.25} />
                           </div>
                         ) : null}
-                        <span className="premium-picks-card-badge">TOP PICK</span>
                         <div className="premium-picks-card-overlay" />
                         <div className="premium-picks-card-info">
                           <h3 className="premium-picks-card-title">{item.name}</h3>

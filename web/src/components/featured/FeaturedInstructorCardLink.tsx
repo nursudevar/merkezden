@@ -1,18 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import { motion } from "framer-motion";
+import { GraduationCap, Heart } from "lucide-react";
 import type { FeaturedInstructorItem } from "@/lib/publicInstructorSearch";
 
 export function FeaturedInstructorCardLink({
   instructor,
   isDuplicate,
+  isFavorite,
+  isActionLoading,
+  favoritesEnabled,
+  isAuthenticated,
   canRenderImage,
+  onToggleFavorite,
   onImageError,
 }: {
   instructor: FeaturedInstructorItem;
   isDuplicate?: boolean;
+  isFavorite?: boolean;
+  isActionLoading?: boolean;
+  favoritesEnabled?: boolean;
+  isAuthenticated?: boolean;
   canRenderImage: boolean;
+  onToggleFavorite?: (instructorId: number, e: React.MouseEvent) => void;
   onImageError: () => void;
 }) {
   return (
@@ -37,6 +48,29 @@ export function FeaturedInstructorCardLink({
           </div>
         )}
         <div className="featured-institution-overlay" />
+        {onToggleFavorite ? (
+          <motion.button
+            type="button"
+            aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
+            className="featured-institution-favorite"
+            whileTap={{ scale: 0.9 }}
+            disabled={Boolean(isActionLoading) || (Boolean(isAuthenticated) && !favoritesEnabled)}
+            onClick={(e) => {
+              onToggleFavorite(instructor.id, e);
+            }}
+          >
+            <motion.div
+              animate={{ scale: isFavorite ? [1, 1.3, 1] : 1 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <Heart
+                className={
+                  isFavorite ? "heart-favorite-icon heart-favorite-icon--active" : "heart-favorite-icon"
+                }
+              />
+            </motion.div>
+          </motion.button>
+        ) : null}
       </div>
       <div className="featured-institution-content">
         <span className="featured-institution-body-category">

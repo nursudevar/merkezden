@@ -1,11 +1,16 @@
 "use client";
 
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
+import {
+  buildProfileSearchVariants,
+  escapeProfileLikeValue,
+  resolveInstructorIdsByProfileSearch,
+} from "@/lib/profileSearch";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
-  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, price_range, graduated_university, website, profile_picture, category_id, is_verified, is_active, created_at";
+  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, price_range, graduated_university, website, experience_years, profile_picture, category_id, is_verified, is_active, created_at";
 
 const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "name",
@@ -50,6 +55,7 @@ export type PublicInstructorListRow = {
   price_range?: string | null;
   graduated_university?: string | null;
   website?: string | null;
+  experience_years?: number | null;
   profile_picture?: string | null;
   category_id?: number | null;
   is_verified?: boolean | null;
@@ -80,51 +86,23 @@ export type InstructorListingFilters = {
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
-function normalizeSearchText(value: string): string {
-  return value
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i")
-    .replace(/[^a-z0-9\s]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function buildSearchVariants(rawValue: string): string[] {
-  const value = rawValue.trim();
-  if (!value) return [];
-  const normalized = normalizeSearchText(value);
-  const variants = [
-    value,
-    value.toLocaleLowerCase("tr-TR"),
-    value.toLocaleUpperCase("tr-TR"),
-    normalized,
-    normalized.toLocaleUpperCase("tr-TR"),
-  ]
-    .map((v) => v.trim())
-    .filter(Boolean);
-  return [...new Set(variants)];
-}
-
-function escapeLikeValue(value: string): string {
-  return value
-    .replace(/[(),]/g, " ")
-    .replace(/[.%]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function applyPublicInstructorSearchFilter<
   T extends { or: (filters: string) => T },
->(query: T, searchTerm: string): T {
-  const variants = buildSearchVariants(searchTerm).map(escapeLikeValue).filter(Boolean);
+>(query: T, searchTerm: string, relatedInstructorIds: number[] = []): T {
+  const variants = buildProfileSearchVariants(searchTerm).map(escapeProfileLikeValue).filter(Boolean);
   if (variants.length === 0) return query;
 
   const orParts = variants.flatMap((term) => {
     const q = `%${term}%`;
     return PUBLIC_INSTRUCTOR_SEARCH_COLUMNS.map((col) => `${col}.ilike.${q}`);
   });
+  const numericSearch = Number(searchTerm.replace(",", "."));
+  if (Number.isFinite(numericSearch)) {
+    orParts.push(`experience_years.eq.${numericSearch}`);
+  }
+  if (relatedInstructorIds.length > 0) {
+    orParts.push(`id.in.(${relatedInstructorIds.join(",")})`);
+  }
   return query.or(orParts.join(","));
 }
 
@@ -161,6 +139,7 @@ export async function fetchPublicInstructorsForListing(
     categoryId?: number | null;
     district?: string;
     city?: string;
+    priceRange?: { min: number; max: number } | null;
     limit?: number;
   },
 ): Promise<PublicInstructorListRow[]> {
@@ -170,6 +149,9 @@ export async function fetchPublicInstructorsForListing(
   const categoryId = options?.categoryId;
   const hardLimit = options?.limit ?? 600;
   const rows: PublicInstructorListRow[] = [];
+  const relatedInstructorIds = searchTerm
+    ? await resolveInstructorIdsByProfileSearch(supabase, searchTerm)
+    : [];
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -190,7 +172,7 @@ export async function fetchPublicInstructorsForListing(
       query = query.eq("district", district);
     }
     if (searchTerm) {
-      query = applyPublicInstructorSearchFilter(query, searchTerm);
+      query = applyPublicInstructorSearchFilter(query, searchTerm, relatedInstructorIds);
     }
 
     const { data, error } = await query
@@ -214,7 +196,15 @@ export async function fetchPublicInstructorsForListing(
     }),
   );
 
-  return rows.slice(0, hardLimit);
+  const filteredRows = applyInstructorListingFilters(rows, {
+    educationLevelTerms: [],
+    serviceTypeTerms: [],
+    lessonTypeTerms: [],
+    branchTitleTerms: [],
+    priceRange: options?.priceRange ?? null,
+  });
+
+  return filteredRows.slice(0, hardLimit);
 }
 
 export type MappedPublicInstructorListItem = {

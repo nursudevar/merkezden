@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { GraduationCap, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INSTRUCTORS_TABLE } from "@/lib/instructorProfileClient";
 import {
@@ -12,6 +9,10 @@ import {
   type PublicInstructorRow,
 } from "@/lib/publicInstructorClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
+import CategoryPageLayout from "@/components/category/CategoryPageLayout";
+import type { CategoryFilterConfig, FilterState } from "@/components/category/CategoryFilterSidebar";
+import type { CategoryResultItem } from "@/components/category/useCategoryInstitutions";
+import { parsePriceRangeFromText, rangesOverlap } from "@/lib/institutionPriceRangeFilter";
 
 const FALLBACK_INSTRUCTOR_SELECT =
   "id, slug, full_name, name, surname, branch, school, city, district, price_range, profile_picture, is_active, is_verified";
@@ -285,7 +286,13 @@ export function AllInstructorsPageClient() {
   const [items, setItems] = useState<InstructorListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
+  const [filters, setFilters] = useState<FilterState>({
+    search: "",
+    city: "ankara",
+    district: "",
+    category: "",
+    priceRange: null,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -315,113 +322,89 @@ export function AllInstructorsPageClient() {
     };
   }, []);
 
-  const featuredItems = useMemo(() => items.slice(0, 6), [items]);
+  const filterConfig = useMemo<CategoryFilterConfig>(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      const branch = item.branchLabel.trim();
+      if (!branch || branch === "Branş belirtilmedi") continue;
+      counts.set(branch, (counts.get(branch) ?? 0) + 1);
+    }
+    return {
+      searchPlaceholder: "Eğitmen adı ara...",
+      categories: Array.from(counts.entries())
+        .sort(([a], [b]) => a.localeCompare(b, "tr", { sensitivity: "base" }))
+        .map(([label, count]) => ({ label, count, value: label })),
+    };
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    const search = filters.search.trim().toLocaleLowerCase("tr-TR");
+    const district = filters.district.trim().toLocaleLowerCase("tr-TR");
+    const category = filters.category.trim().toLocaleLowerCase("tr-TR");
+    const priceRange = filters.priceRange;
+
+    return items.filter((item) => {
+      if (search) {
+        const haystack = [
+          item.displayName,
+          item.branchLabel,
+          item.schoolLabel,
+          item.locationLabel,
+          item.priceLabel,
+        ]
+          .join(" ")
+          .toLocaleLowerCase("tr-TR");
+        if (!haystack.includes(search)) return false;
+      }
+
+      if (district && district !== "__all__") {
+        if (!item.locationLabel.toLocaleLowerCase("tr-TR").includes(district)) return false;
+      }
+
+      if (category) {
+        if (item.branchLabel.toLocaleLowerCase("tr-TR") !== category) return false;
+      }
+
+      if (priceRange) {
+        const rowRange = parsePriceRangeFromText(item.priceLabel);
+        if (!rowRange || !rangesOverlap(rowRange, priceRange)) return false;
+      }
+
+      return true;
+    });
+  }, [filters, items]);
+
+  const results = useMemo<CategoryResultItem[]>(() => {
+    return filteredItems.map((item) => ({
+      id: `instructor-${item.id}`,
+      resultType: "instructor",
+      name: item.displayName,
+      description: item.schoolLabel || item.branchLabel,
+      location: item.locationLabel || "Konum bilgisi yok",
+      price: item.priceLabel,
+      ageRange: "-",
+      rating: 0,
+      reviewCount: 0,
+      badges: [],
+      logoInitial: item.displayName.charAt(0).toLocaleUpperCase("tr-TR") || "E",
+      imageUrl: item.imageUrl || undefined,
+      detailUrl: item.href,
+      instructorBranch: item.branchLabel,
+      instructorTitle: item.schoolLabel,
+      priceRange: item.priceLabel,
+    }));
+  }, [filteredItems]);
 
   return (
-    <main className="public-instructors-page">
-      <section className="public-instructors-featured" aria-labelledby="public-instructors-featured-title">
-        <div className="public-instructors-featured-header">
-          <h1 className="public-instructors-featured-title" id="public-instructors-featured-title">
-            Popüler Eğitmenler
-          </h1>
-        </div>
-
-        {loading ? (
-          <p className="public-instructors-page-empty public-instructors-page-empty--dark">
-            Eğitmenler yükleniyor...
-          </p>
-        ) : loadError ? (
-          <p className="public-instructors-page-empty public-instructors-page-empty--dark">{loadError}</p>
-        ) : featuredItems.length === 0 ? (
-          <p className="public-instructors-page-empty public-instructors-page-empty--dark">
-            Henüz popüler eğitmen bulunmuyor.
-          </p>
-        ) : (
-          <div className="public-instructors-featured-scroller">
-            {featuredItems.map((item) => (
-              <Link key={item.id} href={item.href} className="public-instructors-featured-card">
-                <span className="public-instructors-featured-badge">Popüler</span>
-                <div className="public-instructors-featured-card-body">
-                  <p className="public-instructors-featured-card-name">{item.displayName}</p>
-                  <p className="public-instructors-featured-card-branch">{item.branchLabel}</p>
-                  <div className="public-instructors-featured-card-footer">
-                    <span className="public-instructors-featured-card-price">{item.priceLabel}</span>
-                    <span className="public-instructors-featured-card-button">İncele</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="public-instructors-directory" aria-labelledby="public-instructors-directory-title">
-        <div className="public-instructors-directory-header">
-          <h2 className="public-instructors-directory-title" id="public-instructors-directory-title">
-            Bireysel Eğitmenler
-          </h2>
-          <p className="public-instructors-directory-subtitle">
-            Alanında uzman eğitmenleri tek sayfada inceleyin ve profil detaylarına ulaşın.
-          </p>
-        </div>
-
-        {loading ? (
-          <p className="public-instructors-page-empty">Eğitmenler yükleniyor...</p>
-        ) : loadError ? (
-          <p className="public-instructors-page-empty">{loadError}</p>
-        ) : items.length === 0 ? (
-          <p className="public-instructors-page-empty">Henüz listelenecek eğitmen bulunmuyor.</p>
-        ) : (
-          <div className="public-instructors-grid">
-            {items.map((item) => {
-              const showImage = Boolean(item.imageUrl) && !brokenImageIds.has(item.id);
-
-              return (
-                <Link key={item.id} href={item.href} className="public-instructor-card">
-                  <div className="public-instructor-card-media">
-                    {showImage ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.displayName}
-                        fill
-                        className="public-instructor-card-image"
-                        sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 25vw"
-                        unoptimized
-                        onError={() =>
-                          setBrokenImageIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(item.id);
-                            return next;
-                          })
-                        }
-                      />
-                    ) : (
-                      <div className="public-instructor-card-fallback" aria-hidden>
-                        <GraduationCap size={38} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="public-instructor-card-body">
-                    <h3 className="public-instructor-card-name">{item.displayName}</h3>
-                    <p className="public-instructor-card-branch">{item.branchLabel}</p>
-                    {item.schoolLabel ? (
-                      <p className="public-instructor-card-school">{item.schoolLabel}</p>
-                    ) : null}
-                    {item.locationLabel ? (
-                      <p className="public-instructor-card-location">
-                        <MapPin className="public-instructor-card-location-icon" />
-                        <span>{item.locationLabel}</span>
-                      </p>
-                    ) : null}
-                    <p className="public-instructor-card-price">{item.priceLabel}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </main>
+    <CategoryPageLayout
+      categoryName="Eğitmenler"
+      resultsTitle="Listelenen Eğitmenler"
+      filterConfig={filterConfig}
+      results={results}
+      isLoading={loading}
+      errorMessage={loadError}
+      emptyResultsMessage="Henüz listelenecek eğitmen bulunmuyor."
+      onFilterChange={setFilters}
+    />
   );
 }

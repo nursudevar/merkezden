@@ -9,6 +9,9 @@ export type InstitutionMapMarker = {
   official_email: string;
   latitude: number;
   longitude: number;
+  categoryName: string;
+  categorySlug: string;
+  categoryId: number | null;
 };
 
 type InstitutionLocationRow = {
@@ -25,6 +28,36 @@ type InstitutionRow = {
   official_phone: string | null;
   official_email: string | null;
   slug: string | null;
+  institution_type?:
+    | {
+        category?:
+          | {
+              id?: number | null;
+              name?: string | null;
+              slug?: string | null;
+            }
+          | Array<{
+              id?: number | null;
+              name?: string | null;
+              slug?: string | null;
+            }>
+          | null;
+      }
+    | Array<{
+        category?:
+          | {
+              id?: number | null;
+              name?: string | null;
+              slug?: string | null;
+            }
+          | Array<{
+              id?: number | null;
+              name?: string | null;
+              slug?: string | null;
+            }>
+          | null;
+      }>
+    | null;
 };
 
 export type InstitutionMapMarkerSource = {
@@ -71,12 +104,16 @@ function mergeLocationRowsWithInstitutionRows(
       const lat = Number(location.latitude);
       const lng = Number(location.longitude);
       const slug = String(institution?.slug ?? "").trim();
+      const typeJoin = institution?.institution_type;
+      const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
+      const categoryJoin = typeRow?.category;
+      const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
 
       if (!institution || !slug || !Number.isFinite(lat) || !Number.isFinite(lng)) {
         return null;
       }
 
-      return {
+      const marker: InstitutionMapMarker = {
         id: institution.id,
         slug,
         institution_name: String(institution.institution_name ?? "Kurum").trim() || "Kurum",
@@ -85,36 +122,11 @@ function mergeLocationRowsWithInstitutionRows(
         official_email: String(institution.official_email ?? "").trim(),
         latitude: lat,
         longitude: lng,
+        categoryName: String(categoryRow?.name ?? "").trim(),
+        categorySlug: String(categoryRow?.slug ?? "").trim(),
+        categoryId: Number.isFinite(Number(categoryRow?.id)) ? Number(categoryRow?.id) : null,
       };
-    })
-    .filter((item): item is InstitutionMapMarker => Boolean(item));
-}
-
-function mergeLocationRowsWithSources(
-  locationRows: InstitutionLocationRow[],
-  sourcesById: Map<number, InstitutionMapMarkerSource>,
-): InstitutionMapMarker[] {
-  return locationRows
-    .map((location) => {
-      const source = sourcesById.get(location.institution_id);
-      const lat = Number(location.latitude);
-      const lng = Number(location.longitude);
-      const slug = String(source?.slug ?? "").trim();
-
-      if (!source || !slug || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-        return null;
-      }
-
-      return {
-        id: source.id,
-        slug,
-        institution_name: String(source.name).trim() || "Kurum",
-        address: String(source.address ?? "").trim() || "Adres bilgisi bulunamadı",
-        official_phone: String(source.official_phone ?? "").trim(),
-        official_email: String(source.official_email ?? "").trim(),
-        latitude: lat,
-        longitude: lng,
-      };
+      return marker;
     })
     .filter((item): item is InstitutionMapMarker => Boolean(item));
 }
@@ -131,7 +143,7 @@ async function fetchInstitutionRowsByIds(
     const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
     const { data, error } = await supabase
       .from("institutions")
-      .select("id, institution_name, address, official_phone, official_email, slug")
+      .select("id, institution_name, address, official_phone, official_email, slug, institution_type:institution_types(category:institution_categories(id, name, slug))")
       .in("id", chunk);
 
     if (error || !Array.isArray(data)) continue;

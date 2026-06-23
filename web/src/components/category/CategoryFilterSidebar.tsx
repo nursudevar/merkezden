@@ -16,12 +16,25 @@ import { Input } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
+import {
+  INSTITUTION_PRICE_RANGE_DEFINITION_ID,
+  INSTITUTION_PRICE_FILTER_MAX,
+  INSTITUTION_PRICE_FILTER_MIN,
+  isInstitutionPriceRangeFieldName,
+  orderPriceRangeChoicesFromCanonical,
+  sortPriceRangeChoicesByMin,
+} from "@/lib/institutionPriceRangeFilter";
+import {
+  PriceRangeSliderFilter,
+  type PriceRangeSliderValue,
+} from "@/components/filters/PriceRangeSliderFilter";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 
 export interface CategoryFilterConfig {
   categories?: Array<{ label: string; count: number; value: string }>;
+  searchPlaceholder?: string;
 }
 
 interface CategoryFilterSidebarProps {
@@ -39,12 +52,12 @@ interface CategoryFilterSidebarProps {
   mapLoading?: boolean;
 }
 
-interface FilterState {
+export interface FilterState {
   search: string;
   city: string;
   district: string;
   category: string;
-  priceRange: [number, number];
+  priceRange: PriceRangeSliderValue;
 }
 
 const defaultCategories = [
@@ -185,6 +198,14 @@ function normalizeCommonFieldNameKey(name: string): string {
 }
 
 /** Ortalama Sınıf Mevcudu + Aylık Ortalama Fiyat Aralığı → Kurum Saatleri'nin hemen altına. */
+function isPriceRangeCommonField(field: CommonField): boolean {
+  if (field.kind !== "single_select" && field.kind !== "multi_select") return false;
+  return (
+    field.definitionId === INSTITUTION_PRICE_RANGE_DEFINITION_ID ||
+    isInstitutionPriceRangeFieldName(field.name)
+  );
+}
+
 function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonField[] {
   if (fields.length === 0) return fields;
 
@@ -258,7 +279,7 @@ function useCategoryFilterSidebarModel({
   const [city, setCity] = useState("ankara");
   const [district, setDistrict] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
+  const [priceRange, setPriceRange] = useState<PriceRangeSliderValue>(null);
 
   // DB'den çekilen kategoriye özgü feature group + option verisi
   const [featureGroups, setFeatureGroups] = useState<FeatureFilterGroup[]>([]);
@@ -283,6 +304,7 @@ function useCategoryFilterSidebarModel({
   const [expandedCommonMultiIds, setExpandedCommonMultiIds] = useState<Set<number>>(new Set());
 
   const categories = config?.categories || defaultCategories;
+  const searchPlaceholder = config?.searchPlaceholder ?? "Kurum adı ara...";
   const effectiveSlug = enabled ? String(categorySlug ?? "").trim() : "";
   const hasDynamicFeatureMode = effectiveSlug.length > 0;
   const isLinkedSearch = typeof onLinkedSearchChange === "function";
@@ -630,23 +652,27 @@ function useCategoryFilterSidebarModel({
         const defChoices = (choicesByDef.get(def.id) ?? [])
           .map((c) => ({ id: c.id, name: String(c.name ?? "").trim() }))
           .filter((c) => Boolean(c.name));
+        const orderedChoices =
+          def.id === INSTITUTION_PRICE_RANGE_DEFINITION_ID || isInstitutionPriceRangeFieldName(displayName)
+            ? orderPriceRangeChoicesFromCanonical(defChoices)
+            : defChoices;
 
         if (inputType === "single_select") {
-          if (defChoices.length === 0) return;
+          if (orderedChoices.length === 0) return;
           fields.push({
             kind: "single_select",
             definitionId: def.id,
             name: displayName,
             placeholder: `${displayName} seçin`,
-            choices: defChoices,
+            choices: orderedChoices,
           });
         } else if (inputType === "multi_select") {
-          if (defChoices.length === 0) return;
+          if (orderedChoices.length === 0) return;
           fields.push({
             kind: "multi_select",
             definitionId: def.id,
             name: displayName,
-            choices: defChoices,
+            choices: orderedChoices,
           });
         } else if (inputType === "number") {
           fields.push({
@@ -694,29 +720,6 @@ function useCategoryFilterSidebarModel({
     onFilterChange?.(newFilters);
   };
 
-  const handlePriceInput = (index: 0 | 1, value: string) => {
-    if (value === "") {
-      const newRange: [number, number] = [...priceRange];
-      newRange[index] = index === 0 ? 0 : 50000;
-      handleFilterChange({ priceRange: newRange });
-      return;
-    }
-
-    const numValue = parseInt(value, 10);
-    if (isNaN(numValue) || numValue < 0) return;
-
-    const newRange: [number, number] = [...priceRange];
-    newRange[index] = numValue;
-
-    if (index === 0 && newRange[0] > newRange[1]) {
-      newRange[1] = newRange[0];
-    } else if (index === 1 && newRange[1] < newRange[0]) {
-      newRange[0] = newRange[1];
-    }
-
-    handleFilterChange({ priceRange: newRange });
-  };
-
   const toggleFeatureOption = (groupId: number, optionKey: string) => {
     setSelectedFeatureOptionsByGroup((prev) => {
       const current = new Set(prev[groupId] ?? new Set<string>());
@@ -758,6 +761,33 @@ function useCategoryFilterSidebarModel({
     setSelectedCommonRange((prev) => {
       const current = prev[definitionId] ?? { min: "", max: "" };
       return { ...prev, [definitionId]: { ...current, [edge]: value } };
+    });
+  };
+
+  const setCommonPriceRange = (definitionId: number, value: PriceRangeSliderValue) => {
+    setSelectedCommonRange((prev) => {
+      const next = { ...prev };
+      if (!value) {
+        delete next[definitionId];
+        return next;
+      }
+      next[definitionId] = {
+        min: String(value.min),
+        max: String(value.max),
+      };
+      return next;
+    });
+    setSelectedCommonSingle((prev) => {
+      if (!(definitionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[definitionId];
+      return next;
+    });
+    setSelectedCommonMulti((prev) => {
+      if (!(definitionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[definitionId];
+      return next;
     });
   };
 
@@ -856,7 +886,9 @@ function useCategoryFilterSidebarModel({
   const hasActiveFilters = useMemo(() => {
     if (String(displaySearch ?? "").trim()) return true;
     if (String(displayDistrict ?? "").trim()) return true;
+    if (String(selectedCategory ?? "").trim()) return true;
     if (String(selectedSubcategoryId ?? "").trim()) return true;
+    if (priceRange != null) return true;
     for (const v of Object.values(selectedCommonSingle)) {
       const s = String(v ?? "").trim();
       if (s && s !== CLEAR_SINGLE_SELECT_VALUE) return true;
@@ -874,7 +906,9 @@ function useCategoryFilterSidebarModel({
   }, [
     displaySearch,
     displayDistrict,
+    selectedCategory,
     selectedSubcategoryId,
+    priceRange,
     selectedCommonSingle,
     selectedCommonMulti,
     selectedCommonRange,
@@ -890,7 +924,7 @@ function useCategoryFilterSidebarModel({
     setSearch("");
     setDistrict("");
     setSelectedCategory("");
-    setPriceRange([0, 50000]);
+    setPriceRange(null);
     setSelectedSubcategoryId("");
     setSelectedCommonSingle({});
     setSelectedCommonMulti({});
@@ -900,10 +934,18 @@ function useCategoryFilterSidebarModel({
     setExpandedCommonMultiIds(new Set());
     if (isLinkedSearch) onLinkedSearchChange?.("");
     if (isLinkedDistrict) onLinkedDistrictChange?.("");
-  }, [isLinkedSearch, isLinkedDistrict, onLinkedSearchChange, onLinkedDistrictChange]);
+    onFilterChange?.({
+      search: "",
+      city: "ankara",
+      district: "",
+      category: "",
+      priceRange: null,
+    });
+  }, [isLinkedSearch, isLinkedDistrict, onLinkedSearchChange, onLinkedDistrictChange, onFilterChange]);
 
   return {
     categories,
+    searchPlaceholder,
     hasDynamicFeatureMode,
     displaySearch,
     displayDistrict,
@@ -927,12 +969,12 @@ function useCategoryFilterSidebarModel({
     selectedCommonRange,
     expandedCommonMultiIds,
     handleFilterChange,
-    handlePriceInput,
     toggleFeatureOption,
     toggleGroupExpanded,
     toggleCommonMulti,
     toggleCommonMultiExpanded,
     setCommonRange,
+    setCommonPriceRange,
     renderedFeatureGroups,
     hasActiveFilters,
     resetAll,
@@ -974,6 +1016,25 @@ export function SchoolCategoryFilterPanelProvider({
   );
 }
 
+export function CategoryFilterPanelProvider({
+  children,
+  config,
+  onFilterChange,
+}: {
+  children: ReactNode;
+  config?: CategoryFilterConfig;
+  onFilterChange?: (filters: FilterState) => void;
+}) {
+  const model = useCategoryFilterSidebarModel({
+    enabled: true,
+    config,
+    onFilterChange,
+  });
+  return (
+    <SchoolCategoryFilterPanelContext.Provider value={model}>{children}</SchoolCategoryFilterPanelContext.Provider>
+  );
+}
+
 function CategoryFilterSidebarView({
   model,
   mapMarkers,
@@ -985,6 +1046,7 @@ function CategoryFilterSidebarView({
 }) {
   const {
     categories,
+    searchPlaceholder,
     hasDynamicFeatureMode,
     displaySearch,
     displayDistrict,
@@ -1002,16 +1064,27 @@ function CategoryFilterSidebarView({
     selectedCommonRange,
     expandedCommonMultiIds,
     handleFilterChange,
-    handlePriceInput,
     toggleFeatureOption,
     toggleGroupExpanded,
     toggleCommonMulti,
     toggleCommonMultiExpanded,
     setCommonRange,
+    setCommonPriceRange,
     renderedFeatureGroups,
   } = model;
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const getCommonRangeSliderValue = (definitionId: number): PriceRangeSliderValue => {
+    const current = selectedCommonRange[definitionId];
+    if (!current) return null;
+    const min = Number(String(current.min ?? "").trim());
+    const max = Number(String(current.max ?? "").trim());
+    if (!Number.isFinite(min) && !Number.isFinite(max)) return null;
+    return {
+      min: Number.isFinite(min) ? min : INSTITUTION_PRICE_FILTER_MIN,
+      max: Number.isFinite(max) ? max : INSTITUTION_PRICE_FILTER_MAX,
+    };
+  };
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -1068,7 +1141,7 @@ function CategoryFilterSidebarView({
                 <Search size={18} className="category-filter-search-icon" />
                 <Input
                   type="text"
-                  placeholder="Kurum adı ara..."
+                  placeholder={searchPlaceholder}
                   value={displaySearch}
                   onChange={(e) => handleFilterChange({ search: e.target.value })}
                   className="category-filter-search-input"
@@ -1125,6 +1198,23 @@ function CategoryFilterSidebarView({
             <>
               {commonFields.map((field) => {
                 if (field.kind === "single_select") {
+                  if (isPriceRangeCommonField(field)) {
+                    return (
+                      <div
+                        className="category-filter-section"
+                        key={`common-${field.definitionId}`}
+                      >
+                        <h3 className="category-filter-section-title">
+                          {field.name.toLocaleUpperCase("tr-TR")}
+                        </h3>
+                        <PriceRangeSliderFilter
+                          value={getCommonRangeSliderValue(field.definitionId)}
+                          onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
+                          className="category-filter-price-slider"
+                        />
+                      </div>
+                    );
+                  }
                   const selectedValue = selectedCommonSingle[field.definitionId] ?? "";
                   const selectValue = selectedValue ? String(selectedValue) : CLEAR_SINGLE_SELECT_VALUE;
                   return (
@@ -1170,6 +1260,26 @@ function CategoryFilterSidebarView({
                 }
 
                 if (field.kind === "number_range") {
+                  if (
+                    field.definitionId === INSTITUTION_PRICE_RANGE_DEFINITION_ID ||
+                    isInstitutionPriceRangeFieldName(field.name)
+                  ) {
+                    return (
+                      <div
+                        className="category-filter-section"
+                        key={`common-${field.definitionId}`}
+                      >
+                        <h3 className="category-filter-section-title">
+                          {field.name.toLocaleUpperCase("tr-TR")}
+                        </h3>
+                        <PriceRangeSliderFilter
+                          value={getCommonRangeSliderValue(field.definitionId)}
+                          onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
+                          className="category-filter-price-slider"
+                        />
+                      </div>
+                    );
+                  }
                   const value = selectedCommonRange[field.definitionId] ?? { min: "", max: "" };
                   return (
                     <div
@@ -1203,10 +1313,29 @@ function CategoryFilterSidebarView({
                 }
 
                 if (field.kind === "multi_select") {
+                  if (isPriceRangeCommonField(field)) {
+                    return (
+                      <div
+                        className="category-filter-section"
+                        key={`common-${field.definitionId}`}
+                      >
+                        <h3 className="category-filter-section-title">
+                          {field.name.toLocaleUpperCase("tr-TR")}
+                        </h3>
+                        <PriceRangeSliderFilter
+                          value={getCommonRangeSliderValue(field.definitionId)}
+                          onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
+                          className="category-filter-price-slider"
+                        />
+                      </div>
+                    );
+                  }
                   const selectedSet =
                     selectedCommonMulti[field.definitionId] ?? new Set<string>();
                   const isExpanded = expandedCommonMultiIds.has(field.definitionId);
-                  const sortedChoices = sortCheckboxOptionsByLabel(field.choices, (c) => c.name);
+                  const sortedChoices = isPriceRangeCommonField(field)
+                    ? sortPriceRangeChoicesByMin(field.choices)
+                    : sortCheckboxOptionsByLabel(field.choices, (c) => c.name);
                   const visibleChoices = isExpanded
                     ? sortedChoices
                     : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
@@ -1351,26 +1480,12 @@ function CategoryFilterSidebarView({
               </div>
 
               <div className="category-filter-section">
-                <h3 className="category-filter-section-title">AYLIK ÜCRET</h3>
-                <div className="category-filter-price-inputs">
-                  <Input
-                    type="number"
-                    value={priceRange[0] === 0 ? "" : priceRange[0]}
-                    onChange={(e) => handlePriceInput(0, e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    className="category-filter-price-input"
-                  />
-                  <span className="category-filter-price-separator">-</span>
-                  <Input
-                    type="number"
-                    value={priceRange[1] === 50000 ? "" : priceRange[1]}
-                    onChange={(e) => handlePriceInput(1, e.target.value)}
-                    placeholder="50000"
-                    min="0"
-                    className="category-filter-price-input"
-                  />
-                </div>
+                <h3 className="category-filter-section-title">AYLIK ORTALAMA FİYAT ARALIĞI</h3>
+                <PriceRangeSliderFilter
+                  value={priceRange}
+                  onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
+                  className="category-filter-price-slider"
+                />
               </div>
             </>
           )}

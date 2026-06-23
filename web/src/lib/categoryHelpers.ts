@@ -18,7 +18,7 @@ import {
   Stethoscope,
   TrendingUp,
   Utensils,
-} from "lucide-react";
+} from "lucide-react"; 
 
 export const normalizeCategoryKey = (value: string) =>
   value
@@ -28,6 +28,34 @@ export const normalizeCategoryKey = (value: string) =>
     .replace(/ı/g, "i")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+/** Ana sayfa ana kategoriler ve footer etiketleri için sabit sıra */
+export const HOME_MAIN_CATEGORY_ORDER = [
+  "OKUL",
+  "KURS & SINAVA HAZIRLIK",
+  "SPOR",
+  "SANAT",
+  "YABANCI DİL",
+  "KİŞİSEL GELİŞİM",
+  "MESLEKİ EĞİTİM",
+  "ÖZEL EĞİTİM",
+] as const;
+
+export function sortByHomeMainCategoryOrder<T extends { name: string }>(items: T[]): T[] {
+  const orderMap = new Map(
+    HOME_MAIN_CATEGORY_ORDER.map((label, index) => [normalizeCategoryKey(label), index]),
+  );
+
+  return [...items].sort((a, b) => {
+    const aIndex = orderMap.get(normalizeCategoryKey(a.name));
+    const bIndex = orderMap.get(normalizeCategoryKey(b.name));
+
+    if (aIndex != null && bIndex != null) return aIndex - bIndex;
+    if (aIndex != null) return -1;
+    if (bIndex != null) return 1;
+    return a.name.localeCompare(b.name, "tr-TR");
+  });
+}
 
 /** Bilinen kategori sayfalarına gider; yoksa null (çağıran `/okullar` vb. kullanabilir) */
 export function getCategoryHref(name: string, slug: string): string | null {

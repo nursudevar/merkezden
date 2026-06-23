@@ -18,9 +18,10 @@ interface CategoryResultsListProps {
   isLoading?: boolean;
   errorMessage?: string | null;
   emptyResultsMessage?: string;
+  title?: string;
 }
 
-type ViewMode = "recommended" | "two";
+type ViewMode = "single" | "two";
 
 const INITIAL_VISIBLE_COUNT = 20;
 const LOAD_MORE_STEP = 10;
@@ -32,11 +33,12 @@ export default function CategoryResultsList({
   isLoading = false,
   errorMessage = null,
   emptyResultsMessage = "Bu kategoriye ait kurum veya eğitmen bulunmuyor.",
+  title = "Listelenen Kurumlar",
 }: CategoryResultsListProps) {
   void categoryName;
   void subtitle;
 
-  const [viewMode, setViewMode] = useState<ViewMode>("recommended");
+  const [viewMode, setViewMode] = useState<ViewMode>("two");
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
 
   /** Sonuç listesi değiştiğinde (arama, filtre veya kategori değişimi) görünür sayıyı 20'ye sıfırla. */
@@ -64,7 +66,7 @@ export default function CategoryResultsList({
         <div className="category-results-header-left">
           <div className="category-results-title-wrapper">
             <GraduationCap size={24} className="category-results-title-icon" />
-            <h2 className="category-results-title">Listelenen Kurumlar</h2>
+            <h2 className="category-results-title">{title}</h2>
           </div>
         </div>
         <div className="category-results-header-actions">
@@ -76,11 +78,11 @@ export default function CategoryResultsList({
               onValueChange={(next) => setViewMode(next as ViewMode)}
             >
               <SelectTrigger className="category-results-sort-select">
-                <SelectValue placeholder="Önerilenler" />
+                <SelectValue placeholder="2'li Görünüm" />
               </SelectTrigger>
               <SelectContent className="select-content">
-                <SelectItem value="recommended" className="select-item">Önerilenler</SelectItem>
                 <SelectItem value="two" className="select-item">2&apos;li Görünüm</SelectItem>
+                <SelectItem value="single" className="select-item">Tekli Görünüm</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -11,6 +11,7 @@ import { AppNoticeBar } from '@/components/AppNoticeBar';
 import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from '@/lib/favorites/favoritesClient';
 import { getInstitutionDetailHref } from '@/lib/institutionHelpers';
 import { resolveUserTypeFromUsersClient } from '@/lib/auth/authBrowserClient';
+import { resolveInstitutionIdsByProfileSearch } from '@/lib/profileSearch';
 
 const PAGE_SIZE = 50;
 
@@ -31,6 +32,23 @@ const COL_LABELS: Record<(typeof COLS)[number], string> = {
   official_phone: 'Telefon',
   address: 'Adres',
 };
+
+const SEARCH_COLUMNS = [
+  'institution_name',
+  'type',
+  'subheading',
+  'about',
+  'city',
+  'district',
+  'official_phone',
+  'official_email',
+  'address',
+  'website',
+  'facebook_url',
+  'instagram_url',
+  'x_url',
+  'linkedin_url',
+] as const;
 
 function resolveInstitutionCategoryLabel(row: Record<string, unknown>): string {
   const typeJoin = row.institution_type;
@@ -187,7 +205,7 @@ export default function OkullarPageClient() {
         setLoading(true);
         setError(null);
         const supabase = createSupabaseBrowserClient();
-        const selectCols = `id, slug, source, ${COLS.join(', ')}, institution_type:institution_types(category:institution_categories(name))`;
+        const selectCols = `id, slug, source, ${COLS.join(', ')}, institution_type_id, institution_type:institution_types(category:institution_categories(name))`;
         const from = (page - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
         const searchTerm = debouncedSearchText.trim();
@@ -221,6 +239,7 @@ export default function OkullarPageClient() {
           dataQuery = dataQuery.in('institution_type_id', ids);
         }
         if (searchTerm) {
+          const relatedSearch = await resolveInstitutionIdsByProfileSearch(supabase, searchTerm);
           const searchVariants = buildSearchVariants(searchTerm)
             .map(escapeLikeValue)
             .filter(Boolean);
@@ -241,15 +260,20 @@ export default function OkullarPageClient() {
               .map((typeRow) => typeRow.id)
               .filter((id) => Number.isFinite(id));
 
-            const searchColumns = ['institution_name', 'city', 'district', 'official_phone', 'address'] as const;
             const orParts = searchVariants
               .flatMap((term) => {
                 const q = `%${term}%`;
-                return searchColumns.map((col) => `${col}.ilike.${q}`);
+                return SEARCH_COLUMNS.map((col) => `${col}.ilike.${q}`);
               });
 
             if (matchedTypeIds.length > 0) {
               orParts.push(`institution_type_id.in.(${matchedTypeIds.join(',')})`);
+            }
+            if (relatedSearch.institutionTypeIds.length > 0) {
+              orParts.push(`institution_type_id.in.(${relatedSearch.institutionTypeIds.join(',')})`);
+            }
+            if (relatedSearch.institutionIds.length > 0) {
+              orParts.push(`id.in.(${relatedSearch.institutionIds.join(',')})`);
             }
 
             dataQuery = dataQuery.or(orParts.join(','));

@@ -7,6 +7,10 @@ import { Building2, Heart, UserRound } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  resolveInstitutionIdsByPriceRange,
+  resolveInstitutionIdsByPriceRangeSelections,
+} from "@/lib/institutionPriceRangeFilter";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import {
   fetchPublicInstructorsForListing,
@@ -15,7 +19,11 @@ import {
   buildPublicInstructorLocation,
 } from "@/lib/publicInstructorSearch";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
-import { matchesSearch } from "@/lib/utils";
+import {
+  buildProfileSearchVariants,
+  escapeProfileLikeValue,
+  resolveInstitutionIdsByProfileSearch,
+} from "@/lib/profileSearch";
 import "@/styles/pages/home.scss";
 
 type SearchResultsViewMode = "recommended" | "three" | "four";
@@ -52,6 +60,8 @@ interface SearchResultsProps {
   serviceTypeFilters?: ("face" | "online" | "individual" | "group")[];
   /** Aylık fiyat aralığı (TL). `defaultMin`/`defaultMax` ile verilen tam aralıktan sapıldığında devreye girer. */
   priceRangeFilter?: { min: number; max: number; defaultMin: number; defaultMax: number };
+  /** DB fiyat aralığı seçenek etiketleri (ör. 1000-5000). Birden fazla seçimde OR mantığı. */
+  priceRangeSelections?: string[];
   /** `institution_types.id` — birden fazla seçimde OR; diğer filtrelerle AND */
   institutionTypeIds?: number[];
   onResultClick?: () => void;
@@ -104,70 +114,6 @@ function isHizmetTipiDefinition(row: { name?: string | null; slug?: string | nul
     t.includes("servis tipi") ||
     t.includes("service type")
   );
-}
-
-function isFiyatAraligiDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return (
-    t.includes("fiyat araligi") ||
-    t.includes("aylik ortalama fiyat") ||
-    t.includes("ortalama fiyat") ||
-    t.includes("price range") ||
-    t.includes("monthly price") ||
-    t === "fiyat" ||
-    t.startsWith("fiyat ") ||
-    t.endsWith(" fiyat") ||
-    t.includes(" fiyat ") ||
-    t.includes("ucret")
-  );
-}
-
-function parsePriceRangeFromText(raw: string): { min: number; max: number } | null {
-  const text = String(raw ?? "").trim();
-  if (!text) return null;
-  const lower = text.toLocaleLowerCase("tr-TR");
-  const norm = normalizeFeatureKey(text);
-
-  const isFree = lower.includes("ücretsiz") || norm.includes("ucretsiz") || lower === "0" || lower === "0 tl" || lower === "0₺";
-  if (isFree) return { min: 0, max: 0 };
-
-  const compact = text.replace(/\s+/g, "");
-  const numericTokens = compact.match(/\d+(?:[.,]\d+)?/g) ?? [];
-  const numbers = numericTokens
-    .map((tok) => Number(tok.replace(/[.,]/g, "")))
-    .filter((n) => Number.isFinite(n));
-  if (numbers.length === 0) return null;
-
-  const isUpperOpen =
-    /\+/.test(text) ||
-    /üzeri/i.test(text) ||
-    norm.includes("uzeri") ||
-    norm.includes("ve ustu") ||
-    norm.includes("ustu") ||
-    norm.includes("yukari") ||
-    norm.includes("more");
-  const isLowerOpen =
-    /alt[ıi]/i.test(text) ||
-    norm.includes("alti") ||
-    norm.includes("altinda") ||
-    norm.includes("kadar") ||
-    norm.includes("less") ||
-    norm.includes("under");
-
-  if (numbers.length >= 2) {
-    const min = Math.min(numbers[0], numbers[1]);
-    const max = Math.max(numbers[0], numbers[1]);
-    return { min, max };
-  }
-
-  const single = numbers[0];
-  if (isUpperOpen) return { min: single, max: Number.POSITIVE_INFINITY };
-  if (isLowerOpen) return { min: 0, max: single };
-  return { min: single, max: single };
-}
-
-function rangesOverlap(a: { min: number; max: number }, b: { min: number; max: number }): boolean {
-  return a.min <= b.max && b.min <= a.max;
 }
 
 function choiceLabelMatchesSchoolStatus(choiceName: string, status: "private" | "public"): boolean {
@@ -361,114 +307,6 @@ async function resolveInstitutionIdsByServiceTypes(
   );
 }
 
-/**
- * Fiyat Aralığı / Aylık Ortalama Fiyat Aralığı feature'ı üzerinden
- * kullanıcı [min, max] aralığıyla kesişen kurum id'lerini döndürür.
- * Choice metni (single/multi_select), number_answer ve text_answer biçimlerini destekler.
- */
-async function resolveInstitutionIdsByPriceRange(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  range: { min: number; max: number }
-): Promise<number[]> {
-  const userRange = {
-    min: Math.max(0, Math.min(range.min, range.max)),
-    max: Math.max(range.min, range.max),
-  };
-
-  const { data: defsRaw, error: defErr } = await supabase
-    .from("institution_feature_definitions")
-    .select("id, name, slug, input_type, unit")
-    .eq("is_active", true);
-  if (defErr) throw defErr;
-
-  const defs = ((defsRaw ?? []) as Array<{
-    id: number;
-    name?: string | null;
-    slug?: string | null;
-    input_type?: string | null;
-    unit?: string | null;
-  }>).filter((d) => Number.isFinite(d.id) && isFiyatAraligiDefinition(d));
-  if (defs.length === 0) return [];
-
-  const defIds = defs.map((d) => d.id);
-  const inputTypeByDefId = new Map<number, string>();
-  for (const d of defs) inputTypeByDefId.set(d.id, String(d.input_type ?? ""));
-
-  const choiceRangeById = new Map<number, { min: number; max: number }>();
-  const { data: choicesRaw, error: chErr } = await supabase
-    .from("institution_feature_choices")
-    .select("id, feature_definition_id, name")
-    .in("feature_definition_id", defIds)
-    .eq("is_active", true);
-  if (chErr) throw chErr;
-  for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
-    const cid = Number(c.id);
-    if (!Number.isFinite(cid)) continue;
-    const r = parsePriceRangeFromText(String(c.name ?? ""));
-    if (r) choiceRangeById.set(cid, r);
-  }
-
-  const idSet = new Set<number>();
-
-  const { data: entriesRaw, error: entErr } = await supabase
-    .from("institution_feature_entries")
-    .select("id, institution_id, feature_definition_id, selected_choice_id, number_answer, text_answer")
-    .in("feature_definition_id", defIds);
-  if (entErr) throw entErr;
-
-  const entries = (entriesRaw ?? []) as Array<{
-    id: number;
-    institution_id: number;
-    feature_definition_id: number;
-    selected_choice_id: number | null;
-    number_answer: number | null;
-    text_answer: string | null;
-  }>;
-
-  const multiEntryIdToInstitution = new Map<number, number>();
-  for (const e of entries) {
-    const iid = Number(e.institution_id);
-    if (!Number.isFinite(iid)) continue;
-    const inputType = inputTypeByDefId.get(Number(e.feature_definition_id)) ?? "";
-
-    if (inputType === "single_select") {
-      const cid = Number(e.selected_choice_id);
-      if (!Number.isFinite(cid)) continue;
-      const r = choiceRangeById.get(cid);
-      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
-    } else if (inputType === "number") {
-      const n = Number(e.number_answer);
-      if (!Number.isFinite(n)) continue;
-      if (rangesOverlap({ min: n, max: n }, userRange)) idSet.add(iid);
-    } else if (inputType === "text") {
-      const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
-      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
-    } else if (inputType === "multi_select") {
-      multiEntryIdToInstitution.set(Number(e.id), iid);
-    }
-  }
-
-  if (multiEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
-    const matchingChoiceIds = Array.from(choiceRangeById.entries())
-      .filter(([, r]) => rangesOverlap(r, userRange))
-      .map(([cid]) => cid);
-    if (matchingChoiceIds.length > 0) {
-      const { data: links, error: linkErr } = await supabase
-        .from("institution_feature_entry_choices")
-        .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", Array.from(multiEntryIdToInstitution.keys()))
-        .in("choice_id", matchingChoiceIds);
-      if (linkErr) throw linkErr;
-      for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number; choice_id: number }>) {
-        const iid = multiEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
-        if (Number.isFinite(iid)) idSet.add(iid!);
-      }
-    }
-  }
-
-  return Array.from(idSet);
-}
-
 export default function SearchResults({
   query,
   cityFilter,
@@ -477,6 +315,7 @@ export default function SearchResults({
   studentAgeFilters,
   serviceTypeFilters,
   priceRangeFilter,
+  priceRangeSelections,
   institutionTypeIds,
   onResultClick,
   onClearSearch,
@@ -519,11 +358,15 @@ export default function SearchResults({
   const schoolStatuses = schoolStatusFilters ?? [];
   const studentAges = studentAgeFilters ?? [];
   const serviceTypes = serviceTypeFilters ?? [];
-  const priceFilterIsActive = Boolean(
-    priceRangeFilter &&
-      (priceRangeFilter.min > priceRangeFilter.defaultMin ||
-        priceRangeFilter.max < priceRangeFilter.defaultMax)
-  );
+  const priceSelectionLabels = priceRangeSelections ?? [];
+  const priceSelectionFilterIsActive = priceSelectionLabels.length > 0;
+  const priceFilterIsActive =
+    priceSelectionFilterIsActive ||
+    Boolean(
+      priceRangeFilter &&
+        (priceRangeFilter.min > priceRangeFilter.defaultMin ||
+          priceRangeFilter.max < priceRangeFilter.defaultMax),
+    );
   const priceMin = priceRangeFilter?.min ?? 0;
   const priceMax = priceRangeFilter?.max ?? 0;
   const institutionTypeIdList = institutionTypeIds ?? [];
@@ -552,7 +395,7 @@ export default function SearchResults({
           const supabase = createSupabaseBrowserClient();
           let baseQuery = supabase
             .from("institutions")
-            .select("id, institution_name, city, district, type, address, logo, slug, source, institution_type:institution_types(name, category:institution_categories(name))")
+            .select("id, institution_name, subheading, about, city, district, type, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, slug, source, institution_type_id, institution_type:institution_types(name, category:institution_categories(name))")
             .not("institution_name", "is", null)
             .order("institution_name", { ascending: true })
             .limit(600);
@@ -602,10 +445,12 @@ export default function SearchResults({
           }
 
           if (priceFilterIsActive) {
-            const priceIds = await resolveInstitutionIdsByPriceRange(supabase, {
-              min: priceMin,
-              max: priceMax,
-            });
+            const priceIds = priceSelectionFilterIsActive
+              ? await resolveInstitutionIdsByPriceRangeSelections(supabase, priceSelectionLabels)
+              : await resolveInstitutionIdsByPriceRange(supabase, {
+                  min: priceMin,
+                  max: priceMax,
+                });
             if (priceIds.length === 0) {
               setResults([]);
               setVisibleCount(pageSizeRef.current);
@@ -615,12 +460,52 @@ export default function SearchResults({
             baseQuery = baseQuery.in("id", priceIds);
           }
 
+          if (trimmedQuery) {
+            const relatedSearch = await resolveInstitutionIdsByProfileSearch(supabase, trimmedQuery);
+            const searchVariants = buildProfileSearchVariants(trimmedQuery)
+              .map(escapeProfileLikeValue)
+              .filter(Boolean);
+            const searchColumns = [
+              "institution_name",
+              "subheading",
+              "about",
+              "city",
+              "district",
+              "type",
+              "address",
+              "official_phone",
+              "official_email",
+              "website",
+              "facebook_url",
+              "instagram_url",
+              "x_url",
+              "linkedin_url",
+            ] as const;
+            const orParts = searchVariants.flatMap((term) => {
+              const q = `%${term}%`;
+              return searchColumns.map((col) => `${col}.ilike.${q}`);
+            });
+            if (relatedSearch.institutionIds.length > 0) {
+              orParts.push(`id.in.(${relatedSearch.institutionIds.join(",")})`);
+            }
+            if (relatedSearch.institutionTypeIds.length > 0) {
+              orParts.push(`institution_type_id.in.(${relatedSearch.institutionTypeIds.join(",")})`);
+            }
+            if (orParts.length > 0) {
+              baseQuery = baseQuery.or(orParts.join(","));
+            }
+          }
+
           const [{ data, error }, instructorRows] = await Promise.all([
             baseQuery,
             fetchPublicInstructorsForListing(supabase, {
               searchTerm: trimmedQuery || undefined,
               city: trimmedCity || undefined,
               district: trimmedDistrict || undefined,
+              priceRange:
+                priceFilterIsActive && !priceSelectionFilterIsActive
+                  ? { min: priceMin, max: priceMax }
+                  : undefined,
             }),
           ]);
 
@@ -645,7 +530,9 @@ export default function SearchResults({
               const categoryJoin = typeRow?.category;
               const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
               const mainCategory = String(categoryRow?.name ?? "").trim();
-              const description = address || mainCategory;
+              const subheading = String(row.subheading ?? "").trim();
+              const about = String(row.about ?? "").trim();
+              const description = subheading || about || address || mainCategory;
               const logoValue = typeof row.logo === "string" ? row.logo : null;
               const imageUrl = resolveInstitutionLogoPublicUrl(supabase, logoValue);
               const slug = String(row.slug ?? "").trim();
@@ -673,15 +560,7 @@ export default function SearchResults({
             })
             .filter((item) => item !== null);
 
-          const mappedInstitutions = trimmedQuery
-            ? mappedRows.filter(
-                (institution) =>
-                  matchesSearch(institution.name, trimmedQuery) ||
-                  matchesSearch(institution.location, trimmedQuery) ||
-                  matchesSearch(institution.description, trimmedQuery) ||
-                  matchesSearch(institution.mainCategory, trimmedQuery)
-              )
-            : mappedRows;
+          const mappedInstitutions = mappedRows;
 
           const mappedInstructors: SearchResult[] = instructorRows.flatMap((row) => {
             const numericId = Number(row.id);
@@ -743,7 +622,7 @@ export default function SearchResults({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, schoolStatuses.join(","), studentAges.join(","), serviceTypes.join(","), priceFilterIsActive, priceMin, priceMax, institutionTypeIdList.join(",")]);
+  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, schoolStatuses.join(","), studentAges.join(","), serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(",")]);
 
   if (!hasActiveFilter) {
     return null;

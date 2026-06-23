@@ -3,8 +3,10 @@
 import { useCallback, useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import CategoryFilterSidebar, {
+  CategoryFilterPanelProvider,
   CategoryFilterConfig,
   SchoolCategoryFilterPanelProvider,
+  type FilterState,
 } from "./CategoryFilterSidebar";
 import CategoryResultsList from "./CategoryResultsList";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
@@ -36,6 +38,8 @@ interface CategoryPageLayoutProps {
   isLoading?: boolean;
   errorMessage?: string | null;
   emptyResultsMessage?: string;
+  resultsTitle?: string;
+  onFilterChange?: (filters: FilterState) => void;
   /**
    * Verildiğinde sidebar mock kategori filtreleri yerine ilgili kategoriye ait
    * gerçek feature_groups verilerini DB'den çekip render eder.
@@ -64,6 +68,8 @@ export default function CategoryPageLayout({
   isLoading,
   errorMessage,
   emptyResultsMessage,
+  resultsTitle,
+  onFilterChange,
   categorySlug,
   schoolModeProps,
 }: CategoryPageLayoutProps) {
@@ -177,6 +183,7 @@ export default function CategoryPageLayout({
             <CategoryResultsList
               categoryName={categoryName}
               subtitle={subtitle}
+              title={resultsTitle}
               results={results}
               isLoading={isLoading}
               errorMessage={errorMessage}
@@ -200,6 +207,14 @@ export default function CategoryPageLayout({
       >
         {content}
       </SchoolCategoryFilterPanelProvider>
+    );
+  }
+
+  if (onFilterChange) {
+    return (
+      <CategoryFilterPanelProvider config={filterConfig} onFilterChange={onFilterChange}>
+        {content}
+      </CategoryFilterPanelProvider>
     );
   }
 

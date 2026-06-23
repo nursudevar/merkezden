@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -12,6 +12,51 @@ const InstitutionLocationsMap = dynamic(
   () => import("@/components/map/InstitutionLocationsMap"),
   { ssr: false },
 );
+
+const MAP_CATEGORY_FILTERS = [
+  "Hepsi",
+  "Okul",
+  "Kurs & Sınava Hazırlık",
+  "Spor",
+  "Sanat",
+  "Yabancı Dil",
+  "Kişisel Gelişim",
+  "Mesleki Eğitim",
+  "Özel Eğitim",
+  "Patili Dostlar",
+];
+
+function normalizeMapCategory(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/&/g, " ")
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function markerMatchesCategory(marker: InstitutionMapMarker, selectedCategory: string): boolean {
+  if (selectedCategory === "Hepsi") return true;
+  const selectedKey = normalizeMapCategory(selectedCategory);
+  const markerNameKey = normalizeMapCategory(marker.categoryName);
+  const markerSlugKey = normalizeMapCategory(marker.categorySlug);
+  if (markerNameKey === selectedKey || markerSlugKey === selectedKey) return true;
+  if (selectedKey === "kurs sinava hazirlik") {
+    return (
+      markerNameKey === "kurs sinav" ||
+      markerNameKey === "kurs ve sinav" ||
+      markerNameKey === "sinava hazirlik" ||
+      markerSlugKey === "kurs sinav" ||
+      markerSlugKey === "kurs ve sinav" ||
+      markerSlugKey === "sinava hazirlik"
+    );
+  }
+  return false;
+}
 
 export type InstitutionMapSearchSectionProps = {
   markers: InstitutionMapMarker[];
@@ -28,6 +73,12 @@ export function InstitutionMapSearchSection({
   showSeparatorAfter = false,
 }: InstitutionMapSearchSectionProps) {
   const [showInstitutionMapModal, setShowInstitutionMapModal] = useState(false);
+  const [selectedMapCategory, setSelectedMapCategory] = useState("Hepsi");
+
+  const modalMarkers = useMemo(
+    () => markers.filter((marker) => markerMatchesCategory(marker, selectedMapCategory)),
+    [markers, selectedMapCategory],
+  );
 
   useEffect(() => {
     if (!showInstitutionMapModal) return;
@@ -54,7 +105,10 @@ export function InstitutionMapSearchSection({
           <button
             type="button"
             className="institution-map-detail-link"
-            onClick={() => setShowInstitutionMapModal(true)}
+            onClick={() => {
+              setSelectedMapCategory("Hepsi");
+              setShowInstitutionMapModal(true);
+            }}
           >
             Haritada Ara
           </button>
@@ -96,11 +150,33 @@ export function InstitutionMapSearchSection({
               </button>
             </div>
             <div className="institution-map-modal-body">
+              <div className="map-modal-category-filters" aria-label="Harita kategori filtreleri">
+                {MAP_CATEGORY_FILTERS.map((category) => {
+                  const isActive = selectedMapCategory === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`map-modal-category-chip${isActive ? " map-modal-category-chip--active" : ""}`}
+                      aria-pressed={isActive}
+                      onClick={() => setSelectedMapCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
+              {!loading && selectedMapCategory !== "Hepsi" && modalMarkers.length === 0 ? (
+                <p className="map-modal-empty-message">
+                  Bu kategoride haritada gösterilecek kurum bulunamadı.
+                </p>
+              ) : null}
               <InstitutionLocationsMap
-                key={`${mapKeyPrefix}-modal`}
+                key={`${mapKeyPrefix}-modal-${selectedMapCategory}`}
                 variant="modal"
-                markers={markers}
+                markers={modalMarkers}
                 loading={loading}
+                renderEmptyMap
               />
             </div>
           </div>

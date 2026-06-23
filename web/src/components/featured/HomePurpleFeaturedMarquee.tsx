@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Building2, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -60,6 +60,7 @@ function mapRowToPurpleCard(
 export function HomePurpleFeaturedMarquee() {
   const [cards, setCards] = useState<PurpleFeaturedCard[]>([]);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
+  const sliderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,12 +119,36 @@ export function HomePurpleFeaturedMarquee() {
     };
   }, []);
 
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    const updateCardWidth = () => {
+      const containerWidth = slider.getBoundingClientRect().width;
+      const useTwoColumns = window.matchMedia("(max-width: 1180px)").matches;
+      const columns = useTwoColumns ? 2 : 4;
+      const gap = useTwoColumns ? 12 : 10;
+      const cardWidth = (containerWidth - gap * (columns - 1)) / columns;
+      slider.style.setProperty("--purple-featured-card-width", `${Math.max(0, cardWidth)}px`);
+    };
+
+    updateCardWidth();
+    const resizeObserver = new ResizeObserver(updateCardWidth);
+    resizeObserver.observe(slider);
+    window.addEventListener("resize", updateCardWidth);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateCardWidth);
+    };
+  }, []);
+
   if (cards.length === 0) return null;
 
   const marqueeList = [...cards, ...cards];
 
   return (
-    <div className="purple-featured-slider">
+    <div className="purple-featured-slider" ref={sliderRef}>
       <div className="purple-featured-scroller">
         {marqueeList.map((card, index) => {
           const isDuplicate = index >= cards.length;
@@ -156,7 +181,6 @@ export function HomePurpleFeaturedMarquee() {
                     <Building2 size={32} strokeWidth={1.25} />
                   </div>
                 )}
-                <span className="purple-featured-card-badge">{card.badge}</span>
               </div>
               <div className="purple-featured-card-body">
                 <h3 className="purple-featured-card-title">{card.title}</h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, MapPin, ImageOff } from "lucide-react";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import AnnouncementDetailModal, {
@@ -20,8 +20,45 @@ type AnnouncementItem = {
   createdAt: string | null;
   institutionName: string;
   institutionCity: string;
+  categoryName: string;
   linkUrl: string | null;
 };
+
+const ANNOUNCEMENT_CATEGORY_TABS = [
+  "Hepsi",
+  "Okul",
+  "Kurs & Sınava Hazırlık",
+  "Spor",
+  "Sanat",
+  "Yabancı Dil",
+  "Kişisel Gelişim",
+  "Mesleki Eğitim",
+  "Özel Eğitim",
+  "Patili Dostlar",
+];
+
+function normalizeCategoryName(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/&/g, " ")
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function categoryMatches(itemCategory: string, selectedCategory: string): boolean {
+  const itemKey = normalizeCategoryName(itemCategory);
+  const selectedKey = normalizeCategoryName(selectedCategory);
+  if (itemKey === selectedKey) return true;
+  if (selectedKey === "kurs sinava hazirlik") {
+    return itemKey === "kurs sinav" || itemKey === "kurs ve sinav" || itemKey === "sinava hazirlik";
+  }
+  return false;
+}
 
 function formatAnnouncementDateTr(iso: string | null): string {
   if (!iso) return "";
@@ -36,10 +73,37 @@ function buildAnnouncementExcerpt(text: string, maxLen: number): string {
   return `${t.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
 }
 
+function AnnouncementCategoryTabs({
+  categories,
+  selectedCategory,
+  onCategoryChange,
+}: {
+  categories: string[];
+  selectedCategory: string;
+  onCategoryChange: (category: string) => void;
+}) {
+  return (
+    <div className="blog-category-tabs">
+      {categories.map((category) => (
+        <button
+          key={category}
+          type="button"
+          className={`blog-category-tab ${selectedCategory === category ? "blog-category-tab--active" : ""}`}
+          onClick={() => onCategoryChange(category)}
+          aria-pressed={selectedCategory === category}
+        >
+          {category}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("Hepsi");
   const [activeAnnouncement, setActiveAnnouncement] =
     useState<AnnouncementItem | null>(null);
 
@@ -50,7 +114,7 @@ export default function AnnouncementsPage() {
       const { data, error } = await supabase
         .from("announcements")
         .select(
-          "id, title, content, announcement_image_url, link_url, created_at, institution:institutions(institution_name, city)"
+          "id, title, content, announcement_image_url, link_url, created_at, institution:institutions(institution_name, city, institution_type:institution_types(category:institution_categories(name)))"
         )
         .eq("is_active", true)
         .order("created_at", { ascending: false });
@@ -72,14 +136,32 @@ export default function AnnouncementsPage() {
         link_url: string | null;
         created_at: string | null;
         institution:
-          | { institution_name: string | null; city: string | null }
-          | Array<{ institution_name: string | null; city: string | null }>
+          | {
+              institution_name: string | null;
+              city: string | null;
+              institution_type?:
+                | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
+                | Array<{ category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
+                | null;
+            }
+          | Array<{
+              institution_name: string | null;
+              city: string | null;
+              institution_type?:
+                | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
+                | Array<{ category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
+                | null;
+            }>
           | null;
       }>;
 
       const mapped: AnnouncementItem[] = rows
         .map((r) => {
           const inst = Array.isArray(r.institution) ? r.institution[0] ?? null : r.institution ?? null;
+          const typeJoin = inst?.institution_type;
+          const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
+          const categoryJoin = typeRow?.category;
+          const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
           const title = String(r.title ?? "").trim();
           if (!title) return null;
           return {
@@ -90,6 +172,7 @@ export default function AnnouncementsPage() {
             createdAt: r.created_at ? String(r.created_at) : null,
             institutionName: String(inst?.institution_name ?? "").trim(),
             institutionCity: String(inst?.city ?? "").trim(),
+            categoryName: String(categoryRow?.name ?? "").trim(),
             linkUrl: r.link_url ? String(r.link_url).trim() || null : null,
           } as AnnouncementItem;
         })
@@ -104,8 +187,14 @@ export default function AnnouncementsPage() {
     };
   }, []);
 
-  const featured = announcements[0] ?? null;
-  const sideItems = announcements.slice(1, 3);
+  const categories = useMemo(() => ANNOUNCEMENT_CATEGORY_TABS, []);
+  const filteredAnnouncements = useMemo(() => {
+    if (selectedCategory === "Hepsi") return announcements;
+    return announcements.filter((item) => categoryMatches(item.categoryName, selectedCategory));
+  }, [announcements, selectedCategory]);
+
+  const featured = filteredAnnouncements[0] ?? null;
+  const sideItems = filteredAnnouncements.slice(1, 3);
 
   const openAnnouncement = useCallback((item: AnnouncementItem) => {
     setActiveAnnouncement(item);
@@ -150,6 +239,12 @@ export default function AnnouncementsPage() {
               Platformdaki en yeni gelişmeleri, kampanyaları ve bilgilendirmeleri buradan takip edin.
             </p>
           </section>
+
+          <AnnouncementCategoryTabs
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
 
           {loading ? (
             <section className="announcements-section" aria-label="Duyuru listesi yükleniyor">
@@ -264,11 +359,11 @@ export default function AnnouncementsPage() {
               </div>
             </section>
 
-            {announcements.length > 0 ? (
+            {filteredAnnouncements.length > 0 ? (
               <section className="announcements-list-section" aria-label="Tüm duyurular">
                 <h2 className="announcements-list-section-title">Tüm Duyurular</h2>
                 <div className="announcements-list-grid">
-                  {announcements.map((item) => (
+                  {filteredAnnouncements.map((item) => (
                     <article
                       className="announcement-small announcement-clickable"
                       key={`list-${item.id}`}

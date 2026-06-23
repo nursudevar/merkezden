@@ -3,6 +3,15 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { resolvePublicInstructorProfilePictureUrl } from '@/lib/publicInstructorDetailClient';
+import {
+  PUBLIC_INSTRUCTOR_LIST_SELECT,
+  getPublicInstructorDetailHref,
+  mapPublicInstructorDisplayName,
+  buildPublicInstructorLocation,
+  type PublicInstructorListRow,
+} from '@/lib/publicInstructorSearch';
+import { PUBLIC_INSTRUCTORS_TABLE } from '@/lib/publicInstructorClient';
 
 export type AppUserType = 'individual' | 'institution';
 
@@ -27,6 +36,18 @@ export interface FavoriteInstitution {
   about: string | null;
 }
 
+export interface FavoriteInstructor {
+  id: number;
+  name: string;
+  title: string | null;
+  branch: string | null;
+  school: string | null;
+  location: string;
+  priceRange: string | null;
+  profilePictureUrl: string | null;
+  detailUrl: string;
+}
+
 export interface ToggleFavoriteResult {
   isFavorited: boolean;
 }
@@ -49,6 +70,10 @@ type FavoriteInstitutionRow = {
 type FavoritesJoinRow = {
   created_at: string | null;
   institutions: FavoriteInstitutionRow | null;
+};
+
+type FavoriteInstructorIdRow = {
+  instructor_id: number | string | null;
 };
 
 type FavoritesErrorCode =
@@ -268,6 +293,36 @@ export async function getMyFavoriteInstitutionIds(): Promise<number[]> {
   return ids;
 }
 
+export async function getMyFavoriteInstructorIds(): Promise<number[]> {
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return [];
+
+  const individualProfileId = await tryGetCurrentIndividualProfileId();
+  if (!individualProfileId) return [];
+
+  const { data, error } = await supabase
+    .from('user_favorites')
+    .select('instructor_id')
+    .eq('individual_profile_id', individualProfileId);
+
+  if (error) {
+    logSupabaseError('[getMyFavoriteInstructorIds]', error);
+    if (isFavoritesPermissionError(error)) return [];
+    throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favoriler yüklenemedi. Lütfen tekrar deneyin.');
+  }
+
+  const ids = (data ?? [])
+    .map((row: { instructor_id: number | string | null }) => row?.instructor_id)
+    .filter((v): v is number | string => v !== null && v !== undefined)
+    .map((v) => Number(v))
+    .filter((v) => Number.isFinite(v));
+
+  return ids;
+}
+
 export async function isInstitutionFavorited(institutionId: number): Promise<boolean> {
   const individualProfileId = await getCurrentIndividualProfileIdRequired();
   const supabase = createSupabaseBrowserClient();
@@ -281,6 +336,25 @@ export async function isInstitutionFavorited(institutionId: number): Promise<boo
 
   if (error) {
     logSupabaseError('[isInstitutionFavorited]', error);
+    throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favori durumu alınamadı.');
+  }
+
+  return Boolean(data?.id);
+}
+
+export async function isInstructorFavorited(instructorId: number): Promise<boolean> {
+  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from('user_favorites')
+    .select('id')
+    .eq('individual_profile_id', individualProfileId)
+    .eq('instructor_id', instructorId)
+    .maybeSingle();
+
+  if (error) {
+    logSupabaseError('[isInstructorFavorited]', error);
     throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favori durumu alınamadı.');
   }
 
@@ -363,6 +437,72 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
   return institutions;
 }
 
+export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> {
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return [];
+
+  const individualProfileId = await tryGetCurrentIndividualProfileId();
+  if (!individualProfileId) return [];
+
+  const { data: favoriteRows, error: favoritesError } = await supabase
+    .from('user_favorites')
+    .select('instructor_id')
+    .eq('individual_profile_id', individualProfileId)
+    .not('instructor_id', 'is', null);
+
+  if (favoritesError) {
+    logSupabaseError('[getMyFavoriteInstructors][favorites]', favoritesError);
+    if (isFavoritesPermissionError(favoritesError)) return [];
+    throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favoriler yüklenemedi. Lütfen tekrar deneyin.');
+  }
+
+  const instructorIds = ((favoriteRows ?? []) as FavoriteInstructorIdRow[])
+    .map((row) => Number(row.instructor_id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  if (instructorIds.length === 0) return [];
+
+  const uniqueIds = [...new Set(instructorIds)];
+  const { data: instructorRows, error: instructorsError } = await supabase
+    .from(PUBLIC_INSTRUCTORS_TABLE)
+    .select(PUBLIC_INSTRUCTOR_LIST_SELECT)
+    .in('id', uniqueIds);
+
+  if (instructorsError) {
+    logSupabaseError('[getMyFavoriteInstructors][public_instructors]', instructorsError);
+    if (isFavoritesPermissionError(instructorsError)) return [];
+    throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favoriler yüklenemedi. Lütfen tekrar deneyin.');
+  }
+
+  const byId = new Map<number, PublicInstructorListRow>();
+  for (const row of (instructorRows ?? []) as PublicInstructorListRow[]) {
+    const id = Number(row.id);
+    if (Number.isFinite(id) && id > 0) byId.set(id, row);
+  }
+
+  return uniqueIds
+    .map((id): FavoriteInstructor | null => {
+      const row = byId.get(id);
+      if (!row) return null;
+      const name = mapPublicInstructorDisplayName(row);
+      return {
+        id,
+        name,
+        title: String(row.title ?? '').trim() || null,
+        branch: String(row.branch ?? '').trim() || null,
+        school: String(row.school ?? '').trim() || null,
+        location: buildPublicInstructorLocation(row),
+        priceRange: String(row.price_range ?? '').trim() || null,
+        profilePictureUrl:
+          resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? '').trim(), supabase) || null,
+        detailUrl: getPublicInstructorDetailHref(row.slug, id),
+      };
+    })
+    .filter((item): item is FavoriteInstructor => item !== null);
+}
+
 export async function addFavorite(institutionId: number): Promise<void> {
   const individualProfileId = await getCurrentIndividualProfileIdRequired();
   const supabase = createSupabaseBrowserClient();
@@ -370,6 +510,7 @@ export async function addFavorite(institutionId: number): Promise<void> {
   const { error } = await supabase.from('user_favorites').insert({
     individual_profile_id: individualProfileId,
     institution_id: institutionId,
+    instructor_id: null,
   });
 
   if (!error) return;
@@ -381,6 +522,27 @@ export async function addFavorite(institutionId: number): Promise<void> {
   }
 
   logSupabaseError('[addFavorite]', error);
+  throw new FavoritesError('FAVORITE_INSERT_FAILED', 'Favorilere eklenemedi. Lütfen tekrar deneyin.');
+}
+
+export async function addInstructorFavorite(instructorId: number): Promise<void> {
+  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const supabase = createSupabaseBrowserClient();
+
+  const { error } = await supabase.from('user_favorites').insert({
+    individual_profile_id: individualProfileId,
+    institution_id: null,
+    instructor_id: instructorId,
+  });
+
+  if (!error) return;
+
+  const code = (error as { code?: string } | null)?.code;
+  if (code === '23505') {
+    return;
+  }
+
+  logSupabaseError('[addInstructorFavorite]', error);
   throw new FavoritesError('FAVORITE_INSERT_FAILED', 'Favorilere eklenemedi. Lütfen tekrar deneyin.');
 }
 
@@ -400,6 +562,22 @@ export async function removeFavorite(institutionId: number): Promise<void> {
   }
 }
 
+export async function removeInstructorFavorite(instructorId: number): Promise<void> {
+  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const supabase = createSupabaseBrowserClient();
+
+  const { error } = await supabase
+    .from('user_favorites')
+    .delete()
+    .eq('individual_profile_id', individualProfileId)
+    .eq('instructor_id', instructorId);
+
+  if (error) {
+    logSupabaseError('[removeInstructorFavorite]', error);
+    throw new FavoritesError('FAVORITE_DELETE_FAILED', 'Favorilerden kaldırılamadı. Lütfen tekrar deneyin.');
+  }
+}
+
 export async function toggleFavorite(institutionId: number): Promise<ToggleFavoriteResult> {
   const already = await isInstitutionFavorited(institutionId);
   if (already) {
@@ -407,5 +585,15 @@ export async function toggleFavorite(institutionId: number): Promise<ToggleFavor
     return { isFavorited: false };
   }
   await addFavorite(institutionId);
+  return { isFavorited: true };
+}
+
+export async function toggleInstructorFavorite(instructorId: number): Promise<ToggleFavoriteResult> {
+  const already = await isInstructorFavorited(instructorId);
+  if (already) {
+    await removeInstructorFavorite(instructorId);
+    return { isFavorited: false };
+  }
+  await addInstructorFavorite(instructorId);
   return { isFavorited: true };
 }

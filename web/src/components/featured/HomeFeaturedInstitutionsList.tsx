@@ -17,7 +17,7 @@ import {
 } from "./homeFeaturedPinned";
 import { mapInstitutionRowToFeatured } from "./mapInstitutionRowToFeatured";
 
-const LIST_SIZE = 25;
+const LIST_SIZE = 16;
 const FETCH_LIMIT = 300;
 const INSTRUCTOR_FETCH_LIMIT = 8;
 
@@ -53,15 +53,21 @@ function insertPinnedInstructorAtPosition(
 
 export function HomeFeaturedInstitutionsList({
   onToggleFavorite,
+  onToggleInstructorFavorite,
   favoriteIds,
+  favoriteInstructorIds,
   favoritesEnabled,
   favoriteActionLoadingIds,
+  favoriteInstructorActionLoadingIds,
   isAuthenticated,
 }: {
   onToggleFavorite: (institutionId: number, e: React.MouseEvent) => void;
+  onToggleInstructorFavorite: (instructorId: number, e: React.MouseEvent) => void;
   favoriteIds: Set<number>;
+  favoriteInstructorIds: Set<number>;
   favoritesEnabled: boolean;
   favoriteActionLoadingIds: Set<number>;
+  favoriteInstructorActionLoadingIds: Set<number>;
   isAuthenticated: boolean;
 }) {
   const [entries, setEntries] = useState<FeaturedListEntry[]>([]);
@@ -178,12 +184,19 @@ export function HomeFeaturedInstitutionsList({
             const instructor = entry.instructor;
             const canRenderImage =
               Boolean(instructor.imageUrl) && !brokenInstructorImageIds.has(instructor.id);
+            const isFavorite = favoriteInstructorIds.has(instructor.id);
+            const isActionLoading = favoriteInstructorActionLoadingIds.has(instructor.id);
 
             return (
               <FeaturedInstructorCardLink
                 key={`instructor-${instructor.id}`}
                 instructor={instructor}
+                isFavorite={isFavorite}
+                isActionLoading={isActionLoading}
+                favoritesEnabled={favoritesEnabled}
+                isAuthenticated={isAuthenticated}
                 canRenderImage={canRenderImage}
+                onToggleFavorite={onToggleInstructorFavorite}
                 onImageError={() =>
                   setBrokenInstructorImageIds((prev) => {
                     const next = new Set(prev);

@@ -9,7 +9,15 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { HeaderClientWrapper } from '@/components/layout/header.client';
 import { ChangePasswordCard } from '@/components/settings/ChangePasswordCard';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { FavoritesError, getMyFavoriteInstitutions, removeFavorite, type FavoriteInstitution } from '@/lib/favorites/favoritesClient';
+import {
+  FavoritesError,
+  getMyFavoriteInstitutions,
+  getMyFavoriteInstructors,
+  removeFavorite,
+  removeInstructorFavorite,
+  type FavoriteInstitution,
+  type FavoriteInstructor,
+} from '@/lib/favorites/favoritesClient';
 import { UserBlogPostsPanel } from '@/components/blog/UserBlogPostsPanel';
 import '@/styles/main.scss';
 import '@/styles/pages/profile.scss';
@@ -412,10 +420,13 @@ function ProfileInfoCard({
 
 function FavoritesSection() {
   const [favorites, setFavorites] = useState<FavoriteInstitution[]>([]);
+  const [instructorFavorites, setInstructorFavorites] = useState<FavoriteInstructor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingIds, setActionLoadingIds] = useState<Set<number>>(() => new Set());
+  const [instructorActionLoadingIds, setInstructorActionLoadingIds] = useState<Set<number>>(() => new Set());
   const [brokenLogoIds, setBrokenLogoIds] = useState<Set<number>>(() => new Set());
+  const [brokenInstructorImageIds, setBrokenInstructorImageIds] = useState<Set<number>>(() => new Set());
 
   const normalizedFavorites = useMemo(() => {
     const supabase = createSupabaseBrowserClient();
@@ -431,15 +442,20 @@ function FavoritesSection() {
     setError(null);
     (async () => {
       try {
-        const list = await getMyFavoriteInstitutions();
+        const [list, instructorList] = await Promise.all([
+          getMyFavoriteInstitutions(),
+          getMyFavoriteInstructors(),
+        ]);
         if (cancelled) return;
         setFavorites(list);
+        setInstructorFavorites(instructorList);
       } catch (err) {
         if (cancelled) return;
         const msg =
           err instanceof FavoritesError ? err.message : 'Favoriler yüklenemedi. Lütfen tekrar deneyin.';
         setError(msg);
         setFavorites([]);
+        setInstructorFavorites([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -476,6 +492,32 @@ function FavoritesSection() {
     }
   };
 
+  const handleRemoveInstructor = async (instructorId: number) => {
+    if (instructorActionLoadingIds.has(instructorId)) return;
+    setInstructorActionLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(instructorId);
+      return next;
+    });
+    const prev = instructorFavorites;
+    setInstructorFavorites((cur) => cur.filter((i) => i.id !== instructorId));
+    try {
+      await removeInstructorFavorite(instructorId);
+    } catch (err) {
+      setInstructorFavorites(prev);
+      const msg =
+        err instanceof FavoritesError ? err.message : 'Favorilerden kaldırılamadı. Lütfen tekrar deneyin.';
+      setError(msg);
+      window.alert(msg);
+    } finally {
+      setInstructorActionLoadingIds((prevSet) => {
+        const next = new Set(prevSet);
+        next.delete(instructorId);
+        return next;
+      });
+    }
+  };
+
   return (
     <section className="favorites-section">
       <div className="favorites-section-header">
@@ -485,8 +527,8 @@ function FavoritesSection() {
         </div>
       </div>
 
-      <div className="favorites-section-grid">
-        {loading ? (
+      {loading ? (
+        <div className="favorites-section-grid">
           <Card className="favorite-card">
             <CardContent className="favorite-card-content">
               <div className="favorite-card-body">
@@ -494,7 +536,9 @@ function FavoritesSection() {
               </div>
             </CardContent>
           </Card>
-        ) : error ? (
+        </div>
+      ) : error ? (
+        <div className="favorites-section-grid">
           <Card className="favorite-card">
             <CardContent className="favorite-card-content">
               <div className="favorite-card-body">
@@ -502,67 +546,140 @@ function FavoritesSection() {
               </div>
             </CardContent>
           </Card>
-        ) : favorites.length === 0 ? (
+        </div>
+      ) : favorites.length === 0 && instructorFavorites.length === 0 ? (
+        <div className="favorites-section-grid">
           <Card className="favorite-card">
             <CardContent className="favorite-card-content">
               <div className="favorite-card-body">
-                <p className="favorite-card-description">Henüz favori kurum eklemediniz.</p>
+                <p className="favorite-card-description">Henüz favori kurum veya eğitmen eklemediniz.</p>
               </div>
             </CardContent>
           </Card>
-        ) : (
-          normalizedFavorites.map((inst) => {
-            const title = inst.institution_name ?? 'Kurum';
-            const desc = inst.address || inst.about || `${inst.city ?? ''}${inst.district ? ` / ${inst.district}` : ''}` || '—';
-            const category = (inst.categoryName ?? '').trim();
-            const city = (inst.city ?? '').trim();
-            const district = (inst.district ?? '').trim();
-            const locationLabel = [city, district].filter(Boolean).join(' / ');
-            const canRenderLogo = Boolean(inst.logoUrl) && !brokenLogoIds.has(inst.id);
-            return (
-              <Card key={inst.id} className="favorite-card">
-                <CardContent className="favorite-card-content">
-                  <div className="favorite-card-image-wrapper">
-                    {canRenderLogo ? (
-                      <img
-                        src={inst.logoUrl ?? ''}
-                        alt={title}
-                        className="favorite-card-logo"
-                        onError={() =>
-                          setBrokenLogoIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(inst.id);
-                            return next;
-                          })
-                        }
-                      />
-                    ) : (
-                      <div className="favorite-card-placeholder" aria-label="Logo bulunmuyor">
-                        <Building2 size={28} />
-                      </div>
-                    )}
-                    {locationLabel && <div className="favorite-card-badge">{locationLabel}</div>}
-                    <button
-                      type="button"
-                      className="favorite-card-remove"
-                      aria-label="Favorilerden kaldır"
-                      disabled={actionLoadingIds.has(inst.id)}
-                      onClick={() => handleRemove(inst.id)}
-                    >
-                      <Heart className="favorite-card-remove-icon" />
-                    </button>
-                  </div>
-                  <div className="favorite-card-body">
-                    <h3 className="favorite-card-title">{title}</h3>
-                    {category && <div className="favorite-card-category-inline">{category}</div>}
-                    <p className="favorite-card-description">{desc}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="favorites-subsection">
+            <h3 className="favorites-subsection-title">Favori Kurumlarım</h3>
+            {favorites.length === 0 ? (
+              <p className="favorites-subsection-empty">Henüz favori kurum eklemediniz.</p>
+            ) : (
+              <div className="favorites-section-grid">
+                {normalizedFavorites.map((inst) => {
+                  const title = inst.institution_name ?? 'Kurum';
+                  const desc = inst.address || inst.about || `${inst.city ?? ''}${inst.district ? ` / ${inst.district}` : ''}` || '—';
+                  const category = (inst.categoryName ?? '').trim();
+                  const city = (inst.city ?? '').trim();
+                  const district = (inst.district ?? '').trim();
+                  const locationLabel = [city, district].filter(Boolean).join(' / ');
+                  const canRenderLogo = Boolean(inst.logoUrl) && !brokenLogoIds.has(inst.id);
+                  return (
+                    <Card key={inst.id} className="favorite-card">
+                      <CardContent className="favorite-card-content">
+                        <div className="favorite-card-image-wrapper">
+                          {canRenderLogo ? (
+                            <img
+                              src={inst.logoUrl ?? ''}
+                              alt={title}
+                              className="favorite-card-logo"
+                              onError={() =>
+                                setBrokenLogoIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(inst.id);
+                                  return next;
+                                })
+                              }
+                            />
+                          ) : (
+                            <div className="favorite-card-placeholder" aria-label="Logo bulunmuyor">
+                              <Building2 size={28} />
+                            </div>
+                          )}
+                          {locationLabel && <div className="favorite-card-badge">{locationLabel}</div>}
+                          <button
+                            type="button"
+                            className="favorite-card-remove"
+                            aria-label="Favorilerden kaldır"
+                            disabled={actionLoadingIds.has(inst.id)}
+                            onClick={() => handleRemove(inst.id)}
+                          >
+                            <Heart className="favorite-card-remove-icon" />
+                          </button>
+                        </div>
+                        <div className="favorite-card-body">
+                          <h3 className="favorite-card-title">{title}</h3>
+                          {category && <div className="favorite-card-category-inline">{category}</div>}
+                          <p className="favorite-card-description">{desc}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="favorites-subsection">
+            <h3 className="favorites-subsection-title">Favori Eğitmenlerim</h3>
+            {instructorFavorites.length === 0 ? (
+              <p className="favorites-subsection-empty">Henüz favori eğitmen eklemediniz.</p>
+            ) : (
+              <div className="favorites-section-grid">
+                {instructorFavorites.map((instructor) => {
+                  const canRenderImage =
+                    Boolean(instructor.profilePictureUrl) && !brokenInstructorImageIds.has(instructor.id);
+                  const meta = [instructor.branch, instructor.school].filter(Boolean).join(' · ');
+                  return (
+                    <Card key={instructor.id} className="favorite-card">
+                      <CardContent className="favorite-card-content">
+                        <div className="favorite-card-image-wrapper">
+                          {canRenderImage ? (
+                            <img
+                              src={instructor.profilePictureUrl ?? ''}
+                              alt={instructor.name}
+                              className="favorite-card-logo"
+                              onError={() =>
+                                setBrokenInstructorImageIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(instructor.id);
+                                  return next;
+                                })
+                              }
+                            />
+                          ) : (
+                            <div className="favorite-card-placeholder" aria-label="Profil fotoğrafı bulunmuyor">
+                              <UserIcon size={28} />
+                            </div>
+                          )}
+                          {instructor.location && <div className="favorite-card-badge">{instructor.location}</div>}
+                          <button
+                            type="button"
+                            className="favorite-card-remove"
+                            aria-label="Favorilerden kaldır"
+                            disabled={instructorActionLoadingIds.has(instructor.id)}
+                            onClick={() => handleRemoveInstructor(instructor.id)}
+                          >
+                            <Heart className="favorite-card-remove-icon" />
+                          </button>
+                        </div>
+                        <div className="favorite-card-body">
+                          <h3 className="favorite-card-title">{instructor.name}</h3>
+                          {instructor.title ? (
+                            <div className="favorite-card-category-inline">{instructor.title}</div>
+                          ) : null}
+                          <p className="favorite-card-description">
+                            {meta || instructor.priceRange || instructor.location || '—'}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </section>
   );
 }

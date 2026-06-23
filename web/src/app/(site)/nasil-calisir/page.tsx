@@ -121,12 +121,19 @@ export default function NasilCalisirPage() {
     <main className="nasil-calisir-page">
       <div className="nasil-calisir-page-container">
         <section className="nasil-calisir-hero">
-          <h1 className="nasil-calisir-hero-title">Merkezden.com Nasıl Çalışır?</h1>
+          <h1 className="nasil-calisir-hero-title">
+            <img
+              src="/images/merkezden-logo.svg"
+              alt="Merkezden.com"
+              className="nasil-calisir-hero-logo"
+            />
+            <span>Nasıl Çalışır?</span>
+          </h1>
           <p className="nasil-calisir-hero-subtitle">Platformu 30 Saniyede Keşfedin</p>
         </section>
 
-        <section className="nasil-calisir-cards" aria-label="Temel kullanım akışı">
-          <article className="nasil-calisir-big-card">
+        <section className="nasil-calisir-row" aria-label="Bireysel kullanıcılar için temel kullanım akışı">
+          <article className="nasil-calisir-big-card nasil-calisir-visual">
             <h2 className="nasil-calisir-big-card-title">Bireysel Kullanıcılar İçin</h2>
             <ul className="nasil-calisir-big-card-list">
               <li>
@@ -156,7 +163,17 @@ export default function NasilCalisirPage() {
             </Link>
           </article>
 
-          <article className="nasil-calisir-big-card">
+          <section className="nasil-calisir-section nasil-calisir-features">
+            <div className="nasil-calisir-feature-grid">
+              {INDIVIDUAL_FEATURES.map((item) => (
+                <FeatureItemCard key={item.title} item={item} accent="purple" />
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <section className="nasil-calisir-row" aria-label="Kurumlar ve eğitmenler için temel kullanım akışı">
+          <article className="nasil-calisir-big-card nasil-calisir-visual">
             <h2 className="nasil-calisir-big-card-title">Kurumlar / Eğitmenler İçin</h2>
             <ul className="nasil-calisir-big-card-list">
               <li>
@@ -185,24 +202,14 @@ export default function NasilCalisirPage() {
               Ücretsiz Kayıt Olun
             </Link>
           </article>
-        </section>
 
-        <section className="nasil-calisir-section">
-          <h2 className="nasil-calisir-section-title">Bireysel Kullanıcılar İçin Özellikler</h2>
-          <div className="nasil-calisir-feature-grid">
-            {INDIVIDUAL_FEATURES.map((item) => (
-              <FeatureItemCard key={item.title} item={item} accent="purple" />
-            ))}
-          </div>
-        </section>
-
-        <section className="nasil-calisir-section">
-          <h2 className="nasil-calisir-section-title">Kurumlar / Eğitmenler İçin Özellikler</h2>
-          <div className="nasil-calisir-feature-grid">
-            {INSTITUTION_FEATURES.map((item) => (
-              <FeatureItemCard key={item.title} item={item} accent="orange" />
-            ))}
-          </div>
+          <section className="nasil-calisir-section nasil-calisir-features">
+            <div className="nasil-calisir-feature-grid">
+              {INSTITUTION_FEATURES.map((item) => (
+                <FeatureItemCard key={item.title} item={item} accent="orange" />
+              ))}
+            </div>
+          </section>
         </section>
       </div>
     </main>

@@ -19,6 +19,41 @@ import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
 
 const mockDisplayPosts = allBlogPosts.map(mapMockPostToDisplay);
+const BLOG_CATEGORY_TABS = [
+  "Hepsi",
+  "Okul",
+  "Kurs & Sınava Hazırlık",
+  "Spor",
+  "Sanat",
+  "Yabancı Dil",
+  "Kişisel Gelişim",
+  "Mesleki Eğitim",
+  "Özel Eğitim",
+  "Patili Dostlar",
+];
+
+function normalizeCategoryName(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/&/g, " ")
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function categoryMatches(postCategory: string, selectedCategory: string): boolean {
+  const postKey = normalizeCategoryName(postCategory);
+  const selectedKey = normalizeCategoryName(selectedCategory);
+  if (postKey === selectedKey) return true;
+  if (selectedKey === "kurs sinava hazirlik") {
+    return postKey === "kurs sinav" || postKey === "kurs ve sinav" || postKey === "sinava hazirlik";
+  }
+  return false;
+}
 
 function toListingPost(post: DisplayBlogPost): ListingPost {
   return {
@@ -68,13 +103,7 @@ function BlogPageContent() {
     };
   }, []);
 
-  const allCategories = useMemo(() => {
-    const names = new Set<string>();
-    for (const post of displayPosts) {
-      if (post.categoryName) names.add(post.categoryName);
-    }
-    return ["Hepsi", ...Array.from(names)];
-  }, [displayPosts]);
+  const allCategories = useMemo(() => BLOG_CATEGORY_TABS, []);
 
   useEffect(() => {
     const categoryParam = searchParams.get("category");
@@ -121,7 +150,7 @@ function BlogPageContent() {
     if (selectedCategory === "Hepsi") {
       return displayPosts;
     }
-    return displayPosts.filter((post) => post.categoryName === selectedCategory);
+    return displayPosts.filter((post) => categoryMatches(post.categoryName, selectedCategory));
   }, [displayPosts, selectedCategory]);
 
   const featuredPost = useMemo(() => {

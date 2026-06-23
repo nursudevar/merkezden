@@ -23,6 +23,12 @@ import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  buildProfileSearchVariants,
+  escapeProfileLikeValue,
+  resolveInstitutionIdsByProfileSearch,
+  resolveInstructorIdsByProfileSearch,
+} from "@/lib/profileSearch";
 import "@/styles/main.scss";
 import "@/styles/components/app-modal.scss";
 import "@/styles/pages/admin.scss";
@@ -503,7 +509,7 @@ export default function AdminPageClient() {
     },
     {
       id: "instructors",
-      title: "Bireysel Eğitmenler",
+      title: "Eğitmenler",
       icon: <User className="admin-overview-metric-icon" aria-hidden />,
       value: instructorsCount,
       loading: instructorsLoading,
@@ -539,7 +545,37 @@ export default function AdminPageClient() {
 
       const normalizedSearch = institutionsSearchQuery.trim();
       if (normalizedSearch.length > 0) {
-        institutionsQuery = institutionsQuery.ilike("institution_name", `%${normalizedSearch}%`);
+        const relatedSearch = await resolveInstitutionIdsByProfileSearch(supabase, normalizedSearch);
+        const variants = buildProfileSearchVariants(normalizedSearch).map(escapeProfileLikeValue).filter(Boolean);
+        const searchColumns = [
+          "institution_name",
+          "type",
+          "subheading",
+          "about",
+          "city",
+          "district",
+          "address",
+          "official_phone",
+          "official_email",
+          "website",
+          "facebook_url",
+          "instagram_url",
+          "x_url",
+          "linkedin_url",
+        ] as const;
+        const orParts = variants.flatMap((term) => {
+          const q = `%${term}%`;
+          return searchColumns.map((col) => `${col}.ilike.${q}`);
+        });
+        if (relatedSearch.institutionIds.length > 0) {
+          orParts.push(`id.in.(${relatedSearch.institutionIds.join(",")})`);
+        }
+        if (relatedSearch.institutionTypeIds.length > 0) {
+          orParts.push(`institution_type_id.in.(${relatedSearch.institutionTypeIds.join(",")})`);
+        }
+        if (orParts.length > 0) {
+          institutionsQuery = institutionsQuery.or(orParts.join(","));
+        }
       }
 
       const { data, count, error } = await institutionsQuery.range(from, to);
@@ -725,9 +761,39 @@ export default function AdminPageClient() {
 
       const normalizedSearch = instructorsSearchQuery.trim();
       if (normalizedSearch.length > 0) {
-        instructorsQuery = instructorsQuery.or(
-          `name.ilike.%${normalizedSearch}%,surname.ilike.%${normalizedSearch}%,email.ilike.%${normalizedSearch}%,phone.ilike.%${normalizedSearch}%,branch.ilike.%${normalizedSearch}%,district.ilike.%${normalizedSearch}%`
-        );
+        const relatedInstructorIds = await resolveInstructorIdsByProfileSearch(supabase, normalizedSearch);
+        const variants = buildProfileSearchVariants(normalizedSearch).map(escapeProfileLikeValue).filter(Boolean);
+        const searchColumns = [
+          "name",
+          "surname",
+          "email",
+          "phone",
+          "title",
+          "branch",
+          "bio",
+          "about",
+          "school",
+          "city",
+          "district",
+          "address",
+          "education_level",
+          "price_range",
+          "website",
+        ] as const;
+        const orParts = variants.flatMap((term) => {
+          const q = `%${term}%`;
+          return searchColumns.map((col) => `${col}.ilike.${q}`);
+        });
+        const numericSearch = Number(normalizedSearch.replace(",", "."));
+        if (Number.isFinite(numericSearch)) {
+          orParts.push(`experience_years.eq.${numericSearch}`);
+        }
+        if (relatedInstructorIds.length > 0) {
+          orParts.push(`id.in.(${relatedInstructorIds.join(",")})`);
+        }
+        if (orParts.length > 0) {
+          instructorsQuery = instructorsQuery.or(orParts.join(","));
+        }
       }
 
       const { data, count, error } = await instructorsQuery.range(from, to);
@@ -1642,7 +1708,7 @@ export default function AdminPageClient() {
     activeTab === "users"
       ? "Bireysel Kullanıcılar"
       : activeTab === "instructors"
-        ? "Bireysel Eğitmenler"
+        ? "Eğitmenler"
       : activeTab === "announcements"
         ? "Duyurular"
         : activeTab === "blog-posts"
@@ -1695,7 +1761,7 @@ export default function AdminPageClient() {
                 onClick={() => setActiveTab("instructors")}
               >
                 <User className="admin-sidebar-nav-icon" />
-                <span>Bireysel Eğitmenler</span>
+                <span>Eğitmenler</span>
               </button>
               <button
                 type="button"
@@ -2092,7 +2158,7 @@ export default function AdminPageClient() {
               <CardContent className="admin-main-card-content admin-main-card-content--instructors">
                 <div className="admin-main-card-header admin-main-card-header--instructors">
                   <div className="admin-instructors-header-left">
-                    <h1 className="admin-main-card-title">Bireysel Eğitmenler</h1>
+                    <h1 className="admin-main-card-title">Eğitmenler</h1>
                     <span className="admin-instructors-total-badge">
                       {`${instructorsTotalCount.toLocaleString("tr-TR")} TOPLAM`}
                     </span>

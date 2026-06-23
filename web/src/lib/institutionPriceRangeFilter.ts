@@ -1,0 +1,273 @@
+import type { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
+
+/** institution_feature_definitions.id — Aylık Ortalama Fiyat Aralığı */
+export const INSTITUTION_PRICE_RANGE_DEFINITION_ID = 289;
+
+export type InstitutionPriceRangeOption = {
+  label: string;
+  min: number;
+  max: number;
+};
+
+/** institution_feature_choices (definition_id = 289) ile uyumlu seçenekler */
+export const INSTITUTION_PRICE_RANGE_OPTIONS: InstitutionPriceRangeOption[] = [
+  { label: "0-1000", min: 0, max: 1000 },
+  { label: "1000-5000", min: 1000, max: 5000 },
+  { label: "5000-10000", min: 5000, max: 10000 },
+  { label: "10000-50000", min: 10000, max: 50000 },
+  { label: "50.000-100.000", min: 50_000, max: 100_000 },
+  { label: "100.000-200.000", min: 100_000, max: 200_000 },
+  { label: "200.000-300.000", min: 200_000, max: 300_000 },
+];
+
+export const INSTITUTION_PRICE_FILTER_MIN = INSTITUTION_PRICE_RANGE_OPTIONS[0]?.min ?? 0;
+export const INSTITUTION_PRICE_FILTER_MAX =
+  INSTITUTION_PRICE_RANGE_OPTIONS[INSTITUTION_PRICE_RANGE_OPTIONS.length - 1]?.max ?? 300_000;
+
+export function formatPriceFilterValue(value: number): string {
+  const safeValue = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+  return safeValue.toLocaleString("tr-TR");
+}
+
+function normalizeFeatureKey(text: string): string {
+  return text
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function isInstitutionPriceRangeDefinition(row: {
+  id?: number | null;
+  name?: string | null;
+  slug?: string | null;
+}): boolean {
+  if (Number(row.id) === INSTITUTION_PRICE_RANGE_DEFINITION_ID) return true;
+  const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
+  return (
+    t.includes("fiyat araligi") ||
+    t.includes("aylik ortalama fiyat") ||
+    t.includes("ortalama fiyat") ||
+    t.includes("price range") ||
+    t.includes("monthly price") ||
+    t === "fiyat" ||
+    t.startsWith("fiyat ") ||
+    t.endsWith(" fiyat") ||
+    t.includes(" fiyat ") ||
+    t.includes("ucret")
+  );
+}
+
+export function isInstitutionPriceRangeFieldName(name: string): boolean {
+  const key = normalizeFeatureKey(name);
+  return (
+    key.includes("aylik ortalama fiyat") ||
+    key.includes("fiyat araligi") ||
+    key.includes("ortalama fiyat araligi")
+  );
+}
+
+export function parsePriceRangeFromText(raw: string): { min: number; max: number } | null {
+  const text = String(raw ?? "").trim();
+  if (!text) return null;
+  const lower = text.toLocaleLowerCase("tr-TR");
+  const norm = normalizeFeatureKey(text);
+
+  const isFree =
+    lower.includes("ücretsiz") || norm.includes("ucretsiz") || lower === "0" || lower === "0 tl" || lower === "0₺";
+  if (isFree) return { min: 0, max: 0 };
+
+  const compact = text.replace(/\s+/g, "");
+  const numericTokens = compact.match(/\d+(?:[.,]\d+)?/g) ?? [];
+  const numbers = numericTokens
+    .map((tok) => Number(tok.replace(/[.,]/g, "")))
+    .filter((n) => Number.isFinite(n));
+  if (numbers.length === 0) return null;
+
+  const isUpperOpen =
+    /\+/.test(text) ||
+    /üzeri/i.test(text) ||
+    norm.includes("uzeri") ||
+    norm.includes("ve ustu") ||
+    norm.includes("ustu") ||
+    norm.includes("yukari") ||
+    norm.includes("more");
+  const isLowerOpen =
+    /alt[ıi]/i.test(text) ||
+    norm.includes("alti") ||
+    norm.includes("altinda") ||
+    norm.includes("kadar") ||
+    norm.includes("less") ||
+    norm.includes("under");
+
+  if (numbers.length >= 2) {
+    const min = Math.min(numbers[0], numbers[1]);
+    const max = Math.max(numbers[0], numbers[1]);
+    return { min, max };
+  }
+
+  const single = numbers[0];
+  if (isUpperOpen) return { min: single, max: Number.POSITIVE_INFINITY };
+  if (isLowerOpen) return { min: 0, max: single };
+  return { min: single, max: single };
+}
+
+export function rangesOverlap(a: { min: number; max: number }, b: { min: number; max: number }): boolean {
+  const aMin = Math.min(a.min, a.max);
+  const aMax = Math.max(a.min, a.max);
+  const bMin = Math.min(b.min, b.max);
+  const bMax = Math.max(b.min, b.max);
+  return aMin <= bMax && bMin <= aMax;
+}
+
+export function sortPriceRangeChoicesByMin<T extends { name: string }>(choices: T[]): T[] {
+  return [...choices].sort((a, b) => {
+    const aRange = parsePriceRangeFromText(a.name);
+    const bRange = parsePriceRangeFromText(b.name);
+    const aMin = aRange?.min ?? Number.POSITIVE_INFINITY;
+    const bMin = bRange?.min ?? Number.POSITIVE_INFINITY;
+    if (aMin !== bMin) return aMin - bMin;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+export function orderPriceRangeChoicesFromCanonical<T extends { id: number; name: string }>(
+  choices: T[],
+): T[] {
+  const byLabel = new Map(choices.map((choice) => [choice.name.trim(), choice]));
+  const ordered: T[] = [];
+  for (const option of INSTITUTION_PRICE_RANGE_OPTIONS) {
+    const match = byLabel.get(option.label);
+    if (match) ordered.push(match);
+  }
+  const usedIds = new Set(ordered.map((choice) => choice.id));
+  const rest = sortPriceRangeChoicesByMin(choices.filter((choice) => !usedIds.has(choice.id)));
+  return [...ordered, ...rest];
+}
+
+export async function resolveInstitutionIdsByPriceRange(
+  supabase: SupabaseBrowser,
+  range: { min: number; max: number },
+): Promise<number[]> {
+  const userRange = {
+    min: Math.max(0, Math.min(range.min, range.max)),
+    max: Math.max(range.min, range.max),
+  };
+
+  const { data: defsRaw, error: defErr } = await supabase
+    .from("institution_feature_definitions")
+    .select("id, name, slug, input_type, unit")
+    .eq("is_active", true);
+  if (defErr) throw defErr;
+
+  const defs = ((defsRaw ?? []) as Array<{
+    id: number;
+    name?: string | null;
+    slug?: string | null;
+    input_type?: string | null;
+    unit?: string | null;
+  }>).filter((d) => Number.isFinite(d.id) && isInstitutionPriceRangeDefinition(d));
+  if (defs.length === 0) return [];
+
+  const defIds = defs.map((d) => d.id);
+  const inputTypeByDefId = new Map<number, string>();
+  for (const d of defs) inputTypeByDefId.set(d.id, String(d.input_type ?? ""));
+
+  const choiceRangeById = new Map<number, { min: number; max: number }>();
+  const { data: choicesRaw, error: chErr } = await supabase
+    .from("institution_feature_choices")
+    .select("id, feature_definition_id, name")
+    .in("feature_definition_id", defIds)
+    .eq("is_active", true);
+  if (chErr) throw chErr;
+  for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
+    const cid = Number(c.id);
+    if (!Number.isFinite(cid)) continue;
+    const r = parsePriceRangeFromText(String(c.name ?? ""));
+    if (r) choiceRangeById.set(cid, r);
+  }
+
+  const idSet = new Set<number>();
+
+  const { data: entriesRaw, error: entErr } = await supabase
+    .from("institution_feature_entries")
+    .select("id, institution_id, feature_definition_id, selected_choice_id, number_answer, text_answer")
+    .in("feature_definition_id", defIds);
+  if (entErr) throw entErr;
+
+  const entries = (entriesRaw ?? []) as Array<{
+    id: number;
+    institution_id: number;
+    feature_definition_id: number;
+    selected_choice_id: number | null;
+    number_answer: number | null;
+    text_answer: string | null;
+  }>;
+
+  const multiEntryIdToInstitution = new Map<number, number>();
+  for (const e of entries) {
+    const iid = Number(e.institution_id);
+    if (!Number.isFinite(iid)) continue;
+    const inputType = inputTypeByDefId.get(Number(e.feature_definition_id)) ?? "";
+
+    if (inputType === "single_select") {
+      const cid = Number(e.selected_choice_id);
+      if (!Number.isFinite(cid)) continue;
+      const r = choiceRangeById.get(cid);
+      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
+    } else if (inputType === "number") {
+      const n = Number(e.number_answer);
+      if (!Number.isFinite(n)) continue;
+      if (rangesOverlap({ min: n, max: n }, userRange)) idSet.add(iid);
+    } else if (inputType === "text") {
+      const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
+      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
+    } else if (inputType === "multi_select") {
+      multiEntryIdToInstitution.set(Number(e.id), iid);
+    }
+  }
+
+  if (multiEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
+    const matchingChoiceIds = Array.from(choiceRangeById.entries())
+      .filter(([, r]) => rangesOverlap(r, userRange))
+      .map(([cid]) => cid);
+    if (matchingChoiceIds.length > 0) {
+      const { data: links, error: linkErr } = await supabase
+        .from("institution_feature_entry_choices")
+        .select("institution_feature_entry_id, choice_id")
+        .in("institution_feature_entry_id", Array.from(multiEntryIdToInstitution.keys()))
+        .in("choice_id", matchingChoiceIds);
+      if (linkErr) throw linkErr;
+      for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number }>) {
+        const iid = multiEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
+        if (Number.isFinite(iid)) idSet.add(iid!);
+      }
+    }
+  }
+
+  return Array.from(idSet);
+}
+
+export async function resolveInstitutionIdsByPriceRangeSelections(
+  supabase: SupabaseBrowser,
+  selectedLabels: string[],
+): Promise<number[]> {
+  if (selectedLabels.length === 0) return [];
+
+  const idSet = new Set<number>();
+  for (const label of selectedLabels) {
+    const option = INSTITUTION_PRICE_RANGE_OPTIONS.find((item) => item.label === label);
+    if (!option) continue;
+    const ids = await resolveInstitutionIdsByPriceRange(supabase, {
+      min: option.min,
+      max: option.max,
+    });
+    ids.forEach((id) => idSet.add(id));
+  }
+  return Array.from(idSet);
+}

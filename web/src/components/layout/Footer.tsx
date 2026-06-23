@@ -6,7 +6,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { Facebook, Twitter, Instagram, Linkedin, ChevronDown } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getCategoryHref } from "@/lib/categoryHelpers";
+import { getCategoryHref, sortByHomeMainCategoryOrder } from "@/lib/categoryHelpers";
+
+const OZEL_DERS_FOOTER_LINK = {
+  id: "ozel-ders",
+  name: "Özel Ders",
+  href: "/egitmenler",
+} as const;
+
+const PATILI_DOSTLAR_FOOTER_LINK = {
+  id: "patili-dostlar",
+  name: "Patili Dostlar",
+  href: "/patili-dostlar",
+} as const;
 
 type FooterCategoryRow = { id: number; name: string; slug: string };
 
@@ -36,8 +48,13 @@ export default function Footer() {
           if (!name) return null;
           return { id: row.id, name, slug };
         })
-        .filter((row): row is FooterCategoryRow => Boolean(row));
-      setFooterCategories(rows);
+        .filter((row): row is FooterCategoryRow => Boolean(row))
+        .filter((category) => {
+          const normalizedName = category.name.toLocaleLowerCase("tr-TR");
+          const normalizedSlug = category.slug.toLocaleLowerCase("tr-TR");
+          return normalizedName !== "patili dostlar" && normalizedSlug !== "patili-dostlar";
+        });
+      setFooterCategories(sortByHomeMainCategoryOrder(rows));
     })();
     return () => {
       cancelled = true;
@@ -194,6 +211,12 @@ export default function Footer() {
           <div className="homepage-footer-extension">
             <div className="homepage-footer-extension-inner">
               <div className="homepage-footer-extension-tags">
+                <Link
+                  href={OZEL_DERS_FOOTER_LINK.href}
+                  className="homepage-footer-extension-tag"
+                >
+                  {OZEL_DERS_FOOTER_LINK.name}
+                </Link>
                 {footerCategories.map((category) => {
                   const href =
                     getCategoryHref(category.name, category.slug) ?? "/okullar";
@@ -207,6 +230,12 @@ export default function Footer() {
                     </Link>
                   );
                 })}
+                <Link
+                  href={PATILI_DOSTLAR_FOOTER_LINK.href}
+                  className="homepage-footer-extension-tag"
+                >
+                  {PATILI_DOSTLAR_FOOTER_LINK.name}
+                </Link>
               </div>
             </div>
           </div>

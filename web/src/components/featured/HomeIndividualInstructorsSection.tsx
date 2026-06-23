@@ -285,7 +285,7 @@ export function HomeIndividualInstructorsSection() {
         <div className="home-individual-instructors-header-main">
           <div className="home-individual-instructors-header-text">
             <h2 className="home-individual-instructors-title" id="home-individual-instructors-title">
-              Bireysel Eğitmenler
+              Eğitmenler
             </h2>
             <p className="home-individual-instructors-subtitle">
               Alanında uzman eğitmenleri keşfedin, size en uygun eğitmeni kolayca bulun.

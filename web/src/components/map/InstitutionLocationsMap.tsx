@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -74,29 +74,23 @@ export type InstitutionLocationsMapProps = {
   variant?: "inline" | "modal";
   markers: InstitutionMapMarker[];
   loading?: boolean;
+  renderEmptyMap?: boolean;
 };
 
 export default function InstitutionLocationsMap({
   variant = "inline",
   markers,
   loading = false,
+  renderEmptyMap = false,
 }: InstitutionLocationsMapProps) {
   const router = useRouter();
   const mapInstanceId = useId().replace(/:/g, "");
-  /** Leaflet tek DOM konteyneri iki kez bağlamasın diye (Strict Mode / modal) haritayı yalnızca mount sonrası çiz */
-  const [domReady, setDomReady] = useState(false);
   /** Bir sonraki frame'de MapContainer aç: paneller hazır olsun, appendChild / container reuse hatalarını önler */
   const [leafletMountReady, setLeafletMountReady] = useState(false);
-
-  useLayoutEffect(() => {
-    setDomReady(true);
-  }, []);
+  const canRenderMap = !loading && (markers.length > 0 || renderEmptyMap);
 
   useEffect(() => {
-    if (loading || markers.length === 0 || !domReady) {
-      setLeafletMountReady(false);
-      return;
-    }
+    if (!canRenderMap) return;
     let cancelled = false;
     let raf2 = 0;
     const raf1 = window.requestAnimationFrame(() => {
@@ -108,9 +102,8 @@ export default function InstitutionLocationsMap({
       cancelled = true;
       window.cancelAnimationFrame(raf1);
       if (raf2) window.cancelAnimationFrame(raf2);
-      setLeafletMountReady(false);
     };
-  }, [loading, markers.length, domReady]);
+  }, [canRenderMap]);
 
   const center = useMemo<[number, number]>(() => {
     if (markers.length > 0) {
@@ -134,9 +127,9 @@ export default function InstitutionLocationsMap({
     <div className={wrapperClass}>
       {loading ? (
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
-      ) : markers.length === 0 ? (
+      ) : markers.length === 0 && !renderEmptyMap ? (
         <div className="institution-locations-map-state">Konum bilgisi olan kurum bulunamadı.</div>
-      ) : !domReady || !leafletMountReady ? (
+      ) : !leafletMountReady ? (
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : (
         <MapContainer
