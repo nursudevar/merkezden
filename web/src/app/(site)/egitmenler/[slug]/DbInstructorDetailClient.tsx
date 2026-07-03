@@ -439,7 +439,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                       <span>{location}</span>
                     </div>
                   ) : null}
-                  {row.is_verified ? (
+                  {row.is_approved === true ? (
                     <div className="instructor-meta-item instructor-meta-verified">
                       <CheckCircle2 size={18} aria-hidden />
                       <span>Onaylı Eğitmen</span>

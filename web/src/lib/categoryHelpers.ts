@@ -39,6 +39,7 @@ export const HOME_MAIN_CATEGORY_ORDER = [
   "KİŞİSEL GELİŞİM",
   "MESLEKİ EĞİTİM",
   "ÖZEL EĞİTİM",
+  "SÜRÜCÜ KURSU",
 ] as const;
 
 export function sortByHomeMainCategoryOrder<T extends { name: string }>(items: T[]): T[] {
@@ -57,9 +58,10 @@ export function sortByHomeMainCategoryOrder<T extends { name: string }>(items: T
   });
 }
 
-/** Bilinen kategori sayfalarına gider; yoksa null (çağıran `/okullar` vb. kullanabilir) */
+/** Bilinen kategori sayfalarına gider; bilinmeyen aktif kategoriler `/kategori/{slug}` kullanır. */
 export function getCategoryHref(name: string, slug: string): string | null {
   const key = normalizeCategoryKey(`${name} ${slug}`);
+  if (key.includes("surucu kursu")) return "/surucu-kursu";
   if (key.includes("okul")) return "/school";
   if (key.includes("kurs") || key.includes("sinav")) return "/courses";
   if (key.includes("spor")) return "/sports";
@@ -68,6 +70,11 @@ export function getCategoryHref(name: string, slug: string): string | null {
   if (key.includes("kisisel gelisim")) return "/personal-development";
   if (key.includes("mesleki egitim")) return "/vocational-training";
   if (key.includes("ozel egitim")) return "/special-education";
+
+  const normalizedSlug = String(slug ?? "").trim();
+  if (normalizedSlug) {
+    return `/kategori/${normalizedSlug}`;
+  }
   return null;
 }
 
@@ -106,6 +113,9 @@ export function getCategoryIcon(name: string, slug: string): LucideIcon {
   }
   if (key.includes("spor")) {
     return Dumbbell;
+  }
+  if (key.includes("surucu kursu")) {
+    return Car;
   }
   if (key.includes("kurs") || key.includes("sinav") || key.includes("hazirlik")) {
     return BookOpen;

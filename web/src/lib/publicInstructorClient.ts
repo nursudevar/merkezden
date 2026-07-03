@@ -14,12 +14,12 @@ export const PUBLIC_INSTRUCTORS_TABLE = "public_instructors" as const;
 
 /** instructors tablosu ile uyumlu güvenli sütunlar (tc, owner_auth_id vb. yok) */
 export const PUBLIC_INSTRUCTOR_ROW_SELECT =
-  "id, name, surname, title, branch, school, bio, about, city, district, address, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, email, phone, is_verified, is_active";
+  "id, name, surname, title, branch, school, bio, about, city, district, address, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, email, phone, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT}, slug`;
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE =
-  "id, name, surname, title, branch, school, bio, about, city, district, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_verified, is_active";
+  "id, name, surname, title, branch, school, bio, about, city, district, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT_BASE}, slug`;
 
@@ -48,7 +48,7 @@ export type PublicInstructorRow = {
   linkedin_url?: string | null;
   email?: string | null;
   phone?: string | null;
-  is_verified?: boolean | null;
+  is_approved?: boolean | null;
   is_active?: boolean | null;
 };
 
@@ -97,6 +97,7 @@ async function enrichPublicInstructorContact(
     .select("email, phone, address, facebook_url, instagram_url, x_url, linkedin_url")
     .eq("id", row.id)
     .eq("is_active", true)
+    .eq("is_approved", true)
     .maybeSingle();
 
   if (error || !data) return row;
@@ -131,7 +132,7 @@ async function queryPublicInstructorRow(
   const trimmed = String(param ?? "").trim();
   const isNumericId = /^\d+$/.test(trimmed);
 
-  let query = supabase.from(table).select(select).eq("is_active", true);
+  let query = supabase.from(table).select(select).eq("is_active", true).eq("is_approved", true);
 
   if (isNumericId) {
     query = query.eq("id", Number(trimmed));
@@ -168,6 +169,7 @@ export async function fetchPublicInstructorsListClient(options?: {
       .from(table)
       .select(select)
       .eq("is_active", true)
+      .eq("is_approved", true)
       .order("name", { ascending: true })
       .order("surname", { ascending: true })
       .limit(limit);

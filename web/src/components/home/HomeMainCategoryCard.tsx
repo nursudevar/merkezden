@@ -44,7 +44,6 @@ const VOCATIONAL_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
 
 const PERSONAL_DEV_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
   { id: -10, name: "Diksiyon / Yaşam Koçluğu" },
-  { id: -11, name: "Zaman Yönetimi / Meditasyon" },
 ];
 
 const LANGUAGE_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
@@ -54,7 +53,6 @@ const LANGUAGE_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
 
 const SPECIAL_ED_HOME_DISPLAY_ITEMS: HomeMainCategoryCardSubcategory[] = [
   { id: -14, name: "Oyun Terapisi / Disleksi Eğitimi" },
-  { id: -15, name: "Duyu Bütünleme / ABA Terapisi" },
 ];
 
 function normalizeMainCategoryKey(value: string): string {
@@ -177,12 +175,6 @@ export function HomeMainCategoryCard({
     isVocationalCategory,
   ]);
 
-  const showMoreLink = Boolean(categoryHref) && (
-    isExamPrepCategory
-      ? category.subcategories.length > EXAM_PREP_HOME_DISPLAY_ITEMS.length
-      : category.subcategories.length > VISIBLE_SUBCATEGORY_COUNT
-  );
-
   return (
     <article
       className={`home-main-category-card ${categoryHref ? "home-main-category-card--clickable" : ""}`}
@@ -215,9 +207,9 @@ export function HomeMainCategoryCard({
           </ul>
         </div>
       ) : null}
-      {showMoreLink ? (
+      {categoryHref ? (
         <Link
-          href={categoryHref!}
+          href={categoryHref}
           className="home-main-category-card-more-btn"
           onClick={(e) => {
             e.stopPropagation();

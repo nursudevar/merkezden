@@ -61,6 +61,20 @@ export default function Footer() {
     };
   }, [isHome]);
 
+  const homepageFooterLinks = [
+    OZEL_DERS_FOOTER_LINK,
+    ...footerCategories.map((category) => ({
+      id: String(category.id),
+      name: category.name,
+      href: getCategoryHref(category.name, category.slug) ?? "/okullar",
+    })),
+    PATILI_DOSTLAR_FOOTER_LINK,
+  ];
+  const homepageFooterLinkRows = [
+    homepageFooterLinks.slice(0, 7),
+    homepageFooterLinks.slice(7),
+  ];
+
   const footerInner = (
       <div className="footer-container">
         <div className="footer-grid">
@@ -211,31 +225,19 @@ export default function Footer() {
           <div className="homepage-footer-extension">
             <div className="homepage-footer-extension-inner">
               <div className="homepage-footer-extension-tags">
-                <Link
-                  href={OZEL_DERS_FOOTER_LINK.href}
-                  className="homepage-footer-extension-tag"
-                >
-                  {OZEL_DERS_FOOTER_LINK.name}
-                </Link>
-                {footerCategories.map((category) => {
-                  const href =
-                    getCategoryHref(category.name, category.slug) ?? "/okullar";
-                  return (
+                {homepageFooterLinkRows.map((row, rowIndex) => (
+                  <div key={`footer-category-row-${rowIndex}`} className="homepage-footer-extension-tag-row">
+                    {row.map((link) => (
                     <Link
-                      key={category.id}
-                      href={href}
+                      key={link.id}
+                      href={link.href}
                       className="homepage-footer-extension-tag"
                     >
-                      {category.name}
+                      {link.name}
                     </Link>
-                  );
-                })}
-                <Link
-                  href={PATILI_DOSTLAR_FOOTER_LINK.href}
-                  className="homepage-footer-extension-tag"
-                >
-                  {PATILI_DOSTLAR_FOOTER_LINK.name}
-                </Link>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
@@ -41,6 +41,22 @@ function createClusterIcon(cluster: { getChildCount: () => number }): L.DivIcon 
 
 const DEFAULT_CENTER: [number, number] = [39.9334, 32.8597];
 
+export type InstitutionMapViewportBounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
+function toViewportBounds(bounds: L.LatLngBounds): InstitutionMapViewportBounds {
+  return {
+    north: bounds.getNorth(),
+    south: bounds.getSouth(),
+    east: bounds.getEast(),
+    west: bounds.getWest(),
+  };
+}
+
 function MapInvalidateSize() {
   const map = useMap();
   useEffect(() => {
@@ -70,11 +86,37 @@ function MapInvalidateSize() {
   return null;
 }
 
+function MapBoundsReporter({
+  onBoundsChange,
+}: {
+  onBoundsChange?: (bounds: InstitutionMapViewportBounds) => void;
+}) {
+  const map = useMapEvents({
+    moveend: () => {
+      onBoundsChange?.(toViewportBounds(map.getBounds()));
+    },
+    zoomend: () => {
+      onBoundsChange?.(toViewportBounds(map.getBounds()));
+    },
+  });
+
+  useEffect(() => {
+    if (!onBoundsChange) return;
+    const raf = window.requestAnimationFrame(() => {
+      onBoundsChange(toViewportBounds(map.getBounds()));
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [map, onBoundsChange]);
+
+  return null;
+}
+
 export type InstitutionLocationsMapProps = {
   variant?: "inline" | "modal";
   markers: InstitutionMapMarker[];
   loading?: boolean;
   renderEmptyMap?: boolean;
+  onBoundsChange?: (bounds: InstitutionMapViewportBounds) => void;
 };
 
 export default function InstitutionLocationsMap({
@@ -82,6 +124,7 @@ export default function InstitutionLocationsMap({
   markers,
   loading = false,
   renderEmptyMap = false,
+  onBoundsChange,
 }: InstitutionLocationsMapProps) {
   const router = useRouter();
   const mapInstanceId = useId().replace(/:/g, "");
@@ -140,6 +183,7 @@ export default function InstitutionLocationsMap({
           className={mapClass}
         >
           <MapInvalidateSize />
+          <MapBoundsReporter onBoundsChange={onBoundsChange} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -73,11 +73,13 @@ export function HomePurpleFeaturedMarquee() {
           .from("institutions")
           .select("id, slug, source, institution_name, city, district, logo")
           .eq("institution_name", "Deneme")
+          .eq("is_approved", true)
           .maybeSingle(),
         supabase
           .from("institutions")
           .select("id, slug, source, institution_name, city, district, logo")
           .not("institution_name", "is", null)
+          .eq("is_approved", true)
           .limit(FETCH_LIMIT),
       ]);
 

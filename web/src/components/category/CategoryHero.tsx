@@ -7,6 +7,7 @@ import { GraduationCap } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { normalizeCategoryKey } from "@/lib/categoryHelpers";
+import { fetchInstitutionCategoryBySlug } from "@/lib/institutionCategoriesClient";
 import {
   buildPublicInstructorLocation,
   fetchFeaturedPublicInstructors,
@@ -40,6 +41,9 @@ const categoryData: Record<string, { title: string }> = {
   },
   courses: {
     title: "Kurs & Sınava Hazırlık",
+  },
+  "surucu-kursu": {
+    title: "Sürücü Kursu",
   },
   sports: {
     title: "Spor Eğitim Kurumları",
@@ -84,6 +88,7 @@ function getCategoryData(pathname: string): { title: string } {
 const CATEGORY_ROUTE_SLUG_FALLBACKS: Record<string, string> = {
   school: "okul",
   courses: "courses",
+  "surucu-kursu": "surucu-kursu",
   sports: "sports",
   arts: "arts",
   languages: "languages",
@@ -132,6 +137,7 @@ function buildCategoryMatchPredicate(routeSlug: string, title: string) {
     if (normalizedTitle && key.includes(normalizedTitle)) return true;
 
     if (normalizedRoute === "school") return key.includes("okul");
+    if (normalizedRoute === "surucu kursu") return key.includes("surucu kursu");
     if (normalizedRoute === "courses") {
       return key.includes("kurs") && (key.includes("sinav") || key.includes("hazirlik"));
     }
@@ -215,6 +221,7 @@ async function fetchCategoryPopularItems(
       .from("institutions")
       .select("id, slug, source, institution_name, city, district, institution_type_id")
       .in("institution_type_id", typeIds)
+      .eq("is_approved", true)
       .limit(120);
 
     if (filterActive) {
@@ -304,10 +311,38 @@ export default function CategoryHero({
   districts,
 }: CategoryHeroProps) {
   const pathname = usePathname();
-  const routeSlug = pathname.split("/").filter(Boolean).pop() || "";
-  const { title } = getCategoryData(pathname);
+  const pathSegments = pathname.split("/").filter(Boolean);
+  const routeSlug = pathSegments[pathSegments.length - 1] || "";
+  const isDynamicCategoryRoute =
+    pathSegments.length >= 2 && pathSegments[pathSegments.length - 2] === "kategori";
+  const { title: staticTitle } = getCategoryData(pathname);
+  const [dynamicTitle, setDynamicTitle] = useState<string | null>(null);
+  const title = dynamicTitle ?? staticTitle;
   const [popularItems, setPopularItems] = useState<CategoryHeroPopularItem[]>([]);
   const [popularItemsLoading, setPopularItemsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isDynamicCategoryRoute || !routeSlug) {
+      setDynamicTitle(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const category = await fetchInstitutionCategoryBySlug(routeSlug);
+      if (cancelled) return;
+      if (category?.name) {
+        setDynamicTitle(`${category.name} Eğitim Kurumları`);
+      } else {
+        setDynamicTitle(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDynamicCategoryRoute, routeSlug]);
 
   useEffect(() => {
     let cancelled = false;

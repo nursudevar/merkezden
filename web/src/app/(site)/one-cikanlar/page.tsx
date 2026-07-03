@@ -48,6 +48,7 @@ export default function OneCikanlarPage() {
           "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))",
         )
         .not("institution_name", "is", null)
+        .eq("is_approved", true)
         .limit(FETCH_LIMIT);
 
       if (cancelled) return;

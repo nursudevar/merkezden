@@ -2160,6 +2160,13 @@ $egitmen-select-arrow-neutral: url("data:image/svg+xml,%3Csvg xmlns='http://www.
   cursor: not-allowed;
 }
 
+.egitmen-panel-features-category-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: $text-zinc-500;
+}
+
 .egitmen-panel-features-type-picker {
   display: flex;
   flex-direction: column;

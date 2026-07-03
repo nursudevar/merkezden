@@ -71,6 +71,7 @@ export default function MebInstitutionDetailPage() {
           "id, institution_name, type, institution_type_id, city, district, address, official_phone, source, institution_type:institution_types(id, name, category:institution_categories(id, name))"
         )
         .eq("id", parsedId)
+        .eq("is_approved", true)
         .maybeSingle();
 
       const institutionData = (data as InstitutionRow | null) ?? null;

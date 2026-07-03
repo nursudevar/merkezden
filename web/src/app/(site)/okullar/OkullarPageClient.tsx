@@ -174,8 +174,8 @@ export default function OkullarPageClient() {
           .select('id, name, category_id, is_active')
           .eq('is_active', true)
           .order('name', { ascending: true }),
-        supabase.from('institutions').select('city').limit(5000),
-        supabase.from('institutions').select('district').limit(5000),
+        supabase.from('institutions').select('city').eq('is_approved', true).limit(5000),
+        supabase.from('institutions').select('district').eq('is_approved', true).limit(5000),
       ]);
       if (cancelled) return;
       const cats = (categoryRes.data as InstitutionCategoryRow[] | null) ?? [];
@@ -213,6 +213,7 @@ export default function OkullarPageClient() {
         let dataQuery = supabase
           .from('institutions')
           .select(selectCols, { count: 'exact' })
+          .eq('is_approved', true)
           .order('institution_name', { ascending: true })
           .order('id', { ascending: true });
 

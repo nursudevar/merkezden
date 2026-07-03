@@ -65,6 +65,7 @@ type FavoriteInstitutionRow = {
   institution_type_id?: number | null;
   address: string | null;
   about: string | null;
+  is_approved?: boolean | null;
 };
 
 type FavoritesJoinRow = {
@@ -103,8 +104,12 @@ function logSupabaseError(scope: string, error: unknown) {
   }
   if (typeof error === 'object') {
     const e = error as { message?: string; code?: string; details?: string; hint?: string };
+    const hasErrorInfo = Boolean(e.message || e.code || e.details || e.hint);
+    if (!hasErrorInfo) {
+      return;
+    }
     console.error(scope, {
-      message: e.message ?? String(error),
+      message: e.message,
       code: e.code,
       details: e.details,
       hint: e.hint,
@@ -279,9 +284,7 @@ export async function getMyFavoriteInstitutionIds(): Promise<number[]> {
     .eq('individual_profile_id', individualProfileId);
 
   if (error) {
-    logSupabaseError('[getMyFavoriteInstitutionIds]', error);
-    if (isFavoritesPermissionError(error)) return [];
-    throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favoriler yüklenemedi. Lütfen tekrar deneyin.');
+    return [];
   }
 
   const ids = (data ?? [])
@@ -309,9 +312,7 @@ export async function getMyFavoriteInstructorIds(): Promise<number[]> {
     .eq('individual_profile_id', individualProfileId);
 
   if (error) {
-    logSupabaseError('[getMyFavoriteInstructorIds]', error);
-    if (isFavoritesPermissionError(error)) return [];
-    throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favoriler yüklenemedi. Lütfen tekrar deneyin.');
+    return [];
   }
 
   const ids = (data ?? [])
@@ -388,7 +389,8 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
         type,
         address,
         about,
-        institution_type_id
+        institution_type_id,
+        is_approved
       )
     `
     )
@@ -404,7 +406,8 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
   const rows: FavoritesJoinRow[] = Array.isArray(data) ? (data as unknown as FavoritesJoinRow[]) : [];
   const institutionRows = rows
     .map((r) => r.institutions)
-    .filter((i): i is FavoriteInstitutionRow => Boolean(i));
+    .filter((i): i is FavoriteInstitutionRow => i != null)
+    .filter((i) => i.is_approved === true);
 
   const typeIds = institutionRows
     .map((i) => Number(i.institution_type_id))
@@ -468,7 +471,8 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
   const { data: instructorRows, error: instructorsError } = await supabase
     .from(PUBLIC_INSTRUCTORS_TABLE)
     .select(PUBLIC_INSTRUCTOR_LIST_SELECT)
-    .in('id', uniqueIds);
+    .in('id', uniqueIds)
+    .eq('is_approved', true);
 
   if (instructorsError) {
     logSupabaseError('[getMyFavoriteInstructors][public_instructors]', instructorsError);

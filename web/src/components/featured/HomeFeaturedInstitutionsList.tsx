@@ -90,6 +90,7 @@ export function HomeFeaturedInstitutionsList({
           .from("institutions")
           .select(INSTITUTION_SELECT)
           .not("institution_name", "is", null)
+          .eq("is_approved", true)
           .limit(FETCH_LIMIT),
         fetchFeaturedPublicInstructors(supabase, { limit: INSTRUCTOR_FETCH_LIMIT }),
         fetchHomeFeaturedPinnedInstructorRow(supabase),

@@ -397,6 +397,7 @@ export default function SearchResults({
             .from("institutions")
             .select("id, institution_name, subheading, about, city, district, type, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, slug, source, institution_type_id, institution_type:institution_types(name, category:institution_categories(name))")
             .not("institution_name", "is", null)
+            .eq("is_approved", true)
             .order("institution_name", { ascending: true })
             .limit(600);
 

@@ -102,6 +102,7 @@
     0 24px 48px rgba(15, 23, 42, 0.18),
     0 0 0 1px rgba(15, 23, 42, 0.06);
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 .institution-map-modal-header {
@@ -149,6 +150,13 @@
   padding: 12px 16px 18px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.institution-map-modal-body--with-list {
+  gap: 14px;
+  align-items: stretch;
 }
 
 .map-modal-category-filters {
@@ -223,6 +231,297 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.institution-map-modal-body--with-list .institution-locations-map-wrapper--modal {
+  flex: 0 0 auto;
+  min-height: 360px;
+}
+
+.institution-map-modal-body--with-list .institution-locations-map--modal {
+  height: min(46vh, 420px);
+  min-height: 360px;
+}
+
+.map-modal-visible-institutions {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 2px;
+  overflow: visible;
+}
+
+.map-modal-visible-institutions-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.map-modal-visible-institutions-title {
+  margin: 0;
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  letter-spacing: -0.02em;
+  color: $default-text-color;
+
+  span {
+    display: inline-flex;
+    margin-left: 8px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba($purple-main, 0.1);
+    color: $purple-main;
+    font-size: 12px;
+    font-weight: $font-semibold;
+    vertical-align: middle;
+  }
+}
+
+.map-modal-visible-institutions-subtitle {
+  margin: 4px 0 0;
+  color: $text-zinc-500;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+}
+
+.map-modal-visible-institutions-grid {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  overflow: visible;
+  padding: 2px 2px 4px;
+}
+
+.map-modal-visible-institutions-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 2px;
+}
+
+.map-modal-visible-institutions-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 10px 18px;
+  border: 1px solid $purple-main;
+  border-radius: 999px;
+  background: $purple-main;
+  color: $bg-white;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    background: $purple-dark;
+    border-color: $purple-dark;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.18);
+  }
+}
+
+.map-modal-visible-institutions-state {
+  flex: 0 0 auto;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  border: 1px dashed $border-light;
+  border-radius: 16px;
+  background: $bg-zinc-50;
+  color: $text-zinc-600;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  text-align: center;
+}
+
+.map-modal-institution-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid $border-light;
+  border-radius: 16px;
+  background: $bg-white;
+  box-shadow: 0 4px 16px rgba(31, 39, 51, 0.06);
+}
+
+.map-modal-institution-card-media {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: $bg-zinc-50;
+}
+
+.map-modal-institution-card-logo {
+  object-fit: cover;
+  object-position: center;
+}
+
+.map-modal-institution-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-zinc-500;
+}
+
+.map-modal-institution-favorite {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba($bg-white, 0.72);
+  border-radius: 999px;
+  background: rgba($bg-white, 0.92);
+  color: $text-zinc-500;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(31, 39, 51, 0.1);
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.map-modal-institution-heart {
+  width: 16px;
+  height: 16px;
+}
+
+.map-modal-institution-heart--active {
+  color: #e11d48;
+  fill: currentColor;
+}
+
+.map-modal-institution-card-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.map-modal-institution-category {
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba($purple-main, 0.08);
+  color: $purple-main;
+  font-size: 11px;
+  font-weight: $font-semibold;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-modal-institution-name {
+  margin: 0;
+  color: $text-zinc-900;
+  font-size: 11px;
+  font-weight: $font-bold;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.map-modal-institution-location {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: $text-zinc-500;
+  font-size: 10px;
+  font-weight: $font-medium;
+  line-height: 1.35;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  span {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.map-modal-institution-actions {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.map-modal-institution-call,
+.map-modal-institution-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: $font-semibold;
+  text-decoration: none;
+  @include transition-colors;
+}
+
+.map-modal-institution-call {
+  border: 1px solid rgba($purple-main, 0.22);
+  color: $purple-main;
+  background: rgba($purple-main, 0.06);
+
+  &:hover {
+    background: rgba($purple-main, 0.12);
+  }
+}
+
+.map-modal-institution-detail {
+  border: 1px solid $purple-main;
+  background: $purple-main;
+  color: $bg-white;
+
+  &:hover {
+    background: $purple-dark;
+    border-color: $purple-dark;
+    color: $bg-white;
+  }
 }
 
 .institution-locations-map-wrapper {
@@ -386,6 +685,16 @@
   min-height: 480px;
 }
 
+.institution-map-modal-body--with-list .institution-locations-map-wrapper--modal,
+.institution-map-modal-body--with-list .institution-locations-map-wrapper--modal .institution-locations-map-state {
+  min-height: 360px;
+}
+
+.institution-map-modal-body--with-list .institution-locations-map.institution-locations-map--modal {
+  height: min(46vh, 420px);
+  min-height: 360px;
+}
+
 .institution-locations-map-state {
   min-height: 220px;
   display: flex;
@@ -460,5 +769,50 @@
   .institution-locations-map-wrapper--modal,
   .institution-locations-map-wrapper--modal .institution-locations-map-state {
     min-height: 360px;
+  }
+
+  .institution-map-modal-body--with-list .institution-locations-map--modal {
+    height: min(42vh, 380px) !important;
+    min-height: 320px;
+  }
+
+  .institution-map-modal-body--with-list .institution-locations-map-wrapper--modal,
+  .institution-map-modal-body--with-list .institution-locations-map-wrapper--modal .institution-locations-map-state {
+    min-height: 320px;
+  }
+
+  .map-modal-visible-institutions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .institution-map-modal-body--with-list .institution-locations-map--modal {
+    height: 320px !important;
+    min-height: 300px;
+  }
+
+  .institution-map-modal-body--with-list .institution-locations-map-wrapper--modal,
+  .institution-map-modal-body--with-list .institution-locations-map-wrapper--modal .institution-locations-map-state {
+    min-height: 300px;
+  }
+
+  .map-modal-visible-institutions-title {
+    font-size: $text-base;
+  }
+
+  .map-modal-visible-institutions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-modal-institution-card {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .map-modal-institution-card-media {
+    width: 72px;
+    height: 72px;
   }
 }

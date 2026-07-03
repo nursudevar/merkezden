@@ -71,6 +71,13 @@
 
 .homepage-footer-extension-tags {
   display: flex;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: center;
+}
+
+.homepage-footer-extension-tag-row {
+  display: flex;
   flex-wrap: wrap;
   gap: 30px;
   justify-content: center;

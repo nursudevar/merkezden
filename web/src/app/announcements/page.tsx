@@ -7,6 +7,10 @@ import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
 } from "@/components/AnnouncementDetailModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  buildCategoryTabNames,
+  fetchActiveInstitutionCategories,
+} from "@/lib/institutionCategoriesClient";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
@@ -24,7 +28,7 @@ type AnnouncementItem = {
   linkUrl: string | null;
 };
 
-const ANNOUNCEMENT_CATEGORY_TABS = [
+const ANNOUNCEMENT_CATEGORY_TABS_FALLBACK = [
   "Hepsi",
   "Okul",
   "Kurs & Sınava Hazırlık",
@@ -34,8 +38,10 @@ const ANNOUNCEMENT_CATEGORY_TABS = [
   "Kişisel Gelişim",
   "Mesleki Eğitim",
   "Özel Eğitim",
+  "Sürücü Kursu",
   "Patili Dostlar",
-];
+] as const;
+const CATEGORY_TAB_FIRST_ROW_COUNT = 7;
 
 function normalizeCategoryName(value: string): string {
   return value
@@ -82,18 +88,27 @@ function AnnouncementCategoryTabs({
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
 }) {
+  const categoryRows = [
+    categories.slice(0, CATEGORY_TAB_FIRST_ROW_COUNT),
+    categories.slice(CATEGORY_TAB_FIRST_ROW_COUNT),
+  ];
+
   return (
     <div className="blog-category-tabs">
-      {categories.map((category) => (
-        <button
-          key={category}
-          type="button"
-          className={`blog-category-tab ${selectedCategory === category ? "blog-category-tab--active" : ""}`}
-          onClick={() => onCategoryChange(category)}
-          aria-pressed={selectedCategory === category}
-        >
-          {category}
-        </button>
+      {categoryRows.map((row, rowIndex) => (
+        <div key={`announcement-category-row-${rowIndex}`} className="blog-category-tab-row">
+          {row.map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={`blog-category-tab ${selectedCategory === category ? "blog-category-tab--active" : ""}`}
+              onClick={() => onCategoryChange(category)}
+              aria-pressed={selectedCategory === category}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -106,6 +121,21 @@ export default function AnnouncementsPage() {
   const [selectedCategory, setSelectedCategory] = useState("Hepsi");
   const [activeAnnouncement, setActiveAnnouncement] =
     useState<AnnouncementItem | null>(null);
+  const [categories, setCategories] = useState<string[]>([...ANNOUNCEMENT_CATEGORY_TABS_FALLBACK]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const rows = await fetchActiveInstitutionCategories();
+      if (cancelled) return;
+      setCategories(buildCategoryTabNames(rows, ANNOUNCEMENT_CATEGORY_TABS_FALLBACK));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,7 +217,6 @@ export default function AnnouncementsPage() {
     };
   }, []);
 
-  const categories = useMemo(() => ANNOUNCEMENT_CATEGORY_TABS, []);
   const filteredAnnouncements = useMemo(() => {
     if (selectedCategory === "Hepsi") return announcements;
     return announcements.filter((item) => categoryMatches(item.categoryName, selectedCategory));

@@ -10,7 +10,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 // --- Kurum (institutions) ----------------------------------------------------
 
 export const INSTITUTION_PROFILE_ROW_SELECT =
-  "id, slug, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, is_verified, institution_type_id, working_hours_start, working_hours_end";
+  "id, slug, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, is_approved, category_id, institution_type_id, working_hours_start, working_hours_end";
 
 export type InstitutionProfileRow = {
   id: number;
@@ -29,7 +29,8 @@ export type InstitutionProfileRow = {
   address?: string | null;
   about?: string | null;
   logo?: string | null;
-  is_verified?: boolean | null;
+  is_approved?: boolean | null;
+  category_id?: number | null;
   institution_type_id?: number | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
@@ -71,7 +72,7 @@ export async function loadInstitutionRowForAuthUserClient(
       return { row: null, error: { message: error.message } };
     }
     console.error("Institution profile load (owner_auth_id):", error);
-    return { row: null, error: { message: error.message } };
+    return { row: null, error: { message: error.message || "Kurum profili yüklenemedi." } };
   }
 
   const byOwner = data as InstitutionProfileRow | null;
@@ -95,12 +96,39 @@ export async function loadInstitutionRowForAuthUserClient(
       return { row: null, error: { message: emailErr.message } };
     }
     console.error("Institution profile load (official_email):", emailErr);
-    return { row: null, error: { message: emailErr.message } };
+    return { row: null, error: { message: emailErr.message || "Kurum profili yüklenemedi." } };
   }
 
   const first =
     Array.isArray(byEmail) && byEmail.length > 0 ? (byEmail[0] as InstitutionProfileRow) : null;
   return { row: first, error: null };
+}
+
+export async function loadInstitutionRowByIdClient(
+  institutionId: number,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{
+  row: InstitutionProfileRow | null;
+  error: { message: string } | null;
+}> {
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const normalizedId = Number(institutionId);
+  if (!Number.isFinite(normalizedId) || normalizedId <= 0) {
+    return { row: null, error: { message: "Geçersiz kurum kimliği." } };
+  }
+
+  const { data, error } = await supabase
+    .from("institutions")
+    .select(INSTITUTION_PROFILE_ROW_SELECT)
+    .eq("id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Institution profile load (id):", error);
+    return { row: null, error: { message: error.message || "Kurum profili yüklenemedi." } };
+  }
+
+  return { row: (data as InstitutionProfileRow | null) ?? null, error: null };
 }
 
 export async function resolveInstitutionNameFromUsersClient(

@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 
 export type InstitutionMapMarker = {
   id: number;
@@ -7,6 +8,8 @@ export type InstitutionMapMarker = {
   address: string;
   official_phone: string;
   official_email: string;
+  logoUrl: string;
+  institutionTypeName: string;
   latitude: number;
   longitude: number;
   categoryName: string;
@@ -27,9 +30,11 @@ type InstitutionRow = {
   address: string | null;
   official_phone: string | null;
   official_email: string | null;
+  logo: string | null;
   slug: string | null;
   institution_type?:
     | {
+        name?: string | null;
         category?:
           | {
               id?: number | null;
@@ -44,6 +49,7 @@ type InstitutionRow = {
           | null;
       }
     | Array<{
+        name?: string | null;
         category?:
           | {
               id?: number | null;
@@ -98,6 +104,8 @@ function mergeLocationRowsWithInstitutionRows(
   locationRows: InstitutionLocationRow[],
   institutionsById: Map<number, InstitutionRow>,
 ): InstitutionMapMarker[] {
+  const supabase = createSupabaseBrowserClient();
+
   return locationRows
     .map((location) => {
       const institution = institutionsById.get(location.institution_id);
@@ -120,6 +128,8 @@ function mergeLocationRowsWithInstitutionRows(
         address: String(institution.address ?? "").trim() || "Adres bilgisi bulunamadı",
         official_phone: String(institution.official_phone ?? "").trim(),
         official_email: String(institution.official_email ?? "").trim(),
+        logoUrl: resolveInstitutionLogoPublicUrl(supabase, institution.logo),
+        institutionTypeName: String(typeRow?.name ?? "").trim(),
         latitude: lat,
         longitude: lng,
         categoryName: String(categoryRow?.name ?? "").trim(),
@@ -143,8 +153,9 @@ async function fetchInstitutionRowsByIds(
     const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
     const { data, error } = await supabase
       .from("institutions")
-      .select("id, institution_name, address, official_phone, official_email, slug, institution_type:institution_types(category:institution_categories(id, name, slug))")
-      .in("id", chunk);
+      .select("id, institution_name, address, official_phone, official_email, logo, slug, institution_type:institution_types(name, category:institution_categories(id, name, slug))")
+      .in("id", chunk)
+      .eq("is_approved", true);
 
     if (error || !Array.isArray(data)) continue;
     (data as InstitutionRow[]).forEach((row) => {

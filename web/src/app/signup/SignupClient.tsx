@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { HeaderBrandLogo } from "@/components/layout/header.client";
 import { Button } from "@/components/ui";
@@ -27,6 +27,13 @@ const supabase = createSupabaseBrowserClient();
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+const APPROVAL_SIGNUP_SUCCESS_MESSAGE =
+  "Kayıt başvurunuz alınmıştır. E-posta doğrulamasından sonra hesabınız oluşturulacak, admin onayı sonrası platformda görünür hale gelecektir.";
+
+type SignupCategoryOption = {
+  id: number;
+  name: string;
+};
 
 type InstructorFormData = {
   firstName: string;
@@ -36,6 +43,27 @@ type InstructorFormData = {
   password: string;
   nationalId: string;
   reference: string;
+  categoryId: string;
+  acceptTerms: boolean;
+};
+
+type SignupTab = "individual" | "institution" | "instructor";
+
+type IndividualSignupFormData = {
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  email: string;
+  password: string;
+  acceptTerms: boolean;
+};
+
+type InstitutionSignupFormData = {
+  companyName: string;
+  categoryId: string;
+  reference: string;
+  email: string;
+  password: string;
   acceptTerms: boolean;
 };
 
@@ -161,21 +189,33 @@ function SignupPasswordToggle({
 }
 
 export default function SignupClient() {
-  const [activeTab, setActiveTab] = useState<"bireysel" | "kurumsal">("bireysel");
-  const isIndividualTab = activeTab === "bireysel";
+  const [activeTab, setActiveTab] = useState<SignupTab>("individual");
+  const isIndividualTab = activeTab === "individual";
   const activeFeatures = isIndividualTab ? INDIVIDUAL_FEATURES : CORPORATE_FEATURES;
   const activeFeatureAccent: "purple" | "orange" = isIndividualTab ? "purple" : "orange";
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [individualFormData, setIndividualFormData] = useState<IndividualSignupFormData>({
     firstName: "",
     lastName: "",
     birthDate: "",
+    email: "",
+    password: "",
+    acceptTerms: false,
+  });
+  const [institutionFormData, setInstitutionFormData] = useState<InstitutionSignupFormData>({
     companyName: "",
+    categoryId: "",
     reference: "",
     email: "",
     password: "",
     acceptTerms: false,
   });
+  const [institutionCategories, setInstitutionCategories] = useState<SignupCategoryOption[]>([]);
+  const [institutionCategoriesLoading, setInstitutionCategoriesLoading] = useState(false);
+  const [institutionCategoriesError, setInstitutionCategoriesError] = useState<string | null>(null);
+  const [institutionErrors, setInstitutionErrors] = useState<
+    Partial<Record<keyof InstitutionSignupFormData, string>>
+  >({});
 
   const [loading, setLoading] = useState(false);
   const [isInstructorSubmitting, setIsInstructorSubmitting] = useState(false);
@@ -187,8 +227,12 @@ export default function SignupClient() {
     password: "",
     nationalId: "",
     reference: "",
+    categoryId: "",
     acceptTerms: false,
   });
+  const [instructorCategories, setInstructorCategories] = useState<SignupCategoryOption[]>([]);
+  const [instructorCategoriesLoading, setInstructorCategoriesLoading] = useState(false);
+  const [instructorCategoriesError, setInstructorCategoriesError] = useState<string | null>(null);
   const [instructorErrors, setInstructorErrors] = useState<Partial<Record<keyof InstructorFormData, string>>>(
     {},
   );
@@ -204,10 +248,90 @@ export default function SignupClient() {
     message: "",
   });
 
+  useEffect(() => {
+    let cancelled = false;
+    setInstitutionCategoriesLoading(true);
+    setInstitutionCategoriesError(null);
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from("institution_categories")
+        .select("id, name, slug, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        setInstitutionCategories([]);
+        setInstitutionCategoriesError("Kategoriler yüklenirken bir hata oluştu.");
+        setInstitutionCategoriesLoading(false);
+        return;
+      }
+
+      const rows =
+        (data as Array<{ id: number; name: string | null }> | null)?.map((row) => ({
+          id: row.id,
+          name: (row.name ?? "").trim(),
+        })) ?? [];
+
+      setInstitutionCategories(rows.filter((row) => row.name.length > 0));
+      setInstitutionCategoriesLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setInstructorCategoriesLoading(true);
+    setInstructorCategoriesError(null);
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from("instructor_categories")
+        .select("id, name, slug, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        setInstructorCategories([]);
+        setInstructorCategoriesError("Kategoriler yüklenirken bir hata oluştu.");
+        setInstructorCategoriesLoading(false);
+        return;
+      }
+
+      const rows =
+        (data as Array<{ id: number; name: string | null }> | null)?.map((row) => ({
+          id: row.id,
+          name: (row.name ?? "").trim(),
+        })) ?? [];
+
+      setInstructorCategories(rows.filter((row) => row.name.length > 0));
+      setInstructorCategoriesLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!formData.acceptTerms) {
+    const selectedTab = activeTab;
+    if (selectedTab === "instructor") return;
+
+    const activeFormData =
+      selectedTab === "individual" ? individualFormData : institutionFormData;
+
+    if (!activeFormData.acceptTerms) {
       setModalState({
         isOpen: true,
         type: "error",
@@ -217,7 +341,7 @@ export default function SignupClient() {
       return;
     }
 
-    if (formData.password.length < MIN_PASSWORD_LENGTH) {
+    if (activeFormData.password.length < MIN_PASSWORD_LENGTH) {
       setModalState({
         isOpen: true,
         type: "error",
@@ -227,7 +351,7 @@ export default function SignupClient() {
       return;
     }
 
-    if (activeTab === "bireysel" && !formData.birthDate) {
+    if (selectedTab === "individual" && !individualFormData.birthDate) {
       setModalState({
         isOpen: true,
         type: "error",
@@ -237,12 +361,30 @@ export default function SignupClient() {
       return;
     }
 
+    if (selectedTab === "institution") {
+      const parsedCategoryId = Number(institutionFormData.categoryId.trim());
+      if (!Number.isFinite(parsedCategoryId) || parsedCategoryId <= 0) {
+        setInstitutionErrors({ categoryId: "Lütfen bir kategori seçin." });
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Eksik bilgi",
+          message: "Devam etmek için bir kategori seçmelisiniz.",
+        });
+        return;
+      }
+      setInstitutionErrors({});
+    }
+
     setLoading(true);
 
-    const { email, password, firstName, lastName, companyName, reference, birthDate } = formData;
-    const selectedTab = activeTab;
+    const { email, password } = activeFormData;
     const userType: "individual" | "institution" =
-      selectedTab === "bireysel" ? "individual" : "institution";
+      selectedTab === "individual" ? "individual" : "institution";
+    const companyName =
+      selectedTab === "institution" ? institutionFormData.companyName : "";
+    const reference =
+      selectedTab === "institution" ? institutionFormData.reference : "";
 
     try {
       const { data: emailExists, error: emailCheckError } = await supabase.rpc(
@@ -264,20 +406,24 @@ export default function SignupClient() {
         return;
       }
 
-      const metadata: Record<string, any> = {
+      const metadata: Record<string, string | number | null> = {
         user_type: userType,
         company_name: companyName || null,
         institution_name: userType === "institution" ? (companyName || null) : null,
         reference: reference || null,
       };
 
-      if (selectedTab === "bireysel") {
-        metadata.first_name = firstName;
-        metadata.last_name = lastName;
-        metadata.full_name = `${firstName} ${lastName}`.trim();
-        metadata.birth_date = birthDate;
+      if (selectedTab === "individual") {
+        metadata.first_name = individualFormData.firstName;
+        metadata.last_name = individualFormData.lastName;
+        metadata.full_name = `${individualFormData.firstName} ${individualFormData.lastName}`.trim();
+        metadata.birth_date = individualFormData.birthDate;
       } else {
         metadata.full_name = companyName;
+        metadata.category_id = Number(institutionFormData.categoryId.trim());
+        metadata.is_approved = null;
+        metadata.approved_by = null;
+        metadata.approved_at = null;
       }
 
       const { error } = await supabase.auth.signUp({
@@ -304,7 +450,9 @@ export default function SignupClient() {
         type: "success",
         title: "Kayıt başarılı",
         message:
-          "Hesap onay maili e-posta adresinize iletilmiştir. Lütfen mail kutunuzu kontrol edin.",
+          selectedTab === "institution"
+            ? APPROVAL_SIGNUP_SUCCESS_MESSAGE
+            : "Hesap onay maili e-posta adresinize iletilmiştir. Lütfen mail kutunuzu kontrol edin.",
       });
       setLoading(false);
     } catch (err) {
@@ -319,12 +467,32 @@ export default function SignupClient() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const nextValue = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+
+    if (activeTab === "individual") {
+      setIndividualFormData((prev) => ({
+        ...prev,
+        [name]: nextValue,
+      }));
+      return;
+    }
+
+    if (activeTab === "institution") {
+      setInstitutionFormData((prev) => ({
+        ...prev,
+        [name]: nextValue,
+      }));
+      if (name === "categoryId") {
+        setInstitutionErrors((prev) => {
+          if (!prev.categoryId) return prev;
+          const next = { ...prev };
+          delete next.categoryId;
+          return next;
+        });
+      }
+    }
   };
 
   const clearInstructorError = (field: keyof InstructorFormData) => {
@@ -336,11 +504,11 @@ export default function SignupClient() {
     });
   };
 
-  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
     setInstructorFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
     clearInstructorError(name as keyof InstructorFormData);
   };
@@ -387,6 +555,11 @@ export default function SignupClient() {
       errors.nationalId = "TC kimlik numarası 11 haneli olmalıdır.";
     } else if (nationalId.startsWith("0")) {
       errors.nationalId = "TC kimlik numarası 0 ile başlayamaz.";
+    }
+
+    const parsedCategoryId = Number(instructorFormData.categoryId.trim());
+    if (!Number.isFinite(parsedCategoryId) || parsedCategoryId <= 0) {
+      errors.categoryId = "Lütfen bir kategori seçin.";
     }
 
     return errors;
@@ -452,6 +625,10 @@ export default function SignupClient() {
         birth_date: instructorFormData.birthDate,
         tc_identity_no: instructorFormData.nationalId,
         reference: instructorFormData.reference.trim() || null,
+        category_id: Number(instructorFormData.categoryId.trim()),
+        is_approved: null,
+        approved_by: null,
+        approved_at: null,
       };
 
       const { error } = await supabase.auth.signUp({
@@ -477,8 +654,7 @@ export default function SignupClient() {
         isOpen: true,
         type: "success",
         title: "Kayıt başarılı",
-        message:
-          "Bireysel eğitmen hesabınız oluşturuldu. Lütfen e-postanızı onayladıktan sonra giriş yapın.",
+        message: APPROVAL_SIGNUP_SUCCESS_MESSAGE,
       });
       setIsInstructorSubmitting(false);
     } catch (err) {
@@ -528,23 +704,247 @@ export default function SignupClient() {
           <div className="signup-tabs">
             <button
               type="button"
-              className={`signup-tab ${activeTab === "bireysel" ? "signup-tab-active" : ""}`}
-              onClick={() => setActiveTab("bireysel")}
+              className={`signup-tab ${activeTab === "individual" ? "signup-tab-active" : ""}`}
+              onClick={() => setActiveTab("individual")}
             >
               Bireysel
             </button>
             <button
               type="button"
-              className={`signup-tab ${activeTab === "kurumsal" ? "signup-tab-active" : ""}`}
-              onClick={() => setActiveTab("kurumsal")}
+              className={`signup-tab ${activeTab === "institution" ? "signup-tab-active" : ""}`}
+              onClick={() => setActiveTab("institution")}
             >
               Kurumsal
             </button>
+            <button
+              type="button"
+              className={`signup-tab ${activeTab === "instructor" ? "signup-tab-active" : ""}`}
+              onClick={() => setActiveTab("instructor")}
+            >
+              Eğitmen
+            </button>
           </div>
 
+          {activeTab === "instructor" ? (
+            <form
+              className="signup-form signup-instructor-section signup-instructor-section--standalone"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleInstructorSubmit();
+              }}
+            >
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-firstname" className="signup-label">
+                  Ad
+                </label>
+                <input
+                  type="text"
+                  id="signup-instructor-firstname"
+                  name="firstName"
+                  className={`signup-input${instructorErrors.firstName ? " signup-input--error" : ""}`}
+                  placeholder="Adınızı girin"
+                  value={instructorFormData.firstName}
+                  onChange={handleInstructorChange}
+                  autoComplete="given-name"
+                />
+                {instructorErrors.firstName ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.firstName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-lastname" className="signup-label">
+                  Soyad
+                </label>
+                <input
+                  type="text"
+                  id="signup-instructor-lastname"
+                  name="lastName"
+                  className={`signup-input${instructorErrors.lastName ? " signup-input--error" : ""}`}
+                  placeholder="Soyadınızı girin"
+                  value={instructorFormData.lastName}
+                  onChange={handleInstructorChange}
+                  autoComplete="family-name"
+                />
+                {instructorErrors.lastName ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.lastName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-email" className="signup-label">
+                  E-posta
+                </label>
+                <input
+                  type="email"
+                  id="signup-instructor-email"
+                  name="email"
+                  className={`signup-input${instructorErrors.email ? " signup-input--error" : ""}`}
+                  placeholder="egitmen@adresiniz.com"
+                  value={instructorFormData.email}
+                  onChange={handleInstructorChange}
+                  autoComplete="email"
+                />
+                {instructorErrors.email ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.email}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-birthdate" className="signup-label">
+                  Doğum Tarihi
+                </label>
+                <SignupBirthDatePicker
+                  id="signup-instructor-birthdate"
+                  value={instructorFormData.birthDate}
+                  onChange={(iso) => {
+                    setInstructorFormData((prev) => ({
+                      ...prev,
+                      birthDate: iso,
+                    }));
+                    clearInstructorError("birthDate");
+                  }}
+                />
+                {instructorErrors.birthDate ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.birthDate}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-password" className="signup-label">
+                  Şifre
+                </label>
+                <div className="auth-input-with-icon">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="signup-instructor-password"
+                    name="password"
+                    className={`signup-input${instructorErrors.password ? " signup-input--error" : ""}`}
+                    style={{ paddingRight: 44 }}
+                    placeholder="En az 8 karakter"
+                    value={instructorFormData.password}
+                    onChange={handleInstructorChange}
+                    autoComplete="new-password"
+                  />
+                  <SignupPasswordToggle
+                    showPassword={showPassword}
+                    onToggle={() => setShowPassword((prev) => !prev)}
+                  />
+                </div>
+                {instructorErrors.password ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.password}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-national-id" className="signup-label">
+                  TC Kimlik No
+                </label>
+                <input
+                  type="text"
+                  id="signup-instructor-national-id"
+                  name="nationalId"
+                  className={`signup-input${instructorErrors.nationalId ? " signup-input--error" : ""}`}
+                  placeholder="TC kimlik numaranızı girin"
+                  value={instructorFormData.nationalId}
+                  onChange={handleInstructorNationalIdChange}
+                  inputMode="numeric"
+                  maxLength={11}
+                  autoComplete="off"
+                />
+                {instructorErrors.nationalId ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.nationalId}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-category" className="signup-label">
+                  Kategori
+                </label>
+                <select
+                  id="signup-instructor-category"
+                  name="categoryId"
+                  className={`signup-input${instructorErrors.categoryId ? " signup-input--error" : ""}`}
+                  value={instructorFormData.categoryId}
+                  onChange={handleInstructorChange}
+                  disabled={instructorCategoriesLoading}
+                >
+                  <option value="">
+                    {instructorCategoriesLoading ? "Kategoriler yükleniyor…" : "Kategori seçin"}
+                  </option>
+                  {instructorCategories.map((category) => (
+                    <option key={category.id} value={String(category.id)}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                {instructorCategoriesError ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorCategoriesError}
+                  </p>
+                ) : null}
+                {instructorErrors.categoryId ? (
+                  <p className="signup-field-error" role="alert">
+                    {instructorErrors.categoryId}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="signup-field">
+                <label htmlFor="signup-instructor-reference" className="signup-label">
+                  Referansınız
+                </label>
+                <input
+                  type="text"
+                  id="signup-instructor-reference"
+                  name="reference"
+                  className="signup-input"
+                  placeholder="Referans kişi veya kurumu yazın"
+                  value={instructorFormData.reference}
+                  onChange={handleInstructorChange}
+                />
+              </div>
+
+              <label className="signup-checkbox">
+                <input
+                  type="checkbox"
+                  name="acceptTerms"
+                  checked={instructorFormData.acceptTerms}
+                  onChange={handleInstructorChange}
+                />
+                <span>
+                  Kayıt olarak{" "}
+                  <Link href="/terms" className="signup-link-inline">
+                    Kullanım Koşullarımızı
+                  </Link>{" "}
+                  ve{" "}
+                  <Link href="/privacy" className="signup-link-inline">
+                    Gizlilik Politikamızı
+                  </Link>{" "}
+                  kabul etmiş olursunuz.
+                </span>
+              </label>
+
+              <button type="submit" className="signup-primary-button" disabled={isInstructorSubmitting}>
+                {isInstructorSubmitting ? "Hesabınız oluşturuluyor..." : "Eğitmen Hesabı Oluştur"}
+              </button>
+            </form>
+          ) : (
           <form className="signup-form" onSubmit={handleSubmit}>
             <div className="signup-tab-content" key={activeTab}>
-              {activeTab === "bireysel" ? (
+              {activeTab === "individual" ? (
                 <>
                 <div className="signup-field">
                   <label htmlFor="signup-firstname" className="signup-label">
@@ -556,7 +956,7 @@ export default function SignupClient() {
                     name="firstName"
                     className="signup-input"
                     placeholder="Adınızı girin"
-                    value={formData.firstName}
+                    value={individualFormData.firstName}
                     onChange={handleChange}
                     required
                   />
@@ -572,7 +972,7 @@ export default function SignupClient() {
                     name="lastName"
                     className="signup-input"
                     placeholder="Soyadınızı girin"
-                    value={formData.lastName}
+                    value={individualFormData.lastName}
                     onChange={handleChange}
                     required
                   />
@@ -588,7 +988,7 @@ export default function SignupClient() {
                     name="email"
                     className="signup-input"
                     placeholder="eposta@adresiniz.com"
-                    value={formData.email}
+                    value={individualFormData.email}
                     onChange={handleChange}
                     required
                   />
@@ -600,9 +1000,9 @@ export default function SignupClient() {
                   </label>
                   <SignupBirthDatePicker
                     id="signup-birthdate"
-                    value={formData.birthDate}
+                    value={individualFormData.birthDate}
                     onChange={(iso) =>
-                      setFormData((prev) => ({
+                      setIndividualFormData((prev) => ({
                         ...prev,
                         birthDate: iso,
                       }))
@@ -622,7 +1022,7 @@ export default function SignupClient() {
                       className="signup-input"
                       style={{ paddingRight: 44 }}
                       placeholder="En az 8 karakter"
-                      value={formData.password}
+                      value={individualFormData.password}
                       onChange={handleChange}
                       required
                     />
@@ -645,10 +1045,43 @@ export default function SignupClient() {
                     name="companyName"
                     className="signup-input"
                     placeholder="Kurum adını girin"
-                    value={formData.companyName}
+                    value={institutionFormData.companyName}
                     onChange={handleChange}
                     required
                   />
+                </div>
+
+                <div className="signup-field">
+                  <label htmlFor="signup-institution-category" className="signup-label">
+                    Kategori
+                  </label>
+                  <select
+                    id="signup-institution-category"
+                    name="categoryId"
+                    className={`signup-input${institutionErrors.categoryId ? " signup-input--error" : ""}`}
+                    value={institutionFormData.categoryId}
+                    onChange={handleChange}
+                    disabled={institutionCategoriesLoading}
+                  >
+                    <option value="">
+                      {institutionCategoriesLoading ? "Kategoriler yükleniyor…" : "Kategori seçin"}
+                    </option>
+                    {institutionCategories.map((category) => (
+                      <option key={category.id} value={String(category.id)}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  {institutionCategoriesError ? (
+                    <p className="signup-field-error" role="alert">
+                      {institutionCategoriesError}
+                    </p>
+                  ) : null}
+                  {institutionErrors.categoryId ? (
+                    <p className="signup-field-error" role="alert">
+                      {institutionErrors.categoryId}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="signup-field">
@@ -661,7 +1094,7 @@ export default function SignupClient() {
                     name="email"
                     className="signup-input"
                     placeholder="kurum@adresiniz.com"
-                    value={formData.email}
+                    value={institutionFormData.email}
                     onChange={handleChange}
                     required
                   />
@@ -679,7 +1112,7 @@ export default function SignupClient() {
                       className="signup-input"
                       style={{ paddingRight: 44 }}
                       placeholder="En az 8 karakter"
-                      value={formData.password}
+                      value={institutionFormData.password}
                       onChange={handleChange}
                       required
                     />
@@ -700,7 +1133,7 @@ export default function SignupClient() {
                     name="reference"
                     className="signup-input"
                     placeholder="Referans kişiyi veya kurumu yazın"
-                    value={formData.reference}
+                    value={institutionFormData.reference}
                     onChange={handleChange}
                   />
                 </div>
@@ -708,13 +1141,13 @@ export default function SignupClient() {
               )}
             </div>
 
-            {activeTab === "bireysel" ? (
+            {activeTab === "individual" ? (
               <>
                 <label className="signup-checkbox">
                   <input
                     type="checkbox"
                     name="acceptTerms"
-                    checked={formData.acceptTerms}
+                    checked={individualFormData.acceptTerms}
                     onChange={handleChange}
                     required
                   />
@@ -741,7 +1174,7 @@ export default function SignupClient() {
                   <input
                     type="checkbox"
                     name="acceptTerms"
-                    checked={formData.acceptTerms}
+                    checked={institutionFormData.acceptTerms}
                     onChange={handleChange}
                     required
                   />
@@ -764,201 +1197,7 @@ export default function SignupClient() {
               </>
             )}
           </form>
-
-          {activeTab === "kurumsal" ? (
-            <section
-              className="signup-instructor-section"
-              aria-labelledby="signup-instructor-heading"
-            >
-                  <h2 id="signup-instructor-heading" className="signup-instructor-heading">
-                    Bireysel Eğitmen misiniz?
-                  </h2>
-                  <p className="signup-instructor-description">
-                    Kurum hesabı yerine bireysel eğitmen hesabı oluşturmak için aşağıdaki bilgileri
-                    doldurun.
-                  </p>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-firstname" className="signup-label">
-                      Ad
-                    </label>
-                    <input
-                      type="text"
-                      id="signup-instructor-firstname"
-                      name="firstName"
-                      className={`signup-input${instructorErrors.firstName ? " signup-input--error" : ""}`}
-                      placeholder="Adınızı girin"
-                      value={instructorFormData.firstName}
-                      onChange={handleInstructorChange}
-                      autoComplete="given-name"
-                    />
-                    {instructorErrors.firstName ? (
-                      <p className="signup-field-error" role="alert">
-                        {instructorErrors.firstName}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-lastname" className="signup-label">
-                      Soyad
-                    </label>
-                    <input
-                      type="text"
-                      id="signup-instructor-lastname"
-                      name="lastName"
-                      className={`signup-input${instructorErrors.lastName ? " signup-input--error" : ""}`}
-                      placeholder="Soyadınızı girin"
-                      value={instructorFormData.lastName}
-                      onChange={handleInstructorChange}
-                      autoComplete="family-name"
-                    />
-                    {instructorErrors.lastName ? (
-                      <p className="signup-field-error" role="alert">
-                        {instructorErrors.lastName}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-email" className="signup-label">
-                      E-posta
-                    </label>
-                    <input
-                      type="email"
-                      id="signup-instructor-email"
-                      name="email"
-                      className={`signup-input${instructorErrors.email ? " signup-input--error" : ""}`}
-                      placeholder="egitmen@adresiniz.com"
-                      value={instructorFormData.email}
-                      onChange={handleInstructorChange}
-                      autoComplete="email"
-                    />
-                    {instructorErrors.email ? (
-                      <p className="signup-field-error" role="alert">
-                        {instructorErrors.email}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-birthdate" className="signup-label">
-                      Doğum Tarihi
-                    </label>
-                    <SignupBirthDatePicker
-                      id="signup-instructor-birthdate"
-                      value={instructorFormData.birthDate}
-                      onChange={(iso) => {
-                        setInstructorFormData((prev) => ({
-                          ...prev,
-                          birthDate: iso,
-                        }));
-                        clearInstructorError("birthDate");
-                      }}
-                    />
-                    {instructorErrors.birthDate ? (
-                      <p className="signup-field-error" role="alert">
-                        {instructorErrors.birthDate}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-password" className="signup-label">
-                      Şifre
-                    </label>
-                    <div className="auth-input-with-icon">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        id="signup-instructor-password"
-                        name="password"
-                        className={`signup-input${instructorErrors.password ? " signup-input--error" : ""}`}
-                        style={{ paddingRight: 44 }}
-                        placeholder="En az 8 karakter"
-                        value={instructorFormData.password}
-                        onChange={handleInstructorChange}
-                        autoComplete="new-password"
-                      />
-                      <SignupPasswordToggle
-                        showPassword={showPassword}
-                        onToggle={() => setShowPassword((prev) => !prev)}
-                      />
-                    </div>
-                    {instructorErrors.password ? (
-                      <p className="signup-field-error" role="alert">
-                        {instructorErrors.password}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-national-id" className="signup-label">
-                      TC Kimlik No
-                    </label>
-                    <input
-                      type="text"
-                      id="signup-instructor-national-id"
-                      name="nationalId"
-                      className={`signup-input${instructorErrors.nationalId ? " signup-input--error" : ""}`}
-                      placeholder="TC kimlik numaranızı girin"
-                      value={instructorFormData.nationalId}
-                      onChange={handleInstructorNationalIdChange}
-                      inputMode="numeric"
-                      maxLength={11}
-                      autoComplete="off"
-                    />
-                    {instructorErrors.nationalId ? (
-                      <p className="signup-field-error" role="alert">
-                        {instructorErrors.nationalId}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="signup-field">
-                    <label htmlFor="signup-instructor-reference" className="signup-label">
-                      Referansınız
-                    </label>
-                    <input
-                      type="text"
-                      id="signup-instructor-reference"
-                      name="reference"
-                      className="signup-input"
-                      placeholder="Referans kişi veya kurumu yazın"
-                      value={instructorFormData.reference}
-                      onChange={handleInstructorChange}
-                    />
-                  </div>
-
-                  <label className="signup-checkbox">
-                    <input
-                      type="checkbox"
-                      name="acceptTerms"
-                      checked={instructorFormData.acceptTerms}
-                      onChange={handleInstructorChange}
-                    />
-                    <span>
-                      Kayıt olarak{" "}
-                      <Link href="/terms" className="signup-link-inline">
-                        Kullanım Koşullarımızı
-                      </Link>{" "}
-                      ve{" "}
-                      <Link href="/privacy" className="signup-link-inline">
-                        Gizlilik Politikamızı
-                      </Link>{" "}
-                      kabul etmiş olursunuz.
-                    </span>
-                  </label>
-
-              <button
-                type="button"
-                className="signup-primary-button"
-                onClick={handleInstructorSubmit}
-                disabled={isInstructorSubmitting}
-              >
-                {isInstructorSubmitting ? "Hesabınız oluşturuluyor..." : "Bireysel Eğitmen Hesabı Oluştur"}
-              </button>
-            </section>
-          ) : null}
+          )}
 
           <p className="signup-bottom-text">
             Zaten bir hesabınız var mı?{" "}

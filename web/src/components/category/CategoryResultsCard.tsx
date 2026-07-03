@@ -26,7 +26,6 @@ interface CategoryResultsCardProps {
   instructorTitle?: string;
   instructorBranch?: string;
   priceRange?: string;
-  isVerified?: boolean;
 }
 
 export default function CategoryResultsCard({

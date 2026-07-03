@@ -5,7 +5,6 @@ import { Shapes } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { InstructorProfileRow } from "@/lib/instructorProfileClient";
 import {
-  INSTRUCTOR_FEATURES_CATEGORY_REQUIRED,
   INSTRUCTOR_FEATURES_LOAD_ERROR,
   INSTRUCTOR_FEATURES_SAVE_SUCCESS,
   buildInstructorFeatureFormStateFromEntries,
@@ -67,7 +66,6 @@ export function InstructorFeaturesTab({
 
   const [categories, setCategories] = useState<InstructorFeatureCategoryRow[]>([]);
   const [categoryId, setCategoryId] = useState("");
-  const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
 
   const [featureGroups, setFeatureGroups] = useState<InstructorFeatureGroupRow[]>([]);
   const [featureDefinitions, setFeatureDefinitions] = useState<InstructorFeatureDefinitionRow[]>([]);
@@ -157,9 +155,6 @@ export function InstructorFeaturesTab({
       const target = event.target as HTMLElement | null;
       if (!target?.closest(".egitmen-panel-features-single-select-dropdown")) {
         setOpenInstructorSelectId(null);
-      }
-      if (!target?.closest(".egitmen-panel-features-category-dropdown")) {
-        setOpenCategoryPicker(false);
       }
     };
     document.addEventListener("mousedown", onPointerDown);
@@ -285,12 +280,6 @@ export function InstructorFeaturesTab({
       return;
     }
 
-    const parsedCategoryId = Number(categoryId.trim());
-    if (!Number.isFinite(parsedCategoryId) || !parsedCategoryId) {
-      flashSaveMessage(INSTRUCTOR_FEATURES_CATEGORY_REQUIRED);
-      return;
-    }
-
     setSaving(true);
     setSaveToastMessage(null);
 
@@ -306,7 +295,6 @@ export function InstructorFeaturesTab({
         {
           authUid: authUserId,
           instructorId,
-          categoryId: parsedCategoryId,
           definitions: featureDefinitions,
           choices: featureChoices,
           entries: featureEntries,
@@ -324,7 +312,7 @@ export function InstructorFeaturesTab({
       const { data: updatedInstructor } = await supabase
         .from("instructors")
         .select(
-          "id, category_id, is_verified, owner_auth_id, price_range, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
+          "id, category_id, is_approved, owner_auth_id, price_range, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
         )
         .eq("id", instructorId)
         .eq("owner_auth_id", authUserId)
@@ -332,7 +320,7 @@ export function InstructorFeaturesTab({
 
       const nextInstructorRow = updatedInstructor
         ? { ...instructorRow, ...updatedInstructor }
-        : { ...instructorRow, category_id: parsedCategoryId, ...directInstructorPatch };
+        : { ...instructorRow, ...directInstructorPatch };
 
       onInstructorRowChange(nextInstructorRow);
 
@@ -416,63 +404,24 @@ export function InstructorFeaturesTab({
         />
         Kategori
       </h4>
-      {categories.length === 0 ? (
-        <p className="egitmen-panel-features-empty-text">Aktif kategori bulunamadı.</p>
-      ) : (
-        <div className="egitmen-panel-features-feature-input-wrap">
-          <p className="egitmen-panel-features-feature-name">Kategori</p>
-          <div className="egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown">
-            <button
-              type="button"
-              className={`egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button ${
-                openCategoryPicker ? "egitmen-panel-features-feature-select--open" : ""
-              }`}
-              onClick={() => setOpenCategoryPicker((prev) => !prev)}
-              aria-haspopup="listbox"
-              aria-expanded={openCategoryPicker}
-            >
-              <span className="egitmen-panel-features-feature-select-label">
-                {categories.find((c) => String(c.id) === categoryId)?.name || "Seçiniz"}
-              </span>
-            </button>
-            {openCategoryPicker ? (
-              <div className="egitmen-panel-features-feature-select-menu" role="listbox">
-                <button
-                  type="button"
-                  role="option"
-                  className={`egitmen-panel-features-feature-select-option ${
-                    categoryId === "" ? "egitmen-panel-features-feature-select-option--selected" : ""
-                  }`}
-                  onClick={() => {
-                    setCategoryId("");
-                    setOpenCategoryPicker(false);
-                  }}
-                >
-                  Seçiniz
-                </button>
-                {categories.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    role="option"
-                    className={`egitmen-panel-features-feature-select-option ${
-                      categoryId === String(c.id)
-                        ? "egitmen-panel-features-feature-select-option--selected"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      setCategoryId(String(c.id));
-                      setOpenCategoryPicker(false);
-                    }}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+      <div className="egitmen-panel-features-feature-input-wrap">
+        <p className="egitmen-panel-features-feature-name">Kategori</p>
+        <div className="egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown egitmen-panel-features-type-picker-disabled">
+          <button
+            type="button"
+            className="egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button"
+            disabled
+            aria-disabled="true"
+          >
+            <span className="egitmen-panel-features-feature-select-label">
+              {categories.find((c) => String(c.id) === categoryId)?.name || "Kategori seçilmemiş"}
+            </span>
+          </button>
         </div>
-      )}
+        <p className="egitmen-panel-features-category-note">
+          Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez.
+        </p>
+      </div>
     </section>
   );
 

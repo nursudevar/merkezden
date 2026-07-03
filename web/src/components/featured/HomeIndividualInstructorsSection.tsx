@@ -214,6 +214,7 @@ export function HomeIndividualInstructorsSection() {
         .from(PUBLIC_INSTRUCTORS_TABLE)
         .select("*")
         .eq("is_active", true)
+        .eq("is_approved", true)
         .order("id", { ascending: false })
         .limit(HOME_INSTRUCTOR_LIMIT);
 
@@ -255,9 +256,11 @@ export function HomeIndividualInstructorsSection() {
   }, []);
 
   useEffect(() => {
-    updateScrollButtons();
+    const raf = window.requestAnimationFrame(() => updateScrollButtons());
     const scroller = scrollerRef.current;
-    if (!scroller) return;
+    if (!scroller) {
+      return () => window.cancelAnimationFrame(raf);
+    }
 
     const handleScroll = () => updateScrollButtons();
     const handleResize = () => updateScrollButtons();
@@ -269,6 +272,7 @@ export function HomeIndividualInstructorsSection() {
     resizeObserver?.observe(scroller);
 
     return () => {
+      window.cancelAnimationFrame(raf);
       scroller.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
       resizeObserver?.disconnect();
@@ -285,11 +289,8 @@ export function HomeIndividualInstructorsSection() {
         <div className="home-individual-instructors-header-main">
           <div className="home-individual-instructors-header-text">
             <h2 className="home-individual-instructors-title" id="home-individual-instructors-title">
-              Eğitmenler
+              Özel Ders / Eğitmenler
             </h2>
-            <p className="home-individual-instructors-subtitle">
-              Alanında uzman eğitmenleri keşfedin, size en uygun eğitmeni kolayca bulun.
-            </p>
           </div>
           <div className="home-individual-instructors-actions">
             {visibleItems.length > 1 ? (
@@ -324,6 +325,7 @@ export function HomeIndividualInstructorsSection() {
       <div className="home-individual-instructors-grid" ref={scrollerRef}>
         {visibleItems.map((item) => {
           const showImage = Boolean(item.imageUrl) && !brokenImageIds.has(item.id);
+          const specialty = item.branch || item.school;
           return (
             <Link key={item.id} href={item.href} className="home-individual-instructor-card">
               <div className="home-individual-instructor-card-media">
@@ -351,12 +353,9 @@ export function HomeIndividualInstructorsSection() {
               </div>
 
               <div className="home-individual-instructor-card-body">
-                {item.branch ? (
-                  <span className="home-individual-instructor-card-branch">{item.branch}</span>
-                ) : null}
                 <h3 className="home-individual-instructor-card-name">{item.displayName}</h3>
-                {item.school ? (
-                  <p className="home-individual-instructor-card-school">{item.school}</p>
+                {specialty ? (
+                  <p className="home-individual-instructor-card-school">{specialty}</p>
                 ) : null}
                 {item.priceLabel ? (
                   <p className="home-individual-instructor-card-price">{item.priceLabel}</p>

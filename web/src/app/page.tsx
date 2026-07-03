@@ -87,7 +87,6 @@ const HOME_SIDEBAR_CATEGORY_DISPLAY_ITEMS: Readonly<Record<string, readonly stri
     "YKS",
     "KPSS",
     "LGS",
-    "Sürücü Kursu",
     "Matematik",
     "YDS",
     "Etüt",
@@ -214,6 +213,11 @@ type MainCategoryCard = {
   subcategories: MainCategorySubcategory[];
 };
 
+type AuthErrorModalState = {
+  title: string;
+  message: string;
+} | null;
+
 /** Sol filtre paneli — Türkçe karakter farklarını yok sayan eşleşme anahtarı */
 function normalizeCategoryKey(value: string): string {
   return String(value ?? "")
@@ -236,6 +240,10 @@ function getMainCategoryLogoSrc(name: string, slug: string): string | null {
   if (key.includes("mesleki egitim")) return "/images/mesleki-egitim-logo.png";
   if (key.includes("ozel egitim")) return "/images/ozel-egitim-logo.png";
   return null;
+}
+
+function isDriverCourseCategory(name: string, slug: string): boolean {
+  return normalizeCategoryKey(`${name} ${slug}`).includes("surucu kursu");
 }
 
 /** Sol panelde seçilen alt kurum tipleri + «Tümü» ile seçilen ana kategorilerden türetilen `institution_types.id` listesi (OR). */
@@ -371,6 +379,7 @@ export default function Home() {
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoritesError, setFavoritesError] = useState<string | null>(null);
+  const [authErrorModal, setAuthErrorModal] = useState<AuthErrorModalState>(null);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(() => new Set());
   const [favoriteInstructorActionLoadingIds, setFavoriteInstructorActionLoadingIds] = useState<Set<number>>(
     () => new Set(),
@@ -443,6 +452,43 @@ export default function Home() {
   const premiumPicksPageCount = Math.max(1, Math.ceil(premiumPicks.length / PREMIUM_PICKS_PER_PAGE));
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    const errorCode = params.get("error_code");
+    const errorDescription = params.get("error_description");
+    if (!error && !errorCode && !errorDescription) return;
+
+    const isExpiredLoginLink =
+      errorCode === "otp_expired" ||
+      String(errorDescription ?? "").includes("Email link is invalid or has expired");
+
+    setAuthErrorModal(
+      isExpiredLoginLink
+        ? {
+            title: "Giriş Bağlantısı Geçersiz",
+            message:
+              "Giriş bağlantınızın süresi dolmuş veya bağlantı geçersiz. Lütfen tekrar giriş yapmayı deneyin.",
+          }
+        : {
+            title: "Giriş İşlemi Başarısız",
+            message: "Giriş işlemi sırasında bir sorun oluştu. Lütfen tekrar deneyin.",
+          },
+    );
+
+    params.delete("error");
+    params.delete("error_code");
+    params.delete("error_description");
+    const nextQuery = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname || "/"}${nextQuery ? `?${nextQuery}` : ""}`,
+    );
+  }, []);
+
+  useEffect(() => {
     const maxPage = Math.max(0, premiumPicksPageCount - 1);
     setPremiumPicksPage((p) => (p > maxPage ? maxPage : p));
   }, [premiumPicksPageCount]);
@@ -457,7 +503,8 @@ export default function Home() {
       const { data, error } = await supabase
         .from("institutions")
         .select("id, slug, source, institution_name, city, district, logo")
-        .in("institution_name", allQueryNames);
+        .in("institution_name", allQueryNames)
+        .eq("is_approved", true);
 
       if (cancelled) return;
       if (error) {
@@ -505,6 +552,7 @@ export default function Home() {
         .from("institutions")
         .select("id, slug, source, institution_name, city, district, logo")
         .not("institution_name", "is", null)
+        .eq("is_approved", true)
         .limit(240);
 
       if (randomError) {
@@ -845,6 +893,12 @@ export default function Home() {
                 markers={institutionMapMarkers}
                 loading={institutionMapLoading}
                 showSeparatorAfter
+                showViewportInstitutionList
+                onToggleFavorite={handleFavoriteToggle}
+                favoriteIds={favoriteIds}
+                favoritesEnabled={favoritesEnabled && !favoritesLoading}
+                favoriteActionLoadingIds={favoriteActionLoadingIds}
+                isAuthenticated={Boolean(user)}
               />
               <div className="filter-section">
                 <div className="filter-section-title">
@@ -1210,7 +1264,7 @@ export default function Home() {
 
             <div className="home-main-categories-slider">
               <div className="categories-scroller home-main-categories-grid">
-                {mainCategoryCards.map((category) => {
+                {mainCategoryCards.filter((category) => !isDriverCourseCategory(category.name, category.slug)).map((category) => {
                   const categoryHref = getCategoryHref(category.name, category.slug);
                   const categoryLogoSrc = getMainCategoryLogoSrc(category.name, category.slug);
                   return (
@@ -1229,6 +1283,8 @@ export default function Home() {
               </div>
             </div>
           </section>
+
+          <HomeIndividualInstructorsSection />
 
           <HomeFeaturedInstitutionsList
             onToggleFavorite={handleFavoriteToggle}
@@ -1360,8 +1416,6 @@ export default function Home() {
 
       <div className="content-layout">
         <div className="content-layout-inner">
-          <HomeIndividualInstructorsSection />
-
           <section className="purple-featured-section" aria-label="Hızlı Keşif">
             <div className="purple-featured-bg" aria-hidden />
             <div className="purple-featured-inner">
@@ -1480,6 +1534,37 @@ export default function Home() {
 
         </div>
       </div>
+      {authErrorModal ? (
+        <div
+          className="app-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-auth-error-modal-title"
+          onClick={() => setAuthErrorModal(null)}
+        >
+          <div
+            className="app-modal-content app-modal-content--error"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="home-auth-error-modal-title" className="app-modal-title">
+              {authErrorModal.title}
+            </h2>
+            <div className="app-modal-body">
+              <p className="app-modal-message">{authErrorModal.message}</p>
+            </div>
+            <div className="app-modal-footer">
+              <Button
+                type="button"
+                variant="default"
+                className="app-modal-btn app-modal-btn--primary"
+                onClick={() => setAuthErrorModal(null)}
+              >
+                Tamam
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <AppNoticeBar
         message={favoritesError}

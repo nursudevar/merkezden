@@ -54,7 +54,7 @@ type DbInstitutionRow = {
   subheading: string | null;
   about: string | null;
   logo: string | null;
-  is_verified: boolean | null;
+  is_approved: boolean | null;
   source: string | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
@@ -212,9 +212,10 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_verified, source, working_hours_start, working_hours_end, institution_type:institution_types(name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, source, working_hours_start, working_hours_end, institution_type:institution_types(name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
+        .eq("is_approved", true)
         .maybeSingle();
 
       console.info("[institutions][detail][debug]", {
@@ -1022,7 +1023,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                       {categoryName || "Okul"}
                     </span>
                   </div>
-                  {Boolean(row.is_verified) ? (
+                  {row.is_approved === true ? (
                     <div className="institution-meta-item institution-meta-verified institution-meta-badge institution-meta-badge--verified">
                       <CheckCircle2 size={18} />
                       <span>Onaylı Kurum</span>

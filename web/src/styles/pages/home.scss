@@ -461,7 +461,7 @@
 
 .filter-sidebar-header {
   border-bottom: 1px solid $border-default;
-  padding-bottom: 15px;
+  padding-bottom: 10px;
 }
 
 .filter-sidebar-header-content {
@@ -485,7 +485,7 @@
 .filter-sidebar-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .home-patili-dostlar-row {
@@ -1024,7 +1024,7 @@
 
 .search-field {
   flex: 1;
-  height: 48px;
+  height: 38px;
   border-top-left-radius: 9999px;
   border-bottom-left-radius: 9999px;
   border-top-right-radius: 0;
@@ -1055,7 +1055,7 @@
 }
 
 .search-button {
-  height: 48px;
+  height: 38px;
   width: 20%;
   border-radius: 0;
   border-top-right-radius: 9999px;
@@ -1544,7 +1544,7 @@
 .category-accordion-trigger {
   position: relative;
   width: 100%;
-  height: 56px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1999,7 +1999,6 @@ a.service-card {
   position: static;
   width: 100%;
   display: block;
-  margin-bottom: 22px;
 }
 
 .categories-scroller {
@@ -3805,7 +3804,6 @@ a.search-result-card {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  margin: 30px 0;
 }
 
 .home-individual-instructors-header {
@@ -3814,31 +3812,39 @@ a.search-result-card {
 }
 
 .home-individual-instructors-header-main {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
 }
 
 .home-individual-instructors-header-text {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
+  width: 100%;
+  text-align: center;
 }
 
 .home-individual-instructors-actions {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .home-individual-instructors-title {
-  margin: 0;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: $font-bold;
   color: $text-zinc-900;
-  letter-spacing: -0.02em;
+  margin: 0;
 }
 
 .home-individual-instructors-subtitle {
@@ -3852,8 +3858,8 @@ a.search-result-card {
 .home-individual-instructors-nav {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -3861,8 +3867,8 @@ a.search-result-card {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   border: 1px solid rgba($purple-main, 0.12);
   background: rgba(255, 255, 255, 0.94);
@@ -3889,18 +3895,18 @@ a.search-result-card {
 }
 
 .home-individual-instructors-nav-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .home-individual-instructors-all-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
+  min-height: 24px;
   color: $purple-primary;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: $font-semibold;
   line-height: 1;
   white-space: nowrap;
@@ -3918,9 +3924,9 @@ a.search-result-card {
 
 .home-individual-instructors-grid {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   overflow-x: auto;
-  padding: 4px 4px 10px;
+  padding: 4px 4px 12px;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
   scroll-padding-left: 4px;
@@ -3949,16 +3955,20 @@ a.home-individual-instructor-card {
 }
 
 .home-individual-instructor-card {
-  display: grid;
-  grid-template-columns: 152px minmax(0, 1fr);
-  flex: 0 0 min(420px, calc(100vw - 56px));
-  min-width: min(420px, calc(100vw - 56px));
-  min-height: 126px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 148px;
+  width: 148px;
+  min-width: 148px;
+  min-height: 182px;
+  padding: 16px 12px 14px;
   background: $bg-white;
   border: 1px solid rgba(228, 231, 236, 1);
-  border-radius: 18px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.05);
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.05);
   @include transition;
   transition-property: transform, box-shadow, border-color;
   scroll-snap-align: start;
@@ -3966,19 +3976,25 @@ a.home-individual-instructor-card {
 
   &:hover {
     transform: translateY(-1px);
-    border-color: rgba($purple-main, 0.22);
-    box-shadow: 0 8px 18px rgba(16, 24, 40, 0.08);
+    border-color: rgba($purple-main, 0.28);
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.09);
   }
 }
 
 .home-individual-instructor-card-media {
   position: relative;
-  min-width: 0;
-  height: 100%;
-  background: linear-gradient(135deg, rgba($purple-main, 0.08), rgba($purple-main, 0.16));
+  flex: 0 0 auto;
+  width: 82px;
+  height: 82px;
+  padding: 4px;
+  border: 3px solid $purple-main;
+  border-radius: 50%;
+  background: $bg-white;
+  overflow: hidden;
 }
 
 .home-individual-instructor-card-image {
+  border-radius: 50%;
   object-fit: cover;
   object-position: center;
 }
@@ -3989,6 +4005,7 @@ a.home-individual-instructor-card {
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
   color: rgba($purple-main, 0.82);
   background: linear-gradient(135deg, rgba($purple-main, 0.08), rgba($purple-main, 0.2));
 }
@@ -3996,61 +4013,84 @@ a.home-individual-instructor-card {
 .home-individual-instructor-card-body {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  width: 100%;
+  gap: 5px;
   min-width: 0;
-  padding: 14px 16px 14px 18px;
-}
-
-.home-individual-instructor-card-branch {
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba($purple-main, 0.1);
-  color: $purple-main;
-  font-size: 10px;
-  font-weight: $font-semibold;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 12px 0 0;
+  text-align: center;
 }
 
 .home-individual-instructor-card-name {
   margin: 0;
-  font-size: 20px;
-  font-weight: $font-semibold;
-  line-height: 1.25;
-  color: $text-zinc-900;
-  white-space: nowrap;
+  width: 100%;
+  font-size: 16px;
+  font-weight: $font-bold;
+  line-height: 1.18;
+  color: #0f172a;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .home-individual-instructor-card-school {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: $text-zinc-600;
+  width: 100%;
+  font-size: 10px;
+  font-weight: $font-medium;
+  line-height: 1.35;
+  color: #334155;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .home-individual-instructor-card-price {
-  margin: 2px 0 0;
-  font-size: 14px;
+  margin: 5px 0 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 1px 10px;
+  border-radius: 9px;
+  background-color: none;
+  color: $orange-primary;
+  border: 1px solid $orange-primary;
+  font-size: 12px;
   font-weight: $font-semibold;
-  line-height: 1.2;
-  color: $purple-main;
+  line-height: 1;
   white-space: nowrap;
 }
 
 @media (max-width: 1023px) {
   .home-individual-instructors-title {
     font-size: 26px;
+  }
+
+  .home-individual-instructors-grid {
+    gap: 16px;
+  }
+
+  .home-individual-instructor-card {
+    flex-basis: 144px;
+    width: 144px;
+    min-width: 144px;
+    min-height: 180px;
+    padding: 15px 11px 13px;
+  }
+
+  .home-individual-instructor-card-media {
+    width: 80px;
+    height: 80px;
+  }
+
+  .home-individual-instructor-card-name {
+    font-size: 15px;
   }
 }
 
@@ -4061,17 +4101,20 @@ a.home-individual-instructor-card {
 
   .home-individual-instructors-header-main {
     flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
   }
 
   .home-individual-instructors-actions {
-    width: 100%;
+    position: static;
+    transform: none;
+    width: auto;
     align-items: center;
   }
 
   .home-individual-instructors-nav {
-    width: 100%;
+    width: auto;
     justify-content: center;
   }
 
@@ -4083,35 +4126,53 @@ a.home-individual-instructor-card {
     font-size: 24px;
   }
 
-  .home-individual-instructors-subtitle {
-    font-size: 14px;
-  }
-
   .home-individual-instructors-grid {
-    gap: 14px;
+    gap: 12px;
     padding-bottom: 8px;
   }
 
   .home-individual-instructor-card {
-    grid-template-columns: 120px minmax(0, 1fr);
-    flex-basis: min(360px, calc(100vw - 40px));
-    min-width: min(360px, calc(100vw - 40px));
-    min-height: 118px;
-    border-radius: 16px;
+    flex-basis: 132px;
+    width: 132px;
+    min-width: 132px;
+    min-height: 170px;
+    padding: 12px 9px 11px;
   }
 
-  .home-individual-instructor-card-body {
-    padding: 12px 14px 12px 16px;
+  .home-individual-instructor-card-media {
+    width: 70px;
+    height: 70px;
+    padding: 3px;
   }
 
   .home-individual-instructor-card-name {
-    font-size: 18px;
+    font-size: 14px;
+  }
+
+  .home-individual-instructor-card-school {
+    font-size: 9px;
   }
 
   .home-individual-instructor-card-price {
-    font-size: 12px;
+    min-height: 18px;
+    padding: 1px 8px;
+    font-size: 10px;
   }
 
+}
+
+@media (max-width: 420px) {
+  .home-individual-instructor-card {
+    flex-basis: 124px;
+    width: 124px;
+    min-width: 124px;
+    min-height: 166px;
+  }
+
+  .home-individual-instructor-card-media {
+    width: 66px;
+    height: 66px;
+  }
 }
 
 .purple-featured-section {

@@ -38,6 +38,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import {
   loadInstitutionRowForAuthUserClient,
+  loadInstitutionRowByIdClient,
   resolveIsAdminFromUserRolesClient,
   resolveUserTypeFromUsersClient,
 } from "@/lib/auth/authBrowserClient";
@@ -358,6 +359,7 @@ function PanelContent() {
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTabId>("overview");
   const [institutionName, setInstitutionName] = useState<string>("");
+  const [institutionProfileLoaded, setInstitutionProfileLoaded] = useState(false);
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
@@ -370,12 +372,9 @@ function PanelContent() {
     Partial<Record<"facebookUrl" | "instagramUrl" | "xUrl" | "linkedinUrl", string>>
   >({});
   const [showInstitutionProfileSuccessPopup, setShowInstitutionProfileSuccessPopup] = useState(false);
-  const [institutionIsVerified, setInstitutionIsVerified] = useState<boolean>(false);
+  const [institutionIsApproved, setInstitutionIsApproved] = useState<boolean>(false);
   const [institutionTypeId, setInstitutionTypeId] = useState<string>("");
   const [institutionCategoryId, setInstitutionCategoryId] = useState<string>("");
-  const [openInstitutionTypePickerSelect, setOpenInstitutionTypePickerSelect] = useState<
-    "category" | "type" | null
-  >(null);
   const [institutionCategories, setInstitutionCategories] = useState<
     Array<{ id: number; name: string; display_order: number | null; slug: string | null }>
   >([]);
@@ -939,103 +938,113 @@ interface InstitutionDetailPreparedData {
     const supabase = createSupabaseBrowserClient();
 
     async function loadInstitutionProfile() {
+      setInstitutionProfileLoaded(false);
       let row: Awaited<ReturnType<typeof loadInstitutionRowForAuthUserClient>>["row"] = null;
       let error: { message: string } | null = null;
 
-      if (isAdmin && targetInstitutionIdParam) {
-        const numericId = Number(targetInstitutionIdParam);
-        if (!Number.isFinite(numericId) || numericId <= 0) {
-          setInstitutionRecordMissing(true);
-          setInstitutionId(null);
-          setInstitutionName("");
+      try {
+        if (isAdmin && targetInstitutionIdParam) {
+          const numericId = Number(targetInstitutionIdParam);
+          if (!Number.isFinite(numericId) || numericId <= 0) {
+            setInstitutionRecordMissing(true);
+            setInstitutionId(null);
+            setInstitutionName("");
+            return;
+          }
+
+          const ownerRes = await loadInstitutionRowByIdClient(numericId, supabase);
+          if (ownerRes.error) {
+            error = ownerRes.error;
+          } else {
+            row = ownerRes.row;
+          }
+        } else {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const authEmail = sessionData?.session?.user?.email ?? null;
+          const ownerRes = await loadInstitutionRowForAuthUserClient(userId, supabase, {
+            authEmail,
+          });
+          row = ownerRes.row;
+          error = ownerRes.error;
+        }
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error("Institution profile load error:", {
+            message: error.message || "Kurum profili yüklenemedi.",
+          });
+          setInstitutionName("Kurum Hesabı");
           return;
         }
 
-        const { data: adminRow, error: adminErr } = await supabase
-          .from("institutions")
-          .select(
-            "id, slug, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, is_verified, institution_type_id, working_hours_start, working_hours_end"
-          )
-          .eq("id", numericId)
-          .maybeSingle();
-
-        if (adminErr) {
-          error = { message: adminErr.message };
-        } else {
-          row = (adminRow as typeof row) ?? null;
+        if (!row) {
+          setInstitutionRecordMissing(true);
+          setInstitutionId(null);
+          setInstitutionName("Kurum Hesabı");
+          return;
         }
-      } else {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const authEmail = sessionData?.session?.user?.email ?? null;
-        const ownerRes = await loadInstitutionRowForAuthUserClient(userId, supabase, {
-          authEmail,
+        setInstitutionRecordMissing(false);
+
+        setInstitutionId(String(row.id));
+        setInstitutionIsApproved(row.is_approved === true);
+        setInstitutionTypeId(
+          typeof row.institution_type_id === "number" ? String(row.institution_type_id) : ""
+        );
+        setInstitutionCategoryId(
+          typeof row.category_id === "number" ? String(row.category_id) : ""
+        );
+
+        const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
+
+        setInstitutionName(row.institution_name || "Kurum Hesabı");
+
+        setInstitutionFormData({
+          institutionName: row.institution_name || "",
+          email: row.official_email || "",
+          phone: row.official_phone || "",
+          website: row.website || "",
+          facebookUrl: row.facebook_url || "",
+          instagramUrl: row.instagram_url || "",
+          xUrl: row.x_url || "",
+          linkedinUrl: row.linkedin_url || "",
+          subheading: row.subheading || "",
+          city: row.city || "",
+          district: row.district || "",
+          workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
+          workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
+          address: row.address || "",
+          about: row.about || "",
+          logoUrl,
         });
-        row = ownerRes.row;
-        error = ownerRes.error;
+        setInstitutionInitialFormData({
+          institutionName: row.institution_name || "",
+          email: row.official_email || "",
+          phone: row.official_phone || "",
+          website: row.website || "",
+          facebookUrl: row.facebook_url || "",
+          instagramUrl: row.instagram_url || "",
+          xUrl: row.x_url || "",
+          linkedinUrl: row.linkedin_url || "",
+          subheading: row.subheading || "",
+          city: row.city || "",
+          district: row.district || "",
+          workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
+          workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
+          address: row.address || "",
+          about: row.about || "",
+          logoUrl,
+        });
+      } catch (loadError) {
+        console.error("Institution profile load error:", loadError);
+        if (!cancelled) {
+          setInstitutionName("Kurum Hesabı");
+        }
+      } finally {
+        if (!cancelled) {
+          setInstitutionProfileLoaded(true);
+        }
       }
-
-      if (cancelled) return;
-
-      if (error) {
-        console.error("Institution profile load error:", error);
-        setInstitutionName("");
-        return;
-      }
-
-      if (!row) {
-        setInstitutionRecordMissing(true);
-        setInstitutionId(null);
-        setInstitutionName("");
-        return;
-      }
-      setInstitutionRecordMissing(false);
-
-      setInstitutionId(String(row.id));
-      setInstitutionIsVerified(Boolean(row.is_verified));
-      setInstitutionTypeId(
-        typeof row.institution_type_id === "number" ? String(row.institution_type_id) : ""
-      );
-
-      const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
-
-      setInstitutionName(row.institution_name || "");
-
-      setInstitutionFormData({
-        institutionName: row.institution_name || "",
-        email: row.official_email || "",
-        phone: row.official_phone || "",
-        website: row.website || "",
-        facebookUrl: row.facebook_url || "",
-        instagramUrl: row.instagram_url || "",
-        xUrl: row.x_url || "",
-        linkedinUrl: row.linkedin_url || "",
-        subheading: row.subheading || "",
-        city: row.city || "",
-        district: row.district || "",
-        workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
-        workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
-        address: row.address || "",
-        about: row.about || "",
-        logoUrl,
-      });
-      setInstitutionInitialFormData({
-        institutionName: row.institution_name || "",
-        email: row.official_email || "",
-        phone: row.official_phone || "",
-        website: row.website || "",
-        facebookUrl: row.facebook_url || "",
-        instagramUrl: row.instagram_url || "",
-        xUrl: row.x_url || "",
-        linkedinUrl: row.linkedin_url || "",
-        subheading: row.subheading || "",
-        city: row.city || "",
-        district: row.district || "",
-        workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
-        workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
-        address: row.address || "",
-        about: row.about || "",
-        logoUrl,
-      });
     }
 
     void loadInstitutionProfile();
@@ -1068,7 +1077,8 @@ interface InstitutionDetailPreparedData {
             .from("institution_categories")
             .select("id, name, slug, display_order, is_active")
             .eq("is_active", true)
-            .order("display_order", { ascending: true }),
+            .order("display_order", { ascending: true })
+            .order("name", { ascending: true }),
           supabase
             .from("institution_types")
             .select("id, category_id, name, display_order, is_active")
@@ -1131,18 +1141,6 @@ interface InstitutionDetailPreparedData {
     if (!selectedType) return;
     setInstitutionCategoryId(String(selectedType.category_id));
   }, [activeTab, institutionTypeId, institutionCategoryId, institutionTypes]);
-
-  useEffect(() => {
-    if (activeTab !== "institutions") return;
-    const catId = Number((institutionCategoryId ?? "").trim());
-    if (!Number.isFinite(catId) || !catId) return;
-    const currentTypeId = Number((institutionTypeId ?? "").trim());
-    if (!Number.isFinite(currentTypeId) || !currentTypeId) return;
-    const currentType = institutionTypes.find((t) => t.id === currentTypeId);
-    if (!currentType || currentType.category_id !== catId) {
-      setInstitutionTypeId("");
-    }
-  }, [activeTab, institutionCategoryId, institutionTypeId, institutionTypes]);
 
   useEffect(() => {
     if (activeTab !== "institutions") return;
@@ -1975,11 +1973,11 @@ interface InstitutionDetailPreparedData {
                 .select("id, feature_definition_id, boolean_answer, text_answer, number_answer, selected_choice_id")
                 .eq("institution_id", refreshId)
                 .in("feature_definition_id", persistedFeatureDefinitionIdList),
-              supabase.from("institutions").select("is_verified").eq("id", refreshId).maybeSingle(),
+              supabase.from("institutions").select("is_approved").eq("id", refreshId).maybeSingle(),
             ]);
 
             if (!instVerifiedRes.error) {
-              setInstitutionIsVerified(Boolean(instVerifiedRes.data?.is_verified));
+              setInstitutionIsApproved(instVerifiedRes.data?.is_approved === true);
             }
 
             if (!entriesRes.error && entriesRes.data) {
@@ -2014,11 +2012,11 @@ interface InstitutionDetailPreparedData {
           } else {
             const { data: instRow, error: instError } = await supabase
               .from("institutions")
-              .select("is_verified")
+              .select("is_approved")
               .eq("id", refreshId)
               .maybeSingle();
             if (!instError) {
-              setInstitutionIsVerified(Boolean(instRow?.is_verified));
+              setInstitutionIsApproved(instRow?.is_approved === true);
             }
           }
         }
@@ -2517,9 +2515,11 @@ interface InstitutionDetailPreparedData {
                   <PencilLine className="panel-sidebar-institution-avatar-edit-icon" aria-hidden />
                 </button>
               </div>
-              <h2 className="panel-sidebar-institution-name">{institutionName || "Yükleniyor…"}</h2>
+              <h2 className="panel-sidebar-institution-name">
+                {!institutionProfileLoaded ? "Yükleniyor…" : institutionName || "Kurum Hesabı"}
+              </h2>
               <p className="panel-sidebar-institution-role">Kurumsal Üye</p>
-              {institutionIsVerified ? (
+              {institutionIsApproved ? (
                 <span className="panel-sidebar-institution-badge">Doğrulanmış Hesap</span>
               ) : null}
             </div>
@@ -3030,6 +3030,7 @@ interface InstitutionDetailPreparedData {
                         onChange={(e) => handleInstitutionFormChange("about", e.target.value)}
                         disabled={!isEditingInstitutionProfile}
                         className="panel-institution-form-textarea"
+                        placeholder="Kurumunuzu detaylıca tanıtın. Eğitim yaklaşımınızı, sunduğunuz hizmetleri, uzmanlık alanlarınızı, yaş gruplarınızı, fiziksel imkanlarınızı, program içeriklerinizi, başarılarınızı ve sizi tercih etmeleri için öne çıkan yönlerinizi yazabilirsiniz. Buraya eklediğiniz bilgiler arama ve listeleme alanlarında kurumunuzun daha doğru bulunmasına yardımcı olur."
                         rows={4}
                       />
                     </div>
@@ -3333,85 +3334,36 @@ interface InstitutionDetailPreparedData {
                         <p className="panel-institutions-empty-text">Kategoriler yükleniyor…</p>
                       ) : institutionTypeError ? (
                         <p className="panel-institutions-empty-text">{institutionTypeError}</p>
-                      ) : institutionCategories.length === 0 ? (
-                        <p className="panel-institutions-empty-text">Aktif kategori bulunamadı.</p>
                       ) : (
-                        <div className="panel-institutions-type-picker-row">
+                        <div className="panel-institutions-type-picker-row panel-institutions-type-picker-disabled">
                           <div className="panel-institutions-feature-input-wrap">
                             <p className="panel-institutions-feature-name">Kategori</p>
                             <div className="panel-institutions-single-select-dropdown">
                               <button
                                 type="button"
-                                className={`panel-institutions-feature-select panel-institutions-feature-select--button ${
-                                  openInstitutionTypePickerSelect === "category"
-                                    ? "panel-institutions-feature-select--open"
-                                    : ""
-                                }`}
-                                onClick={() =>
-                                  setOpenInstitutionTypePickerSelect((prev) =>
-                                    prev === "category" ? null : "category"
-                                  )
-                                }
-                                aria-haspopup="listbox"
-                                aria-expanded={openInstitutionTypePickerSelect === "category"}
+                                className="panel-institutions-feature-select panel-institutions-feature-select--button"
+                                disabled
+                                aria-disabled="true"
                               >
                                 <span
                                   className="panel-institutions-feature-select-label"
                                   title={
                                     institutionCategories.find(
                                       (c) => String(c.id) === (institutionCategoryId ?? "")
-                                    )?.name || "Seçiniz"
+                                    )?.name || "Kategori seçilmemiş"
                                   }
                                 >
                                   {institutionCategories.find(
                                     (c) => String(c.id) === (institutionCategoryId ?? "")
-                                  )?.name || "Seçiniz"}
-                            </span>
+                                  )?.name || "Kategori seçilmemiş"}
+                                </span>
                               </button>
-                              {openInstitutionTypePickerSelect === "category" && (
-                                <div className="panel-institutions-feature-select-menu" role="listbox">
-                            <button
-                              type="button"
-                                    role="option"
-                                    aria-selected={(institutionCategoryId ?? "") === ""}
-                                    className={`panel-institutions-feature-select-option ${
-                                      (institutionCategoryId ?? "") === ""
-                                        ? "panel-institutions-feature-select-option--selected"
-                                        : ""
-                                    }`}
-                                    onClick={() => {
-                                      setInstitutionCategoryId("");
-                                      setInstitutionTypeId("");
-                                      setOpenInstitutionTypePickerSelect(null);
-                                    }}
-                                  >
-                                    Seçiniz
-                            </button>
-                                  {institutionCategories.map((c) => (
-                                    <button
-                                      key={c.id}
-                                      type="button"
-                                      role="option"
-                                      aria-selected={(institutionCategoryId ?? "") === String(c.id)}
-                                      className={`panel-institutions-feature-select-option ${
-                                        (institutionCategoryId ?? "") === String(c.id)
-                                          ? "panel-institutions-feature-select-option--selected"
-                                          : ""
-                                      }`}
-                                      onClick={() => {
-                                        setInstitutionCategoryId(String(c.id));
-                                        setOpenInstitutionTypePickerSelect(null);
-                                      }}
-                                      title={c.name || undefined}
-                                    >
-                                      {c.name}
-                                    </button>
-                                  ))}
-                          </div>
-                              )}
-                        </div>
                             </div>
+                            <p className="panel-institutions-category-note">
+                              Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez.
+                            </p>
                           </div>
+                        </div>
                       )}
                     </section>
 

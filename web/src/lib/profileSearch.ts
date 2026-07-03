@@ -81,6 +81,7 @@ async function resolveDirectInstitutionIdsByProfileSearch(
     const { data, error } = await supabase
       .from("institutions")
       .select(select)
+      .eq("is_approved", true)
       .range(from, to);
     if (error) return uniqueNumbers(ids);
 
@@ -399,6 +400,7 @@ async function resolveDirectInstructorIdsByProfileSearch(
       .from("instructors")
       .select(select)
       .eq("is_active", true)
+      .eq("is_approved", true)
       .range(from, to);
     if (error) return uniqueNumbers(ids);
 

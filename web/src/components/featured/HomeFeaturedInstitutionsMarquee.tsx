@@ -75,6 +75,7 @@ export function HomeFeaturedInstitutionsMarquee({
           .from("institutions")
           .select(MARQUEE_INSTITUTION_SELECT)
           .not("institution_name", "is", null)
+          .eq("is_approved", true)
           .limit(180),
         fetchFeaturedPublicInstructors(supabase, { limit: INSTRUCTOR_FETCH_LIMIT }),
       ]);

@@ -2342,3 +2342,404 @@
     cursor: not-allowed;
   }
 }
+
+.admin-main-card-content--approval-requests {
+  padding: 0 0 22px;
+
+  .admin-main-card-header {
+    padding: 0 30px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 20px 0 16px;
+
+    .admin-main-card-header {
+      padding: 0 20px;
+    }
+  }
+}
+
+.admin-main-card-header--approval-requests {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-approval-requests-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.admin-approval-requests-total-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba($purple-main, 0.12);
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  letter-spacing: 0.04em;
+}
+
+.admin-approval-requests-filters {
+  padding: 0 30px 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    padding: 0 20px 14px;
+  }
+}
+
+.admin-approval-requests-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  border: 1px solid $border-light;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #fff;
+  color: $text-zinc-700;
+  font-size: 13px;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+
+  span {
+    min-width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba($text-light, 0.12);
+    font-size: 12px;
+  }
+
+  &:hover,
+  &--active {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+    background: rgba($purple-main, 0.08);
+  }
+}
+
+.admin-approval-requests-toast {
+  margin: 0 30px 16px;
+  border: 1px solid rgba(22, 163, 74, 0.24);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(22, 163, 74, 0.08);
+  color: #15803d;
+  font-size: 13px;
+  font-weight: $font-medium;
+
+  button {
+    border: none;
+    background: transparent;
+    color: #166534;
+    font-weight: $font-semibold;
+    cursor: pointer;
+  }
+
+  @media (max-width: 640px) {
+    margin: 0 20px 14px;
+  }
+}
+
+.admin-approval-requests-toast--warning {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+}
+
+.admin-approval-requests-empty {
+  margin: 0 30px;
+  border: 1px dashed $border-light;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: $text-zinc-600;
+  font-size: 14px;
+
+  @media (max-width: 640px) {
+    margin: 0 20px;
+  }
+}
+
+.admin-approval-requests-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-approval-requests-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  border-top: 1px solid $border-light;
+
+  th,
+  td {
+    padding: 12px 30px;
+    border-bottom: 1px solid $border-light;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: $font-semibold;
+    color: $text-zinc-600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: rgba($text-light, 0.07);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  @media (max-width: 640px) {
+    th,
+    td {
+      padding: 10px 20px;
+    }
+  }
+}
+
+.admin-approval-requests-table-clip {
+  display: block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-approval-requests-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: $font-semibold;
+  white-space: nowrap;
+  background: rgba($text-light, 0.12);
+  color: $text-zinc-600;
+
+  &--institution {
+    background: rgba($purple-main, 0.12);
+    color: $purple-main;
+  }
+
+  &--instructor {
+    background: rgba($orange-primary, 0.14);
+    color: $orange-primary;
+  }
+}
+
+.admin-approval-requests-avatar,
+.admin-approval-requests-avatar-placeholder {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+  background: rgba($purple-main, 0.08);
+  color: $purple-main;
+  font-size: 13px;
+  font-weight: $font-bold;
+  border: 1px solid rgba($purple-main, 0.14);
+}
+
+.admin-approval-requests-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-approval-requests-action-btn {
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  padding: 0 9px;
+  background: #fff;
+  color: $text-zinc-700;
+  font-size: 12px;
+  font-weight: $font-medium;
+  cursor: pointer;
+  @include transition;
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.35);
+  }
+
+  &--approve:hover {
+    color: #15803d;
+    border-color: rgba(22, 163, 74, 0.35);
+  }
+
+  &--reject:hover {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+}
+
+.admin-approval-requests-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-approval-requests-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  padding: 22px;
+}
+
+.admin-approval-requests-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-approval-requests-modal-title {
+  margin: 0;
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: $text-zinc-900;
+}
+
+.admin-approval-requests-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.admin-approval-requests-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-approval-requests-modal-image {
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  object-fit: cover;
+  border: 1px solid $border-light;
+}
+
+.admin-approval-requests-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  div {
+    border: 1px solid $border-light;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba($text-light, 0.04);
+  }
+
+  span {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: $text-zinc-600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  strong,
+  p {
+    margin: 0;
+    color: $text-zinc-900;
+    font-size: 13px;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-approval-requests-modal-field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-approval-requests-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-approval-requests-modal-cancel-btn,
+.admin-approval-requests-modal-approve-btn,
+.admin-approval-requests-modal-reject-btn {
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  @include transition;
+}
+
+.admin-approval-requests-modal-cancel-btn {
+  border: 1px solid $border-light;
+  background: #fff;
+  color: $text-zinc-700;
+}
+
+.admin-approval-requests-modal-approve-btn {
+  border: 1px solid rgba(22, 163, 74, 0.35);
+  background: #16a34a;
+  color: #fff;
+}
+
+.admin-approval-requests-modal-reject-btn {
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  background: #dc2626;
+  color: #fff;
+}

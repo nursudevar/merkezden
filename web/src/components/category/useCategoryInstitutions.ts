@@ -39,7 +39,6 @@ export type CategoryResultItem = {
   instructorTitle?: string;
   instructorBranch?: string;
   priceRange?: string;
-  isVerified?: boolean;
 };
 
 type InstitutionTypeJoinRow =
@@ -133,7 +132,8 @@ async function fetchAllCategoryInstitutionRows(
       .from("institutions")
       .select(fullSelect)
       .ilike("institution_type.category.name", targetName)
-      .ilike("city", FIXED_CITY);
+      .ilike("city", FIXED_CITY)
+      .eq("is_approved", true);
 
     if (district) query = query.eq("district", district);
     if (searchTerm) {
@@ -182,7 +182,8 @@ async function fetchAllCategoryInstitutionIds(
       .from("institutions")
       .select(idQuerySelect)
       .ilike("institution_type.category.name", targetName)
-      .ilike("city", FIXED_CITY);
+      .ilike("city", FIXED_CITY)
+      .eq("is_approved", true);
 
     if (district) query = query.eq("district", district);
     if (searchTerm) {
@@ -685,6 +686,7 @@ async function fetchRowsByIdsChunked(
       .from("institutions")
       .select(select)
       .in("id", chunk)
+      .eq("is_approved", true)
       .order("institution_name", { ascending: true });
     if (error) throw error;
     out.push(...((data as unknown as InstitutionRow[] | null) ?? []));

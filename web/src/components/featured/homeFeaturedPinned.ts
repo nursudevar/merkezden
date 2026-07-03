@@ -51,6 +51,7 @@ export async function fetchHomeFeaturedPinnedRows(
     .from("institutions")
     .select(HOME_FEATURED_PINNED_ROW_SELECT)
     .eq("institution_name", "Deneme")
+    .eq("is_approved", true)
     .maybeSingle();
 
   if (denemeResult.error) {
@@ -62,7 +63,8 @@ export async function fetchHomeFeaturedPinnedRows(
   const byIdResult = await supabase
     .from("institutions")
     .select(HOME_FEATURED_PINNED_ROW_SELECT)
-    .in("id", [...HOME_FEATURED_PINNED_IDS]);
+    .in("id", [...HOME_FEATURED_PINNED_IDS])
+    .eq("is_approved", true);
 
   if (byIdResult.error) {
     console.warn("[home-featured] Pinned IDs load error:", byIdResult.error.message);
@@ -83,6 +85,7 @@ export async function fetchHomeFeaturedPinnedRows(
       .from("institutions")
       .select(HOME_FEATURED_PINNED_ROW_SELECT)
       .in("institution_name", [...names])
+      .eq("is_approved", true)
       .limit(1);
 
     if (byNameResult.error) {
@@ -108,6 +111,7 @@ export async function fetchHomeFeaturedPinnedInstructorRow(
     .select(PUBLIC_INSTRUCTOR_LIST_SELECT)
     .eq("slug", HOME_FEATURED_PINNED_INSTRUCTOR_SLUG)
     .eq("is_active", true)
+    .eq("is_approved", true)
     .maybeSingle();
 
   if (error) {

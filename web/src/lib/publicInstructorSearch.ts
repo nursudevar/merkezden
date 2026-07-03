@@ -10,7 +10,7 @@ import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructor
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
-  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, price_range, graduated_university, website, experience_years, profile_picture, category_id, is_verified, is_active, created_at";
+  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, price_range, graduated_university, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at";
 
 const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "name",
@@ -58,7 +58,7 @@ export type PublicInstructorListRow = {
   experience_years?: number | null;
   profile_picture?: string | null;
   category_id?: number | null;
-  is_verified?: boolean | null;
+  is_approved?: boolean | null;
   is_active?: boolean | null;
   created_at?: string | null;
 };
@@ -73,7 +73,6 @@ export type FeaturedInstructorItem = {
   branch?: string;
   title?: string;
   priceRange?: string;
-  isVerified?: boolean;
 };
 
 export type InstructorListingFilters = {
@@ -160,7 +159,8 @@ export async function fetchPublicInstructorsForListing(
     let query = supabase
       .from(PUBLIC_INSTRUCTORS_TABLE)
       .select(PUBLIC_INSTRUCTOR_LIST_SELECT)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .eq("is_approved", true);
 
     if (categoryId != null && Number.isFinite(categoryId)) {
       query = query.eq("category_id", categoryId);
@@ -225,7 +225,6 @@ export type MappedPublicInstructorListItem = {
   instructorTitle?: string;
   instructorBranch?: string;
   priceRange?: string;
-  isVerified: boolean;
 };
 
 export function mapPublicInstructorToListItem(
@@ -264,7 +263,6 @@ export function mapPublicInstructorToListItem(
     instructorTitle: title || undefined,
     instructorBranch: branch || undefined,
     priceRange: priceRange || undefined,
-    isVerified: row.is_verified === true,
   };
 }
 
@@ -640,14 +638,14 @@ export async function fetchFeaturedPublicInstructors(
   let query = supabase
     .from(PUBLIC_INSTRUCTORS_TABLE)
     .select(PUBLIC_INSTRUCTOR_LIST_SELECT)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("is_approved", true);
 
   if (categoryId != null && Number.isFinite(categoryId)) {
     query = query.eq("category_id", categoryId);
   }
 
   const { data, error } = await query
-    .order("is_verified", { ascending: false })
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit);
@@ -683,7 +681,6 @@ export function mapPublicInstructorToFeaturedItem(
     branch: branch || undefined,
     title: title || undefined,
     priceRange: priceRange || undefined,
-    isVerified: row.is_verified === true,
   };
 }
 

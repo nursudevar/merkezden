@@ -391,10 +391,11 @@ export async function fetchInstructorFeatureCategoriesClient(
 ): Promise<{ categories: InstructorFeatureCategoryRow[]; error: string | null }> {
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
   const { data, error } = await supabase
-    .from("institution_categories")
+    .from("instructor_categories")
     .select("id, name, slug, display_order")
     .eq("is_active", true)
-    .order("display_order", { ascending: true });
+    .order("display_order", { ascending: true })
+    .order("name", { ascending: true });
 
   if (error) {
     logInstructorFeaturesSupabaseError("categories", error);
@@ -554,7 +555,6 @@ export function buildInstructorFeatureFormStateFromEntries(
 export type SaveInstructorFeaturesParams = {
   authUid: string;
   instructorId: number;
-  categoryId: number;
   definitions: InstructorFeatureDefinitionRow[];
   choices: InstructorFeatureChoiceRow[];
   entries: InstructorFeatureEntryRow[];
@@ -570,7 +570,6 @@ export async function saveInstructorFeaturesClient(
   const {
     authUid,
     instructorId,
-    categoryId,
     definitions,
     choices,
     entries,
@@ -587,14 +586,14 @@ export async function saveInstructorFeaturesClient(
     featureIdsToSave,
   );
 
-  const { error: categoryError } = await supabase
+  const { error: profileError } = await supabase
     .from(INSTRUCTORS_TABLE)
-    .update({ category_id: categoryId, ...directInstructorPatch })
+    .update(directInstructorPatch)
     .eq("id", instructorId)
     .eq("owner_auth_id", authUid);
 
-  if (categoryError) {
-    logInstructorFeaturesSupabaseError("category save", categoryError);
+  if (profileError) {
+    logInstructorFeaturesSupabaseError("profile save", profileError);
     return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
   }
 

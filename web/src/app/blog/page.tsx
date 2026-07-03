@@ -14,12 +14,16 @@ import {
   type DisplayBlogPost,
 } from "@/lib/blog/blogDisplay";
 import { allBlogPosts } from "@/lib/data/blog";
+import {
+  buildCategoryTabNames,
+  fetchActiveInstitutionCategories,
+} from "@/lib/institutionCategoriesClient";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
 
 const mockDisplayPosts = allBlogPosts.map(mapMockPostToDisplay);
-const BLOG_CATEGORY_TABS = [
+const BLOG_CATEGORY_TABS_FALLBACK = [
   "Hepsi",
   "Okul",
   "Kurs & Sınava Hazırlık",
@@ -29,8 +33,10 @@ const BLOG_CATEGORY_TABS = [
   "Kişisel Gelişim",
   "Mesleki Eğitim",
   "Özel Eğitim",
+  "Sürücü Kursu",
   "Patili Dostlar",
-];
+] as const;
+const CATEGORY_TAB_FIRST_ROW_COUNT = 7;
 
 function normalizeCategoryName(value: string): string {
   return value
@@ -77,6 +83,21 @@ function BlogPageContent() {
   const [loadError, setLoadError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("Hepsi");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [allCategories, setAllCategories] = useState<string[]>([...BLOG_CATEGORY_TABS_FALLBACK]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const categories = await fetchActiveInstitutionCategories();
+      if (cancelled) return;
+      setAllCategories(buildCategoryTabNames(categories, BLOG_CATEGORY_TABS_FALLBACK));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,8 +123,6 @@ function BlogPageContent() {
       cancelled = true;
     };
   }, []);
-
-  const allCategories = useMemo(() => BLOG_CATEGORY_TABS, []);
 
   useEffect(() => {
     const categoryParam = searchParams.get("category");
@@ -280,7 +299,6 @@ function FeaturedPost({
             priority
             unoptimized
           />
-          <div className="featured-post-badge">Öne Çıkan</div>
         </div>
         <div className="featured-post-content">
           {category && (
@@ -322,18 +340,27 @@ function CategoryTabs({
   selectedCategory,
   onCategoryChange,
 }: CategoryTabsProps) {
+  const categoryRows = [
+    categories.slice(0, CATEGORY_TAB_FIRST_ROW_COUNT),
+    categories.slice(CATEGORY_TAB_FIRST_ROW_COUNT),
+  ];
+
   return (
     <div className="blog-category-tabs">
-      {categories.map((category) => (
-        <button
-          key={category}
-          type="button"
-          className={`blog-category-tab ${selectedCategory === category ? "blog-category-tab--active" : ""}`}
-          onClick={() => onCategoryChange(category)}
-          aria-pressed={selectedCategory === category}
-        >
-          {category}
-        </button>
+      {categoryRows.map((row, rowIndex) => (
+        <div key={`blog-category-row-${rowIndex}`} className="blog-category-tab-row">
+          {row.map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={`blog-category-tab ${selectedCategory === category ? "blog-category-tab--active" : ""}`}
+              onClick={() => onCategoryChange(category)}
+              aria-pressed={selectedCategory === category}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   );

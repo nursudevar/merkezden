@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BarChart3,
   Building2,
@@ -22,6 +23,8 @@ import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   buildProfileSearchVariants,
@@ -38,6 +41,7 @@ type AdminTabId =
   | "institutions"
   | "users"
   | "instructors"
+  | "approval-requests"
   | "announcements"
   | "blog-posts"
   | "settings";
@@ -103,6 +107,64 @@ type InstructorListRow = {
   district: string | null;
 };
 
+type ApprovalFilter = "all" | "institutions" | "instructors";
+
+type PendingInstitutionApprovalRow = {
+  id: number;
+  institution_name: string | null;
+  official_email: string | null;
+  official_phone: string | null;
+  city: string | null;
+  district: string | null;
+  website: string | null;
+  about: string | null;
+  logo: string | null;
+  created_at?: string | null;
+};
+
+type PendingInstructorApprovalRow = {
+  id: number;
+  name: string | null;
+  surname: string | null;
+  email: string | null;
+  phone: string | null;
+  school: string | null;
+  branch: string | null;
+  title: string | null;
+  experience_years: number | null;
+  education_level: string | null;
+  city: string | null;
+  district: string | null;
+  address: string | null;
+  about: string | null;
+  profile_picture: string | null;
+  created_at: string | null;
+};
+
+type PendingApprovalItem =
+  | {
+      kind: "institution";
+      row: PendingInstitutionApprovalRow;
+      displayName: string;
+      email: string;
+      phone: string;
+      city: string;
+      district: string;
+      createdAt: string;
+      imageUrl: string;
+    }
+  | {
+      kind: "instructor";
+      row: PendingInstructorApprovalRow;
+      displayName: string;
+      email: string;
+      phone: string;
+      city: string;
+      district: string;
+      createdAt: string;
+      imageUrl: string;
+    };
+
 type InstructorEditForm = {
   name: string;
   surname: string;
@@ -165,6 +227,13 @@ type DeleteConfirmTarget =
   | { type: "announcement"; id: string }
   | { type: "blog-post"; id: string };
 
+type ApprovalDecisionTarget = {
+  kind: "institution" | "instructor";
+  id: number;
+  decision: "approve" | "reject";
+  label: string;
+};
+
 async function fetchAdminRoleIdentifiers(
   supabase: ReturnType<typeof createSupabaseBrowserClient>
 ): Promise<AdminRoleIdentifiers> {
@@ -188,6 +257,41 @@ async function fetchAdminRoleIdentifiers(
     authUserIds: Array.from(authUserIds),
     userIds: Array.from(userIds),
   };
+}
+
+async function resolveCurrentAdminPublicUserId(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>
+): Promise<number | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const authUserId = session?.user?.id ?? null;
+  if (!authUserId) return null;
+
+  const { data: userRows } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_user_id", authUserId)
+    .limit(1);
+
+  const directUserId = Number(userRows?.[0]?.id);
+  if (Number.isFinite(directUserId) && directUserId > 0) {
+    return directUserId;
+  }
+
+  const { data: roleRows } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .eq("auth_user_id", authUserId)
+    .limit(1);
+
+  const roleUserId = Number(roleRows?.[0]?.user_id);
+  if (Number.isFinite(roleUserId) && roleUserId > 0) {
+    return roleUserId;
+  }
+
+  return null;
 }
 
 function cleanIndividualUserPhoneInput(value: string): string {
@@ -225,6 +329,28 @@ function formatAnnouncementDate(value: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("tr-TR");
+}
+
+function describeSupabaseAdminError(error: unknown) {
+  if (!error || typeof error !== "object") return error;
+  const record = error as {
+    message?: unknown;
+    details?: unknown;
+    code?: unknown;
+    hint?: unknown;
+  };
+  const described = {
+    message: record.message,
+    details: record.details,
+    code: record.code,
+    hint: record.hint,
+  };
+  if (described.message || described.details || described.code || described.hint) {
+    return described;
+  }
+  const keys = Object.keys(error as Record<string, unknown>);
+  if (keys.length > 0) return error;
+  return { message: String(error) || "Unknown Supabase error" };
 }
 
 function buildAnnouncementContentPreview(content: string | null, maxLength = 80): string {
@@ -353,6 +479,16 @@ export default function AdminPageClient() {
   const [instructorEditSaving, setInstructorEditSaving] = useState(false);
   const [instructorEditError, setInstructorEditError] = useState<string | null>(null);
   const [instructorEditPhoneError, setInstructorEditPhoneError] = useState<string | null>(null);
+  const [approvalFilter, setApprovalFilter] = useState<ApprovalFilter>("all");
+  const [pendingApprovalItems, setPendingApprovalItems] = useState<PendingApprovalItem[]>([]);
+  const [pendingApprovalsLoading, setPendingApprovalsLoading] = useState(false);
+  const [pendingApprovalsError, setPendingApprovalsError] = useState<string | null>(null);
+  const [pendingApprovalsReloadKey, setPendingApprovalsReloadKey] = useState(0);
+  const [selectedApprovalItem, setSelectedApprovalItem] = useState<PendingApprovalItem | null>(null);
+  const [approvalDecisionTarget, setApprovalDecisionTarget] = useState<ApprovalDecisionTarget | null>(null);
+  const [approvalDecisionError, setApprovalDecisionError] = useState<string | null>(null);
+  const [approvalDecisionLoading, setApprovalDecisionLoading] = useState(false);
+  const [approvalSuccessMessage, setApprovalSuccessMessage] = useState<string | null>(null);
   const [announcementsList, setAnnouncementsList] = useState<AnnouncementListRow[]>([]);
   const [announcementsListLoading, setAnnouncementsListLoading] = useState(false);
   const [announcementsListError, setAnnouncementsListError] = useState<string | null>(null);
@@ -821,6 +957,109 @@ export default function AdminPageClient() {
   }, [activeTab, instructorsPage, instructorsReloadKey, instructorsSearchQuery]);
 
   useEffect(() => {
+    if (activeTab !== "approval-requests") return;
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    const loadPendingApprovals = async () => {
+      setPendingApprovalsLoading(true);
+      setPendingApprovalsError(null);
+
+      const [institutionsRes, instructorsRes] = await Promise.all([
+        supabase
+          .from("institutions")
+          .select(
+            "id, institution_name, official_email, official_phone, city, district, website, about, logo"
+          )
+          .is("is_approved", null)
+          .order("id", { ascending: false }),
+        supabase
+          .from("instructors")
+          .select(
+            "id, name, surname, email, phone, school, branch, title, experience_years, education_level, city, district, address, about, profile_picture, created_at"
+          )
+          .is("is_approved", null)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      if (cancelled) return;
+
+      if (institutionsRes.error) {
+        console.error(
+          "[admin][pending-approvals][institutions]",
+          describeSupabaseAdminError(institutionsRes.error)
+        );
+      }
+      if (instructorsRes.error) {
+        console.error(
+          "[admin][pending-approvals][instructors]",
+          describeSupabaseAdminError(instructorsRes.error)
+        );
+      }
+
+      if (institutionsRes.error && instructorsRes.error) {
+        setPendingApprovalItems([]);
+        setPendingApprovalsError("Bekleyen onay kayıtları alınamadı.");
+        setPendingApprovalsLoading(false);
+        return;
+      }
+
+      if (institutionsRes.error || instructorsRes.error) {
+        setPendingApprovalsError("Bekleyen onay kayıtlarının bir kısmı alınamadı.");
+      }
+
+      const institutionItems: PendingApprovalItem[] = (
+        (institutionsRes.error ? [] : institutionsRes.data ?? []) as PendingInstitutionApprovalRow[]
+      ).map((row) => ({
+        kind: "institution",
+        row,
+        displayName: String(row.institution_name ?? "").trim() || "-",
+        email: String(row.official_email ?? "").trim() || "-",
+        phone: String(row.official_phone ?? "").trim() || "-",
+        city: String(row.city ?? "").trim() || "-",
+        district: String(row.district ?? "").trim() || "-",
+        createdAt: formatAnnouncementDate(row.created_at ?? null),
+        imageUrl: resolveInstitutionLogoPublicUrl(supabase, row.logo),
+      }));
+
+      const instructorItems: PendingApprovalItem[] = (
+        (instructorsRes.error ? [] : instructorsRes.data ?? []) as PendingInstructorApprovalRow[]
+      ).map((row) => {
+        const fullName = [row.name, row.surname]
+          .map((part) => String(part ?? "").trim())
+          .filter(Boolean)
+          .join(" ");
+        return {
+          kind: "instructor",
+          row,
+          displayName: fullName || "-",
+          email: String(row.email ?? "").trim() || "-",
+          phone: String(row.phone ?? "").trim() || "-",
+          city: String(row.city ?? "").trim() || "-",
+          district: String(row.district ?? "").trim() || "-",
+          createdAt: formatAnnouncementDate(row.created_at),
+          imageUrl: resolvePublicInstructorProfilePictureUrl(row.profile_picture, supabase),
+        };
+      });
+
+      setPendingApprovalItems(
+        [...institutionItems, ...instructorItems].sort((a, b) => {
+          const aTime = new Date(a.row.created_at ?? "").getTime();
+          const bTime = new Date(b.row.created_at ?? "").getTime();
+          return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+        })
+      );
+      setPendingApprovalsLoading(false);
+    };
+
+    void loadPendingApprovals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, pendingApprovalsReloadKey]);
+
+  useEffect(() => {
     if (activeTab !== "announcements") return;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
@@ -1164,6 +1403,93 @@ export default function AdminPageClient() {
   const handleRequestDeleteInstructor = (instructorId: number) => {
     setDeleteConfirmError(null);
     setDeleteConfirmTarget({ type: "instructor", id: instructorId });
+  };
+
+  const handleOpenApprovalReview = (item: PendingApprovalItem) => {
+    setSelectedApprovalItem(item);
+  };
+
+  const handleCloseApprovalReview = () => {
+    setSelectedApprovalItem(null);
+  };
+
+  const handleRequestApprovalDecision = (
+    item: PendingApprovalItem,
+    decision: ApprovalDecisionTarget["decision"]
+  ) => {
+    setApprovalDecisionError(null);
+    setApprovalDecisionTarget({
+      kind: item.kind,
+      id: item.row.id,
+      decision,
+      label: item.displayName,
+    });
+  };
+
+  const handleCancelApprovalDecision = () => {
+    if (approvalDecisionLoading) return;
+    setApprovalDecisionTarget(null);
+    setApprovalDecisionError(null);
+  };
+
+  const handleConfirmApprovalDecision = async () => {
+    if (!approvalDecisionTarget) return;
+
+    setApprovalDecisionLoading(true);
+    setApprovalDecisionError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    try {
+      const adminPublicUserId = await resolveCurrentAdminPublicUserId(supabase);
+      if (!adminPublicUserId) {
+        setApprovalDecisionError("Admin kullanıcı kaydı doğrulanamadı.");
+        return;
+      }
+
+      const table = approvalDecisionTarget.kind === "institution" ? "institutions" : "instructors";
+      const isApproved = approvalDecisionTarget.decision === "approve";
+      const { error } = await supabase
+        .from(table)
+        .update({
+          is_approved: isApproved,
+          approved_by: adminPublicUserId,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", approvalDecisionTarget.id)
+        .is("is_approved", null);
+
+      if (error) {
+        console.error(
+          `[admin][pending-approvals][${approvalDecisionTarget.kind}][${approvalDecisionTarget.decision}]`,
+          describeSupabaseAdminError(error)
+        );
+        setApprovalDecisionError(
+          isApproved ? "Kayıt onaylanırken bir hata oluştu." : "Kayıt reddedilirken bir hata oluştu."
+        );
+        return;
+      }
+
+      setPendingApprovalItems((prev) =>
+        prev.filter(
+          (item) => !(item.kind === approvalDecisionTarget.kind && item.row.id === approvalDecisionTarget.id)
+        )
+      );
+      setSelectedApprovalItem((prev) =>
+        prev?.kind === approvalDecisionTarget.kind && prev.row.id === approvalDecisionTarget.id ? null : prev
+      );
+      setApprovalSuccessMessage(
+        isApproved
+          ? "Kayıt onaylandı ve platformda görünür hale getirildi."
+          : "Kayıt reddedildi."
+      );
+      setApprovalDecisionTarget(null);
+      setPendingApprovalsReloadKey((prev) => prev + 1);
+    } catch (error) {
+      console.error("[admin][pending-approvals][decision-unexpected]", describeSupabaseAdminError(error));
+      setApprovalDecisionError("İşlem tamamlanırken bir hata oluştu.");
+    } finally {
+      setApprovalDecisionLoading(false);
+    }
   };
 
   const handleGoToAnnouncementsPage = () => {
@@ -1625,6 +1951,26 @@ export default function AdminPageClient() {
     }));
   }, [instructorsList]);
 
+  const filteredPendingApprovalItems = useMemo(() => {
+    if (approvalFilter === "institutions") {
+      return pendingApprovalItems.filter((item) => item.kind === "institution");
+    }
+    if (approvalFilter === "instructors") {
+      return pendingApprovalItems.filter((item) => item.kind === "instructor");
+    }
+    return pendingApprovalItems;
+  }, [approvalFilter, pendingApprovalItems]);
+
+  const pendingInstitutionCount = useMemo(
+    () => pendingApprovalItems.filter((item) => item.kind === "institution").length,
+    [pendingApprovalItems]
+  );
+
+  const pendingInstructorCount = useMemo(
+    () => pendingApprovalItems.filter((item) => item.kind === "instructor").length,
+    [pendingApprovalItems]
+  );
+
   const announcementsRows = useMemo(() => {
     return announcementsList.map((row) => ({
       id: row.id,
@@ -1704,11 +2050,24 @@ export default function AdminPageClient() {
     deletingBlogPostId,
   ]);
 
+  const approvalDecisionModal = useMemo(() => {
+    if (!approvalDecisionTarget) return null;
+    const recordLabel = approvalDecisionTarget.kind === "institution" ? "kurum" : "eğitmen";
+    const decisionLabel = approvalDecisionTarget.decision === "approve" ? "onaylamak" : "reddetmek";
+    return {
+      title: approvalDecisionTarget.decision === "approve" ? "Kaydı Onayla" : "Kaydı Reddet",
+      message: `${approvalDecisionTarget.label} adlı ${recordLabel} kaydını ${decisionLabel} istediğinize emin misiniz?`,
+      confirmLabel: approvalDecisionTarget.decision === "approve" ? "Onayla" : "Reddet",
+    };
+  }, [approvalDecisionTarget]);
+
   const activeTabTitle =
     activeTab === "users"
       ? "Bireysel Kullanıcılar"
       : activeTab === "instructors"
         ? "Eğitmenler"
+      : activeTab === "approval-requests"
+        ? "Onaylanmayı Bekleyenler"
       : activeTab === "announcements"
         ? "Duyurular"
         : activeTab === "blog-posts"
@@ -1762,6 +2121,14 @@ export default function AdminPageClient() {
               >
                 <User className="admin-sidebar-nav-icon" />
                 <span>Eğitmenler</span>
+              </button>
+              <button
+                type="button"
+                className={`admin-sidebar-nav-item ${activeTab === "approval-requests" ? "admin-sidebar-nav-item--active" : ""}`}
+                onClick={() => setActiveTab("approval-requests")}
+              >
+                <Shield className="admin-sidebar-nav-icon" />
+                <span>Onaylanmayı Bekleyenler</span>
               </button>
               <button
                 type="button"
@@ -2301,6 +2668,131 @@ export default function AdminPageClient() {
             </Card>
           ) : null}
 
+          {activeTab === "approval-requests" ? (
+            <Card className="admin-main-card">
+              <CardContent className="admin-main-card-content admin-main-card-content--approval-requests">
+                <div className="admin-main-card-header admin-main-card-header--approval-requests">
+                  <div className="admin-approval-requests-header-left">
+                    <h1 className="admin-main-card-title">
+                      Onaylanmayı Bekleyenler
+                    </h1>
+                    <span className="admin-approval-requests-total-badge">
+                      {`${filteredPendingApprovalItems.length.toLocaleString("tr-TR")} BEKLEYEN`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="admin-approval-requests-filters" aria-label="Onay bekleyen kayıt filtresi">
+                  {[
+                    { id: "all", label: "Hepsi", count: pendingApprovalItems.length },
+                    { id: "institutions", label: "Kurumlar", count: pendingInstitutionCount },
+                    { id: "instructors", label: "Eğitmenler", count: pendingInstructorCount },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`admin-approval-requests-filter-btn${
+                        approvalFilter === option.id ? " admin-approval-requests-filter-btn--active" : ""
+                      }`}
+                      onClick={() => setApprovalFilter(option.id as ApprovalFilter)}
+                    >
+                      {option.label}
+                      <span>{option.count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {approvalSuccessMessage ? (
+                  <div className="admin-approval-requests-toast" role="status">
+                    <span>{approvalSuccessMessage}</span>
+                    <button type="button" onClick={() => setApprovalSuccessMessage(null)}>
+                      Kapat
+                    </button>
+                  </div>
+                ) : null}
+
+                {pendingApprovalsError && pendingApprovalItems.length > 0 ? (
+                  <div className="admin-approval-requests-toast admin-approval-requests-toast--warning" role="status">
+                    <span>{pendingApprovalsError}</span>
+                  </div>
+                ) : null}
+
+                {pendingApprovalsLoading ? (
+                  <div className="admin-approval-requests-empty">Yükleniyor...</div>
+                ) : pendingApprovalsError && pendingApprovalItems.length === 0 ? (
+                  <div className="admin-approval-requests-empty">{pendingApprovalsError}</div>
+                ) : filteredPendingApprovalItems.length === 0 ? (
+                  <div className="admin-approval-requests-empty">Onay bekleyen kayıt bulunamadı.</div>
+                ) : (
+                  <div className="admin-approval-requests-table-wrap">
+                    <table className="admin-approval-requests-table">
+                      <thead>
+                        <tr>
+                          <th>Tip</th>
+                          <th>Ad</th>
+                          <th>E-posta</th>
+                          <th>Telefon</th>
+                          <th>İlçe</th>
+                          <th>İşlemler</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPendingApprovalItems.map((item) => (
+                            <tr key={`${item.kind}-${item.row.id}`}>
+                              <td>
+                                <span
+                                  className={`admin-approval-requests-type-badge admin-approval-requests-type-badge--${item.kind}`}
+                                >
+                                  {item.kind === "institution" ? "Kurum" : "Eğitmen"}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="admin-approval-requests-table-clip" title={item.displayName}>
+                                  {item.displayName}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="admin-approval-requests-table-clip" title={item.email}>
+                                  {item.email}
+                                </span>
+                              </td>
+                              <td>{item.phone}</td>
+                              <td>{item.district}</td>
+                              <td>
+                                <div className="admin-approval-requests-actions">
+                                  <button
+                                    type="button"
+                                    className="admin-approval-requests-action-btn"
+                                    onClick={() => handleOpenApprovalReview(item)}
+                                  >
+                                    İncele
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="admin-approval-requests-action-btn admin-approval-requests-action-btn--approve"
+                                    onClick={() => handleRequestApprovalDecision(item, "approve")}
+                                  >
+                                    Onayla
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="admin-approval-requests-action-btn admin-approval-requests-action-btn--reject"
+                                    onClick={() => handleRequestApprovalDecision(item, "reject")}
+                                  >
+                                    Reddet
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
           {activeTab === "announcements" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content admin-main-card-content--announcements">
@@ -2482,6 +2974,168 @@ export default function AdminPageClient() {
                 )}
               </CardContent>
             </Card>
+          ) : null}
+
+          {selectedApprovalItem ? (
+            <div
+              className="admin-approval-requests-modal-overlay"
+              role="presentation"
+              onPointerDown={onBackdropPointerDown}
+              onClick={getBackdropClickHandler(handleCloseApprovalReview)}
+            >
+              <div
+                className="admin-approval-requests-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-approval-requests-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="admin-approval-requests-modal-header">
+                  <h2 id="admin-approval-requests-modal-title" className="admin-approval-requests-modal-title">
+                    {selectedApprovalItem.kind === "institution" ? "Kurum Başvurusu" : "Eğitmen Başvurusu"}
+                  </h2>
+                  <button
+                    type="button"
+                    className="admin-approval-requests-modal-close-btn"
+                    onClick={handleCloseApprovalReview}
+                    aria-label="Kapat"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="admin-approval-requests-modal-body">
+                  {selectedApprovalItem.imageUrl ? (
+                    <Image
+                      src={selectedApprovalItem.imageUrl}
+                      alt={selectedApprovalItem.displayName}
+                      width={96}
+                      height={96}
+                      className="admin-approval-requests-modal-image"
+                      unoptimized
+                    />
+                  ) : null}
+
+                  <div className="admin-approval-requests-modal-grid">
+                    {selectedApprovalItem.kind === "institution" ? (
+                      <>
+                        <div>
+                          <span>Kurum Adı</span>
+                          <strong>{selectedApprovalItem.displayName}</strong>
+                        </div>
+                        <div>
+                          <span>E-posta</span>
+                          <strong>{selectedApprovalItem.email}</strong>
+                        </div>
+                        <div>
+                          <span>Telefon</span>
+                          <strong>{selectedApprovalItem.phone}</strong>
+                        </div>
+                        <div>
+                          <span>Şehir</span>
+                          <strong>{selectedApprovalItem.city}</strong>
+                        </div>
+                        <div>
+                          <span>İlçe</span>
+                          <strong>{selectedApprovalItem.district}</strong>
+                        </div>
+                        <div>
+                          <span>Web Sitesi</span>
+                          <strong>{String(selectedApprovalItem.row.website ?? "").trim() || "-"}</strong>
+                        </div>
+                        <div className="admin-approval-requests-modal-field--wide">
+                          <span>Hakkında</span>
+                          <p>{String(selectedApprovalItem.row.about ?? "").trim() || "-"}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <span>Ad Soyad</span>
+                          <strong>{selectedApprovalItem.displayName}</strong>
+                        </div>
+                        <div>
+                          <span>E-posta</span>
+                          <strong>{selectedApprovalItem.email}</strong>
+                        </div>
+                        <div>
+                          <span>Telefon</span>
+                          <strong>{selectedApprovalItem.phone}</strong>
+                        </div>
+                        <div>
+                          <span>Okul</span>
+                          <strong>{String(selectedApprovalItem.row.school ?? "").trim() || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>Branş</span>
+                          <strong>{String(selectedApprovalItem.row.branch ?? "").trim() || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>Ünvan</span>
+                          <strong>{String(selectedApprovalItem.row.title ?? "").trim() || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>Deneyim</span>
+                          <strong>
+                            {Number.isFinite(Number(selectedApprovalItem.row.experience_years))
+                              ? `${selectedApprovalItem.row.experience_years} yıl`
+                              : "-"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Eğitim Seviyesi</span>
+                          <strong>{String(selectedApprovalItem.row.education_level ?? "").trim() || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>Şehir</span>
+                          <strong>{selectedApprovalItem.city}</strong>
+                        </div>
+                        <div>
+                          <span>İlçe</span>
+                          <strong>{selectedApprovalItem.district}</strong>
+                        </div>
+                        <div>
+                          <span>Adres</span>
+                          <strong>{String(selectedApprovalItem.row.address ?? "").trim() || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>Başvuru Tarihi</span>
+                          <strong>{selectedApprovalItem.createdAt}</strong>
+                        </div>
+                        <div className="admin-approval-requests-modal-field--wide">
+                          <span>Hakkında</span>
+                          <p>{String(selectedApprovalItem.row.about ?? "").trim() || "-"}</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="admin-approval-requests-modal-actions">
+                    <button
+                      type="button"
+                      className="admin-approval-requests-modal-cancel-btn"
+                      onClick={handleCloseApprovalReview}
+                    >
+                      Kapat
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-approval-requests-modal-approve-btn"
+                      onClick={() => handleRequestApprovalDecision(selectedApprovalItem, "approve")}
+                    >
+                      Onayla
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-approval-requests-modal-reject-btn"
+                      onClick={() => handleRequestApprovalDecision(selectedApprovalItem, "reject")}
+                    >
+                      Reddet
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : null}
 
           {editingIndividualUser ? (
@@ -3207,6 +3861,7 @@ export default function AdminPageClient() {
           activeTab !== "institutions" &&
           activeTab !== "users" &&
           activeTab !== "instructors" &&
+          activeTab !== "approval-requests" &&
           activeTab !== "announcements" &&
           activeTab !== "blog-posts" &&
           activeTab !== "settings" ? (
@@ -3233,6 +3888,16 @@ export default function AdminPageClient() {
         loading={deleteConfirmModal?.loading ?? false}
         onConfirm={() => void handleConfirmDelete()}
         onCancel={handleCancelDeleteConfirm}
+      />
+      <ConfirmModal
+        open={approvalDecisionTarget !== null}
+        title={approvalDecisionModal?.title ?? ""}
+        message={approvalDecisionModal?.message ?? ""}
+        error={approvalDecisionError}
+        confirmLabel={approvalDecisionModal?.confirmLabel ?? "Onayla"}
+        loading={approvalDecisionLoading}
+        onConfirm={() => void handleConfirmApprovalDecision()}
+        onCancel={handleCancelApprovalDecision}
       />
     </div>
   );

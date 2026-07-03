@@ -15,7 +15,7 @@ import type { CategoryResultItem } from "@/components/category/useCategoryInstit
 import { parsePriceRangeFromText, rangesOverlap } from "@/lib/institutionPriceRangeFilter";
 
 const FALLBACK_INSTRUCTOR_SELECT =
-  "id, slug, full_name, name, surname, branch, school, city, district, price_range, profile_picture, is_active, is_verified";
+  "id, slug, full_name, name, surname, branch, school, city, district, price_range, profile_picture, is_active, is_approved";
 
 type InstructorDirectoryRow = PublicInstructorRow &
   Record<string, unknown> & {
@@ -28,7 +28,7 @@ type InstructorDirectoryRow = PublicInstructorRow &
     price_range?: string | null;
     profile_picture?: string | null;
     is_active?: boolean | null;
-    is_verified?: boolean | null;
+    is_approved?: boolean | null;
   };
 
 type InstructorListItem = {
@@ -217,6 +217,7 @@ async function queryInstructorRows(
   let query = supabase
     .from(table)
     .select(select)
+    .eq("is_approved", true)
     .order("name", { ascending: true })
     .order("surname", { ascending: true })
     .limit(1000);

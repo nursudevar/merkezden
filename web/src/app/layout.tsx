@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import Footer from "@/components/layout/Footer";
 import { ClampedTextTooltipGlobal } from "@/components/ClampedTextTooltipGlobal";
 import "@/styles/main.scss";
+import "@/styles/components/app-modal.scss";
 import "leaflet/dist/leaflet.css";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";

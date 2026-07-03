@@ -510,7 +510,9 @@ $signup-layout-tight: 1020px;
   grid-template-rows: repeat(3, auto);
   gap: 20px;
   min-width: 0;
+  width: 100%;
   align-content: start;
+  justify-items: stretch;
 }
 
 .signup-feature-column--left {
@@ -536,7 +538,8 @@ $signup-layout-tight: 1020px;
   justify-content: center;
   overflow: hidden;
   width: 100%;
-  max-width: 250px;
+  min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
   animation: signup-tab-fade-in 920ms ease;
 }
@@ -624,7 +627,7 @@ $signup-layout-tight: 1020px;
 
 
   .signup-feature-card {
-    max-width: 214px;
+    max-width: 100%;
     min-height: 168px;
     padding: 10px 8px;
     border-radius: 16px;
@@ -654,7 +657,7 @@ $signup-layout-tight: 1020px;
 
 @media (max-width: $signup-layout-tight) and (min-width: #{$signup-layout-stack + 1px}) {
   .signup-feature-card {
-    max-width: 200px;
+    max-width: 100%;
     min-height: 160px;
   }
 
@@ -741,8 +744,9 @@ $signup-layout-tight: 1020px;
 
 .signup-tab {
   flex: 1;
-  padding: 10px 20px;
-  font-size: $text-base;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 15px;
   font-weight: $font-medium;
   color: $text-zinc-500;
   background-color: transparent;
@@ -752,6 +756,7 @@ $signup-layout-tight: 1020px;
   transition-property: background-color, color, font-weight;
   position: relative;
   z-index: 0;
+  white-space: nowrap;
 
   &:hover {
     color: $text-zinc-700;
@@ -1213,19 +1218,10 @@ $signup-layout-tight: 1020px;
   gap: 15px;
 }
 
-.signup-instructor-heading {
-  margin: 0;
-  font-size: $text-lg;
-  font-weight: $font-semibold;
-  color: $text-zinc-900;
-  line-height: $leading-tight;
-}
-
-.signup-instructor-description {
-  margin: -6px 0 0;
-  font-size: $text-sm;
-  color: $text-zinc-600;
-  line-height: $leading-normal;
+.signup-instructor-section--standalone {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .signup-field-error {

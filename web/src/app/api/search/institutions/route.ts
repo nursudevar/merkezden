@@ -60,6 +60,7 @@ export async function GET(request: Request) {
       .from("institutions")
       .select("id, institution_name, city, district, type, subheading, about, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, slug, source, institution_type_id")
       .not("institution_name", "is", null)
+      .eq("is_approved", true)
       .order("institution_name", { ascending: true })
       .limit(600);
 

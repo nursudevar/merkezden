@@ -825,6 +825,13 @@
   cursor: not-allowed;
 }
 
+.panel-institutions-category-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: $text-zinc-500;
+}
+
 .panel-institutions-type-picker {
   display: flex;
   flex-direction: column;
