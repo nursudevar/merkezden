@@ -25,7 +25,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   formatWorkingHoursRange,
   institutionTimeToInputHHMM,
-} from "@/lib/institutionWorkingHours";
+} from "@/lib/institutionHelpers";
 import type { PublicInstructorRow } from "@/lib/publicInstructorClient";
 import {
   fetchPublicInstructorByParamClient,
@@ -182,6 +182,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   })();
   const branch = String(row?.branch ?? "").trim();
   const title = String(row?.title ?? "").trim();
+  const categoryName = String(row?.category_name ?? "").trim();
   const hasPhoto = Boolean(photoUrl) && !photoLoadFailed;
 
   const mergedAcademicLines = useMemo(() => {
@@ -419,6 +420,11 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                         <GraduationCap size={16} aria-hidden />
                         {branch}
                       </span>
+                    </div>
+                  ) : null}
+                  {categoryName ? (
+                    <div className="instructor-meta-item">
+                      <span className="instructor-meta-badge instructor-meta-badge--title">{categoryName}</span>
                     </div>
                   ) : null}
                   {title ? (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, GraduationCap } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   PUBLIC_INSTRUCTORS_TABLE,
   fetchPublicInstructorsListClient,
@@ -88,52 +89,10 @@ function withTemporaryInstructorItems(items: HomeInstructorCardItem[]): HomeInst
   return [...items, ...TEMP_HOME_INSTRUCTORS].slice(0, HOME_INSTRUCTOR_TEST_MIN_COUNT);
 }
 
-function formatInstructorPriceRange(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  if (/\btl\b/i.test(raw)) return raw;
-  return `${raw} TL`;
-}
-
-function formatInstructorPrice(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return `${new Intl.NumberFormat("tr-TR").format(value)}₺/saat`;
-  }
-
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  if (/[₺]|tl|\/\s*saat/i.test(raw)) return raw;
-
-  const numeric = Number(raw.replace(/[^\d.,]/g, "").replace(",", "."));
-  if (Number.isFinite(numeric) && numeric > 0) {
-    return `${new Intl.NumberFormat("tr-TR").format(numeric)}₺/saat`;
-  }
-
-  return raw;
-}
-
-function extractInstructorPrice(row: Record<string, unknown>): string {
-  const priceRange = formatInstructorPriceRange(row.price_range);
-  if (priceRange) return priceRange;
-
-  const candidates = [
-    row.price,
-    row.hourly_price,
-    row.lesson_price,
-    row.price_text,
-  ];
-
-  for (const candidate of candidates) {
-    const formatted = formatInstructorPrice(candidate);
-    if (formatted) return formatted;
-  }
-
-  return "";
-}
-
 function mapInstructorRowToCardItem(
   row: PublicInstructorRow & Record<string, unknown>,
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  priceLabel?: string,
 ): HomeInstructorCardItem | null {
   const displayName = publicInstructorDisplayName(row);
   const hrefKey = String(row.slug ?? row.id ?? "").trim();
@@ -149,7 +108,7 @@ function mapInstructorRowToCardItem(
       String(row.profile_picture ?? "").trim(),
       supabase,
     ),
-    priceLabel: extractInstructorPrice(row),
+    priceLabel: String(priceLabel ?? "").trim(),
   };
 }
 
@@ -220,29 +179,34 @@ export function HomeIndividualInstructorsSection() {
 
       if (cancelled) return;
 
+      let rows: Array<PublicInstructorRow & Record<string, unknown>> = [];
+
       if (error || !Array.isArray(data)) {
         const fallback = await fetchPublicInstructorsListClient({
           limit: HOME_INSTRUCTOR_LIMIT,
           supabase,
         });
         if (cancelled) return;
-        const mappedFallback = fallback.rows
-          .map((row) =>
-            mapInstructorRowToCardItem(
-              row as PublicInstructorRow & Record<string, unknown>,
-              supabase,
-            ),
-          )
-          .filter((item): item is HomeInstructorCardItem => item !== null);
-        setItems(withTemporaryInstructorItems(mappedFallback));
-        return;
+        rows = fallback.rows as Array<PublicInstructorRow & Record<string, unknown>>;
+      } else {
+        rows = data as Array<PublicInstructorRow & Record<string, unknown>>;
       }
 
-      const mapped = (data as Array<Record<string, unknown>>)
+      const instructorIds = rows
+        .map((row) => Number(row.id))
+        .filter((id) => Number.isFinite(id) && id > 0);
+      const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
+        instructorIds,
+        supabase,
+      );
+      if (cancelled) return;
+
+      const mapped = rows
         .map((row) =>
           mapInstructorRowToCardItem(
-            row as PublicInstructorRow & Record<string, unknown>,
+            row,
             supabase,
+            priceLabelsByInstructorId.get(Number(row.id)),
           ),
         )
         .filter((item): item is HomeInstructorCardItem => item !== null);

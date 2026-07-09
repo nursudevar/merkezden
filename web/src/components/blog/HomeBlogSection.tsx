@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BlogCard from "@/components/BlogCard";
-import { fetchPublishedBlogPosts } from "@/lib/blog/blogClient";
 import {
+  fetchPublishedBlogPosts,
   mapMockPostToDisplay,
   mapPublishedPostToDisplay,
   mergeDisplayBlogPosts,
   type DisplayBlogPost,
-} from "@/lib/blog/blogDisplay";
+} from "@/lib/blog/blogClient";
 import { allBlogPosts } from "@/lib/data/blog";
 
 const HOMEPAGE_BLOG_LIMIT = 5;

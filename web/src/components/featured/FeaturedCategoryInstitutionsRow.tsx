@@ -1,6 +1,6 @@
 "use client";
 
-import type { FeaturedInstitution } from "./featuredInstitutionTypes";
+import type { FeaturedInstitution } from "./featuredInstitutions";
 import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
 
 export function FeaturedCategoryInstitutionsRow({

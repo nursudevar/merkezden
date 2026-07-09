@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Heart, Settings, LogOut, PencilLine, User as UserIcon, Star, Building2, X, FileText } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { resolveInstitutionLogoPublicUrl } from '@/lib/institutionLogoUrl';
+import { resolveInstitutionLogoPublicUrl } from '@/lib/institutionHelpers';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { HeaderClientWrapper } from '@/components/layout/header.client';
 import { ChangePasswordCard } from '@/components/settings/ChangePasswordCard';

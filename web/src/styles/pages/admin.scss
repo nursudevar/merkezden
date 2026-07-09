@@ -422,10 +422,21 @@
   text-decoration: none;
   @include transition;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: $purple-main;
     border-color: rgba($purple-main, 0.35);
   }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.admin-institutions-sort-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .admin-institutions-category-badge {
@@ -449,6 +460,23 @@
   &:hover {
     color: #dc2626;
     border-color: rgba(220, 38, 38, 0.35);
+  }
+}
+
+.admin-institutions-action-btn--featured-active {
+  color: $purple-primary;
+  border-color: rgba($purple-main, 0.45);
+  background: rgba($purple-main, 0.1);
+
+  &:hover {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.55);
+    background: rgba($purple-main, 0.14);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
   }
 }
 
@@ -1112,9 +1140,14 @@
   cursor: pointer;
   @include transition;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: $purple-main;
     border-color: rgba($purple-main, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 }
 
@@ -1122,6 +1155,23 @@
   &:hover {
     color: #dc2626;
     border-color: rgba(220, 38, 38, 0.35);
+  }
+}
+
+.admin-instructors-action-btn--featured-active {
+  color: $purple-primary;
+  border-color: rgba($purple-main, 0.45);
+  background: rgba($purple-main, 0.1);
+
+  &:hover:not(:disabled) {
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.55);
+    background: rgba($purple-main, 0.14);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 }
 

@@ -7,7 +7,8 @@ import { GraduationCap } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { normalizeCategoryKey } from "@/lib/categoryHelpers";
-import { fetchInstitutionCategoryBySlug } from "@/lib/institutionCategoriesClient";
+import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
+import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   buildPublicInstructorLocation,
   fetchFeaturedPublicInstructors,
@@ -198,29 +199,11 @@ async function fetchCategoryPopularItems(
   const categoryId = Number((categoryDataRows[0] as { id?: number | null }).id);
   if (!Number.isFinite(categoryId) || categoryId <= 0) return [];
 
-  const { data: typeRows, error: typeError } = await supabase
-    .from("institution_types")
-    .select("id")
-    .eq("is_active", true)
-    .eq("category_id", categoryId);
-
-  if (typeError || !Array.isArray(typeRows) || typeRows.length === 0) {
-    if (typeError) {
-      console.warn("[category-hero] type resolve:", describeSupabaseError(typeError));
-    }
-    return [];
-  }
-
-  const typeIds = typeRows
-    .map((row) => Number((row as { id?: number | null }).id))
-    .filter((id) => Number.isFinite(id) && id > 0);
-  if (typeIds.length === 0) return [];
-
   const queryInstitutions = async (filterActive: boolean) => {
     let query = supabase
       .from("institutions")
       .select("id, slug, source, institution_name, city, district, institution_type_id")
-      .in("institution_type_id", typeIds)
+      .eq("category_id", categoryId)
       .eq("is_approved", true)
       .limit(120);
 
@@ -275,6 +258,13 @@ async function fetchCategoryPopularItems(
       categoryId,
       limit: 10,
     });
+    const instructorIds = instructorRows
+      .map((row) => Number(row.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
+      instructorIds,
+      supabase,
+    );
     instructorItems = instructorRows
       .map((row) => {
         const id = Number(row.id);
@@ -285,7 +275,7 @@ async function fetchCategoryPopularItems(
         const branch = String(row.branch ?? "").trim();
         const titleLabel = String(row.title ?? "").trim();
         const location = buildPublicInstructorLocation(row);
-        const priceRange = String(row.price_range ?? "").trim();
+        const priceRange = String(priceLabelsByInstructorId.get(id) ?? "").trim();
         const meta = [branch || titleLabel, location, priceRange].filter(Boolean).join(" · ");
 
         return {

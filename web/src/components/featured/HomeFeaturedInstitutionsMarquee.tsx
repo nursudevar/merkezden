@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   fetchFeaturedPublicInstructors,
   mapPublicInstructorToFeaturedItem,
   type FeaturedInstructorItem,
 } from "@/lib/publicInstructorSearch";
-import type { FeaturedInstitution } from "./featuredInstitutionTypes";
-import { fetchHomeFeaturedPinnedRows } from "./homeFeaturedPinned";
-import { mapInstitutionRowToFeatured } from "./mapInstitutionRowToFeatured";
+import {
+  type FeaturedInstitution,
+  fetchHomeFeaturedPinnedRows,
+  mapInstitutionRowToFeatured,
+} from "./featuredInstitutions";
 import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
 import { FeaturedInstructorCardLink } from "./FeaturedInstructorCardLink";
 
@@ -93,8 +96,22 @@ export function HomeFeaturedInstitutionsMarquee({
         }
       }
 
+      const instructorIds = instructorRows
+        .map((row) => Number(row.id))
+        .filter((id) => Number.isFinite(id) && id > 0);
+      const instructorPriceLabels = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
+        instructorIds,
+        supabase,
+      );
+
       const instructors = instructorRows
-        .map((row) => mapPublicInstructorToFeaturedItem(row, supabase))
+        .map((row) =>
+          mapPublicInstructorToFeaturedItem(
+            row,
+            supabase,
+            instructorPriceLabels.get(Number(row.id)),
+          ),
+        )
         .filter((item): item is FeaturedInstructorItem => item !== null);
 
       const institutions =

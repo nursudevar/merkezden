@@ -214,10 +214,8 @@ export async function resolveInstitutionIdsByProfileSearch(
     if (!Number.isFinite(entryId) || !Number.isFinite(institutionId)) continue;
     entryIdToInstitutionId.set(entryId, institutionId);
 
-    const selectedChoiceId = Number(entry.selected_choice_id);
     if (
       matchedDefinitionIds.has(Number(entry.feature_definition_id)) ||
-      (Number.isFinite(selectedChoiceId) && matchedChoiceIds.has(selectedChoiceId)) ||
       profileTextMatches(entry.text_answer, trimmed) ||
       profileTextMatches(entry.number_answer, trimmed) ||
       matchesBooleanSearch(entry.boolean_answer, trimmed)
@@ -267,20 +265,22 @@ export async function resolveInstructorIdsByProfileSearch(
 
   const [groupRes, defRes, choiceRes, entryRes, announcementRes] = await Promise.all([
     supabase
-      .from("institution_feature_groups")
+      .from("instructor_feature_groups")
       .select("id, name")
       .eq("is_active", true),
     supabase
-      .from("institution_feature_definitions")
+      .from("instructor_feature_definitions")
       .select("id, group_id, name, slug, input_type, unit")
       .eq("is_active", true),
     supabase
-      .from("institution_feature_choices")
-      .select("id, feature_definition_id, name")
+      .from("instructor_feature_choices")
+      .select("id, feature_definition_id, name, slug")
       .eq("is_active", true),
     supabase
       .from("instructor_feature_entries")
-      .select("id, instructor_id, feature_definition_id, value_text, value_number, value_boolean, value_date, selected_choice_id"),
+      .select(
+        "id, instructor_id, feature_definition_id, text_answer, number_answer, boolean_answer, selected_choice_id",
+      ),
     supabase
       .from("instructor_announcements")
       .select("instructor_id, title, content")
@@ -294,29 +294,33 @@ export async function resolveInstructorIdsByProfileSearch(
   const instructorIds = new Set<number>();
   const directInstructorIds = await resolveDirectInstructorIdsByProfileSearch(supabase, trimmed);
   directInstructorIds.forEach((id) => instructorIds.add(id));
+
   const groups = (groupRes.data ?? []) as Array<{ id: number; name?: string | null }>;
   const defs = (defRes.data ?? []) as Array<{
     id: number;
     group_id: number;
     name?: string | null;
     slug?: string | null;
+    input_type?: string | null;
     unit?: string | null;
   }>;
   const choices = (choiceRes.data ?? []) as Array<{
     id: number;
     feature_definition_id: number;
     name?: string | null;
+    slug?: string | null;
   }>;
   const entries = (entryRes.data ?? []) as Array<{
     id: number;
     instructor_id: number;
     feature_definition_id: number;
-    value_text: string | null;
-    value_number: number | null;
-    value_boolean: boolean | null;
-    value_date: string | null;
+    text_answer: string | null;
+    number_answer: number | null;
+    boolean_answer: boolean | null;
     selected_choice_id: number | null;
   }>;
+
+  const defsById = new Map(defs.map((def) => [Number(def.id), def]));
 
   const matchedGroupIds = new Set(
     groups.filter((group) => profileTextMatches(group.name, trimmed)).map((group) => Number(group.id)),
@@ -327,13 +331,17 @@ export async function resolveInstructorIdsByProfileSearch(
         (def) =>
           matchedGroupIds.has(Number(def.group_id)) ||
           profileTextMatches(def.name, trimmed) ||
-          profileTextMatches(def.slug, trimmed) ||
-          profileTextMatches(def.unit, trimmed),
+          profileTextMatches(def.slug, trimmed),
       )
       .map((def) => Number(def.id)),
   );
   const matchedChoiceIds = new Set(
-    choices.filter((choice) => profileTextMatches(choice.name, trimmed)).map((choice) => Number(choice.id)),
+    choices
+      .filter(
+        (choice) =>
+          profileTextMatches(choice.name, trimmed) || profileTextMatches(choice.slug, trimmed),
+      )
+      .map((choice) => Number(choice.id)),
   );
 
   const entryIdToInstructorId = new Map<number, number>();
@@ -343,14 +351,27 @@ export async function resolveInstructorIdsByProfileSearch(
     if (!Number.isFinite(entryId) || !Number.isFinite(instructorId)) continue;
     entryIdToInstructorId.set(entryId, instructorId);
 
-    const selectedChoiceId = Number(entry.selected_choice_id);
+    const def = defsById.get(Number(entry.feature_definition_id));
+    const inputType = String(def?.input_type ?? "");
+
+    if (inputType === "boolean") {
+      if (
+        entry.boolean_answer === true &&
+        (matchedDefinitionIds.has(Number(entry.feature_definition_id)) ||
+          matchesBooleanSearch(entry.boolean_answer, trimmed))
+      ) {
+        instructorIds.add(instructorId);
+      }
+      continue;
+    }
+
+    if (profileTextMatches(entry.text_answer, trimmed)) {
+      instructorIds.add(instructorId);
+    }
+
     if (
-      matchedDefinitionIds.has(Number(entry.feature_definition_id)) ||
-      (Number.isFinite(selectedChoiceId) && matchedChoiceIds.has(selectedChoiceId)) ||
-      profileTextMatches(entry.value_text, trimmed) ||
-      profileTextMatches(entry.value_number, trimmed) ||
-      profileTextMatches(entry.value_date, trimmed) ||
-      matchesBooleanSearch(entry.value_boolean, trimmed)
+      entry.selected_choice_id != null &&
+      matchedChoiceIds.has(Number(entry.selected_choice_id))
     ) {
       instructorIds.add(instructorId);
     }
@@ -391,7 +412,7 @@ async function resolveDirectInstructorIdsByProfileSearch(
 ): Promise<number[]> {
   const ids = new Set<number>();
   const select =
-    "id, name, surname, full_name, title, branch, bio, about, school, city, district, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, education_level, lesson_type, service_type, price_range, graduated_university, experience_years";
+    "id, name, surname, full_name, title, branch, bio, about, school, city, district, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, education_level, lesson_type, service_type, graduated_university, experience_years";
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -430,7 +451,6 @@ async function resolveDirectInstructorIdsByProfileSearch(
         row.education_level,
         row.lesson_type,
         row.service_type,
-        row.price_range,
         row.graduated_university,
         row.experience_years,
       ].some((value) => profileTextMatches(value, searchTerm));

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { CalendarDays, Globe, ImageOff, X } from "lucide-react";
+import { CalendarDays, Globe, X } from "lucide-react";
 import "@/styles/components/announcement-detail-modal.scss";
 
 export type AnnouncementDetailItem = {
@@ -71,12 +71,20 @@ export default function AnnouncementDetailModal({
   return (
     <div className="announcement-modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="announcement-modal-content"
+        className="announcement-modal-content announcement-modal-content--parchment"
         role="dialog"
         aria-modal="true"
         aria-labelledby="announcement-modal-title"
         onClick={(event) => event.stopPropagation()}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/duyuru-modal-bg.png"
+          alt=""
+          aria-hidden="true"
+          className="announcement-modal-parchment-bg"
+        />
+
         <button
           type="button"
           className="announcement-modal-close"
@@ -86,63 +94,63 @@ export default function AnnouncementDetailModal({
           <X size={18} />
         </button>
 
-        <div
-          className={`announcement-modal-media${
-            announcement.imageUrl ? "" : " announcement-modal-media--empty"
-          }`}
-          style={
-            announcement.imageUrl
-              ? { backgroundImage: `url("${announcement.imageUrl}")` }
-              : undefined
-          }
-          aria-hidden
-        >
-          {!announcement.imageUrl ? (
-            <ImageOff
-              className="announcement-modal-media-icon"
-              size={48}
-              strokeWidth={1.25}
-            />
-          ) : null}
-        </div>
-
         <div className="announcement-modal-body">
-          {announcement.institutionName ? (
-            <div className="announcement-modal-kicker">
-              {announcement.institutionName.toLocaleUpperCase("tr-TR")}
+          <div className="announcement-modal-layout">
+            <div className="announcement-modal-info">
+              {announcement.institutionName ? (
+                <div className="announcement-modal-kicker">
+                  {announcement.institutionName.toLocaleUpperCase("tr-TR")}
+                </div>
+              ) : null}
+
+              {dateText ? (
+                <div className="announcement-modal-meta">
+                  <span className="announcement-modal-meta-item">
+                    <CalendarDays className="announcement-modal-meta-icon" />
+                    {dateText}
+                  </span>
+                </div>
+              ) : null}
+
+              {announcement.imageUrl ? (
+                <div className="announcement-modal-media-card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={announcement.imageUrl}
+                    alt={announcement.title}
+                    className="announcement-modal-media-image announcement-modal-image"
+                  />
+                </div>
+              ) : null}
+
+              {hasLink ? (
+                <a
+                  className="announcement-modal-link"
+                  href={ensureAbsoluteUrl(trimmedLink)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Globe className="announcement-modal-link-icon" />
+                  <span className="announcement-modal-link-text">{formatLinkLabel(trimmedLink)}</span>
+                </a>
+              ) : null}
             </div>
-          ) : null}
 
-          <h2 id="announcement-modal-title" className="announcement-modal-title">
-            {announcement.title}
-          </h2>
+            <div className="announcement-modal-detail">
+              <div className="announcement-modal-detail-header">
+                <h2 id="announcement-modal-title" className="announcement-modal-title">
+                  {announcement.title}
+                </h2>
+                <hr className="announcement-modal-title-separator" aria-hidden="true" />
+              </div>
 
-          {dateText ? (
-            <div className="announcement-modal-meta">
-              <span className="announcement-modal-meta-item">
-                <CalendarDays className="announcement-modal-meta-icon" />
-                {dateText}
-              </span>
+              <div className="announcement-modal-detail-scroll">
+                {announcement.content ? (
+                  <p className="announcement-modal-desc">{announcement.content}</p>
+                ) : null}
+              </div>
             </div>
-          ) : null}
-
-          {announcement.content ? (
-            <p className="announcement-modal-desc">{announcement.content}</p>
-          ) : null}
-
-          {hasLink ? (
-            <a
-              className="announcement-modal-link"
-              href={ensureAbsoluteUrl(trimmedLink)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Globe className="announcement-modal-link-icon" />
-              <span className="announcement-modal-link-text">
-                {formatLinkLabel(trimmedLink)}
-              </span>
-            </a>
-          ) : null}
+          </div>
         </div>
       </div>
     </div>

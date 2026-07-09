@@ -1,54 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
-  fetchFeaturedPublicInstructors,
-  mapPublicInstructorToFeaturedItem,
-  type FeaturedInstructorItem,
-} from "@/lib/publicInstructorSearch";
-import type { FeaturedInstitution } from "./featuredInstitutionTypes";
+  type HomeFeaturedAccountItem,
+  fetchHomeFeaturedAccountsFromFeaturedAccounts,
+} from "./featuredInstitutions";
 import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
 import { FeaturedInstructorCardLink } from "./FeaturedInstructorCardLink";
-import {
-  fetchHomeFeaturedPinnedInstructorRow,
-  fetchHomeFeaturedPinnedRows,
-  HOME_FEATURED_PINNED_INSTRUCTOR_POSITION,
-} from "./homeFeaturedPinned";
-import { mapInstitutionRowToFeatured } from "./mapInstitutionRowToFeatured";
 
-const LIST_SIZE = 16;
-const FETCH_LIMIT = 300;
-const INSTRUCTOR_FETCH_LIMIT = 8;
+const FEATURED_PAGE_SIZE = 16;
 
-type FeaturedListEntry =
-  | { kind: "institution"; institution: FeaturedInstitution }
-  | { kind: "instructor"; instructor: FeaturedInstructorItem };
-
-const INSTITUTION_SELECT =
-  "id, slug, source, institution_name, type, city, district, logo, institution_type:institution_types(name, category:institution_categories(name))";
-
-function shuffleItems<T>(items: T[]): T[] {
-  const shuffled = [...items];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+function getVisiblePageNumbers(currentPage: number, totalPages: number): number[] {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
-  return shuffled;
-}
 
-function insertPinnedInstructorAtPosition(
-  entries: FeaturedListEntry[],
-  instructor: FeaturedInstructorItem,
-  position: number,
-): FeaturedListEntry[] {
-  const withoutDuplicate = entries.filter(
-    (entry) => !(entry.kind === "instructor" && entry.instructor.id === instructor.id),
-  );
-  const insertAt = Math.min(Math.max(position, 0), withoutDuplicate.length);
-  const next = [...withoutDuplicate];
-  next.splice(insertAt, 0, { kind: "instructor", instructor });
-  return next.slice(0, LIST_SIZE);
+  const startPage = Math.max(1, Math.min(currentPage - 1, totalPages - 2));
+  return [startPage, startPage + 1, startPage + 2].filter((page) => page <= totalPages);
 }
 
 export function HomeFeaturedInstitutionsList({
@@ -70,97 +39,36 @@ export function HomeFeaturedInstitutionsList({
   favoriteInstructorActionLoadingIds: Set<number>;
   isAuthenticated: boolean;
 }) {
-  const [entries, setEntries] = useState<FeaturedListEntry[]>([]);
+  const [allFeaturedAccounts, setAllFeaturedAccounts] = useState<HomeFeaturedAccountItem[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [brokenInstitutionImageIds, setBrokenInstitutionImageIds] = useState<Set<number>>(
     () => new Set(),
   );
   const [brokenInstructorImageIds, setBrokenInstructorImageIds] = useState<Set<number>>(
     () => new Set(),
   );
+  const featuredListRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFeaturedList = useCallback(() => {
+    const listElement = featuredListRef.current;
+    if (!listElement) return;
+
+    window.requestAnimationFrame(() => {
+      const rect = listElement.getBoundingClientRect();
+      const top = Math.max(0, rect.top + window.scrollY - 72);
+      window.scrollTo({ top, behavior: "smooth" });
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
-
-      const [pinnedRows, listResult, instructorRows, pinnedInstructorRow] = await Promise.all([
-        fetchHomeFeaturedPinnedRows(supabase),
-        supabase
-          .from("institutions")
-          .select(INSTITUTION_SELECT)
-          .not("institution_name", "is", null)
-          .eq("is_approved", true)
-          .limit(FETCH_LIMIT),
-        fetchFeaturedPublicInstructors(supabase, { limit: INSTRUCTOR_FETCH_LIMIT }),
-        fetchHomeFeaturedPinnedInstructorRow(supabase),
-      ]);
-
+      const featuredAccounts = await fetchHomeFeaturedAccountsFromFeaturedAccounts(supabase);
       if (cancelled) return;
-
-      const pinned: FeaturedInstitution[] = [];
-      const pinnedIds = new Set<number>();
-
-      for (const row of pinnedRows) {
-        const item = mapInstitutionRowToFeatured(supabase, row);
-        if (item && !pinnedIds.has(item.id)) {
-          pinned.push(item);
-          pinnedIds.add(item.id);
-        }
-      }
-
-      const instructors = instructorRows
-        .map((row) => mapPublicInstructorToFeaturedItem(row, supabase))
-        .filter((item): item is FeaturedInstructorItem => item !== null);
-
-      const pinnedInstructor = pinnedInstructorRow
-        ? mapPublicInstructorToFeaturedItem(pinnedInstructorRow, supabase)
-        : null;
-
-      const applyPinnedInstructor = (entries: FeaturedListEntry[]): FeaturedListEntry[] => {
-        if (!pinnedInstructor) return entries;
-        return insertPinnedInstructorAtPosition(
-          entries,
-          pinnedInstructor,
-          HOME_FEATURED_PINNED_INSTRUCTOR_POSITION,
-        );
-      };
-
-      const buildEntries = (
-        institutionItems: FeaturedInstitution[],
-        instructorItems: FeaturedInstructorItem[],
-      ): FeaturedListEntry[] => {
-        const pinnedEntries: FeaturedListEntry[] = institutionItems
-          .filter((item) => pinnedIds.has(item.id))
-          .map((institution) => ({ kind: "institution", institution }));
-
-        const otherInstitutions = institutionItems.filter((item) => !pinnedIds.has(item.id));
-        const instructorPool = instructorItems.filter(
-          (item) => item.id !== pinnedInstructor?.id,
-        );
-        const mixedOthers = shuffleItems<FeaturedListEntry>([
-          ...otherInstitutions.map((institution) => ({ kind: "institution" as const, institution })),
-          ...instructorPool.map((instructor) => ({ kind: "instructor" as const, instructor })),
-        ]).slice(0, Math.max(0, LIST_SIZE - pinnedEntries.length));
-
-        return applyPinnedInstructor([...pinnedEntries, ...mixedOthers].slice(0, LIST_SIZE));
-      };
-
-      if (listResult.error || !listResult.data) {
-        const fallback = buildEntries(pinned, instructors);
-        if (fallback.length > 0) setEntries(fallback);
-        return;
-      }
-
-      const mapped = (listResult.data as Array<Record<string, unknown>>)
-        .map((row) => mapInstitutionRowToFeatured(supabase, row))
-        .filter((item): item is FeaturedInstitution => item !== null);
-
-      const nextEntries = buildEntries(
-        mapped.length > 0 ? [...pinned, ...mapped.filter((item) => !pinnedIds.has(item.id))] : pinned,
-        instructors,
-      );
-      if (nextEntries.length > 0) setEntries(nextEntries);
+      setAllFeaturedAccounts(featuredAccounts);
+      setCurrentPage(1);
     })();
 
     return () => {
@@ -168,10 +76,45 @@ export function HomeFeaturedInstitutionsList({
     };
   }, []);
 
-  if (entries.length === 0) return null;
+  const totalItems = allFeaturedAccounts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / FEATURED_PAGE_SIZE));
+  const showPagination = totalItems > FEATURED_PAGE_SIZE;
+  const hasPrev = currentPage > 1;
+  const hasNext = currentPage < totalPages;
+
+  const handleFeaturedPageChange = useCallback(
+    (nextPage: number) => {
+      if (nextPage < 1 || nextPage > totalPages || nextPage === currentPage) return;
+      setCurrentPage(nextPage);
+      scrollToFeaturedList();
+    },
+    [currentPage, scrollToFeaturedList, totalPages],
+  );
+
+  const visiblePageNumbers = useMemo(
+    () => (showPagination ? getVisiblePageNumbers(currentPage, totalPages) : []),
+    [showPagination, currentPage, totalPages],
+  );
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedFeaturedAccounts = useMemo(() => {
+    const safePage = Math.min(Math.max(currentPage, 1), Math.max(totalPages, 1));
+    const start = (safePage - 1) * FEATURED_PAGE_SIZE;
+    return allFeaturedAccounts.slice(start, start + FEATURED_PAGE_SIZE);
+  }, [allFeaturedAccounts, currentPage, totalPages]);
+
+  if (allFeaturedAccounts.length === 0) return null;
 
   return (
-    <section className="featured-institutions-list-section" aria-labelledby="home-featured-institutions-list-heading">
+    <section
+      className="featured-institutions-list-section featured-institutions-section"
+      aria-labelledby="home-featured-institutions-list-heading"
+    >
       <div className="featured-institutions-header">
         <div className="featured-institutions-header-left">
           <h2 className="featured-institutions-title" id="home-featured-institutions-list-heading">
@@ -179,9 +122,37 @@ export function HomeFeaturedInstitutionsList({
           </h2>
         </div>
       </div>
-      <div className="featured-institutions-list">
-        {entries.map((entry) => {
-          if (entry.kind === "instructor") {
+      <div className="featured-institutions-body">
+        <div ref={featuredListRef} className="featured-institutions-list">
+          {paginatedFeaturedAccounts.map((entry) => {
+            if (entry.kind === "institution") {
+              const institution = entry.institution;
+              const canRenderImage =
+                Boolean(institution.imageUrl) && !brokenInstitutionImageIds.has(institution.id);
+              const isFavorite = favoriteIds.has(institution.id);
+              const isActionLoading = favoriteActionLoadingIds.has(institution.id);
+
+              return (
+                <FeaturedInstitutionCardLink
+                  key={`institution-${institution.id}`}
+                  institution={institution}
+                  isFavorite={isFavorite}
+                  isActionLoading={isActionLoading}
+                  favoritesEnabled={favoritesEnabled}
+                  isAuthenticated={isAuthenticated}
+                  canRenderImage={canRenderImage}
+                  onToggleFavorite={onToggleFavorite}
+                  onImageError={() =>
+                    setBrokenInstitutionImageIds((prev) => {
+                      const next = new Set(prev);
+                      next.add(institution.id);
+                      return next;
+                    })
+                  }
+                />
+              );
+            }
+
             const instructor = entry.instructor;
             const canRenderImage =
               Boolean(instructor.imageUrl) && !brokenInstructorImageIds.has(instructor.id);
@@ -207,34 +178,53 @@ export function HomeFeaturedInstitutionsList({
                 }
               />
             );
-          }
+          })}
+        </div>
 
-          const institution = entry.institution;
-          const canRenderImage =
-            Boolean(institution.imageUrl) && !brokenInstitutionImageIds.has(institution.id);
-          const isFavorite = favoriteIds.has(institution.id);
-          const isActionLoading = favoriteActionLoadingIds.has(institution.id);
-
-          return (
-            <FeaturedInstitutionCardLink
-              key={`institution-${institution.id}`}
-              institution={institution}
-              isFavorite={isFavorite}
-              isActionLoading={isActionLoading}
-              favoritesEnabled={favoritesEnabled}
-              isAuthenticated={isAuthenticated}
-              canRenderImage={canRenderImage}
-              onToggleFavorite={onToggleFavorite}
-              onImageError={() =>
-                setBrokenInstitutionImageIds((prev) => {
-                  const next = new Set(prev);
-                  next.add(institution.id);
-                  return next;
-                })
-              }
-            />
-          );
-        })}
+        {showPagination ? (
+          <nav className="featured-institutions-pagination" aria-label="Öne çıkanlar sayfalama">
+            <div className="featured-institutions-pagination-info">
+              Toplam <strong>{totalItems}</strong> öne çıkan hesap görüntüleniyor.
+              <span className="featured-institutions-pagination-page-nums">
+                Sayfa {currentPage} / {totalPages}
+              </span>
+            </div>
+            <div className="featured-institutions-pagination-controls">
+              <button
+                type="button"
+                className="featured-institutions-pagination-btn"
+                onClick={() => handleFeaturedPageChange(currentPage - 1)}
+                disabled={!hasPrev}
+                aria-label="Önceki sayfa"
+              >
+                ‹
+              </button>
+              {visiblePageNumbers.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`featured-institutions-pagination-num${
+                    pageNumber === currentPage ? " featured-institutions-pagination-num--active" : ""
+                  }`}
+                  onClick={() => handleFeaturedPageChange(pageNumber)}
+                  aria-label={`Sayfa ${pageNumber}`}
+                  aria-current={pageNumber === currentPage ? "page" : undefined}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="featured-institutions-pagination-btn"
+                onClick={() => handleFeaturedPageChange(currentPage + 1)}
+                disabled={!hasNext}
+                aria-label="Sonraki sayfa"
+              >
+                ›
+              </button>
+            </div>
+          </nav>
+        ) : null}
       </div>
     </section>
   );

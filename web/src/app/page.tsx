@@ -4,12 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, ChevronLeft, ChevronRight, MapPin, Star, Building2, Landmark, UserRound, SlidersHorizontal } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, Check, MapPin, Building2, Landmark, UserRound, SlidersHorizontal } from "lucide-react";
 import { HomeAnnouncementsMarquee } from "@/components/announcements/HomeAnnouncementsMarquee";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { HomeBlogSection } from "@/components/blog/HomeBlogSection";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
 import { HomeIndividualInstructorsSection } from "@/components/featured/HomeIndividualInstructorsSection";
+import { HomeDrivingSchoolsSection } from "@/components/featured/HomeDrivingSchoolsSection";
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
 import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HeaderWithSearch } from "@/components/layout/header.client";
@@ -20,7 +20,6 @@ import MekoChromaVideo from "@/components/MekoChromaVideo";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
 import { useAllInstitutionMapMarkers } from "@/hooks/useAllInstitutionMapMarkers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import {
   FavoritesError,
   getMyFavoriteInstitutionIds,
@@ -29,7 +28,6 @@ import {
   toggleFavorite,
   toggleInstructorFavorite,
 } from "@/lib/favorites/favoritesClient";
-import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { getCategoryHref, HOME_MAIN_CATEGORY_ORDER } from "@/lib/categoryHelpers";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { User } from "@supabase/supabase-js";
@@ -170,6 +168,26 @@ const HOME_SIDEBAR_CATEGORY_DISPLAY_ITEMS: Readonly<Record<string, readonly stri
   ],
 };
 
+const HOME_SIDEBAR_CATEGORY_VISIBLE_COUNT = 4;
+
+function buildSidebarCategoryRows(
+  groupId: string,
+  subcategories: MainCategorySubcategory[],
+): Array<{ kind: "sub"; item: MainCategorySubcategory; label: string }> {
+  const displayLabels = [...(HOME_SIDEBAR_CATEGORY_DISPLAY_ITEMS[groupId] ?? [])]
+    .sort((a, b) => a.localeCompare(b, "tr-TR", { sensitivity: "base" }))
+    .slice(0, HOME_SIDEBAR_CATEGORY_VISIBLE_COUNT);
+
+  return displayLabels.map((label) => {
+    const matchedSub = findSubcategoryForDisplayName(subcategories, label);
+    return {
+      kind: "sub" as const,
+      label,
+      item: matchedSub ?? { id: -1, name: label },
+    };
+  });
+}
+
 function findSubcategoryForDisplayName(
   subcategories: MainCategorySubcategory[],
   displayName: string,
@@ -279,44 +297,6 @@ function computeSidebarSelectedInstitutionTypeIds(
   return Array.from(idSet);
 }
 
-const PREMIUM_PICKS_PER_PAGE = 5;
-const PREMIUM_RANDOM_EXTRA_COUNT = 5;
-
-const HOME_PREMIUM_PICK_NAME_GROUPS: readonly (readonly string[])[] = [
-  ["ANKARA ÖZEL TEVFİK FİKRET ANADOLU LİSESİ"],
-  ["ANKARA ÜNİVERSİTESİ GELİŞTİRME VAKFI OKULLARI ÖZEL ANADOLU LİSESİ"],
-  [
-    "İHSAN DOĞRAMACI VAKFI ÖZEL BİLKENT LABORATUAR LİSESİ",
-    "İHSAN DOĞRAMACI VAKFI ÖZEL  BİLKENT LABORATUAR LİSESİ",
-  ],
-  ["İHSAN DOĞRAMACI VAKFI ÖZEL BİLKENT LİSESİ"],
-];
-
-type HomeCuratedRow = {
-  id: number;
-  slug: string | null;
-  source: string | null;
-  institution_name: string | null;
-  city: string | null;
-  district: string | null;
-  logo: string | null;
-};
-
-type PremiumPickItem = {
-  id: number;
-  name: string;
-  imageUrl: string;
-  slug: string;
-  source: string;
-  location: string;
-  rating: number | null;
-  reviewCount: string | null;
-};
-
-function normalizeInstitutionNameKey(name: string): string {
-  return name.trim().replace(/\s+/g, " ");
-}
-
 const PATILI_DOSTLAR_PAGE_HREF = "/patili-dostlar";
 
 const HOME_PATILI_DOSTLAR_FEATURED = {
@@ -339,34 +319,6 @@ const HOME_PATILI_DOSTLAR_SIDE_CARDS = [
     imageUrl: "/images/pet_otel.png",
   },
 ] as const;
-
-function shufflePremiumPicks<T>(items: T[]): T[] {
-  const shuffled = [...items];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-function buildHomeSchoolLocation(district: string | null, city: string | null): string {
-  const d = String(district ?? "").trim();
-  const c = String(city ?? "").trim();
-  if (d && c) return `${d}, ${c}`;
-  return d || c || "Ankara";
-}
-
-const premiumPicksMotionVariants = {
-  enter: (dir: 1 | -1) => ({
-    x: dir * 26,
-    opacity: 0,
-  }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir: 1 | -1) => ({
-    x: dir * -26,
-    opacity: 0,
-  }),
-};
 
 export default function Home() {
   const router = useRouter();
@@ -415,11 +367,7 @@ export default function Home() {
   );
   const [selectedSchoolStatuses, setSelectedSchoolStatuses] = useState<Set<"private" | "public">>(() => new Set());
   const [selectedAgeOptions, setSelectedAgeOptions] = useState<Set<"child" | "adult">>(() => new Set());
-  const [premiumPicksPage, setPremiumPicksPage] = useState(0);
-  const [premiumPicksSlideDir, setPremiumPicksSlideDir] = useState<1 | -1>(1);
-  const [premiumPicks, setPremiumPicks] = useState<PremiumPickItem[]>([]);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
-  const reduceMotion = useReducedMotion();
   const { markers: institutionMapMarkers, loading: institutionMapLoading } = useAllInstitutionMapMarkers();
 
   const sidebarInstitutionTypeIds = useMemo(
@@ -448,8 +396,6 @@ export default function Home() {
       sidebarInstitutionTypeIds,
     ],
   );
-
-  const premiumPicksPageCount = Math.max(1, Math.ceil(premiumPicks.length / PREMIUM_PICKS_PER_PAGE));
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -486,106 +432,6 @@ export default function Home() {
       "",
       `${window.location.pathname || "/"}${nextQuery ? `?${nextQuery}` : ""}`,
     );
-  }, []);
-
-  useEffect(() => {
-    const maxPage = Math.max(0, premiumPicksPageCount - 1);
-    setPremiumPicksPage((p) => (p > maxPage ? maxPage : p));
-  }, [premiumPicksPageCount]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const allQueryNames = Array.from(
-        new Set([...HOME_PREMIUM_PICK_NAME_GROUPS].flat() as string[])
-      );
-      const { data, error } = await supabase
-        .from("institutions")
-        .select("id, slug, source, institution_name, city, district, logo")
-        .in("institution_name", allQueryNames)
-        .eq("is_approved", true);
-
-      if (cancelled) return;
-      if (error) {
-        console.error("Home curated schools load error:", error);
-        return;
-      }
-
-      const rows = (data ?? []) as HomeCuratedRow[];
-      const byNorm = new Map<string, HomeCuratedRow>();
-      for (const row of rows) {
-        const nm = String(row.institution_name ?? "").trim();
-        if (nm) byNorm.set(normalizeInstitutionNameKey(nm), row);
-      }
-
-      const resolveRow = (aliases: readonly string[]): HomeCuratedRow | null => {
-        for (const a of aliases) {
-          const r = byNorm.get(normalizeInstitutionNameKey(a));
-          if (r) return r;
-        }
-        return null;
-      };
-
-      const toLogoUrl = (rawLogo: string) => resolveInstitutionLogoPublicUrl(supabase, rawLogo);
-
-      const premium: PremiumPickItem[] = [];
-      for (const group of HOME_PREMIUM_PICK_NAME_GROUPS) {
-        const row = resolveRow(group);
-        if (!row) continue;
-        const slug = String(row.slug ?? "").trim();
-        if (!slug) continue;
-        premium.push({
-          id: row.id,
-          name: String(row.institution_name ?? "").trim() || slug,
-          imageUrl: toLogoUrl(String(row.logo ?? "").trim()),
-          slug,
-          source: String(row.source ?? "").trim(),
-          location: buildHomeSchoolLocation(row.district, row.city),
-          rating: null,
-          reviewCount: null,
-        });
-      }
-
-      const fixedIds = new Set(premium.map((item) => item.id));
-      const { data: randomRows, error: randomError } = await supabase
-        .from("institutions")
-        .select("id, slug, source, institution_name, city, district, logo")
-        .not("institution_name", "is", null)
-        .eq("is_approved", true)
-        .limit(240);
-
-      if (randomError) {
-        console.error("Home premium random schools load error:", randomError);
-      } else {
-        const randomPool: PremiumPickItem[] = [];
-        for (const row of (randomRows ?? []) as HomeCuratedRow[]) {
-          if (fixedIds.has(row.id)) continue;
-          const slug = String(row.slug ?? "").trim();
-          if (!slug) continue;
-          const name = String(row.institution_name ?? "").trim();
-          if (!name) continue;
-          randomPool.push({
-            id: row.id,
-            name,
-            imageUrl: toLogoUrl(String(row.logo ?? "").trim()),
-            slug,
-            source: String(row.source ?? "").trim(),
-            location: buildHomeSchoolLocation(row.district, row.city),
-            rating: null,
-            reviewCount: null,
-          });
-        }
-
-        const randomExtra = shufflePremiumPicks(randomPool).slice(0, PREMIUM_RANDOM_EXTRA_COUNT);
-        premium.push(...randomExtra);
-      }
-
-      setPremiumPicks(premium);
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const handleFavoriteToggle = async (institutionId: number, e: React.MouseEvent) => {
@@ -1135,17 +981,7 @@ export default function Home() {
                       return group.matchKeys.some((k) => k === nameKey || k === slugKey);
                     });
                     const subcategories = matchedCard?.subcategories ?? [];
-                    const displayLabels = HOME_SIDEBAR_CATEGORY_DISPLAY_ITEMS[group.id] ?? [];
-                    type AccordionRow = { kind: "sub"; item: MainCategorySubcategory; label: string };
-                    const rows: AccordionRow[] = [];
-                    for (const label of displayLabels) {
-                      const matchedSub = findSubcategoryForDisplayName(subcategories, label);
-                      rows.push({
-                        kind: "sub",
-                        label,
-                        item: matchedSub ?? { id: -1, name: label },
-                      });
-                    }
+                    const rows = buildSidebarCategoryRows(group.id, subcategories);
                     const categoryHref = matchedCard
                       ? getCategoryHref(matchedCard.name, matchedCard.slug)
                       : getCategoryHref(group.title, group.id);
@@ -1224,6 +1060,22 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+
+          {showDefaultHomeContent && isAuthReady && !user ? (
+            <section className="filter-sidebar-cta" aria-label="Hayatın Merkezinde Olun">
+              <div className="cta-section cta-section--sidebar">
+                <h3 className="cta-section-title">Hayatın Merkezinde Olun!</h3>
+                <p className="cta-section-subtitle">
+                  İhtiyacınız olan tüm hizmetleri tek platformda bulun. Kaliteli hizmet sağlayıcılarıyla tanışın!
+                </p>
+                <div className="cta-section-buttons">
+                  <button type="button" className="cta-section-button cta-section-button-primary">
+                    ÜCRETSİZ ÜYE OLUN
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : null}
         </aside>
 
         <main className="main-content">
@@ -1284,6 +1136,8 @@ export default function Home() {
             </div>
           </section>
 
+          <HomeDrivingSchoolsSection />
+
           <HomeIndividualInstructorsSection />
 
           <HomeFeaturedInstitutionsList
@@ -1296,23 +1150,6 @@ export default function Home() {
             favoriteInstructorActionLoadingIds={favoriteInstructorActionLoadingIds}
             isAuthenticated={Boolean(user)}
           />
-
-          <section>
-            <div className="cta-section">
-              <h3 className="cta-section-title">Hayatın Merkezinde Olun!</h3>
-              <p className="cta-section-subtitle">İhtiyacınız olan tüm hizmetleri tek platformda bulun. Kaliteli hizmet sağlayıcılarıyla tanışın!</p>
-              <div className="cta-section-buttons">
-                <button className="cta-section-button cta-section-button-primary">
-                  ÜCRETSİZ ÜYE OLUN
-                </button>
-                <button className="cta-section-button cta-section-button-secondary">
-                  YAKINIMDAKİ HİZMETLERİ GÖSTER
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <HomeAnnouncementsMarquee />
 
             </>
           ) : (
@@ -1356,177 +1193,79 @@ export default function Home() {
       </main>
       </div>
 
-      {showDefaultHomeContent ? (
-        <div className="home-patili-dostlar-row">
-          <div className="home-patili-dostlar-meko" aria-hidden>
-            <MekoChromaVideo
-              src="/gifs/meko-pet.mp4"
-              className="home-patili-dostlar-meko-video"
-              ariaLabel="Meko animation"
-              threshold={18}
-            />
-          </div>
-
-          <section className="patili-dostlar-section" aria-label="Patili Dostlar">
-            <div className="patili-dostlar-header">
-              <h2 className="patili-dostlar-title">Patili Dostlar</h2>
-              <Link href={PATILI_DOSTLAR_PAGE_HREF} className="patili-dostlar-view-all">
-                tümünü gör
-              </Link>
-            </div>
-
-            <div className="patili-dostlar-grid">
-              <Link href={PATILI_DOSTLAR_PAGE_HREF} className="patili-dostlar-feature-card">
-                <div
-                  className="patili-dostlar-feature-media"
-                  style={{ backgroundImage: `url("${HOME_PATILI_DOSTLAR_FEATURED.imageUrl}")` }}
-                >
-                  <div className="patili-dostlar-feature-overlay" />
-                  <div className="patili-dostlar-feature-body">
-                    <h3 className="patili-dostlar-feature-title">{HOME_PATILI_DOSTLAR_FEATURED.title}</h3>
-                    <p className="patili-dostlar-feature-desc">{HOME_PATILI_DOSTLAR_FEATURED.description}</p>
-                  </div>
-                </div>
-              </Link>
-
-              <div className="patili-dostlar-side">
-                {HOME_PATILI_DOSTLAR_SIDE_CARDS.map((item) => (
-                  <Link
-                    href={PATILI_DOSTLAR_PAGE_HREF}
-                    key={item.id}
-                    className="patili-dostlar-feature-card patili-dostlar-side-card"
-                  >
-                    <div
-                      className="patili-dostlar-feature-media"
-                      style={{ backgroundImage: `url("${item.imageUrl}")` }}
-                    >
-                      <div className="patili-dostlar-feature-overlay" />
-                      <div className="patili-dostlar-feature-body">
-                        <h3 className="patili-dostlar-feature-title">{item.title}</h3>
-                        <p className="patili-dostlar-feature-desc">{item.description}</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        </div>
-      ) : null}
-
       <div className="content-layout">
         <div className="content-layout-inner">
-          <section className="purple-featured-section" aria-label="Hızlı Keşif">
+          {showDefaultHomeContent ? (
+            <>
+              <HomeAnnouncementsMarquee />
+
+              <div className="home-patili-dostlar-row">
+                <div className="home-patili-dostlar-meko" aria-hidden>
+                  <MekoChromaVideo
+                    src="/gifs/meko-pet.mp4"
+                    className="home-patili-dostlar-meko-video"
+                    ariaLabel="Meko animation"
+                    threshold={18}
+                  />
+                </div>
+
+                <section className="patili-dostlar-section" aria-label="Patili Dostlar">
+                  <div className="patili-dostlar-header">
+                    <h2 className="patili-dostlar-title">Patili Dostlar</h2>
+                    <Link href={PATILI_DOSTLAR_PAGE_HREF} className="patili-dostlar-view-all">
+                      tümünü gör
+                    </Link>
+                  </div>
+
+                  <div className="patili-dostlar-grid">
+                    <Link href={PATILI_DOSTLAR_PAGE_HREF} className="patili-dostlar-feature-card">
+                      <div
+                        className="patili-dostlar-feature-media"
+                        style={{ backgroundImage: `url("${HOME_PATILI_DOSTLAR_FEATURED.imageUrl}")` }}
+                      >
+                        <div className="patili-dostlar-feature-overlay" />
+                        <div className="patili-dostlar-feature-body">
+                          <h3 className="patili-dostlar-feature-title">{HOME_PATILI_DOSTLAR_FEATURED.title}</h3>
+                          <p className="patili-dostlar-feature-desc">{HOME_PATILI_DOSTLAR_FEATURED.description}</p>
+                        </div>
+                      </div>
+                    </Link>
+
+                    <div className="patili-dostlar-side">
+                      {HOME_PATILI_DOSTLAR_SIDE_CARDS.map((item) => (
+                        <Link
+                          href={PATILI_DOSTLAR_PAGE_HREF}
+                          key={item.id}
+                          className="patili-dostlar-feature-card patili-dostlar-side-card"
+                        >
+                          <div
+                            className="patili-dostlar-feature-media"
+                            style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                          >
+                            <div className="patili-dostlar-feature-overlay" />
+                            <div className="patili-dostlar-feature-body">
+                              <h3 className="patili-dostlar-feature-title">{item.title}</h3>
+                              <p className="patili-dostlar-feature-desc">{item.description}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </>
+          ) : null}
+
+          <section className="purple-featured-section" aria-label="Sürücü Kursları">
             <div className="purple-featured-bg" aria-hidden />
             <div className="purple-featured-inner">
               <div className="purple-featured-heading">
                 <span className="purple-featured-kicker">Sizin için özenle seçildi.</span>
-                <h2 className="purple-featured-title">Aramıza Yeni Katılanlar</h2>
+                <h2 className="purple-featured-title">Sürücü Kursları</h2>
               </div>
 
               <HomePurpleFeaturedMarquee />
-            </div>
-          </section>
-
-          <section className="premium-picks-section" aria-label="Ankara'nın En İyileri">
-            <div className="premium-picks-header">
-              <div className="premium-picks-header-text">
-                <span className="premium-picks-badge">PREMIUM KEŞİF</span>
-                <h2 className="premium-picks-title">Ankara&apos;nın En İyileri</h2>
-                <p className="premium-picks-desc">Başkentin en prestijli eğitim kurumlarını keşfedin.</p>
-              </div>
-              {premiumPicksPageCount > 1 ? (
-                <div className="premium-picks-nav" aria-hidden>
-                  <button
-                    type="button"
-                    className="premium-picks-nav-btn premium-picks-nav-btn--prev"
-                    aria-label="Önceki"
-                    onClick={() => {
-                      setPremiumPicksSlideDir(-1);
-                      setPremiumPicksPage(
-                        (p) => (p - 1 + premiumPicksPageCount) % premiumPicksPageCount
-                      );
-                    }}
-                  >
-                    <ChevronLeft className="premium-picks-nav-icon" />
-                  </button>
-                  <button
-                    type="button"
-                    className="premium-picks-nav-btn premium-picks-nav-btn--next"
-                    aria-label="Sonraki"
-                    onClick={() => {
-                      setPremiumPicksSlideDir(1);
-                      setPremiumPicksPage((p) => (p + 1) % premiumPicksPageCount);
-                    }}
-                  >
-                    <ChevronRight className="premium-picks-nav-icon" />
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <div className="premium-picks-cards">
-              <AnimatePresence mode="wait" initial={false} custom={premiumPicksSlideDir}>
-                <motion.div
-                  key={premiumPicksPage}
-                  custom={premiumPicksSlideDir}
-                  variants={premiumPicksMotionVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { duration: 0.16, ease: [0.4, 0, 0.2, 1] }
-                  }
-                  className="premium-picks-cards-track"
-                >
-                  {premiumPicks
-                    .slice(
-                      premiumPicksPage * PREMIUM_PICKS_PER_PAGE,
-                      premiumPicksPage * PREMIUM_PICKS_PER_PAGE + PREMIUM_PICKS_PER_PAGE,
-                    )
-                    .map((item) => (
-                    <Link
-                      key={item.id}
-                      href={getInstitutionDetailHref({ slug: item.slug, source: item.source })}
-                      className="premium-picks-card"
-                    >
-                      <div
-                        className={`premium-picks-card-media${item.imageUrl ? "" : " premium-picks-card-media--empty"}`}
-                        style={
-                          item.imageUrl
-                            ? { backgroundImage: `url("${item.imageUrl}")` }
-                            : {
-                                backgroundImage: "none",
-                                background:
-                                  "linear-gradient(to right, #6d5dfc, #7f56d9, #9454ff)",
-                              }
-                        }
-                      >
-                        {!item.imageUrl ? (
-                          <div className="premium-picks-card-placeholder-zone" aria-hidden>
-                            <Building2 className="premium-picks-card-placeholder-svg" strokeWidth={1.25} />
-                          </div>
-                        ) : null}
-                        <div className="premium-picks-card-overlay" />
-                        <div className="premium-picks-card-info">
-                          <h3 className="premium-picks-card-title">{item.name}</h3>
-                          {item.rating != null && item.reviewCount != null ? (
-                            <div className="premium-picks-card-rating">
-                              <Star className="premium-picks-card-star" fill="currentColor" aria-hidden />
-                              <span>{item.rating}</span>
-                              <span className="premium-picks-card-reviews">
-                                ({item.reviewCount} Değerlendirme)
-                              </span>
-                            </div>
-                          ) : null}
-                          <p className="premium-picks-card-location">{item.location}</p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
             </div>
           </section>
 

@@ -25,9 +25,8 @@ import {
   ImageOff,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
-import { isMebInstitution } from "@/lib/institutionHelpers";
-import { formatWorkingHoursRange } from "@/lib/institutionWorkingHours";
+import { isMebInstitution, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import { formatWorkingHoursRange } from "@/lib/institutionHelpers";
 import ShareButton from "./ShareButton";
 import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
@@ -681,10 +680,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           }
 
           if (feature.input_type === "single_select") {
-            const selectedChoiceId = entry.selected_choice_id ?? null;
-            if (!selectedChoiceId) return;
-            const label = choiceNameById.get(selectedChoiceId);
-            if (label) badges.push(label);
+            const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
+            selectedIds.forEach((choiceId) => {
+              const label = choiceNameById.get(choiceId);
+              if (label) badges.push(label);
+            });
             return;
           }
 
@@ -735,9 +735,12 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           if (!entry) return null;
           if (feature.input_type === "boolean") return entry.boolean_answer === true ? "Evet" : null;
           if (feature.input_type === "single_select") {
-            const choiceId = entry.selected_choice_id ?? null;
-            if (!choiceId) return null;
-            return choiceNameById.get(choiceId) ?? null;
+            const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
+            const labels = selectedIds
+              .map((id) => choiceNameById.get(id) ?? "")
+              .filter((label) => Boolean(label));
+            if (labels.length === 0) return null;
+            return labels.length === 1 ? labels[0] : labels;
           }
           if (feature.input_type === "multi_select") {
             const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
@@ -818,6 +821,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             label,
             value,
             ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
+            ...(feature.input_type === "single_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
           });
         }
       }

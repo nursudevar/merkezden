@@ -12,7 +12,7 @@ import type { InstitutionMapViewportBounds } from "@/components/map/InstitutionL
 import {
   buildCategoryTabNames,
   fetchActiveInstitutionCategories,
-} from "@/lib/institutionCategoriesClient";
+} from "@/lib/categoryHelpers";
 import "@/styles/components/institution-locations-map.scss";
 
 const InstitutionLocationsMap = dynamic(

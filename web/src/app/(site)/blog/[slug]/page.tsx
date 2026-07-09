@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 import { getBlogPostBySlug, type ContentBlock } from "@/lib/data/blog";
 import { fetchPublishedBlogPostBySlugServer } from "@/lib/blog/blogServer";
-import { mapPublishedPostToDisplay } from "@/lib/blog/blogDisplay";
+import { mapPublishedPostToDisplay } from "@/lib/blog/blogClient";
 import "@/styles/pages/blog.scss";
 
 function renderContentBlock(block: ContentBlock, index: number) {

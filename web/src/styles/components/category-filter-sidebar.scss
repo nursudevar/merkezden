@@ -242,7 +242,7 @@
 .category-filter-price-input {
   flex: 1;
   min-width: 0;
-  height: 44px;
+  height: 22px;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   background-color: #f9fafb;
@@ -556,6 +556,16 @@
   }
 }
 
+.category-filter-section-checkboxes--single {
+  grid-template-columns: 1fr;
+
+  .category-filter-checkbox-label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+}
+
 .category-filter-checkbox-option {
   display: inline-flex;
   align-items: center;
@@ -649,3 +659,80 @@
   text-align: center;
 }
 
+/* Kategori sayfası sol filtre paneli — dikey alanı ~%15–25 azaltır.
+   Ortalama fiyat aralığı (slider/input) ve harita alanına dokunulmaz. */
+.category-filter-sidebar {
+  .category-filter-sidebar-card {
+    padding: 20px;
+
+    @media (max-width: 1023px) {
+      padding: 18px;
+    }
+
+    @media (max-width: 480px) {
+      padding: 18px 16px;
+    }
+  }
+
+  .category-filter-sidebar-header {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+  }
+
+  .category-filter-sidebar-content {
+    gap: 14px;
+
+    @media (max-width: 1023px) {
+      gap: 14px;
+    }
+  }
+
+  .category-filter-section:not(:has(.category-filter-price-slider)):not(
+      :has(.category-filter-price-inputs)
+    ) {
+    gap: 8px;
+  }
+
+  .category-filter-section-inputs {
+    gap: 8px;
+  }
+
+  .category-filter-search-input {
+    height: 34px;
+    min-height: 34px;
+    padding-left: 40px;
+    padding-right: 14px;
+  }
+
+  .category-filter-search-icon {
+    left: 14px;
+  }
+
+  .category-filter-select {
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .category-filter-section-options {
+    gap: 5px;
+  }
+
+  .category-filter-radio-option {
+    gap: 10px;
+    padding: 7px 9px;
+  }
+
+  .category-filter-section-checkboxes {
+    gap: 5px 10px;
+  }
+
+  .category-filter-checkbox-option {
+    gap: 7px;
+    padding: 7px 9px;
+  }
+
+  .category-filter-show-more {
+    margin-top: 2px;
+    padding: 4px 8px;
+  }
+}

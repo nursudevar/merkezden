@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
+import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   applyInstructorListingFilters,
   buildInstructorListingFiltersFromSchoolPayload,
@@ -17,6 +19,11 @@ import {
   escapeProfileLikeValue,
   resolveInstitutionIdsByProfileSearch,
 } from "@/lib/profileSearch";
+import {
+  fetchActiveFeaturedInstitutionOrderMap,
+  sortWithFeaturedPriority,
+  type FeaturedOrderMap,
+} from "@/lib/featuredAccountsClient";
 
 export type CategoryResultItem = {
   id: string;
@@ -76,6 +83,37 @@ const MAX_QUERY_PAGES = 50;
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
+function institutionIdQuerySelect(categoryId: number | null): string {
+  if (categoryId != null && Number.isFinite(categoryId) && categoryId > 0) {
+    return "id";
+  }
+  return "id, institution_type:institution_types!inner(category:institution_categories!inner(name))";
+}
+
+function applyInstitutionCategoryScope<
+  T extends { eq: (column: string, value: number) => T; ilike: (column: string, pattern: string) => T },
+>(query: T, categoryId: number | null, targetName: string): T {
+  if (categoryId != null && Number.isFinite(categoryId) && categoryId > 0) {
+    return query.eq("category_id", categoryId);
+  }
+  return query.ilike("institution_type.category.name", targetName);
+}
+
+async function resolveInstitutionCategoryIdForListing(
+  supabase: SupabaseBrowser,
+  categoryName: string,
+  categorySlug?: string,
+): Promise<number | null> {
+  const categoryId = await resolveInstitutionCategoryIdByName(supabase, categoryName);
+  if (categoryId != null) return categoryId;
+
+  const slug = String(categorySlug ?? "").trim();
+  if (!slug) return null;
+
+  const category = await fetchInstitutionCategoryBySlug(slug);
+  return category?.id ?? null;
+}
+
 function applyInstitutionSearchFilter<
   T extends { or: (filters: string) => T },
 >(query: T, searchTerm: string, relatedInstitutionIds: number[] = [], relatedInstitutionTypeIds: number[] = []): T {
@@ -116,6 +154,7 @@ async function fetchAllCategoryInstitutionRows(
   supabase: SupabaseBrowser,
   fullSelect: string,
   targetName: string,
+  categoryId: number | null,
   district: string,
   searchTerm: string,
 ): Promise<InstitutionRow[]> {
@@ -131,9 +170,10 @@ async function fetchAllCategoryInstitutionRows(
     let query = supabase
       .from("institutions")
       .select(fullSelect)
-      .ilike("institution_type.category.name", targetName)
       .ilike("city", FIXED_CITY)
       .eq("is_approved", true);
+
+    query = applyInstitutionCategoryScope(query, categoryId, targetName);
 
     if (district) query = query.eq("district", district);
     if (searchTerm) {
@@ -163,7 +203,7 @@ async function fetchAllCategoryInstitutionRows(
 
 async function fetchAllCategoryInstitutionIds(
   supabase: SupabaseBrowser,
-  idQuerySelect: string,
+  categoryId: number | null,
   targetName: string,
   district: string,
   searchTerm: string,
@@ -180,10 +220,11 @@ async function fetchAllCategoryInstitutionIds(
 
     let query = supabase
       .from("institutions")
-      .select(idQuerySelect)
-      .ilike("institution_type.category.name", targetName)
+      .select(institutionIdQuerySelect(categoryId))
       .ilike("city", FIXED_CITY)
       .eq("is_approved", true);
+
+    query = applyInstitutionCategoryScope(query, categoryId, targetName);
 
     if (district) query = query.eq("district", district);
     if (searchTerm) {
@@ -393,18 +434,7 @@ async function resolveInstitutionIdsForSingleSelectChoice(
   definitionId: number,
   choiceId: number,
 ): Promise<Set<number>> {
-  const out = new Set<number>();
-  const { data, error } = await supabase
-    .from("institution_feature_entries")
-    .select("institution_id")
-    .eq("feature_definition_id", definitionId)
-    .eq("selected_choice_id", choiceId);
-  if (error) throw error;
-  for (const row of (data ?? []) as Array<{ institution_id: number }>) {
-    const iid = Number(row.institution_id);
-    if (Number.isFinite(iid)) out.add(iid);
-  }
-  return out;
+  return resolveInstitutionIdsForMultiSelectChoice(supabase, definitionId, choiceId);
 }
 
 async function resolveInstitutionIdsForMultiSelectChoice(
@@ -481,16 +511,7 @@ async function resolveDefinitionIdForChoiceId(
     if (Number.isFinite(defId)) return defId;
   }
 
-  const { data: directRows, error: directErr } = await supabase
-    .from("institution_feature_entries")
-    .select("feature_definition_id")
-    .eq("selected_choice_id", choiceId)
-    .limit(1);
-  if (directErr) throw directErr;
-  const defId = Number(
-    (directRows?.[0] as { feature_definition_id?: number } | undefined)?.feature_definition_id,
-  );
-  return Number.isFinite(defId) ? defId : null;
+  return null;
 }
 
 function parseChoiceKey(key: string): { choiceId: number | null; definitionId: number | null } {
@@ -529,9 +550,7 @@ async function resolveInstitutionIdsForChoiceKey(
     }
     if (defId == null) return new Set();
 
-    const it = String(inputTypeByDefId.get(defId) ?? "").toLowerCase();
-    if (it === "multi_select") return resolveInstitutionIdsForMultiSelectChoice(supabase, defId, choiceId);
-    return resolveInstitutionIdsForSingleSelectChoice(supabase, defId, choiceId);
+    return resolveInstitutionIdsForMultiSelectChoice(supabase, defId, choiceId);
   }
   return new Set();
 }
@@ -616,7 +635,7 @@ async function resolveInstitutionIdsPriceRangeForDefinitionIds(
 
   const { data: entriesRaw, error: entErr } = await supabase
     .from("institution_feature_entries")
-    .select("id, institution_id, feature_definition_id, selected_choice_id, number_answer, text_answer")
+    .select("id, institution_id, feature_definition_id, number_answer, text_answer")
     .in("feature_definition_id", defIds);
   if (entErr) throw entErr;
 
@@ -624,22 +643,18 @@ async function resolveInstitutionIdsPriceRangeForDefinitionIds(
     id: number;
     institution_id: number;
     feature_definition_id: number;
-    selected_choice_id: number | null;
     number_answer: number | null;
     text_answer: string | null;
   }>;
 
-  const multiEntryIdToInstitution = new Map<number, number>();
+  const choiceEntryIdToInstitution = new Map<number, number>();
   for (const e of entries) {
     const iid = Number(e.institution_id);
     if (!Number.isFinite(iid)) continue;
     const inputType = inputTypeByDefId.get(Number(e.feature_definition_id)) ?? "";
 
-    if (inputType === "single_select") {
-      const cid = Number(e.selected_choice_id);
-      if (!Number.isFinite(cid)) continue;
-      const r = choiceRangeById.get(cid);
-      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
+    if (inputType === "single_select" || inputType === "multi_select") {
+      choiceEntryIdToInstitution.set(Number(e.id), iid);
     } else if (inputType === "number") {
       const n = Number(e.number_answer);
       if (!Number.isFinite(n)) continue;
@@ -647,12 +662,10 @@ async function resolveInstitutionIdsPriceRangeForDefinitionIds(
     } else if (inputType === "text") {
       const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
       if (r && rangesOverlap(r, userRange)) idSet.add(iid);
-    } else if (inputType === "multi_select") {
-      multiEntryIdToInstitution.set(Number(e.id), iid);
     }
   }
 
-  if (multiEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
+  if (choiceEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
     const matchingChoiceIds = Array.from(choiceRangeById.entries())
       .filter(([, r]) => rangesOverlap(r, userRange))
       .map(([cid]) => cid);
@@ -660,11 +673,11 @@ async function resolveInstitutionIdsPriceRangeForDefinitionIds(
       const { data: links, error: linkErr } = await supabase
         .from("institution_feature_entry_choices")
         .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", Array.from(multiEntryIdToInstitution.keys()))
+        .in("institution_feature_entry_id", Array.from(choiceEntryIdToInstitution.keys()))
         .in("choice_id", matchingChoiceIds);
       if (linkErr) throw linkErr;
       for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number }>) {
-        const iid = multiEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
+        const iid = choiceEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
         if (Number.isFinite(iid)) idSet.add(iid!);
       }
     }
@@ -713,18 +726,37 @@ async function fetchCategoryInstructorResults(
     schoolFilters,
   );
 
-  const rows = applyInstructorListingFilters(
-    await fetchPublicInstructorsForListing(supabase, {
-      categoryId,
-      district,
-      city: FIXED_CITY,
-      searchTerm,
-    }),
-    instructorFilters,
+  const rows = await fetchPublicInstructorsForListing(supabase, {
+    categoryId,
+    district,
+    city: FIXED_CITY,
+    searchTerm,
+    allowedInstructorIds:
+      instructorFilters.featureFilterIds !== null ? instructorFilters.featureFilterIds : undefined,
+  });
+
+  const filteredRows = applyInstructorListingFilters(rows, {
+    featureFilterIds: null,
+    branchTitleTerms: instructorFilters.branchTitleTerms,
+    priceRange: null,
+  });
+
+  const instructorIds = filteredRows
+    .map((row) => Number(row.id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
+    instructorIds,
+    supabase,
   );
 
-  return rows
-    .map((row) => mapPublicInstructorToListItem(row, supabase))
+  return filteredRows
+    .map((row) =>
+      mapPublicInstructorToListItem(
+        row,
+        supabase,
+        priceLabelsByInstructorId.get(Number(row.id)),
+      ),
+    )
     .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
@@ -737,11 +769,39 @@ function mergeCategoryResults(
   );
 }
 
+function applyFeaturedInstitutionPriority(
+  items: CategoryResultItem[],
+  featuredOrderMap: FeaturedOrderMap,
+): CategoryResultItem[] {
+  return sortWithFeaturedPriority(
+    items,
+    (item) => {
+      if (item.resultType !== "institution") return null;
+      const id = Number(item.id);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    },
+    featuredOrderMap,
+  );
+}
+
+function finalizeCategoryResults(
+  institutions: CategoryResultItem[],
+  instructors: CategoryResultItem[],
+  featuredOrderMap: FeaturedOrderMap,
+): CategoryResultItem[] {
+  return applyFeaturedInstitutionPriority(
+    mergeCategoryResults(institutions, instructors),
+    featuredOrderMap,
+  );
+}
+
 export function useCategoryInstitutions(
   categoryName: string,
   options?: {
     search?: string;
     district?: string;
+    /** institution_categories.slug — id çözümlemesi ve debug log için. */
+    categorySlug?: string;
     /** Yalnızca Okul kategori sayfası doldurur. */
     schoolFilters?: SchoolCategoryFilterPayload;
   },
@@ -753,6 +813,7 @@ export function useCategoryInstitutions(
 } {
   const rawSearch = options?.search ?? "";
   const district = (options?.district ?? "").trim();
+  const categorySlug = String(options?.categorySlug ?? "").trim();
   const schoolFilters = options?.schoolFilters;
 
   const [results, setResults] = useState<CategoryResultItem[]>([]);
@@ -785,31 +846,63 @@ export function useCategoryInstitutions(
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
+      const featuredOrderPromise = fetchActiveFeaturedInstitutionOrderMap(supabase);
 
       const fullSelect =
-        "id, slug, institution_name, subheading, about, address, district, city, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, source, institution_type:institution_types!inner(id, name, category:institution_categories!inner(id, name))";
-
-      /** PostgREST: gömülü ilişki üzerinde filtre için select'te aynı embed bulunmalı. */
-      const idQuerySelect =
-        "id, institution_type:institution_types!inner(category:institution_categories!inner(name))";
+        "id, slug, institution_name, subheading, about, address, district, city, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, source, category_id, institution_type:institution_types(id, name, category:institution_categories(id, name))";
 
         const useSchoolPipeline = hasAnySchoolPayloadFilters(schoolFilters ?? undefined);
 
       try {
         const searchTerm = debouncedSearch.trim();
-        const categoryId = await resolveInstitutionCategoryIdByName(supabase, targetName);
+        const categoryId = await resolveInstitutionCategoryIdForListing(
+          supabase,
+          targetName,
+          categorySlug,
+        );
         if (cancelled) return;
 
+        if (categoryId == null) {
+          console.warn("[category][institutions] kategori bulunamadı:", {
+            categoryName: targetName,
+            categorySlug: categorySlug || null,
+          });
+        } else {
+          console.info("[category][institutions] kategori çözüldü:", {
+            categoryName: targetName,
+            categorySlug: categorySlug || null,
+            categoryId,
+          });
+        }
+
         if (!useSchoolPipeline) {
-          const [rows, instructorResults] = await Promise.all([
-            fetchAllCategoryInstitutionRows(supabase, fullSelect, targetName, district, searchTerm),
+          const [rows, instructorResults, featuredOrderResult] = await Promise.all([
+            fetchAllCategoryInstitutionRows(
+              supabase,
+              fullSelect,
+              targetName,
+              categoryId,
+              district,
+              searchTerm,
+            ),
             fetchCategoryInstructorResults(supabase, categoryId, district, searchTerm, schoolFilters),
+            featuredOrderPromise,
           ]);
 
           if (cancelled) return;
 
+          console.info("[category][institutions] liste sonucu:", {
+            categoryName: targetName,
+            categorySlug: categorySlug || null,
+            categoryId,
+            institutionCount: rows.length,
+            instructorCount: instructorResults.length,
+          });
+
           const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
-          setResults(mergeCategoryResults(mapped, instructorResults));
+          setResults(
+            finalizeCategoryResults(mapped, instructorResults, featuredOrderResult.orderMap),
+          );
           setIsLoading(false);
           return;
         }
@@ -817,7 +910,7 @@ export function useCategoryInstitutions(
         const payload = schoolFilters!;
         const baseIds = await fetchAllCategoryInstitutionIds(
           supabase,
-          idQuerySelect,
+          categoryId,
           targetName,
           district,
           searchTerm,
@@ -944,8 +1037,18 @@ export function useCategoryInstitutions(
           searchTerm,
           payload,
         );
+        const featuredOrderResult = await featuredOrderPromise;
         if (cancelled) return;
-        setResults(mergeCategoryResults(mapped, instructorResults));
+        console.info("[category][institutions] filtreli liste sonucu:", {
+          categoryName: targetName,
+          categorySlug: categorySlug || null,
+          categoryId,
+          institutionCount: mapped.length,
+          instructorCount: instructorResults.length,
+        });
+        setResults(
+          finalizeCategoryResults(mapped, instructorResults, featuredOrderResult.orderMap),
+        );
         setIsLoading(false);
       } catch (e) {
         console.error(
@@ -965,7 +1068,7 @@ export function useCategoryInstitutions(
     };
     // schoolFilters için kararlı JSON anahtarı kullanılıyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryName, debouncedSearch, district, schoolFiltersKey]);
+  }, [categoryName, categorySlug, debouncedSearch, district, schoolFiltersKey]);
 
   return { results, isLoading, error, districts };
 }

@@ -3,6 +3,13 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INSTRUCTOR_MEDIA_BUCKET } from "@/lib/instructorMediaClient";
 import {
+  INSTRUCTOR_FEATURE_ENTRIES_TABLE,
+  INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
+  getDisplayInstructorFeatureName,
+  isInstructorFeatureGroupVisibleForCategory,
+  parseValidTimeHHMM,
+} from "@/lib/instructorFeaturesClient";
+import {
   fetchPublicInstructorByParamClient,
   publicInstructorDisplayName,
   type PublicInstructorRow,
@@ -94,16 +101,6 @@ function isUnauthorizedSupabaseError(err: unknown) {
   );
 }
 
-const normalizeFeatureText = (v: string) =>
-  v
-    .toLowerCase()
-    .replace(/ı/g, "i")
-    .replace(/ğ/g, "g")
-    .replace(/ş/g, "s")
-    .replace(/ö/g, "o")
-    .replace(/ü/g, "u")
-    .replace(/ç/g, "c");
-
 export async function fetchPublicInstructorGalleryClient(
   instructorId: number,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
@@ -183,6 +180,25 @@ export async function fetchPublicInstructorAnnouncementsClient(
   return { items, error: null };
 }
 
+type DetailFeatureDefinition = {
+  id: number;
+  group_id: number;
+  name: string;
+  slug: string | null;
+  input_type: string;
+  unit: string | null;
+  display_order: number | null;
+};
+
+type DetailFeatureEntry = {
+  id: number;
+  feature_definition_id: number;
+  text_answer: string | null;
+  number_answer: number | null;
+  boolean_answer: boolean | null;
+  selected_choice_id: number | null;
+};
+
 export async function fetchPublicInstructorFeatureDisplayClient(
   instructorId: number,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
@@ -194,6 +210,28 @@ export async function fetchPublicInstructorFeatureDisplayClient(
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
   const empty = { academicLines: [], sections: [], universityLabel: null };
 
+  const { data: instructorRow, error: instructorError } = await supabase
+    .from("instructors")
+    .select("category_id")
+    .eq("id", instructorId)
+    .maybeSingle();
+
+  if (instructorError && !isUnauthorizedSupabaseError(instructorError)) {
+    console.warn("[instructor][detail][category]", serializeSupabaseError(instructorError));
+  }
+
+  let instructorCategorySlug: string | null = null;
+  const categoryId = instructorRow?.category_id;
+  if (categoryId != null && Number.isFinite(Number(categoryId))) {
+    const { data: catRow } = await supabase
+      .from("instructor_categories")
+      .select("slug")
+      .eq("id", Number(categoryId))
+      .maybeSingle();
+    const slug = String(catRow?.slug ?? "").trim();
+    instructorCategorySlug = slug.length > 0 ? slug : null;
+  }
+
   const [
     { data: groupsData, error: groupsError },
     { data: definitionsData, error: definitionsError },
@@ -201,24 +239,25 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     { data: entriesData, error: entriesError },
   ] = await Promise.all([
     supabase
-      .from("institution_feature_groups")
+      .from("instructor_feature_groups")
       .select("id, name, display_order, is_active, category_slug")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
     supabase
-      .from("institution_feature_definitions")
-      .select("id, group_id, name, slug, input_type, unit, display_order, is_active")
+      .from("instructor_feature_definitions")
+      .select("id, group_id, name, slug, input_type, unit, display_order, is_active, show_on_detail")
       .eq("is_active", true)
+      .eq("show_on_detail", true)
       .order("display_order", { ascending: true }),
     supabase
-      .from("institution_feature_choices")
+      .from("instructor_feature_choices")
       .select("id, feature_definition_id, name, is_active")
       .eq("is_active", true)
       .order("id", { ascending: true }),
     supabase
-      .from("instructor_feature_entries")
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
       .select(
-        "id, feature_definition_id, value_text, value_number, value_boolean, value_date, selected_choice_id",
+        "id, feature_definition_id, text_answer, number_answer, boolean_answer, selected_choice_id",
       )
       .eq("instructor_id", instructorId),
   ]);
@@ -240,21 +279,12 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     return empty;
   }
 
-  const entries = (entriesData ?? []) as Array<{
-    id: number;
-    feature_definition_id: number;
-    value_text: string | null;
-    value_number: number | null;
-    value_boolean: boolean | null;
-    value_date: string | null;
-    selected_choice_id: number | null;
-  }>;
-
+  const entries = (entriesData ?? []) as DetailFeatureEntry[];
   const entryIds = entries.map((e) => e.id);
   let entryChoices: Array<{ instructor_feature_entry_id: number; choice_id: number }> = [];
   if (entryIds.length > 0) {
     const { data: ecData, error: ecError } = await supabase
-      .from("instructor_feature_entry_choices")
+      .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
       .select("instructor_feature_entry_id, choice_id")
       .in("instructor_feature_entry_id", entryIds);
     if (ecError && !isUnauthorizedSupabaseError(ecError)) {
@@ -264,25 +294,26 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     }
   }
 
-  const groups = (groupsData ?? []) as Array<{
+  const groups = ((groupsData ?? []) as Array<{
     id: number;
     name: string;
     category_slug?: string | null;
-  }>;
-  const definitions = (definitionsData ?? []) as Array<{
-    id: number;
-    group_id: number;
-    name: string;
-    slug: string | null;
-    input_type: string;
-    unit: string | null;
-    display_order: number | null;
-  }>;
+  }>).filter((g) =>
+    isInstructorFeatureGroupVisibleForCategory(
+      { category_slug: g.category_slug ?? null },
+      instructorCategorySlug,
+    ),
+  );
+
+  const definitions = (definitionsData ?? []) as DetailFeatureDefinition[];
   const choices = (choicesData ?? []) as Array<{
     id: number;
     feature_definition_id: number;
     name: string | null;
   }>;
+
+  const visibleGroupIds = new Set(groups.map((g) => g.id));
+  const visibleDefinitions = definitions.filter((d) => visibleGroupIds.has(d.group_id));
 
   const entriesByFeatureId = new Map(entries.map((e) => [e.feature_definition_id, e]));
   const choiceNameById = new Map<number, string>();
@@ -290,128 +321,141 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     const label = String(c.name ?? "").trim();
     if (label) choiceNameById.set(c.id, label);
   });
-  const selectedChoiceIdsByEntryId = new Map<number, number[]>();
+  const choiceIdsByEntryId = new Map<number, number[]>();
   entryChoices.forEach((row) => {
-    const current = selectedChoiceIdsByEntryId.get(row.instructor_feature_entry_id) ?? [];
+    const current = choiceIdsByEntryId.get(row.instructor_feature_entry_id) ?? [];
     if (!current.includes(row.choice_id)) current.push(row.choice_id);
-    selectedChoiceIdsByEntryId.set(row.instructor_feature_entry_id, current);
+    choiceIdsByEntryId.set(row.instructor_feature_entry_id, current);
   });
 
-  const extractValue = (feature: (typeof definitions)[0]): string | string[] | null => {
+  const extractValue = (feature: DetailFeatureDefinition): string | string[] | null => {
     const entry = entriesByFeatureId.get(feature.id);
     if (!entry) return null;
-    if (feature.input_type === "boolean") return entry.value_boolean === true ? "Evet" : null;
-    if (feature.input_type === "single_select") {
-      const id = entry.selected_choice_id;
-      return id ? choiceNameById.get(id) ?? null : null;
+
+    if (feature.input_type === "boolean") {
+      return entry.boolean_answer === true ? "Evet" : null;
     }
+
+    if (feature.input_type === "single_select") {
+      if (entry.selected_choice_id != null) {
+        const label = choiceNameById.get(Number(entry.selected_choice_id));
+        return label ?? null;
+      }
+      const labels = (choiceIdsByEntryId.get(entry.id) ?? [])
+        .map((id) => choiceNameById.get(id) ?? "")
+        .filter(Boolean);
+      return labels[0] ?? null;
+    }
+
     if (feature.input_type === "multi_select") {
-      const labels = (selectedChoiceIdsByEntryId.get(entry.id) ?? [])
+      const labels = (choiceIdsByEntryId.get(entry.id) ?? [])
         .map((id) => choiceNameById.get(id) ?? "")
         .filter(Boolean);
       return labels.length > 0 ? labels : null;
     }
+
     if (feature.input_type === "number") {
-      if (typeof entry.value_number !== "number" || !Number.isFinite(entry.value_number)) return null;
+      if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return null;
       const unit = String(feature.unit ?? "").trim();
-      return `${entry.value_number}${unit ? ` ${unit}` : ""}`.trim();
+      return `${entry.number_answer}${unit ? ` ${unit}` : ""}`.trim();
     }
+
     if (feature.input_type === "date") {
-      const d = entry.value_date ? String(entry.value_date).slice(0, 10) : "";
+      const d = entry.text_answer ? String(entry.text_answer).slice(0, 10) : "";
       return d || null;
     }
-    const text = String(entry.value_text ?? "").trim();
-    return text || null;
+
+    const text = String(entry.text_answer ?? "").trim();
+    if (!text) return null;
+    const validTime = parseValidTimeHHMM(text);
+    if (validTime) return validTime;
+    return text;
   };
 
-  const baslicaGroup = groups.find(
-    (g) => (g.name ?? "").trim().toLocaleLowerCase("tr-TR") === "başlıca özellikler",
-  );
-  const academicLines: PublicInstructorFeatureLine[] = [];
-  let universityLabel: string | null = null;
-
-  if (baslicaGroup) {
-    const features = definitions
-      .filter((f) => f.group_id === baslicaGroup.id)
+  const buildLinesForGroup = (groupId: number): PublicInstructorFeatureLine[] => {
+    const lines: PublicInstructorFeatureLine[] = [];
+    const features = visibleDefinitions
+      .filter((f) => f.group_id === groupId)
       .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
-    const used = new Set<number>();
+
     for (const feature of features) {
       const value = extractValue(feature);
       if (!value || (Array.isArray(value) && value.length === 0)) continue;
-      const label = String(feature.name ?? "").trim();
+      const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
       if (!label) continue;
-      used.add(feature.id);
-      const textKey = normalizeFeatureText(`${feature.slug ?? ""} ${label}`);
-      if (textKey.includes("universite") || textKey.includes("mezun")) {
-        universityLabel = Array.isArray(value) ? value.join(", ") : value;
+      lines.push({
+        label,
+        value,
+        ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
+      });
+    }
+    return lines;
+  };
+
+  const buildBadgesForGroup = (groupId: number): string[] => {
+    const badges: string[] = [];
+    const features = visibleDefinitions
+      .filter((f) => f.group_id === groupId)
+      .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
+
+    for (const feature of features) {
+      const entry = entriesByFeatureId.get(feature.id);
+      if (!entry) continue;
+      const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
+
+      if (feature.input_type === "boolean") {
+        if (entry.boolean_answer === true) badges.push(label);
+        continue;
       }
-      academicLines.push({
-        label,
-        value,
-        ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
-      });
-    }
-    for (const feature of features) {
-      if (used.has(feature.id)) continue;
+
+      if (feature.input_type === "single_select") {
+        if (entry.selected_choice_id != null) {
+          const choiceLabel = choiceNameById.get(Number(entry.selected_choice_id));
+          if (choiceLabel) badges.push(choiceLabel);
+        } else {
+          (choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceId) => {
+            const choiceLabel = choiceNameById.get(choiceId);
+            if (choiceLabel) badges.push(choiceLabel);
+          });
+        }
+        continue;
+      }
+
+      if (feature.input_type === "multi_select") {
+        (choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceId) => {
+          const choiceLabel = choiceNameById.get(choiceId);
+          if (choiceLabel) badges.push(choiceLabel);
+        });
+        continue;
+      }
+
       const value = extractValue(feature);
-      if (!value || (Array.isArray(value) && value.length === 0)) continue;
-      const label = String(feature.name ?? "").trim();
-      if (!label) continue;
-      academicLines.push({
-        label,
-        value,
-        ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
-      });
+      if (!value) continue;
+      if (Array.isArray(value)) {
+        value.forEach((v) => badges.push(v));
+      } else if (feature.input_type === "text" || feature.input_type === "number" || feature.input_type === "date") {
+        badges.push(`${label}: ${value}`);
+      }
     }
+
+    return Array.from(new Set(badges));
+  };
+
+  const generalGroups = groups.filter((g) => !(g.category_slug ?? "").trim());
+  const categoryGroups = groups.filter((g) => Boolean((g.category_slug ?? "").trim()));
+
+  const academicLines: PublicInstructorFeatureLine[] = [];
+  for (const group of generalGroups) {
+    academicLines.push(...buildLinesForGroup(group.id));
   }
 
-  const badgeGroups = groups.filter((g) => {
-    const nameKey = (g.name ?? "").trim().toLocaleLowerCase("tr-TR");
-    return nameKey !== "başlıca özellikler";
-  });
-
-  const sections: PublicInstructorFeatureSection[] = badgeGroups
-    .map((group) => {
-      const badges: string[] = [];
-      definitions
-        .filter((f) => f.group_id === group.id)
-        .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999))
-        .forEach((feature) => {
-          const entry = entriesByFeatureId.get(feature.id);
-          if (!entry) return;
-          if (feature.input_type === "boolean") {
-            if (entry.value_boolean === true) badges.push(feature.name);
-            return;
-          }
-          if (feature.input_type === "single_select") {
-            const label = entry.selected_choice_id
-              ? choiceNameById.get(entry.selected_choice_id)
-              : null;
-            if (label) badges.push(label);
-            return;
-          }
-          if (feature.input_type === "multi_select") {
-            (selectedChoiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceId) => {
-              const label = choiceNameById.get(choiceId);
-              if (label) badges.push(label);
-            });
-            return;
-          }
-          if (feature.input_type === "text") {
-            const value = String(entry.value_text ?? "").trim();
-            if (value) badges.push(`${feature.name}: ${value}`);
-            return;
-          }
-          if (feature.input_type === "number") {
-            if (typeof entry.value_number === "number" && Number.isFinite(entry.value_number)) {
-              const unit = String(feature.unit ?? "").trim();
-              badges.push(`${feature.name}: ${entry.value_number}${unit ? ` ${unit}` : ""}`);
-            }
-          }
-        });
-      return { id: group.id, name: group.name, badges: Array.from(new Set(badges)) };
-    })
+  const sections: PublicInstructorFeatureSection[] = categoryGroups
+    .map((group) => ({
+      id: group.id,
+      name: group.name,
+      badges: buildBadgesForGroup(group.id),
+    }))
     .filter((s) => s.badges.length > 0);
 
-  return { academicLines, sections, universityLabel };
+  return { academicLines, sections, universityLabel: null };
 }

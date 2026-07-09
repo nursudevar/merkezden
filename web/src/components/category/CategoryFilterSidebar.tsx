@@ -29,6 +29,17 @@ import {
   type PriceRangeSliderValue,
 } from "@/components/filters/PriceRangeSliderFilter";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
+import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
+import {
+  buildInstructorFilterFieldsForListingCategory,
+  fetchInstructorFeatureCategoriesClient,
+  fetchInstructorFeatureFilterSchemaDataClient,
+  type InstructorFeatureCategoryRow,
+  type InstructorFeatureChoiceRow,
+  type InstructorFeatureDefinitionRow,
+  type InstructorFeatureGroupRow,
+  type InstructorFilterField,
+} from "@/lib/instructorFeaturesClient";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 
@@ -47,6 +58,8 @@ interface CategoryFilterSidebarProps {
    * "Başlıca Özellikler" alanları (slug'tan bağımsız ortak grup) bu modda gösterilir.
    */
   categorySlug?: string;
+  /** `institution`: kategori slug ile kurum feature tabloları; `instructor`: eğitmen feature tabloları. */
+  filterSchemaSource?: "institution" | "instructor";
   /** CategoryPageLayout tarafından sağlanır; yalnızca sidebar yerleşimi için kullanılır. */
   mapMarkers?: InstitutionMapMarker[];
   mapLoading?: boolean;
@@ -138,6 +151,12 @@ type CommonField =
 
 const FEATURE_OPTIONS_VISIBLE_LIMIT = 10;
 
+function checkboxListClassName(optionCount: number): string {
+  return optionCount === 1
+    ? "category-filter-section-checkboxes category-filter-section-checkboxes--single"
+    : "category-filter-section-checkboxes";
+}
+
 function sortCheckboxOptionsByLabel<T>(options: T[], getLabel: (option: T) => string): T[] {
   return [...options].sort((a, b) =>
     getLabel(a).localeCompare(getLabel(b), "tr", { sensitivity: "base" }),
@@ -146,6 +165,7 @@ function sortCheckboxOptionsByLabel<T>(options: T[], getLabel: (option: T) => st
 const COMMON_GROUP_NAME_KEY = "başlıca özellikler";
 const ALL_DISTRICTS_VALUE = "__all__";
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
+const CLEAR_INSTRUCTOR_CATEGORY_VALUE = "__all_categories__";
 
 function describeSupabaseError(err: unknown): {
   message: string;
@@ -261,6 +281,8 @@ type UseCategoryFilterSidebarModelArgs = {
   linkedDistrict?: string;
   onLinkedDistrictChange?: (value: string) => void;
   onSchoolFilterPayloadChange?: (payload: SchoolCategoryFilterPayload) => void;
+  onInstructorFilterPayloadChange?: (payload: InstructorCategoryFilterPayload) => void;
+  filterSchemaSource?: "institution" | "instructor";
 };
 
 function useCategoryFilterSidebarModel({
@@ -273,6 +295,8 @@ function useCategoryFilterSidebarModel({
   linkedDistrict,
   onLinkedDistrictChange,
   onSchoolFilterPayloadChange,
+  onInstructorFilterPayloadChange,
+  filterSchemaSource = "institution",
 }: UseCategoryFilterSidebarModelArgs) {
   const [search, setSearch] = useState("");
   // Ana sayfayla uyumlu olarak şehir Ankara'ya sabit (disabled dropdown).
@@ -303,9 +327,26 @@ function useCategoryFilterSidebarModel({
   >({});
   const [expandedCommonMultiIds, setExpandedCommonMultiIds] = useState<Set<number>>(new Set());
 
+  const [instructorFieldsLoading, setInstructorFieldsLoading] = useState(false);
+  const [instructorFieldsError, setInstructorFieldsError] = useState<string | null>(null);
+  const [instructorSchemaData, setInstructorSchemaData] = useState<{
+    groups: InstructorFeatureGroupRow[];
+    definitions: InstructorFeatureDefinitionRow[];
+    choices: InstructorFeatureChoiceRow[];
+  } | null>(null);
+  const [instructorCategories, setInstructorCategories] = useState<InstructorFeatureCategoryRow[]>([]);
+  const [instructorCategoriesLoading, setInstructorCategoriesLoading] = useState(false);
+  const [instructorCategoriesError, setInstructorCategoriesError] = useState<string | null>(null);
+  const [selectedInstructorBoolean, setSelectedInstructorBoolean] = useState<Record<number, boolean>>({});
+  const [expandedInstructorMultiIds, setExpandedInstructorMultiIds] = useState<Set<number>>(new Set());
+  const [expandedInstructorBooleanGroupIds, setExpandedInstructorBooleanGroupIds] = useState<Set<number>>(
+    new Set(),
+  );
+
   const categories = config?.categories || defaultCategories;
   const searchPlaceholder = config?.searchPlaceholder ?? "Kurum adı ara...";
-  const effectiveSlug = enabled ? String(categorySlug ?? "").trim() : "";
+  const hasInstructorFeatureMode = filterSchemaSource === "instructor";
+  const effectiveSlug = enabled && !hasInstructorFeatureMode ? String(categorySlug ?? "").trim() : "";
   const hasDynamicFeatureMode = effectiveSlug.length > 0;
   const isLinkedSearch = typeof onLinkedSearchChange === "function";
   const isLinkedDistrict = typeof onLinkedDistrictChange === "function";
@@ -482,6 +523,84 @@ function useCategoryFilterSidebarModel({
       cancelled = true;
     };
   }, [effectiveSlug, hasDynamicFeatureMode]);
+
+  // Eğitmenler liste sayfası — instructor_feature_* tabanlı filtre şeması.
+  useEffect(() => {
+    if (!hasInstructorFeatureMode) {
+      setInstructorSchemaData(null);
+      setInstructorFieldsError(null);
+      setInstructorFieldsLoading(false);
+      setInstructorCategories([]);
+      setInstructorCategoriesLoading(false);
+      setInstructorCategoriesError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setInstructorFieldsLoading(true);
+    setInstructorFieldsError(null);
+    setInstructorCategoriesLoading(true);
+    setInstructorCategoriesError(null);
+
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const [schemaResult, categoriesResult] = await Promise.all([
+        fetchInstructorFeatureFilterSchemaDataClient(supabase),
+        fetchInstructorFeatureCategoriesClient(supabase),
+      ]);
+      if (cancelled) return;
+
+      if (categoriesResult.error) {
+        setInstructorCategoriesError("Kategoriler yüklenemedi.");
+        setInstructorCategories([]);
+      } else {
+        setInstructorCategories(categoriesResult.categories);
+      }
+      setInstructorCategoriesLoading(false);
+
+      if (schemaResult.error) {
+        setInstructorFieldsError("Filtreler yüklenemedi.");
+        setInstructorSchemaData(null);
+      } else {
+        setInstructorSchemaData({
+          groups: schemaResult.groups,
+          definitions: schemaResult.definitions,
+          choices: schemaResult.choices,
+        });
+      }
+      setInstructorFieldsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasInstructorFeatureMode]);
+
+  const instructorCategorySlug = String(selectedCategory ?? "").trim();
+
+  const visibleInstructorFields = useMemo(() => {
+    if (!instructorSchemaData) return [];
+    return buildInstructorFilterFieldsForListingCategory(
+      instructorSchemaData.groups,
+      instructorSchemaData.definitions,
+      instructorSchemaData.choices,
+      instructorCategorySlug || null,
+    );
+  }, [instructorSchemaData, instructorCategorySlug]);
+
+  const prevInstructorCategorySlugRef = useRef(instructorCategorySlug);
+  useEffect(() => {
+    if (!hasInstructorFeatureMode) return;
+    if (prevInstructorCategorySlugRef.current === instructorCategorySlug) return;
+    prevInstructorCategorySlugRef.current = instructorCategorySlug;
+
+    setSelectedInstructorBoolean({});
+    setSelectedCommonSingle({});
+    setSelectedCommonMulti({});
+    setSelectedCommonRange({});
+    setExpandedInstructorMultiIds(new Set());
+    setExpandedInstructorBooleanGroupIds(new Set());
+  }, [hasInstructorFeatureMode, instructorCategorySlug]);
 
   // Alt Kategori — institution_types (kategoriye bağlı). Slug verildiğinde aktif.
   useEffect(() => {
@@ -757,6 +876,48 @@ function useCategoryFilterSidebarModel({
     });
   };
 
+  const toggleInstructorBoolean = (definitionId: number) => {
+    setSelectedInstructorBoolean((prev) => ({
+      ...prev,
+      [definitionId]: !prev[definitionId],
+    }));
+  };
+
+  const toggleInstructorMulti = (definitionId: number, choiceId: number) => {
+    setSelectedCommonMulti((prev) => {
+      const current = new Set(prev[definitionId] ?? new Set<string>());
+      const key = String(choiceId);
+      if (current.has(key)) current.delete(key);
+      else current.add(key);
+      return { ...prev, [definitionId]: current };
+    });
+  };
+
+  const toggleInstructorMultiExpanded = (definitionId: number) => {
+    setExpandedInstructorMultiIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(definitionId)) next.delete(definitionId);
+      else next.add(definitionId);
+      return next;
+    });
+  };
+
+  const toggleInstructorBooleanGroupExpanded = (groupId: number) => {
+    setExpandedInstructorBooleanGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
+  const setInstructorRange = (definitionId: number, edge: "min" | "max", value: string) => {
+    setSelectedCommonRange((prev) => {
+      const current = prev[definitionId] ?? { min: "", max: "" };
+      return { ...prev, [definitionId]: { ...current, [edge]: value } };
+    });
+  };
+
   const setCommonRange = (definitionId: number, edge: "min" | "max", value: string) => {
     setSelectedCommonRange((prev) => {
       const current = prev[definitionId] ?? { min: "", max: "" };
@@ -793,6 +954,8 @@ function useCategoryFilterSidebarModel({
 
   const onSchoolFilterPayloadChangeRef = useRef(onSchoolFilterPayloadChange);
   onSchoolFilterPayloadChangeRef.current = onSchoolFilterPayloadChange;
+  const onInstructorFilterPayloadChangeRef = useRef(onInstructorFilterPayloadChange);
+  onInstructorFilterPayloadChangeRef.current = onInstructorFilterPayloadChange;
 
   const commonSingleKey = useMemo(() => JSON.stringify(selectedCommonSingle), [selectedCommonSingle]);
   const commonRangeKey = useMemo(() => JSON.stringify(selectedCommonRange), [selectedCommonRange]);
@@ -880,6 +1043,77 @@ function useCategoryFilterSidebarModel({
     featureGroupSelectionsKey,
   ]);
 
+  const instructorBooleanKey = useMemo(
+    () => JSON.stringify(selectedInstructorBoolean),
+    [selectedInstructorBoolean],
+  );
+  const instructorFieldsKey = useMemo(
+    () => JSON.stringify(visibleInstructorFields),
+    [visibleInstructorFields],
+  );
+
+  useEffect(() => {
+    const emitPayload = onInstructorFilterPayloadChangeRef.current;
+    if (!emitPayload || !hasInstructorFeatureMode) return;
+
+    const booleanValues: Record<number, boolean> = {};
+    for (const [definitionId, value] of Object.entries(selectedInstructorBoolean)) {
+      const id = Number(definitionId);
+      if (!Number.isFinite(id) || !value) continue;
+      booleanValues[id] = true;
+    }
+
+    const booleanDefinitionGroupIds: Record<number, number> = {};
+    for (const field of visibleInstructorFields) {
+      if (field.kind !== "boolean_group") continue;
+      for (const option of field.options) {
+        booleanDefinitionGroupIds[option.definitionId] = field.groupId;
+      }
+    }
+
+    const singleSelect: Record<number, string> = {};
+    for (const [k, v] of Object.entries(selectedCommonSingle)) {
+      const id = Number(k);
+      const sv = String(v ?? "").trim();
+      if (!Number.isFinite(id) || !sv || sv === CLEAR_SINGLE_SELECT_VALUE) continue;
+      singleSelect[id] = sv;
+    }
+
+    const multiSelect: Record<number, string[]> = {};
+    for (const [k, set] of Object.entries(selectedCommonMulti)) {
+      const id = Number(k);
+      if (!Number.isFinite(id)) continue;
+      const arr = Array.from(set ?? []).filter(Boolean);
+      if (arr.length === 0) continue;
+      multiSelect[id] = arr;
+    }
+
+    const numberRange: Record<number, { min: string; max: string }> = {};
+    for (const [k, r] of Object.entries(selectedCommonRange)) {
+      const id = Number(k);
+      if (!Number.isFinite(id)) continue;
+      const minS = String(r?.min ?? "").trim();
+      const maxS = String(r?.max ?? "").trim();
+      if (!minS && !maxS) continue;
+      numberRange[id] = { min: minS, max: maxS };
+    }
+
+    emitPayload({
+      booleanValues,
+      booleanDefinitionGroupIds,
+      singleSelect,
+      multiSelect,
+      numberRange,
+    });
+  }, [
+    hasInstructorFeatureMode,
+    instructorBooleanKey,
+    instructorFieldsKey,
+    commonSingleKey,
+    commonMultiKey,
+    commonRangeKey,
+  ]);
+
   const renderedFeatureGroups = useMemo(() => featureGroups, [featureGroups]);
 
   /** En az bir filtre aktif mi? Sıfırlama butonunun görünürlüğünü belirler. */
@@ -902,6 +1136,12 @@ function useCategoryFilterSidebarModel({
     for (const set of Object.values(selectedFeatureOptionsByGroup)) {
       if ((set?.size ?? 0) > 0) return true;
     }
+    if (hasInstructorFeatureMode) {
+      if (String(selectedCategory ?? "").trim()) return true;
+      for (const value of Object.values(selectedInstructorBoolean)) {
+        if (value) return true;
+      }
+    }
     return false;
   }, [
     displaySearch,
@@ -913,6 +1153,8 @@ function useCategoryFilterSidebarModel({
     selectedCommonMulti,
     selectedCommonRange,
     selectedFeatureOptionsByGroup,
+    hasInstructorFeatureMode,
+    selectedInstructorBoolean,
   ]);
 
   /**
@@ -932,6 +1174,9 @@ function useCategoryFilterSidebarModel({
     setSelectedFeatureOptionsByGroup({});
     setExpandedGroupIds(new Set());
     setExpandedCommonMultiIds(new Set());
+    setSelectedInstructorBoolean({});
+    setExpandedInstructorMultiIds(new Set());
+    setExpandedInstructorBooleanGroupIds(new Set());
     if (isLinkedSearch) onLinkedSearchChange?.("");
     if (isLinkedDistrict) onLinkedDistrictChange?.("");
     onFilterChange?.({
@@ -947,6 +1192,7 @@ function useCategoryFilterSidebarModel({
     categories,
     searchPlaceholder,
     hasDynamicFeatureMode,
+    hasInstructorFeatureMode,
     displaySearch,
     displayDistrict,
     city,
@@ -976,6 +1222,20 @@ function useCategoryFilterSidebarModel({
     setCommonRange,
     setCommonPriceRange,
     renderedFeatureGroups,
+    instructorFields: visibleInstructorFields,
+    instructorFieldsLoading,
+    instructorFieldsError,
+    instructorCategories,
+    instructorCategoriesLoading,
+    instructorCategoriesError,
+    selectedInstructorBoolean,
+    expandedInstructorMultiIds,
+    expandedInstructorBooleanGroupIds,
+    toggleInstructorBoolean,
+    toggleInstructorMulti,
+    toggleInstructorMultiExpanded,
+    toggleInstructorBooleanGroupExpanded,
+    setInstructorRange,
     hasActiveFilters,
     resetAll,
   };
@@ -984,6 +1244,32 @@ function useCategoryFilterSidebarModel({
 type CategoryFilterSidebarModel = ReturnType<typeof useCategoryFilterSidebarModel>;
 
 const SchoolCategoryFilterPanelContext = createContext<CategoryFilterSidebarModel | null>(null);
+const InstructorCategoryFilterPanelContext = createContext<CategoryFilterSidebarModel | null>(null);
+
+export function InstructorCategoryFilterPanelProvider({
+  children,
+  config,
+  onFilterChange,
+  onInstructorFilterPayloadChange,
+}: {
+  children: ReactNode;
+  config?: CategoryFilterConfig;
+  onFilterChange?: (filters: FilterState) => void;
+  onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
+}) {
+  const model = useCategoryFilterSidebarModel({
+    enabled: true,
+    config,
+    onFilterChange,
+    filterSchemaSource: "instructor",
+    onInstructorFilterPayloadChange,
+  });
+  return (
+    <InstructorCategoryFilterPanelContext.Provider value={model}>
+      {children}
+    </InstructorCategoryFilterPanelContext.Provider>
+  );
+}
 
 export function SchoolCategoryFilterPanelProvider({
   children,
@@ -1048,6 +1334,7 @@ function CategoryFilterSidebarView({
     categories,
     searchPlaceholder,
     hasDynamicFeatureMode,
+    hasInstructorFeatureMode,
     displaySearch,
     displayDistrict,
     city,
@@ -1071,6 +1358,20 @@ function CategoryFilterSidebarView({
     setCommonRange,
     setCommonPriceRange,
     renderedFeatureGroups,
+    instructorFields,
+    instructorFieldsLoading,
+    instructorFieldsError,
+    instructorCategories,
+    instructorCategoriesLoading,
+    instructorCategoriesError,
+    selectedInstructorBoolean,
+    expandedInstructorMultiIds,
+    expandedInstructorBooleanGroupIds,
+    toggleInstructorBoolean,
+    toggleInstructorMulti,
+    toggleInstructorMultiExpanded,
+    toggleInstructorBooleanGroupExpanded,
+    setInstructorRange,
   } = model;
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -1102,9 +1403,12 @@ function CategoryFilterSidebarView({
   }, []);
 
   const hasAdvancedFilters =
-    commonFields.length > 0 || renderedFeatureGroups.length > 0;
+    commonFields.length > 0 ||
+    renderedFeatureGroups.length > 0 ||
+    instructorFields.length > 0;
   const showLoginHint =
     hasDynamicFeatureMode &&
+    !hasInstructorFeatureMode &&
     !featureGroupsLoading &&
     isAuthenticated === false &&
     !hasAdvancedFilters;
@@ -1194,9 +1498,323 @@ function CategoryFilterSidebarView({
             </div>
           </div>
 
-          {hasDynamicFeatureMode ? (
+          {hasInstructorFeatureMode ? (
+            <div className="category-filter-section">
+              <h3 className="category-filter-section-title">KATEGORİ</h3>
+              <div className="category-filter-section-inputs">
+                <Select
+                  value={selectedCategory ? selectedCategory : CLEAR_INSTRUCTOR_CATEGORY_VALUE}
+                  onValueChange={(value) =>
+                    handleFilterChange({
+                      category: value === CLEAR_INSTRUCTOR_CATEGORY_VALUE ? "" : value,
+                    })
+                  }
+                  disabled={instructorCategoriesLoading}
+                >
+                  <SelectTrigger className="category-filter-select">
+                    <SelectValue
+                      placeholder={
+                        instructorCategoriesLoading ? "Kategoriler yükleniyor..." : "Kategori Seçin"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="select-content home-location-dropdown"
+                    side="bottom"
+                    avoidCollisions={false}
+                  >
+                    <SelectItem value={CLEAR_INSTRUCTOR_CATEGORY_VALUE} className="select-item">
+                      Tüm Kategoriler
+                    </SelectItem>
+                    {instructorCategories.map((category) => {
+                      const slug = String(category.slug ?? "").trim();
+                      if (!slug) return null;
+                      return (
+                        <SelectItem key={category.id} value={slug} className="select-item">
+                          {category.name}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {instructorCategoriesError ? (
+                  <p className="category-filter-section-empty">{instructorCategoriesError}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {hasInstructorFeatureMode ? (
+            <div className="category-filter-section">
+              <h3 className="category-filter-section-title">AYLIK ORTALAMA FİYAT ARALIĞI</h3>
+              <PriceRangeSliderFilter
+                value={priceRange}
+                onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
+                className="category-filter-price-slider"
+              />
+            </div>
+          ) : null}
+
+          {hasDynamicFeatureMode || hasInstructorFeatureMode ? (
             <>
-              {commonFields.map((field) => {
+              {hasInstructorFeatureMode ? (
+                <>
+                  {instructorFieldsLoading ? (
+                    <div className="category-filter-section">
+                      <p className="category-filter-section-empty">Filtreler yükleniyor...</p>
+                    </div>
+                  ) : instructorFieldsError ? (
+                    <div className="category-filter-section">
+                      <p className="category-filter-section-empty">{instructorFieldsError}</p>
+                    </div>
+                  ) : (
+                    instructorFields.map((field) => {
+                      if (field.kind === "boolean_group") {
+                        const isExpanded = expandedInstructorBooleanGroupIds.has(field.groupId);
+                        const sortedOptions = sortCheckboxOptionsByLabel(
+                          field.options,
+                          (option) => option.name,
+                        );
+                        const visibleOptions = isExpanded
+                          ? sortedOptions
+                          : sortedOptions.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
+                        const hasMore = sortedOptions.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
+
+                        return (
+                          <div
+                            className="category-filter-section"
+                            key={`instructor-bool-group-${field.groupId}`}
+                          >
+                            <h3 className="category-filter-section-title">
+                              {field.name.toLocaleUpperCase("tr-TR")}
+                            </h3>
+                            <div className={checkboxListClassName(sortedOptions.length)}>
+                              {visibleOptions.map((option) => {
+                                const isChecked = Boolean(
+                                  selectedInstructorBoolean[option.definitionId],
+                                );
+                                return (
+                                  <label
+                                    key={option.definitionId}
+                                    className={`category-filter-checkbox-option${
+                                      isChecked ? " category-filter-checkbox-option--selected" : ""
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => toggleInstructorBoolean(option.definitionId)}
+                                      className="category-filter-checkbox-input"
+                                    />
+                                    <span className="category-filter-checkbox-label">
+                                      {option.name}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            {hasMore ? (
+                              <button
+                                type="button"
+                                className="category-filter-show-more"
+                                onClick={() => toggleInstructorBooleanGroupExpanded(field.groupId)}
+                                aria-expanded={isExpanded}
+                              >
+                                {isExpanded
+                                  ? "Daha Az Göster"
+                                  : `Daha Fazla Göster (+${sortedOptions.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      }
+
+                      if (field.kind === "boolean") {
+                        const isChecked = Boolean(selectedInstructorBoolean[field.definitionId]);
+                        return (
+                          <div
+                            className="category-filter-section"
+                            key={`instructor-bool-${field.definitionId}`}
+                          >
+                            <h3 className="category-filter-section-title">
+                              {field.name.toLocaleUpperCase("tr-TR")}
+                            </h3>
+                            <div className={checkboxListClassName(1)}>
+                              <label
+                                className={`category-filter-checkbox-option${
+                                  isChecked ? " category-filter-checkbox-option--selected" : ""
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleInstructorBoolean(field.definitionId)}
+                                  className="category-filter-checkbox-input"
+                                />
+                                <span className="category-filter-checkbox-label">{field.name}</span>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (field.kind === "single_select") {
+                        const selectedValue = selectedCommonSingle[field.definitionId] ?? "";
+                        const selectValue = selectedValue
+                          ? String(selectedValue)
+                          : CLEAR_SINGLE_SELECT_VALUE;
+                        return (
+                          <div
+                            className="category-filter-section"
+                            key={`instructor-single-${field.definitionId}`}
+                          >
+                            <h3 className="category-filter-section-title">
+                              {field.name.toLocaleUpperCase("tr-TR")}
+                            </h3>
+                            <div className="category-filter-section-inputs">
+                              <Select
+                                value={selectValue}
+                                onValueChange={(value) =>
+                                  setSelectedCommonSingle((prev) => ({
+                                    ...prev,
+                                    [field.definitionId]:
+                                      value === CLEAR_SINGLE_SELECT_VALUE ? "" : value,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="category-filter-select">
+                                  <SelectValue placeholder={field.placeholder} />
+                                </SelectTrigger>
+                                <SelectContent
+                                  className="select-content home-location-dropdown"
+                                  side="bottom"
+                                  avoidCollisions={false}
+                                >
+                                  <SelectItem
+                                    value={CLEAR_SINGLE_SELECT_VALUE}
+                                    className="select-item"
+                                  >
+                                    Tümü
+                                  </SelectItem>
+                                  {field.choices.map((choice) => (
+                                    <SelectItem
+                                      key={choice.id}
+                                      value={String(choice.id)}
+                                      className="select-item"
+                                    >
+                                      {choice.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (field.kind === "multi_select") {
+                        const selectedSet =
+                          selectedCommonMulti[field.definitionId] ?? new Set<string>();
+                        const isExpanded = expandedInstructorMultiIds.has(field.definitionId);
+                        const sortedChoices = sortCheckboxOptionsByLabel(
+                          field.choices,
+                          (choice) => choice.name,
+                        );
+                        const visibleChoices = isExpanded
+                          ? sortedChoices
+                          : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
+                        const hasMore = sortedChoices.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
+                        return (
+                          <div
+                            className="category-filter-section"
+                            key={`instructor-multi-${field.definitionId}`}
+                          >
+                            <h3 className="category-filter-section-title">
+                              {field.name.toLocaleUpperCase("tr-TR")}
+                            </h3>
+                            <div className={checkboxListClassName(sortedChoices.length)}>
+                              {visibleChoices.map((choice) => {
+                                const key = String(choice.id);
+                                const isChecked = selectedSet.has(key);
+                                return (
+                                  <label
+                                    key={choice.id}
+                                    className={`category-filter-checkbox-option${
+                                      isChecked ? " category-filter-checkbox-option--selected" : ""
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() =>
+                                        toggleInstructorMulti(field.definitionId, choice.id)
+                                      }
+                                      className="category-filter-checkbox-input"
+                                    />
+                                    <span className="category-filter-checkbox-label">
+                                      {choice.name}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            {hasMore ? (
+                              <button
+                                type="button"
+                                className="category-filter-show-more"
+                                onClick={() => toggleInstructorMultiExpanded(field.definitionId)}
+                                aria-expanded={isExpanded}
+                              >
+                                {isExpanded
+                                  ? "Daha Az Göster"
+                                  : `Daha Fazla Göster (+${sortedChoices.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      }
+
+                      const value = selectedCommonRange[field.definitionId] ?? { min: "", max: "" };
+                      return (
+                        <div
+                          className="category-filter-section"
+                          key={`instructor-number-${field.definitionId}`}
+                        >
+                          <h3 className="category-filter-section-title">
+                            {field.name.toLocaleUpperCase("tr-TR")}
+                          </h3>
+                          <div className="category-filter-price-inputs">
+                            <Input
+                              type="number"
+                              value={value.min}
+                              onChange={(e) =>
+                                setInstructorRange(field.definitionId, "min", e.target.value)
+                              }
+                              placeholder="Min"
+                              min="0"
+                              className="category-filter-price-input"
+                            />
+                            <span className="category-filter-price-separator">-</span>
+                            <Input
+                              type="number"
+                              value={value.max}
+                              onChange={(e) =>
+                                setInstructorRange(field.definitionId, "max", e.target.value)
+                              }
+                              placeholder="Max"
+                              min="0"
+                              className="category-filter-price-input"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </>
+              ) : null}
+
+              {hasDynamicFeatureMode
+                ? commonFields.map((field) => {
                 if (field.kind === "single_select") {
                   if (isPriceRangeCommonField(field)) {
                     return (
@@ -1348,7 +1966,7 @@ function CategoryFilterSidebarView({
                       <h3 className="category-filter-section-title">
                         {field.name.toLocaleUpperCase("tr-TR")}
                       </h3>
-                      <div className="category-filter-section-checkboxes">
+                      <div className={checkboxListClassName(sortedChoices.length)}>
                         {visibleChoices.map((c) => {
                           const key = String(c.id);
                           const isChecked = selectedSet.has(key);
@@ -1389,9 +2007,11 @@ function CategoryFilterSidebarView({
                 }
 
                 return null;
-              })}
+              })
+                : null}
 
-              {featureGroupsLoading ? (
+              {hasDynamicFeatureMode ? (
+                featureGroupsLoading ? (
                 <div className="category-filter-section">
                   <p className="category-filter-section-empty">Filtreler yükleniyor...</p>
                 </div>
@@ -1414,7 +2034,7 @@ function CategoryFilterSidebarView({
                       <h3 className="category-filter-section-title">
                         {group.name.toLocaleUpperCase("tr-TR")}
                       </h3>
-                      <div className="category-filter-section-checkboxes">
+                      <div className={checkboxListClassName(sortedOptions.length)}>
                         {optionsToShow.map((option) => {
                           const isChecked = selectedKeys.has(option.key);
                           return (
@@ -1452,7 +2072,8 @@ function CategoryFilterSidebarView({
                     </div>
                   );
                 })
-              )}
+              )
+              ) : null}
             </>
           ) : (
             <>
@@ -1505,17 +2126,20 @@ export default function CategoryFilterSidebar({
   config,
   onFilterChange,
   categorySlug,
+  filterSchemaSource = "institution",
   mapMarkers,
   mapLoading,
 }: CategoryFilterSidebarProps) {
-  const ctxModel = useContext(SchoolCategoryFilterPanelContext);
+  const schoolCtxModel = useContext(SchoolCategoryFilterPanelContext);
+  const instructorCtxModel = useContext(InstructorCategoryFilterPanelContext);
   const fallbackModel = useCategoryFilterSidebarModel({
-    enabled: ctxModel == null,
+    enabled: schoolCtxModel == null && instructorCtxModel == null,
     config,
     onFilterChange,
     categorySlug,
+    filterSchemaSource,
   });
-  const model = ctxModel ?? fallbackModel;
+  const model = instructorCtxModel ?? schoolCtxModel ?? fallbackModel;
   return (
     <CategoryFilterSidebarView
       model={model}

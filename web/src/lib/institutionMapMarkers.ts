@@ -1,5 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 
 export type InstitutionMapMarker = {
   id: number;

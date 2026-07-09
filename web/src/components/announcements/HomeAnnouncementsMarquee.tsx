@@ -105,23 +105,40 @@ export function HomeAnnouncementsMarquee() {
     const slider = sliderRef.current;
     if (!slider) return;
 
-    const updateCardWidth = () => {
-      const containerWidth = slider.getBoundingClientRect().width;
-      const useTwoColumns = window.matchMedia("(max-width: 1180px)").matches;
-      const columns = useTwoColumns ? 2 : 4;
-      const gap = useTwoColumns ? 12 : 10;
-      const cardWidth = (containerWidth - gap * (columns - 1)) / columns;
-      slider.style.setProperty("--duyurular-card-width", `${Math.max(0, cardWidth)}px`);
+    const syncCardSizeFromCategories = () => {
+      const categoryCard = document.querySelector<HTMLElement>(".home-main-category-card");
+      if (!categoryCard) return;
+
+      const { width, height } = categoryCard.getBoundingClientRect();
+      const roundedWidth = Math.round(width);
+      const roundedHeight = Math.round(height);
+
+      if (roundedWidth > 0) {
+        slider.style.setProperty("--duyurular-card-width", `${roundedWidth}px`);
+      }
+      if (roundedHeight > 0) {
+        slider.style.setProperty("--duyurular-card-height", `${roundedHeight}px`);
+      }
     };
 
-    updateCardWidth();
-    const resizeObserver = new ResizeObserver(updateCardWidth);
-    resizeObserver.observe(slider);
-    window.addEventListener("resize", updateCardWidth);
+    syncCardSizeFromCategories();
+
+    const resizeObserver = new ResizeObserver(syncCardSizeFromCategories);
+    const categoryCard = document.querySelector<HTMLElement>(".home-main-category-card");
+    if (categoryCard) {
+      resizeObserver.observe(categoryCard);
+    }
+
+    const categoriesGrid = document.querySelector<HTMLElement>(".home-main-categories-grid");
+    if (categoriesGrid) {
+      resizeObserver.observe(categoriesGrid);
+    }
+
+    window.addEventListener("resize", syncCardSizeFromCategories);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener("resize", updateCardWidth);
+      window.removeEventListener("resize", syncCardSizeFromCategories);
     };
   }, []);
 

@@ -3,6 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
+  CLAMPED_TEXT_TOOLTIP_IGNORE_SELECTORS,
+  CLAMPED_TEXT_TOOLTIP_SELECTORS,
   CLAMPED_TOOLTIP_MAX_WIDTH,
   CLAMPED_TOOLTIP_Z_INDEX,
   computeClampedTooltipCoords,
@@ -10,10 +12,6 @@ import {
   shouldShowClampedTooltip,
   type ClampedTooltipCoords,
 } from "@/lib/clampedTextTooltip";
-import {
-  CLAMPED_TEXT_TOOLTIP_IGNORE_SELECTORS,
-  CLAMPED_TEXT_TOOLTIP_SELECTORS,
-} from "@/lib/clampedTextTooltipSelectors";
 
 type ActiveTooltip = {
   text: string;

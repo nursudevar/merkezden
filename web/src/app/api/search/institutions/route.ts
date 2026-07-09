@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import {
   buildProfileSearchVariants,
   escapeProfileLikeValue,

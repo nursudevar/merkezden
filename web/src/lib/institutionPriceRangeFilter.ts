@@ -125,6 +125,76 @@ export function rangesOverlap(a: { min: number; max: number }, b: { min: number;
   return aMin <= bMax && bMin <= aMax;
 }
 
+function stripTrailingPriceUnit(text: string): string {
+  return text.replace(/\s*(tl|₺)\s*$/gi, "").trim();
+}
+
+function parsePriceRangeNumericToken(part: string): number | null {
+  const digits = String(part ?? "").replace(/[^\d]/g, "");
+  if (!digits) return null;
+  const parsed = Number(digits);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Eğitmen fiyat_araligi choice etiketlerinden min/max çıkarır.
+ * Örnek: "0-1000", "50.000-100.000", "100.000-200.000"
+ */
+export function parseInstructorPriceRangeBound(raw: string): { min: number; max: number } | null {
+  const text = stripTrailingPriceUnit(String(raw ?? "").trim());
+  if (!text) return null;
+
+  const dashParts = text.split("-").map((part) => part.trim()).filter(Boolean);
+  if (dashParts.length === 2) {
+    const first = parsePriceRangeNumericToken(dashParts[0]);
+    const second = parsePriceRangeNumericToken(dashParts[1]);
+    if (first !== null && second !== null) {
+      return { min: Math.min(first, second), max: Math.max(first, second) };
+    }
+  }
+
+  return parsePriceRangeFromText(text);
+}
+
+/** Virgülle birleştirilmiş birden fazla fiyat aralığını ayrıştırır. */
+export function parseAllInstructorPriceRangesFromText(
+  raw: string,
+): Array<{ min: number; max: number }> {
+  const text = stripTrailingPriceUnit(String(raw ?? "").trim());
+  if (!text) return [];
+
+  const segments = text
+    .split(/[,;]/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  const ranges: Array<{ min: number; max: number }> = [];
+  for (const segment of segments) {
+    const parsed = parseInstructorPriceRangeBound(segment);
+    if (parsed) ranges.push(parsed);
+  }
+
+  if (ranges.length === 0) {
+    const whole = parseInstructorPriceRangeBound(text);
+    if (whole) ranges.push(whole);
+  }
+
+  return ranges;
+}
+
+/**
+ * Eğitmen fiyat etiketi kullanıcı aralığıyla kesişiyor mu?
+ * Parse edilemeyen etiketler filtre dışında bırakılmaz (listede kalır).
+ */
+export function instructorPriceLabelOverlapsUserRange(
+  priceLabel: string,
+  userRange: { min: number; max: number },
+): boolean {
+  const instructorRanges = parseAllInstructorPriceRangesFromText(priceLabel);
+  if (instructorRanges.length === 0) return true;
+  return instructorRanges.some((range) => rangesOverlap(range, userRange));
+}
+
 export function sortPriceRangeChoicesByMin<T extends { name: string }>(choices: T[]): T[] {
   return [...choices].sort((a, b) => {
     const aRange = parsePriceRangeFromText(a.name);
@@ -196,7 +266,7 @@ export async function resolveInstitutionIdsByPriceRange(
 
   const { data: entriesRaw, error: entErr } = await supabase
     .from("institution_feature_entries")
-    .select("id, institution_id, feature_definition_id, selected_choice_id, number_answer, text_answer")
+    .select("id, institution_id, feature_definition_id, number_answer, text_answer")
     .in("feature_definition_id", defIds);
   if (entErr) throw entErr;
 
@@ -204,22 +274,18 @@ export async function resolveInstitutionIdsByPriceRange(
     id: number;
     institution_id: number;
     feature_definition_id: number;
-    selected_choice_id: number | null;
     number_answer: number | null;
     text_answer: string | null;
   }>;
 
-  const multiEntryIdToInstitution = new Map<number, number>();
+  const choiceEntryIdToInstitution = new Map<number, number>();
   for (const e of entries) {
     const iid = Number(e.institution_id);
     if (!Number.isFinite(iid)) continue;
     const inputType = inputTypeByDefId.get(Number(e.feature_definition_id)) ?? "";
 
-    if (inputType === "single_select") {
-      const cid = Number(e.selected_choice_id);
-      if (!Number.isFinite(cid)) continue;
-      const r = choiceRangeById.get(cid);
-      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
+    if (inputType === "single_select" || inputType === "multi_select") {
+      choiceEntryIdToInstitution.set(Number(e.id), iid);
     } else if (inputType === "number") {
       const n = Number(e.number_answer);
       if (!Number.isFinite(n)) continue;
@@ -227,12 +293,10 @@ export async function resolveInstitutionIdsByPriceRange(
     } else if (inputType === "text") {
       const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
       if (r && rangesOverlap(r, userRange)) idSet.add(iid);
-    } else if (inputType === "multi_select") {
-      multiEntryIdToInstitution.set(Number(e.id), iid);
     }
   }
 
-  if (multiEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
+  if (choiceEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
     const matchingChoiceIds = Array.from(choiceRangeById.entries())
       .filter(([, r]) => rangesOverlap(r, userRange))
       .map(([cid]) => cid);
@@ -240,11 +304,11 @@ export async function resolveInstitutionIdsByPriceRange(
       const { data: links, error: linkErr } = await supabase
         .from("institution_feature_entry_choices")
         .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", Array.from(multiEntryIdToInstitution.keys()))
+        .in("institution_feature_entry_id", Array.from(choiceEntryIdToInstitution.keys()))
         .in("choice_id", matchingChoiceIds);
       if (linkErr) throw linkErr;
       for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number }>) {
-        const iid = multiEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
+        const iid = choiceEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
         if (Number.isFinite(iid)) idSet.add(iid!);
       }
     }

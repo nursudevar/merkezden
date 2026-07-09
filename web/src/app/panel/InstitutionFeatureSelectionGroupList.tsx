@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
+import { isAverageClassSizeInstitutionFeature } from "@/lib/institutionHelpers";
 
 type InstitutionFeatureChoiceRow = {
   id: number;
@@ -177,12 +178,32 @@ export function InstitutionFeatureSelectionGroupList({
                           type="number"
                           className="panel-institutions-feature-input"
                           value={institutionNumberFeatureValues[feature.id] ?? ""}
-                          onChange={(e) =>
+                          min={isAverageClassSizeInstitutionFeature(feature.name) ? 0 : undefined}
+                          step={isAverageClassSizeInstitutionFeature(feature.name) ? 1 : undefined}
+                          onKeyDown={(e) => {
+                            if (!isAverageClassSizeInstitutionFeature(feature.name)) return;
+                            if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") {
+                              e.preventDefault();
+                            }
+                          }}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (isAverageClassSizeInstitutionFeature(feature.name)) {
+                              if (raw === "" || raw === "-") {
+                                setInstitutionNumberFeatureValues((prev) => ({
+                                  ...prev,
+                                  [feature.id]: raw === "-" ? "" : raw,
+                                }));
+                                return;
+                              }
+                              const parsed = Number(raw);
+                              if (!Number.isFinite(parsed) || parsed < 0) return;
+                            }
                             setInstitutionNumberFeatureValues((prev) => ({
                               ...prev,
-                              [feature.id]: e.target.value,
-                            }))
-                          }
+                              [feature.id]: raw,
+                            }));
+                          }}
                           placeholder={feature.placeholder || "Sayı giriniz"}
                         />
                         {feature.unit ? (

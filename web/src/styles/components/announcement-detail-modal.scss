@@ -2,14 +2,11 @@
 @import '../mixins';
 @import '../typography';
 
-/* Duyuru detay modalı — proje genelindeki LoginModal/AuthModal stiliyle uyumludur. */
+/* Duyuru detay modalı — parşömen arka planlı, sadece bu modalı kapsar. */
 .announcement-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background-color: rgba(45, 28, 75, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,16 +22,19 @@
 
 .announcement-modal-content {
   position: relative;
-  background-color: $bg-white;
-  @include rounded-2xl;
-  @include shadow-lg;
-  width: 100%;
-  max-width: 640px;
-  max-height: calc(100vh - 40px);
-  display: flex;
-  flex-direction: column;
+  width: 80%;
+  height: 100%;
+  max-height: 100%;
+  display: block;
   overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   animation: announcementModalSlideUp 0.25s ease-out;
+}
+
+.announcement-modal-content--parchment {
+  padding: 0;
 }
 
 @keyframes announcementModalSlideUp {
@@ -48,27 +48,40 @@
   }
 }
 
+.announcement-modal-parchment-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
 .announcement-modal-close {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 34px;
-  height: 34px;
+  top: 35px;
+  right: 82px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.92);
-  border: 1px solid $border-light;
-  color: $text-zinc-700;
+  background-color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba($purple-main, 0.22);
+  color: #5b3f8a;
   cursor: pointer;
   z-index: 3;
   @include transition;
-  transition-property: transform, background-color, color;
+  transition-property: transform, background-color, color, border-color, box-shadow;
 
   &:hover {
     background-color: $bg-white;
-    color: $text-zinc-900;
+    color: $purple-main;
+    border-color: rgba($purple-main, 0.4);
+    box-shadow: 0 4px 12px rgba(109, 93, 252, 0.18);
     transform: scale(1.05);
   }
 
@@ -78,63 +91,165 @@
   }
 }
 
-.announcement-modal-media {
-  position: relative;
+.announcement-modal-body {
+  position: absolute;
+  z-index: 1;
+  /* Parşömen görselindeki düz yazı alanı — mühür ve kenar ruloları dışında kalır. */
+  --announcement-body-top: 25%;
+  --announcement-body-right: 11.5%;
+  --announcement-body-bottom: 28%;
+  --announcement-body-left: 11.5%;
+  top: var(--announcement-body-top);
+  right: var(--announcement-body-right);
+  bottom: var(--announcement-body-bottom);
+  left: var(--announcement-body-left);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  color: #3f2a1e;
+}
+
+.announcement-modal-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 36%) minmax(0, 1fr);
+  gap: 20px;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  background-size: cover;
-  background-position: center;
-  background-color: $bg-zinc-50;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  align-items: center;
+  justify-items: stretch;
+  flex: 0 1 auto;
+}
+
+.announcement-modal-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.announcement-modal-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  padding-inline: 4px;
+  text-align: center;
+}
+
+.announcement-modal-detail-header {
+  width: 100%;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.announcement-modal-detail-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($purple-main, 0.4);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba($purple-main, 0.08);
+    border-radius: 9999px;
+  }
+}
+
+.announcement-modal-media-card {
+  width: 100%;
+  height: 118px;
+  margin-inline: auto;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba($purple-main, 0.2);
+  background: #fff4ea;
   flex-shrink: 0;
 }
 
-/* Görseli olmayan duyuru için — proje genelindeki yoğun mor gradient ile uyumlu. */
-.announcement-modal-media--empty {
-  background: linear-gradient(
-    to right,
-    rgba(109, 93, 252, 0.85),
-    rgba(127, 86, 217, 0.85),
-    rgba(148, 84, 255, 0.85)
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.announcement-modal-media-icon {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.announcement-modal-body {
-  padding: 24px 28px 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
+.announcement-modal-media-image,
+.announcement-modal-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .announcement-modal-kicker {
   font-size: 11px;
   font-weight: $font-bold;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
   color: $purple-main;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .announcement-modal-title {
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
   font-weight: 700;
-  color: $text-zinc-900;
+  color: #4a2f6d;
   line-height: 1.25;
-  margin: 0;
+  margin: 0 0 10px;
+  width: 100%;
+  flex-shrink: 0;
+  word-break: break-word;
+  text-align: center;
+}
+
+.announcement-modal-title-separator {
+  width: 100%;
+  height: 1px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(232, 154, 74, 0) 0%,
+    rgba(232, 154, 74, 0.95) 18%,
+    rgba(232, 154, 74, 0.95) 82%,
+    rgba(232, 154, 74, 0) 100%
+  );
 }
 
 .announcement-modal-meta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 14px;
-  color: $text-zinc-500;
+  color: #8a5a2b;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .announcement-modal-meta-item {
@@ -146,23 +261,30 @@
 .announcement-modal-meta-icon {
   width: 16px;
   height: 16px;
+  color: rgba($purple-main, 0.85);
 }
 
 .announcement-modal-desc {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: $text-zinc-700;
+  font-size: 0.94rem;
+  line-height: 1.65;
+  color: #4d3424;
   white-space: pre-wrap;
   word-break: break-word;
-  margin: 4px 0 0 0;
+  overflow-wrap: anywhere;
+  margin: auto 0;
+  width: 100%;
+  text-align: center;
+  flex: 0 0 auto;
+  padding-top: 2px;
 }
 
 .announcement-modal-link {
-  align-self: flex-start;
+  align-self: center;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 2px;
   padding: 10px 18px;
   @include rounded-full;
   @include gradient-purple-top;
@@ -173,6 +295,8 @@
   border: none;
   cursor: pointer;
   max-width: 100%;
+  box-shadow: 0 6px 16px rgba(109, 93, 252, 0.22);
+  flex-shrink: 0;
   @include transition;
   transition-property: transform, box-shadow;
 
@@ -197,22 +321,118 @@
   word-break: break-all;
 }
 
+@media (max-width: 900px) {
+  .announcement-modal-content {
+    width: min(820px, 94vw);
+    height: min(520px, calc(100vh - 32px));
+    max-height: calc(100vh - 32px);
+  }
+
+  .announcement-modal-close {
+    top: 22px;
+    right: 24px;
+  }
+
+  .announcement-modal-body {
+    --announcement-body-top: 24%;
+    --announcement-body-right: 11%;
+    --announcement-body-bottom: 29%;
+    --announcement-body-left: 11%;
+  }
+
+  .announcement-modal-layout {
+    gap: 16px;
+    grid-template-columns: minmax(170px, 38%) minmax(0, 1fr);
+  }
+
+  .announcement-modal-media-card {
+    height: 104px;
+  }
+}
+
 @media (max-width: 640px) {
   .announcement-modal-overlay {
     padding: 12px;
   }
 
   .announcement-modal-content {
+    width: min(100%, 94vw);
+    height: min(480px, calc(100vh - 24px));
     max-height: calc(100vh - 24px);
   }
 
+  .announcement-modal-close {
+    top: 16px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+  }
+
   .announcement-modal-body {
-    padding: 18px 18px 20px;
-    gap: 10px;
+    --announcement-body-top: 23%;
+    --announcement-body-right: 10%;
+    --announcement-body-bottom: 30%;
+    --announcement-body-left: 10%;
+  }
+
+  .announcement-modal-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .announcement-modal-info {
+    flex: 0 0 auto;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .announcement-modal-detail {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    width: 100%;
+  }
+
+  .announcement-modal-detail-scroll {
+    padding-right: 2px;
+  }
+
+  .announcement-modal-title-separator {
+    margin-bottom: 12px;
+  }
+
+  .announcement-modal-media-card {
+    height: 96px;
+    border-radius: 12px;
   }
 
   .announcement-modal-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+  }
+
+  .announcement-modal-desc {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .announcement-modal-content {
+    height: min(440px, calc(100vh - 16px));
+    max-height: calc(100vh - 16px);
+  }
+
+  .announcement-modal-body {
+    --announcement-body-top: 22%;
+    --announcement-body-right: 9.5%;
+    --announcement-body-bottom: 31%;
+    --announcement-body-left: 9.5%;
+  }
+
+  .announcement-modal-media-card {
+    height: 84px;
   }
 }
 

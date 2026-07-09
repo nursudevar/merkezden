@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import {
   loadInstitutionRowForAuthUserClient,
   loadInstitutionRowByIdClient,
@@ -45,7 +45,8 @@ import {
 import {
   institutionTimeToInputHHMM,
   inputHHMMToDbTimeOrNull,
-} from "@/lib/institutionWorkingHours";
+  isAverageClassSizeInstitutionFeature,
+} from "@/lib/institutionHelpers";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
@@ -375,6 +376,7 @@ function PanelContent() {
   const [institutionIsApproved, setInstitutionIsApproved] = useState<boolean>(false);
   const [institutionTypeId, setInstitutionTypeId] = useState<string>("");
   const [institutionCategoryId, setInstitutionCategoryId] = useState<string>("");
+  const [canEditInstitutionCategory, setCanEditInstitutionCategory] = useState(false);
   const [institutionCategories, setInstitutionCategories] = useState<
     Array<{ id: number; name: string; display_order: number | null; slug: string | null }>
   >([]);
@@ -585,6 +587,7 @@ interface InstitutionDetailPreparedData {
   const [institutionFeaturesSaveMessage, setInstitutionFeaturesSaveMessage] = useState<string | null>(null);
   const [institutionFeaturesSaveToastNonce, setInstitutionFeaturesSaveToastNonce] = useState(0);
   const [openInstitutionSelectId, setOpenInstitutionSelectId] = useState<number | null>(null);
+  const [openInstitutionCategoryPicker, setOpenInstitutionCategoryPicker] = useState(false);
 
   const [mediaItems, setMediaItems] = useState<InstitutionMediaRow[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
@@ -994,6 +997,7 @@ interface InstitutionDetailPreparedData {
         setInstitutionCategoryId(
           typeof row.category_id === "number" ? String(row.category_id) : ""
         );
+        setCanEditInstitutionCategory(row.can_edit_category === true);
 
         const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
 
@@ -1245,15 +1249,23 @@ interface InstitutionDetailPreparedData {
           .filter((feature) => feature.input_type === "number")
           .forEach((feature) => {
             const entry = entriesByFeatureId.get(feature.id);
-            nextNumberValues[feature.id] =
+            let value =
               typeof entry?.number_answer === "number" ? String(entry.number_answer) : "";
+            if (
+              isAverageClassSizeInstitutionFeature(feature.name) &&
+              value !== "" &&
+              Number(value) < 0
+            ) {
+              value = "";
+            }
+            nextNumberValues[feature.id] = value;
           });
         definitions
           .filter((feature) => feature.input_type === "single_select")
           .forEach((feature) => {
             const entry = entriesByFeatureId.get(feature.id);
-            nextSingleSelectValues[feature.id] =
-              typeof entry?.selected_choice_id === "number" ? String(entry.selected_choice_id) : "";
+            const choiceIds = entry ? choiceIdsByEntryId.get(entry.id) ?? [] : [];
+            nextSingleSelectValues[feature.id] = choiceIds[0] ?? "";
           });
         definitions
           .filter((feature) => feature.input_type === "multi_select")
@@ -1330,6 +1342,7 @@ interface InstitutionDetailPreparedData {
       const target = event.target as HTMLElement | null;
       if (!target?.closest(".panel-institutions-single-select-dropdown")) {
         setOpenInstitutionSelectId(null);
+        setOpenInstitutionCategoryPicker(false);
       }
     };
     document.addEventListener("mousedown", onPointerDown);
@@ -1718,6 +1731,17 @@ interface InstitutionDetailPreparedData {
       const shouldPersistFeature = (featureId: number) =>
         saveOnlyFeatureIds === null || saveOnlyFeatureIds.has(featureId);
 
+      if (canEditInstitutionCategory) {
+        const parsedCategoryId = Number(String(institutionCategoryId ?? "").trim());
+        if (Number.isFinite(parsedCategoryId) && parsedCategoryId > 0) {
+          const { error: categoryUpdateError } = await supabase
+            .from("institutions")
+            .update({ category_id: parsedCategoryId })
+            .eq("id", Number(institutionId));
+          if (categoryUpdateError) throw categoryUpdateError;
+        }
+      }
+
       const booleanFeatures = institutionFeatureDefinitions.filter(
         (feature) => feature.input_type === "boolean" && shouldPersistFeature(feature.id)
       );
@@ -1810,6 +1834,11 @@ interface InstitutionDetailPreparedData {
         const parsedNumber = Number(rawValue);
         if (!Number.isFinite(parsedNumber)) continue;
 
+        if (isAverageClassSizeInstitutionFeature(feature.name) && parsedNumber < 0) {
+          flashInstitutionFeaturesSaveMessage("Ortalama sınıf mevcudu negatif bir değer olamaz.");
+          return;
+        }
+
         if (existingEntry) {
           const { error } = await supabase
             .from("institution_feature_entries")
@@ -1828,59 +1857,17 @@ interface InstitutionDetailPreparedData {
         }
       }
 
-      const singleSelectFeatures = institutionFeatureDefinitions.filter(
+      const choiceBasedFeatures = institutionFeatureDefinitions.filter(
         (feature) =>
-          (feature.input_type === "single_select" || isSchoolHoursFeature(feature)) &&
+          (feature.input_type === "single_select" || feature.input_type === "multi_select") &&
           shouldPersistFeature(feature.id)
       );
 
-      for (const feature of singleSelectFeatures) {
-        const selectedChoiceIdRaw = (institutionSingleSelectValues[feature.id] ?? "").trim();
-        const existingEntry = institutionFeatureEntries.find(
-          (entry) => entry.feature_definition_id === feature.id
-        );
-
-        if (!selectedChoiceIdRaw) {
-          if (existingEntry) {
-            const { error } = await supabase
-              .from("institution_feature_entries")
-              .delete()
-              .eq("id", existingEntry.id);
-            if (error) throw error;
-          }
-          continue;
-        }
-
-        const selectedChoiceId = Number(selectedChoiceIdRaw);
-        if (!Number.isFinite(selectedChoiceId)) continue;
-
-        if (existingEntry) {
-          const { error } = await supabase
-            .from("institution_feature_entries")
-            .update({ selected_choice_id: selectedChoiceId })
-            .eq("id", existingEntry.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from("institution_feature_entries")
-            .insert({
-              institution_id: Number(institutionId),
-              feature_definition_id: feature.id,
-              selected_choice_id: selectedChoiceId,
-            });
-          if (error) throw error;
-        }
-      }
-
-      const multiSelectFeatures = institutionFeatureDefinitions.filter(
-        (feature) =>
-          feature.input_type === "multi_select" &&
-          !isSchoolHoursFeature(feature) &&
-          shouldPersistFeature(feature.id)
-      );
-
-      for (const feature of multiSelectFeatures) {
-        const selectedChoiceIdsRaw = institutionMultiSelectValues[feature.id] ?? [];
+      for (const feature of choiceBasedFeatures) {
+        const useMultiUi = feature.input_type === "multi_select";
+        const selectedChoiceIdsRaw = useMultiUi
+          ? institutionMultiSelectValues[feature.id] ?? []
+          : [(institutionSingleSelectValues[feature.id] ?? "").trim()].filter(Boolean);
         const selectedChoiceIds = Array.from(
           new Set(
             selectedChoiceIdsRaw
@@ -1950,8 +1937,7 @@ interface InstitutionDetailPreparedData {
           ...booleanFeatures.map((f) => f.id),
           ...textFeatures.map((f) => f.id),
           ...numberFeatures.map((f) => f.id),
-          ...singleSelectFeatures.map((f) => f.id),
-          ...multiSelectFeatures.map((f) => f.id),
+          ...choiceBasedFeatures.map((f) => f.id),
         ])
       );
 
@@ -1965,7 +1951,7 @@ interface InstitutionDetailPreparedData {
                 .filter((e) => persistedIdSet.has(e.feature_definition_id))
                 .map((e) => e.id)
             );
-            const multiFeatureIdSet = new Set(multiSelectFeatures.map((f) => f.id));
+            const choiceFeatureIdSet = new Set(choiceBasedFeatures.map((f) => f.id));
 
             const [entriesRes, instVerifiedRes] = await Promise.all([
               supabase
@@ -1988,7 +1974,7 @@ interface InstitutionDetailPreparedData {
               });
 
               const choiceRelatedEntryIds = freshRows
-                .filter((e) => multiFeatureIdSet.has(e.feature_definition_id))
+                .filter((e) => choiceFeatureIdSet.has(e.feature_definition_id))
                 .map((e) => e.id);
 
               if (choiceRelatedEntryIds.length > 0) {
@@ -2059,19 +2045,6 @@ interface InstitutionDetailPreparedData {
       return "Kurum Saatleri";
     }
     return trimmed;
-  };
-
-  const isSchoolHoursFeature = (feature: InstitutionFeatureDefinitionRow) => {
-    const key = (feature.name ?? "")
-      .trim()
-      .toLocaleLowerCase("tr-TR")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/ı/g, "i")
-      .replace(/[_-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return key === "okul saatleri" || key === "kurum saatleri";
   };
 
   const selectionGroups = institutionGroupsWithFeatures
@@ -3335,15 +3308,32 @@ interface InstitutionDetailPreparedData {
                       ) : institutionTypeError ? (
                         <p className="panel-institutions-empty-text">{institutionTypeError}</p>
                       ) : (
-                        <div className="panel-institutions-type-picker-row panel-institutions-type-picker-disabled">
+                        <div
+                          className={`panel-institutions-type-picker-row${
+                            canEditInstitutionCategory ? "" : " panel-institutions-type-picker-disabled"
+                          }`}
+                        >
                           <div className="panel-institutions-feature-input-wrap">
                             <p className="panel-institutions-feature-name">Kategori</p>
                             <div className="panel-institutions-single-select-dropdown">
                               <button
                                 type="button"
-                                className="panel-institutions-feature-select panel-institutions-feature-select--button"
-                                disabled
-                                aria-disabled="true"
+                                className={`panel-institutions-feature-select panel-institutions-feature-select--button${
+                                  openInstitutionCategoryPicker
+                                    ? " panel-institutions-feature-select--open"
+                                    : ""
+                                }`}
+                                disabled={!canEditInstitutionCategory}
+                                aria-disabled={!canEditInstitutionCategory}
+                                onClick={() => {
+                                  if (!canEditInstitutionCategory) return;
+                                  setOpenInstitutionCategoryPicker((prev) => !prev);
+                                  setOpenInstitutionSelectId(null);
+                                }}
+                                aria-haspopup={canEditInstitutionCategory ? "listbox" : undefined}
+                                aria-expanded={
+                                  canEditInstitutionCategory ? openInstitutionCategoryPicker : undefined
+                                }
                               >
                                 <span
                                   className="panel-institutions-feature-select-label"
@@ -3358,9 +3348,34 @@ interface InstitutionDetailPreparedData {
                                   )?.name || "Kategori seçilmemiş"}
                                 </span>
                               </button>
+                              {canEditInstitutionCategory && openInstitutionCategoryPicker ? (
+                                <div className="panel-institutions-feature-select-menu" role="listbox">
+                                  {institutionCategories.map((category) => (
+                                    <button
+                                      key={category.id}
+                                      type="button"
+                                      role="option"
+                                      aria-selected={String(category.id) === (institutionCategoryId ?? "")}
+                                      className={`panel-institutions-feature-select-option ${
+                                        String(category.id) === (institutionCategoryId ?? "")
+                                          ? "panel-institutions-feature-select-option--selected"
+                                          : ""
+                                      }`}
+                                      onClick={() => {
+                                        setInstitutionCategoryId(String(category.id));
+                                        setOpenInstitutionCategoryPicker(false);
+                                      }}
+                                    >
+                                      {category.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : null}
                             </div>
                             <p className="panel-institutions-category-note">
-                              Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez.
+                              {canEditInstitutionCategory
+                                ? "Bu hesap için kategori değişikliği geçici olarak açılmıştır."
+                                : "Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez."}
                             </p>
                           </div>
                         </div>

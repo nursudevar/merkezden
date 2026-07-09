@@ -2,6 +2,9 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
+import {
+  isInstructorTimeTextFeature,
+} from "@/lib/instructorFeaturesClient";
 
 type InstructorFeatureChoiceRow = {
   id: number;
@@ -18,6 +21,7 @@ export type InstructorFeatureSelectionGroup = {
 export type InstructorFeatureDefinitionForSelection = {
   id: number;
   name: string;
+  slug: string | null;
   input_type: string;
   help_text: string | null;
   placeholder: string | null;
@@ -142,7 +146,19 @@ export function InstructorFeatureSelectionGroupList({
                   {feature.input_type === "text" ? (
                     <div className="egitmen-panel-features-feature-input-wrap">
                       <p className="egitmen-panel-features-feature-name">{getDisplayFeatureName(feature.name)}</p>
-                      {(feature.help_text ?? "").length > 120 || (feature.placeholder ?? "").length > 70 ? (
+                      {isInstructorTimeTextFeature(feature) ? (
+                        <input
+                          type="time"
+                          className="egitmen-panel-features-feature-input"
+                          value={instructorTextFeatureValues[feature.id] ?? ""}
+                          onChange={(e) =>
+                            setInstructorTextFeatureValues((prev) => ({
+                              ...prev,
+                              [feature.id]: e.target.value,
+                            }))
+                          }
+                        />
+                      ) : (feature.help_text ?? "").length > 120 || (feature.placeholder ?? "").length > 70 ? (
                         <textarea
                           className="egitmen-panel-features-feature-textarea"
                           value={instructorTextFeatureValues[feature.id] ?? ""}
@@ -176,14 +192,15 @@ export function InstructorFeatureSelectionGroupList({
                       <div className="egitmen-panel-features-feature-number-row">
                         <input
                           type="number"
+                          step="any"
                           className="egitmen-panel-features-feature-input"
                           value={instructorNumberFeatureValues[feature.id] ?? ""}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             setInstructorNumberFeatureValues((prev) => ({
                               ...prev,
                               [feature.id]: e.target.value,
-                            }))
-                          }
+                            }));
+                          }}
                           placeholder={feature.placeholder || "Sayı giriniz"}
                         />
                         {feature.unit ? (

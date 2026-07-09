@@ -8,18 +8,20 @@ import {
   INSTRUCTOR_FEATURES_LOAD_ERROR,
   INSTRUCTOR_FEATURES_SAVE_SUCCESS,
   buildInstructorFeatureFormStateFromEntries,
-  buildInstructorDirectFeatureUpdatePayload,
   fetchInstructorFeatureCategoriesClient,
   fetchInstructorFeatureDefinitionsBundleClient,
   fetchInstructorFeatureEntriesClient,
   getDisplayInstructorFeatureName,
-  mergeInstructorDirectFeatureValuesIntoForm,
+  isInstructorFeatureGroupVisibleForCategory,
+  isInstructorPanelHiddenFeature,
+  resolveInstructorCategoryDisplayName,
+  resolveInstructorCategorySlug,
   saveInstructorFeaturesClient,
+  validateInstructorFeatureForm,
   type InstructorFeatureCategoryRow,
   type InstructorFeatureChoiceRow,
   type InstructorFeatureDefinitionRow,
   type InstructorFeatureEntryRow,
-  type InstructorFeatureEntryChoiceRow,
   type InstructorFeatureFormState,
   type InstructorFeatureGroupRow,
 } from "@/lib/instructorFeaturesClient";
@@ -48,6 +50,15 @@ const EMPTY_FORM: InstructorFeatureFormState = {
   multiSelectValues: {},
 };
 
+const SUPPORTED_INPUT_TYPES = new Set([
+  "text",
+  "number",
+  "date",
+  "boolean",
+  "multi_select",
+  "single_select",
+]);
+
 export function InstructorFeaturesTab({
   authUserId,
   instructorRow,
@@ -57,6 +68,7 @@ export function InstructorFeaturesTab({
 }: Props) {
   const instructorId = Number(instructorRow.id);
   const hasValidInstructorId = Number.isFinite(instructorId) && instructorId > 0;
+  const canEditInstructorCategory = instructorRow.can_edit_category === true;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +78,7 @@ export function InstructorFeaturesTab({
 
   const [categories, setCategories] = useState<InstructorFeatureCategoryRow[]>([]);
   const [categoryId, setCategoryId] = useState("");
-
+  const [openInstructorCategoryPicker, setOpenInstructorCategoryPicker] = useState(false);
   const [featureGroups, setFeatureGroups] = useState<InstructorFeatureGroupRow[]>([]);
   const [featureDefinitions, setFeatureDefinitions] = useState<InstructorFeatureDefinitionRow[]>([]);
   const [featureChoices, setFeatureChoices] = useState<InstructorFeatureChoiceRow[]>([]);
@@ -78,13 +90,10 @@ export function InstructorFeaturesTab({
   const applyFormFromEntries = useCallback(
     (
       definitions: InstructorFeatureDefinitionRow[],
-      choices: InstructorFeatureChoiceRow[],
       entries: InstructorFeatureEntryRow[],
-      entryChoices: InstructorFeatureEntryChoiceRow[],
-      row: InstructorProfileRow,
+      entryChoices: { instructor_feature_entry_id: number; choice_id: number }[],
     ) => {
-      const baseForm = buildInstructorFeatureFormStateFromEntries(definitions, entries, entryChoices);
-      setForm(mergeInstructorDirectFeatureValuesIntoForm(definitions, choices, baseForm, row));
+      setForm(buildInstructorFeatureFormStateFromEntries(definitions, entries, entryChoices));
     },
     [],
   );
@@ -136,49 +145,62 @@ export function InstructorFeaturesTab({
         ? String(instructorRow.category_id)
         : "";
     setCategoryId(initialCategory);
+
     applyFormFromEntries(
       bundle.definitions,
-      bundle.choices,
       entriesResult.entries,
       entriesResult.entryChoices,
-      instructorRow,
     );
     setLoading(false);
-  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, instructorRow]);
+  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, instructorRow.category_id]);
 
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
 
   useEffect(() => {
+    if (instructorRow.category_id != null && Number.isFinite(Number(instructorRow.category_id))) {
+      setCategoryId(String(instructorRow.category_id));
+    }
+  }, [instructorRow.category_id]);
+
+  useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest(".egitmen-panel-features-single-select-dropdown")) {
         setOpenInstructorSelectId(null);
+        setOpenInstructorCategoryPicker(false);
       }
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
+  const instructorCategorySlug = useMemo(() => {
+    const parsedId = Number(String(categoryId ?? "").trim());
+    const effectiveCategoryId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : instructorRow.category_id;
+    return resolveInstructorCategorySlug(effectiveCategoryId, categories);
+  }, [categories, categoryId, instructorRow.category_id]);
+
+  const categoryDisplayName = useMemo(() => {
+    const parsedId = Number(String(categoryId ?? "").trim());
+    const effectiveCategoryId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : instructorRow.category_id;
+    return resolveInstructorCategoryDisplayName(effectiveCategoryId, categories);
+  }, [categories, categoryId, instructorRow.category_id]);
+
   const groupsWithFeatures = useMemo((): InstructorFeatureSelectionGroup[] => {
     return featureGroups
+      .filter((group) => isInstructorFeatureGroupVisibleForCategory(group, instructorCategorySlug))
       .map((group) => {
         const features: InstructorFeatureDefinitionForSelection[] = featureDefinitions
           .filter((f) => f.group_id === group.id)
-          .filter(
-            (f) =>
-              f.input_type === "text" ||
-              f.input_type === "number" ||
-              f.input_type === "date" ||
-              f.input_type === "boolean" ||
-              f.input_type === "multi_select" ||
-              f.input_type === "single_select",
-          )
+          .filter((f) => SUPPORTED_INPUT_TYPES.has(f.input_type))
+          .filter((f) => !isInstructorPanelHiddenFeature(f))
           .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
           .map((f) => ({
             id: f.id,
             name: f.name,
+            slug: f.slug ?? null,
             input_type: f.input_type,
             help_text: f.help_text,
             placeholder: f.placeholder,
@@ -187,55 +209,22 @@ export function InstructorFeaturesTab({
         return { group, features };
       })
       .filter((item) => item.features.length > 0);
-  }, [featureDefinitions, featureGroups]);
+  }, [featureDefinitions, featureGroups, instructorCategorySlug]);
 
-  const selectionGroups = groupsWithFeatures;
-
-  const baslicaOzelliklerGroup = selectionGroups.find(
-    ({ group }) => group.name.trim().toLocaleLowerCase("tr-TR") === "başlıca özellikler",
+  const upperGroups = groupsWithFeatures.filter(
+    ({ group }) => !(group.category_slug ?? "").trim(),
   );
-
-  const okulImkanlariIndex = selectionGroups.findIndex(
-    ({ group }) => group.name.trim().toLocaleLowerCase("tr-TR") === "okul imkanları",
+  const lowerGroups = groupsWithFeatures.filter(({ group }) =>
+    Boolean((group.category_slug ?? "").trim()),
   );
-
-  const upperGroups = baslicaOzelliklerGroup
-    ? [baslicaOzelliklerGroup]
-    : okulImkanlariIndex !== -1
-      ? selectionGroups.slice(0, okulImkanlariIndex)
-      : selectionGroups;
-
-  const lowerGroupsRaw = baslicaOzelliklerGroup
-    ? selectionGroups.filter((item) => item.group.id !== baslicaOzelliklerGroup.group.id)
-    : okulImkanlariIndex !== -1
-      ? selectionGroups.slice(okulImkanlariIndex)
-      : [];
-
-  const selectedCategorySlug = useMemo(() => {
-    const id = categoryId.trim();
-    if (!id) return null;
-    const cat = categories.find((c) => String(c.id) === id);
-    const slug = (cat?.slug ?? "").trim();
-    return slug.length > 0 ? slug : null;
-  }, [categories, categoryId]);
-
-  const lowerGroups =
-    selectedCategorySlug === null
-      ? []
-      : lowerGroupsRaw.filter(
-          ({ group }) => (group.category_slug ?? "").trim() === selectedCategorySlug,
-        );
 
   const featureIdsToSave = useMemo(() => {
     const ids = new Set<number>();
-    for (const { features } of upperGroups) {
-      for (const f of features) ids.add(f.id);
-    }
-    for (const { features } of lowerGroups) {
+    for (const { features } of groupsWithFeatures) {
       for (const f of features) ids.add(f.id);
     }
     return Array.from(ids);
-  }, [lowerGroups, upperGroups]);
+  }, [groupsWithFeatures]);
 
   const setBoolean = (updater: React.SetStateAction<Record<number, boolean>>) => {
     setForm((prev) => ({
@@ -283,14 +272,20 @@ export function InstructorFeaturesTab({
     setSaving(true);
     setSaveToastMessage(null);
 
+    const validationError = validateInstructorFeatureForm(featureDefinitions, form, featureIdsToSave);
+    if (validationError) {
+      flashSaveMessage(validationError);
+      setSaving(false);
+      return;
+    }
+
     try {
       const supabase = createSupabaseBrowserClient();
-      const directInstructorPatch = buildInstructorDirectFeatureUpdatePayload(
-        featureDefinitions,
-        featureChoices,
-        form,
-        featureIdsToSave,
-      );
+      const parsedCategoryId = Number(String(categoryId ?? "").trim());
+      const categoryIdToSave =
+        canEditInstructorCategory && Number.isFinite(parsedCategoryId) && parsedCategoryId > 0
+          ? parsedCategoryId
+          : undefined;
       const { error: saveError } = await saveInstructorFeaturesClient(
         {
           authUid: authUserId,
@@ -300,6 +295,7 @@ export function InstructorFeaturesTab({
           entries: featureEntries,
           form,
           featureIdsToSave,
+          categoryIdToSave,
         },
         supabase,
       );
@@ -312,27 +308,23 @@ export function InstructorFeaturesTab({
       const { data: updatedInstructor } = await supabase
         .from("instructors")
         .select(
-          "id, category_id, is_approved, owner_auth_id, price_range, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
+          "id, category_id, can_edit_category, is_approved, owner_auth_id, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
         )
         .eq("id", instructorId)
         .eq("owner_auth_id", authUserId)
         .maybeSingle();
 
-      const nextInstructorRow = updatedInstructor
-        ? { ...instructorRow, ...updatedInstructor }
-        : { ...instructorRow, ...directInstructorPatch };
-
-      onInstructorRowChange(nextInstructorRow);
+      if (updatedInstructor) {
+        onInstructorRowChange({ ...instructorRow, ...updatedInstructor });
+      }
 
       const entriesResult = await fetchInstructorFeatureEntriesClient(authUserId, instructorId, supabase);
       if (!entriesResult.error) {
         setFeatureEntries(entriesResult.entries);
         applyFormFromEntries(
           featureDefinitions,
-          featureChoices,
           entriesResult.entries,
           entriesResult.entryChoices,
-          nextInstructorRow,
         );
       }
 
@@ -406,20 +398,56 @@ export function InstructorFeaturesTab({
       </h4>
       <div className="egitmen-panel-features-feature-input-wrap">
         <p className="egitmen-panel-features-feature-name">Kategori</p>
-        <div className="egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown egitmen-panel-features-type-picker-disabled">
+        <div
+          className={`egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown${
+            canEditInstructorCategory ? "" : " egitmen-panel-features-type-picker-disabled"
+          }`}
+        >
           <button
             type="button"
-            className="egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button"
-            disabled
-            aria-disabled="true"
+            className={`egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button${
+              openInstructorCategoryPicker ? " egitmen-panel-features-feature-select--open" : ""
+            }`}
+            disabled={!canEditInstructorCategory}
+            aria-disabled={!canEditInstructorCategory}
+            onClick={() => {
+              if (!canEditInstructorCategory) return;
+              setOpenInstructorCategoryPicker((prev) => !prev);
+              setOpenInstructorSelectId(null);
+            }}
+            aria-haspopup={canEditInstructorCategory ? "listbox" : undefined}
+            aria-expanded={canEditInstructorCategory ? openInstructorCategoryPicker : undefined}
           >
-            <span className="egitmen-panel-features-feature-select-label">
-              {categories.find((c) => String(c.id) === categoryId)?.name || "Kategori seçilmemiş"}
-            </span>
+            <span className="egitmen-panel-features-feature-select-label">{categoryDisplayName}</span>
           </button>
+          {canEditInstructorCategory && openInstructorCategoryPicker ? (
+            <div className="egitmen-panel-features-feature-select-menu" role="listbox">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  role="option"
+                  aria-selected={String(category.id) === categoryId}
+                  className={`egitmen-panel-features-feature-select-option ${
+                    String(category.id) === categoryId
+                      ? "egitmen-panel-features-feature-select-option--selected"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setCategoryId(String(category.id));
+                    setOpenInstructorCategoryPicker(false);
+                  }}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <p className="egitmen-panel-features-category-note">
-          Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez.
+          {canEditInstructorCategory
+            ? "Bu hesap için kategori değişikliği geçici olarak açılmıştır."
+            : "Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez."}
         </p>
       </div>
     </section>

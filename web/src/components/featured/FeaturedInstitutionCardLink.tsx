@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Building2, Heart } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
-import type { FeaturedInstitution } from "./featuredInstitutionTypes";
+import type { FeaturedInstitution } from "./featuredInstitutions";
 
 export function FeaturedInstitutionCardLink({
   institution,

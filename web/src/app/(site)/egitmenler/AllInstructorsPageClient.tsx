@@ -10,12 +10,31 @@ import {
 } from "@/lib/publicInstructorClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
-import type { CategoryFilterConfig, FilterState } from "@/components/category/CategoryFilterSidebar";
+import type { FilterState } from "@/components/category/CategoryFilterSidebar";
+import {
+  EMPTY_INSTRUCTOR_CATEGORY_FILTERS,
+  type InstructorCategoryFilterPayload,
+} from "@/components/category/instructorCategoryFilterTypes";
 import type { CategoryResultItem } from "@/components/category/useCategoryInstitutions";
-import { parsePriceRangeFromText, rangesOverlap } from "@/lib/institutionPriceRangeFilter";
+import { instructorPriceLabelOverlapsUserRange } from "@/lib/institutionPriceRangeFilter";
+import {
+  fetchActiveFeaturedInstructorOrderMap,
+  sortWithFeaturedPriority,
+  type FeaturedOrderMap,
+} from "@/lib/featuredAccountsClient";
+import {
+  fetchInstructorFeatureCategoriesClient,
+  fetchInstructorPriceRangeLabelsByInstructorIdsClient,
+  formatInstructorPriceRangeDisplay,
+  type InstructorFeatureCategoryRow,
+} from "@/lib/instructorFeaturesClient";
+import {
+  hasInstructorCategoryFilterPayload,
+  resolveInstructorIdsFromInstructorCategoryFilterPayload,
+} from "@/lib/publicInstructorSearch";
 
 const FALLBACK_INSTRUCTOR_SELECT =
-  "id, slug, full_name, name, surname, branch, school, city, district, price_range, profile_picture, is_active, is_approved";
+  "id, slug, full_name, name, surname, branch, school, city, district, profile_picture, is_active, is_approved, category_id";
 
 type InstructorDirectoryRow = PublicInstructorRow &
   Record<string, unknown> & {
@@ -25,10 +44,10 @@ type InstructorDirectoryRow = PublicInstructorRow &
     school?: string | null;
     city?: string | null;
     district?: string | null;
-    price_range?: string | null;
     profile_picture?: string | null;
     is_active?: boolean | null;
     is_approved?: boolean | null;
+    category_id?: number | null;
   };
 
 type InstructorListItem = {
@@ -40,6 +59,7 @@ type InstructorListItem = {
   locationLabel: string;
   imageUrl: string;
   priceLabel: string;
+  categoryId: number | null;
 };
 
 const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
@@ -52,6 +72,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Çankaya / Ankara",
     imageUrl: "",
     priceLabel: "1000-5000 TL",
+    categoryId: null,
   },
   {
     id: -1002,
@@ -62,6 +83,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Yenimahalle / Ankara",
     imageUrl: "",
     priceLabel: "5000-10000 TL",
+    categoryId: null,
   },
   {
     id: -1003,
@@ -72,6 +94,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Etimesgut / Ankara",
     imageUrl: "",
     priceLabel: "0-1000 TL",
+    categoryId: null,
   },
   {
     id: -1004,
@@ -82,6 +105,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Balgat / Ankara",
     imageUrl: "",
     priceLabel: "1000-5000 TL",
+    categoryId: null,
   },
   {
     id: -1005,
@@ -92,6 +116,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Keçiören / Ankara",
     imageUrl: "",
     priceLabel: "5000-10000 TL",
+    categoryId: null,
   },
   {
     id: -1006,
@@ -102,6 +127,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Mamak / Ankara",
     imageUrl: "",
     priceLabel: "10000-50000 TL",
+    categoryId: null,
   },
   {
     id: -1007,
@@ -112,6 +138,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Sincan / Ankara",
     imageUrl: "",
     priceLabel: "1000-5000 TL",
+    categoryId: null,
   },
   {
     id: -1008,
@@ -122,6 +149,7 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     locationLabel: "Çayyolu / Ankara",
     imageUrl: "",
     priceLabel: "5000-10000 TL",
+    categoryId: null,
   },
 ];
 
@@ -162,13 +190,6 @@ function isMissingActiveColumnError(error: unknown): boolean {
   return text.includes("is_active") && text.includes("column");
 }
 
-function formatInstructorPriceRange(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "Fiyat belirtilmedi";
-  if (/\btl\b/i.test(raw)) return raw;
-  return `${raw} TL`;
-}
-
 function buildInstructorDisplayName(row: InstructorDirectoryRow): string {
   const fullName = String(row.full_name ?? "").trim();
   if (fullName) return fullName;
@@ -185,6 +206,7 @@ function buildInstructorLocation(row: InstructorDirectoryRow): string {
 function mapInstructorRowToListItem(
   row: InstructorDirectoryRow,
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  priceLabel?: string,
 ): InstructorListItem | null {
   const id = Number(row.id);
   if (!Number.isFinite(id) || id <= 0) return null;
@@ -204,7 +226,8 @@ function mapInstructorRowToListItem(
       String(row.profile_picture ?? "").trim(),
       supabase,
     ),
-    priceLabel: formatInstructorPriceRange(row.price_range),
+    priceLabel: formatInstructorPriceRangeDisplay(priceLabel ?? ""),
+    categoryId: Number.isFinite(Number(row.category_id)) ? Number(row.category_id) : null,
   };
 }
 
@@ -287,6 +310,10 @@ export function AllInstructorsPageClient() {
   const [items, setItems] = useState<InstructorListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [featuredInstructorOrderMap, setFeaturedInstructorOrderMap] = useState<FeaturedOrderMap>(
+    () => new Map(),
+  );
+  const [instructorCategories, setInstructorCategories] = useState<InstructorFeatureCategoryRow[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     city: "ankara",
@@ -294,14 +321,79 @@ export function AllInstructorsPageClient() {
     category: "",
     priceRange: null,
   });
+  const [instructorFeatureFilters, setInstructorFeatureFilters] =
+    useState<InstructorCategoryFilterPayload>(EMPTY_INSTRUCTOR_CATEGORY_FILTERS);
+  const [featureAllowedIds, setFeatureAllowedIds] = useState<Set<number> | null>(null);
+  const [featureFilterLoading, setFeatureFilterLoading] = useState(false);
+
+  const instructorFeatureFiltersKey = useMemo(
+    () => JSON.stringify(instructorFeatureFilters),
+    [instructorFeatureFilters],
+  );
+
+  const selectedInstructorCategoryId = useMemo(() => {
+    const slug = String(filters.category ?? "").trim();
+    if (!slug) return null;
+    const category = instructorCategories.find((row) => String(row.slug ?? "").trim() === slug);
+    const categoryId = Number(category?.id);
+    return Number.isFinite(categoryId) && categoryId > 0 ? categoryId : null;
+  }, [filters.category, instructorCategories]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!hasInstructorCategoryFilterPayload(instructorFeatureFilters)) {
+      setFeatureAllowedIds(null);
+      setFeatureFilterLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setFeatureFilterLoading(true);
+
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      try {
+        const allowedIds = await resolveInstructorIdsFromInstructorCategoryFilterPayload(
+          supabase,
+          instructorFeatureFilters,
+        );
+        if (cancelled) return;
+        setFeatureAllowedIds(allowedIds);
+      } catch (error) {
+        console.warn("[instructor-feature-filters]", describeSupabaseError(error));
+        if (cancelled) return;
+        setFeatureAllowedIds(new Set<number>());
+      } finally {
+        if (!cancelled) setFeatureFilterLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [instructorFeatureFiltersKey]);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const result = await fetchInstructorDirectoryRows(supabase);
+      const [result, featuredOrderResult, categoriesResult] = await Promise.all([
+        fetchInstructorDirectoryRows(supabase),
+        fetchActiveFeaturedInstructorOrderMap(supabase),
+        fetchInstructorFeatureCategoriesClient(supabase),
+      ]);
       if (cancelled) return;
+
+      if (!categoriesResult.error) {
+        setInstructorCategories(categoriesResult.categories);
+      }
+
+      if (!featuredOrderResult.error) {
+        setFeaturedInstructorOrderMap(featuredOrderResult.orderMap);
+      }
 
       if (result.error) {
         setItems(withTemporaryMockInstructors([]));
@@ -310,8 +402,22 @@ export function AllInstructorsPageClient() {
         return;
       }
 
+      const instructorIds = result.rows
+        .map((row) => Number(row.id))
+        .filter((id) => Number.isFinite(id) && id > 0);
+      const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
+        instructorIds,
+        supabase,
+      );
+
       const mappedItems = result.rows
-        .map((row) => mapInstructorRowToListItem(row, supabase))
+        .map((row) =>
+          mapInstructorRowToListItem(
+            row,
+            supabase,
+            priceLabelsByInstructorId.get(Number(row.id)),
+          ),
+        )
         .filter((item): item is InstructorListItem => item !== null);
 
       setItems(withTemporaryMockInstructors(mappedItems));
@@ -323,28 +429,20 @@ export function AllInstructorsPageClient() {
     };
   }, []);
 
-  const filterConfig = useMemo<CategoryFilterConfig>(() => {
-    const counts = new Map<string, number>();
-    for (const item of items) {
-      const branch = item.branchLabel.trim();
-      if (!branch || branch === "Branş belirtilmedi") continue;
-      counts.set(branch, (counts.get(branch) ?? 0) + 1);
-    }
-    return {
-      searchPlaceholder: "Eğitmen adı ara...",
-      categories: Array.from(counts.entries())
-        .sort(([a], [b]) => a.localeCompare(b, "tr", { sensitivity: "base" }))
-        .map(([label, count]) => ({ label, count, value: label })),
-    };
-  }, [items]);
-
   const filteredItems = useMemo(() => {
     const search = filters.search.trim().toLocaleLowerCase("tr-TR");
     const district = filters.district.trim().toLocaleLowerCase("tr-TR");
-    const category = filters.category.trim().toLocaleLowerCase("tr-TR");
     const priceRange = filters.priceRange;
 
     return items.filter((item) => {
+      if (selectedInstructorCategoryId != null) {
+        if (item.id <= 0 || item.categoryId !== selectedInstructorCategoryId) return false;
+      }
+
+      if (featureAllowedIds !== null) {
+        if (item.id <= 0 || !featureAllowedIds.has(item.id)) return false;
+      }
+
       if (search) {
         const haystack = [
           item.displayName,
@@ -362,21 +460,27 @@ export function AllInstructorsPageClient() {
         if (!item.locationLabel.toLocaleLowerCase("tr-TR").includes(district)) return false;
       }
 
-      if (category) {
-        if (item.branchLabel.toLocaleLowerCase("tr-TR") !== category) return false;
-      }
-
       if (priceRange) {
-        const rowRange = parsePriceRangeFromText(item.priceLabel);
-        if (!rowRange || !rangesOverlap(rowRange, priceRange)) return false;
+        if (!instructorPriceLabelOverlapsUserRange(item.priceLabel, priceRange)) return false;
       }
 
       return true;
     });
-  }, [filters, items]);
+  }, [filters, featureAllowedIds, items, selectedInstructorCategoryId]);
+
+  const sortedFilteredItems = useMemo(() => {
+    return sortWithFeaturedPriority(
+      filteredItems,
+      (item) => {
+        const id = Number(item.id);
+        return Number.isFinite(id) && id > 0 ? id : null;
+      },
+      featuredInstructorOrderMap,
+    );
+  }, [filteredItems, featuredInstructorOrderMap]);
 
   const results = useMemo<CategoryResultItem[]>(() => {
-    return filteredItems.map((item) => ({
+    return sortedFilteredItems.map((item) => ({
       id: `instructor-${item.id}`,
       resultType: "instructor",
       name: item.displayName,
@@ -394,18 +498,21 @@ export function AllInstructorsPageClient() {
       instructorTitle: item.schoolLabel,
       priceRange: item.priceLabel,
     }));
-  }, [filteredItems]);
+  }, [sortedFilteredItems]);
 
   return (
     <CategoryPageLayout
       categoryName="Eğitmenler"
       resultsTitle="Listelenen Eğitmenler"
-      filterConfig={filterConfig}
+      filterConfig={{ searchPlaceholder: "Eğitmen adı ara..." }}
       results={results}
-      isLoading={loading}
+      isLoading={loading || featureFilterLoading}
       errorMessage={loadError}
       emptyResultsMessage="Henüz listelenecek eğitmen bulunmuyor."
       onFilterChange={setFilters}
+      instructorModeProps={{
+        onInstructorFilterPayloadChange: setInstructorFeatureFilters,
+      }}
     />
   );
 }

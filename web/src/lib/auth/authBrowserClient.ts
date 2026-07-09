@@ -10,7 +10,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 // --- Kurum (institutions) ----------------------------------------------------
 
 export const INSTITUTION_PROFILE_ROW_SELECT =
-  "id, slug, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, is_approved, category_id, institution_type_id, working_hours_start, working_hours_end";
+  "id, slug, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, is_approved, category_id, institution_type_id, working_hours_start, working_hours_end, can_edit_category";
 
 export type InstitutionProfileRow = {
   id: number;
@@ -34,6 +34,7 @@ export type InstitutionProfileRow = {
   institution_type_id?: number | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
+  can_edit_category?: boolean | null;
 };
 
 export type LoadInstitutionRowOptions = {

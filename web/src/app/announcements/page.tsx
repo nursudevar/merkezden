@@ -8,25 +8,19 @@ import AnnouncementDetailModal, {
 } from "@/components/AnnouncementDetailModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  fetchAnnouncementsPageItems,
+  type AnnouncementsPageItem,
+} from "@/lib/homeAnnouncementsClient";
+import {
   buildCategoryTabNames,
   fetchActiveInstitutionCategories,
-} from "@/lib/institutionCategoriesClient";
+} from "@/lib/categoryHelpers";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
 import "@/styles/pages/announcements.scss";
 
-type AnnouncementItem = {
-  id: string;
-  title: string;
-  content: string;
-  imageUrl: string | null;
-  createdAt: string | null;
-  institutionName: string;
-  institutionCity: string;
-  categoryName: string;
-  linkUrl: string | null;
-};
+type AnnouncementItem = AnnouncementsPageItem;
 
 const ANNOUNCEMENT_CATEGORY_TABS_FALLBACK = [
   "Hepsi",
@@ -141,13 +135,7 @@ export default function AnnouncementsPage() {
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("announcements")
-        .select(
-          "id, title, content, announcement_image_url, link_url, created_at, institution:institutions(institution_name, city, institution_type:institution_types(category:institution_categories(name)))"
-        )
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+      const { items, error } = await fetchAnnouncementsPageItems(supabase);
 
       if (cancelled) return;
       if (error) {
@@ -158,57 +146,7 @@ export default function AnnouncementsPage() {
         return;
       }
 
-      const rows = (data ?? []) as Array<{
-        id: string | number;
-        title: string | null;
-        content: string | null;
-        announcement_image_url: string | null;
-        link_url: string | null;
-        created_at: string | null;
-        institution:
-          | {
-              institution_name: string | null;
-              city: string | null;
-              institution_type?:
-                | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
-                | Array<{ category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
-                | null;
-            }
-          | Array<{
-              institution_name: string | null;
-              city: string | null;
-              institution_type?:
-                | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
-                | Array<{ category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
-                | null;
-            }>
-          | null;
-      }>;
-
-      const mapped: AnnouncementItem[] = rows
-        .map((r) => {
-          const inst = Array.isArray(r.institution) ? r.institution[0] ?? null : r.institution ?? null;
-          const typeJoin = inst?.institution_type;
-          const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
-          const categoryJoin = typeRow?.category;
-          const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
-          const title = String(r.title ?? "").trim();
-          if (!title) return null;
-          return {
-            id: String(r.id),
-            title,
-            content: String(r.content ?? "").trim(),
-            imageUrl: r.announcement_image_url ? String(r.announcement_image_url).trim() || null : null,
-            createdAt: r.created_at ? String(r.created_at) : null,
-            institutionName: String(inst?.institution_name ?? "").trim(),
-            institutionCity: String(inst?.city ?? "").trim(),
-            categoryName: String(categoryRow?.name ?? "").trim(),
-            linkUrl: r.link_url ? String(r.link_url).trim() || null : null,
-          } as AnnouncementItem;
-        })
-        .filter((item): item is AnnouncementItem => item !== null);
-
-      setAnnouncements(mapped);
+      setAnnouncements(items);
       setLoading(false);
     })();
 
@@ -251,7 +189,7 @@ export default function AnnouncementsPage() {
           content: activeAnnouncement.content,
           imageUrl: activeAnnouncement.imageUrl,
           createdAt: activeAnnouncement.createdAt,
-          institutionName: activeAnnouncement.institutionName,
+          institutionName: activeAnnouncement.ownerName,
           linkUrl: activeAnnouncement.linkUrl,
         }
       : null;
@@ -328,10 +266,10 @@ export default function AnnouncementsPage() {
                             {formatAnnouncementDateTr(featured.createdAt)}
                           </span>
                         ) : null}
-                        {featured.institutionCity ? (
+                        {featured.ownerCity ? (
                           <span className="announcement-meta-item">
                             <MapPin className="announcement-meta-icon" />
-                            {featured.institutionCity}
+                            {featured.ownerCity}
                           </span>
                         ) : null}
                       </div>
@@ -369,9 +307,9 @@ export default function AnnouncementsPage() {
                           ) : null}
                         </div>
                         <div className="announcement-small-body">
-                          {item.institutionName ? (
+                          {item.ownerName ? (
                             <div className="announcement-small-kicker">
-                              {item.institutionName.toLocaleUpperCase("tr-TR")}
+                              {item.ownerName.toLocaleUpperCase("tr-TR")}
                             </div>
                           ) : null}
                           <h3 className="announcement-small-title">{item.title}</h3>
@@ -420,9 +358,9 @@ export default function AnnouncementsPage() {
                         ) : null}
                       </div>
                       <div className="announcement-small-body">
-                        {item.institutionName ? (
+                        {item.ownerName ? (
                           <div className="announcement-small-kicker">
-                            {item.institutionName.toLocaleUpperCase("tr-TR")}
+                            {item.ownerName.toLocaleUpperCase("tr-TR")}
                           </div>
                         ) : null}
                         <h3 className="announcement-small-title">{item.title}</h3>

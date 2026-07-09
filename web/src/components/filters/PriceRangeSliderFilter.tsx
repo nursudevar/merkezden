@@ -51,8 +51,8 @@ export function PriceRangeSliderFilter({
   }, [max, min, value]);
 
   const sliderValue = normalizedValue ? [normalizedValue.min, normalizedValue.max] : [min, max];
-  const minInput = normalizedValue ? String(normalizedValue.min) : "";
-  const maxInput = normalizedValue ? String(normalizedValue.max) : "";
+  const minInput = normalizedValue ? formatPriceFilterValue(normalizedValue.min) : "";
+  const maxInput = normalizedValue ? formatPriceFilterValue(normalizedValue.max) : "";
 
   const commitRange = (nextMin: number, nextMax: number) => {
     const clampedMin = clamp(Math.min(nextMin, nextMax), min, max);

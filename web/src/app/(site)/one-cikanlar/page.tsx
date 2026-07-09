@@ -6,12 +6,12 @@ import LoginModal from "@/components/LoginModal";
 import { AppNoticeBar } from "@/components/AppNoticeBar";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
-import type { FeaturedInstitution } from "@/components/featured/featuredInstitutionTypes";
 import {
+  type FeaturedInstitution,
   FEATURED_PAGE_CATEGORY_SECTIONS,
   institutionMatchesFeaturedCategory,
-} from "@/components/featured/featuredCategoriesConfig";
-import { mapInstitutionRowToFeatured } from "@/components/featured/mapInstitutionRowToFeatured";
+  mapInstitutionRowToFeatured,
+} from "@/components/featured/featuredInstitutions";
 import { HomeFeaturedInstitutionsMarquee } from "@/components/featured/HomeFeaturedInstitutionsMarquee";
 import { FeaturedCategoryInstitutionsRow } from "@/components/featured/FeaturedCategoryInstitutionsRow";
 import "@/styles/main.scss";

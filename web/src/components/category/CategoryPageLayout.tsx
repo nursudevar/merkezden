@@ -6,11 +6,13 @@ import CategoryFilterSidebar, {
   CategoryFilterPanelProvider,
   CategoryFilterConfig,
   SchoolCategoryFilterPanelProvider,
+  InstructorCategoryFilterPanelProvider,
   type FilterState,
 } from "./CategoryFilterSidebar";
 import CategoryResultsList from "./CategoryResultsList";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
+import type { InstructorCategoryFilterPayload } from "./instructorCategoryFilterTypes";
 import { useCategoryInstitutionMapMarkers } from "@/hooks/useCategoryInstitutionMapMarkers";
 
 /**
@@ -58,6 +60,12 @@ interface CategoryPageLayoutProps {
     onLinkedDistrictChange: (value: string) => void;
     onSchoolFilterPayloadChange: (payload: SchoolCategoryFilterPayload) => void;
   };
+  /**
+   * Eğitmenler liste sayfası: sol panel filtre şeması instructor_feature_* tablolarından gelir.
+   */
+  instructorModeProps?: {
+    onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
+  };
 }
 
 export default function CategoryPageLayout({
@@ -72,6 +80,7 @@ export default function CategoryPageLayout({
   onFilterChange,
   categorySlug,
   schoolModeProps,
+  instructorModeProps,
 }: CategoryPageLayoutProps) {
   const { markers: categoryMapMarkers, loading: categoryMapLoading } =
     useCategoryInstitutionMapMarkers(results, isLoading);
@@ -207,6 +216,18 @@ export default function CategoryPageLayout({
       >
         {content}
       </SchoolCategoryFilterPanelProvider>
+    );
+  }
+
+  if (instructorModeProps && onFilterChange) {
+    return (
+      <InstructorCategoryFilterPanelProvider
+        config={filterConfig}
+        onFilterChange={onFilterChange}
+        onInstructorFilterPayloadChange={instructorModeProps.onInstructorFilterPayloadChange}
+      >
+        {content}
+      </InstructorCategoryFilterPanelProvider>
     );
   }
 

@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Building2, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
+import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 
 const LIST_SIZE = 20;
 const FETCH_LIMIT = 240;
+const DRIVING_SCHOOL_CATEGORY_SLUG = "surucu-kursu";
 const PURPLE_BADGES = ["ÖNE ÇIKAN", "POPÜLER", "TAVSİYE", "YENİ"];
 
 type PurpleFeaturedCard = {
@@ -67,47 +68,48 @@ export function HomePurpleFeaturedMarquee() {
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
-
-      const [denemeResult, listResult] = await Promise.all([
-        supabase
-          .from("institutions")
-          .select("id, slug, source, institution_name, city, district, logo")
-          .eq("institution_name", "Deneme")
-          .eq("is_approved", true)
-          .maybeSingle(),
-        supabase
-          .from("institutions")
-          .select("id, slug, source, institution_name, city, district, logo")
-          .not("institution_name", "is", null)
-          .eq("is_approved", true)
-          .limit(FETCH_LIMIT),
-      ]);
+      const category = await fetchInstitutionCategoryBySlug(DRIVING_SCHOOL_CATEGORY_SLUG);
 
       if (cancelled) return;
 
-      const pinnedDeneme = denemeResult.data
-        ? mapRowToPurpleCard(supabase, denemeResult.data as Record<string, unknown>)
-        : null;
-
-      if (listResult.error || !listResult.data) {
-        if (pinnedDeneme) setCards([pinnedDeneme]);
+      if (!category?.id) {
+        console.warn("[purple-featured] sürücü kursu kategorisi bulunamadı:", {
+          slug: DRIVING_SCHOOL_CATEGORY_SLUG,
+        });
+        setCards([]);
         return;
       }
 
-      const mapped = (listResult.data as Array<Record<string, unknown>>)
+      const { data, error } = await supabase
+        .from("institutions")
+        .select("id, slug, source, institution_name, city, district, logo")
+        .eq("category_id", category.id)
+        .ilike("city", "Ankara")
+        .not("institution_name", "is", null)
+        .eq("is_approved", true)
+        .order("institution_name", { ascending: true })
+        .limit(FETCH_LIMIT);
+
+      if (cancelled) return;
+
+      if (error || !data?.length) {
+        if (error) {
+          console.warn("[purple-featured] kurum listesi hatası:", error.message);
+        }
+        setCards([]);
+        return;
+      }
+
+      const mapped = (data as Array<Record<string, unknown>>)
         .map((row) => mapRowToPurpleCard(supabase, row))
         .filter((item): item is PurpleFeaturedCard => item !== null);
 
       if (mapped.length === 0) {
-        if (pinnedDeneme) setCards([pinnedDeneme]);
+        setCards([]);
         return;
       }
 
-      const others = shuffleItems(
-        pinnedDeneme ? mapped.filter((item) => item.id !== pinnedDeneme.id) : mapped,
-      ).slice(0, pinnedDeneme ? LIST_SIZE - 1 : LIST_SIZE);
-
-      const list = pinnedDeneme ? [pinnedDeneme, ...others] : others;
+      const list = shuffleItems(mapped).slice(0, LIST_SIZE);
       setCards(
         list.map((card, index) => ({
           ...card,

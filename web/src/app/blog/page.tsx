@@ -6,18 +6,18 @@ import Image from "next/image";
 import { Grid3x3, List } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
-import { fetchPublishedBlogPosts } from "@/lib/blog/blogClient";
 import {
+  fetchPublishedBlogPosts,
   mapMockPostToDisplay,
   mapPublishedPostToDisplay,
   mergeDisplayBlogPosts,
   type DisplayBlogPost,
-} from "@/lib/blog/blogDisplay";
+} from "@/lib/blog/blogClient";
 import { allBlogPosts } from "@/lib/data/blog";
 import {
   buildCategoryTabNames,
   fetchActiveInstitutionCategories,
-} from "@/lib/institutionCategoriesClient";
+} from "@/lib/categoryHelpers";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";

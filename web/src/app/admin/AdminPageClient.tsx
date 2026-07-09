@@ -16,6 +16,10 @@ import {
   BookOpenText,
   PencilLine,
   Trash2,
+  Star,
+  StarOff,
+  ArrowUp,
+  ArrowDown,
   Check,
   X,
 } from "lucide-react";
@@ -23,7 +27,19 @@ import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import {
+  deactivateFeaturedAccountById,
+  FEATURED_ACCOUNT_TYPE_INSTITUTION,
+  FEATURED_ACCOUNT_TYPE_INSTRUCTOR,
+  fetchActiveFeaturedInstitutionIds,
+  fetchActiveFeaturedInstructorIds,
+  fetchActiveFeaturedAccountsForAdmin,
+  swapFeaturedDisplayOrders,
+  toggleFeaturedInstitution,
+  toggleFeaturedInstructor,
+  type FeaturedAccountAdminRow,
+} from "@/lib/featuredAccountsClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -39,6 +55,7 @@ import "@/styles/pages/admin.scss";
 type AdminTabId =
   | "overview"
   | "institutions"
+  | "featured-accounts"
   | "users"
   | "instructors"
   | "approval-requests"
@@ -431,6 +448,20 @@ export default function AdminPageClient() {
   const [institutionsTotalCount, setInstitutionsTotalCount] = useState(0);
   const [mediaCountByInstitutionId, setMediaCountByInstitutionId] = useState<Record<number, number>>({});
   const [deletingInstitutionId, setDeletingInstitutionId] = useState<number | null>(null);
+  const [featuredInstitutionIds, setFeaturedInstitutionIds] = useState<Set<number>>(() => new Set());
+  const [togglingFeaturedInstitutionId, setTogglingFeaturedInstitutionId] = useState<number | null>(
+    null,
+  );
+  const [featuredInstructorIds, setFeaturedInstructorIds] = useState<Set<number>>(() => new Set());
+  const [togglingFeaturedInstructorId, setTogglingFeaturedInstructorId] = useState<number | null>(
+    null,
+  );
+  const [featuredAccountsList, setFeaturedAccountsList] = useState<FeaturedAccountAdminRow[]>([]);
+  const [featuredAccountsListLoading, setFeaturedAccountsListLoading] = useState(false);
+  const [featuredAccountsListError, setFeaturedAccountsListError] = useState<string | null>(null);
+  const [featuredAccountsReloadKey, setFeaturedAccountsReloadKey] = useState(0);
+  const [reorderingFeaturedId, setReorderingFeaturedId] = useState<string | null>(null);
+  const [removingFeaturedAccountId, setRemovingFeaturedAccountId] = useState<string | null>(null);
   const [institutionsReloadKey, setInstitutionsReloadKey] = useState(0);
 
   const [individualUsersList, setIndividualUsersList] = useState<IndividualUserListRow[]>([]);
@@ -714,9 +745,16 @@ export default function AdminPageClient() {
         }
       }
 
-      const { data, count, error } = await institutionsQuery.range(from, to);
+      const [{ data, count, error }, featuredResult] = await Promise.all([
+        institutionsQuery.range(from, to),
+        fetchActiveFeaturedInstitutionIds(supabase),
+      ]);
 
       if (cancelled) return;
+
+      if (!featuredResult.error) {
+        setFeaturedInstitutionIds(featuredResult.ids);
+      }
 
       if (error) {
         setInstitutionsList([]);
@@ -766,6 +804,35 @@ export default function AdminPageClient() {
       cancelled = true;
     };
   }, [activeTab, institutionsPage, institutionsReloadKey, institutionsSearchQuery]);
+
+  useEffect(() => {
+    if (activeTab !== "featured-accounts") return;
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    const loadFeaturedAccounts = async () => {
+      setFeaturedAccountsListLoading(true);
+      setFeaturedAccountsListError(null);
+
+      const { rows, error } = await fetchActiveFeaturedAccountsForAdmin(supabase);
+      if (cancelled) return;
+
+      if (error) {
+        setFeaturedAccountsList([]);
+        setFeaturedAccountsListError("Öne çıkarılan hesap listesi alınamadı.");
+      } else {
+        setFeaturedAccountsList(rows);
+      }
+
+      setFeaturedAccountsListLoading(false);
+    };
+
+    void loadFeaturedAccounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, featuredAccountsReloadKey]);
 
   useEffect(() => {
     if (activeTab !== "users") return;
@@ -913,7 +980,6 @@ export default function AdminPageClient() {
           "district",
           "address",
           "education_level",
-          "price_range",
           "website",
         ] as const;
         const orParts = variants.flatMap((term) => {
@@ -932,9 +998,16 @@ export default function AdminPageClient() {
         }
       }
 
-      const { data, count, error } = await instructorsQuery.range(from, to);
+      const [{ data, count, error }, featuredResult] = await Promise.all([
+        instructorsQuery.range(from, to),
+        fetchActiveFeaturedInstructorIds(supabase),
+      ]);
 
       if (cancelled) return;
+
+      if (!featuredResult.error) {
+        setFeaturedInstructorIds(featuredResult.ids);
+      }
 
       if (error) {
         setInstructorsList([]);
@@ -1743,6 +1816,131 @@ export default function AdminPageClient() {
     setDeleteConfirmTarget({ type: "institution", id: institutionId });
   };
 
+  const handleToggleFeaturedInstitution = async (institutionId: number) => {
+    const normalizedId = Number(institutionId);
+    if (!Number.isFinite(normalizedId) || normalizedId <= 0) return;
+    if (togglingFeaturedInstitutionId === normalizedId) return;
+
+    const currentlyFeatured = featuredInstitutionIds.has(normalizedId);
+    setTogglingFeaturedInstitutionId(normalizedId);
+
+    setFeaturedInstitutionIds((prev) => {
+      const next = new Set(prev);
+      if (currentlyFeatured) next.delete(normalizedId);
+      else next.add(normalizedId);
+      return next;
+    });
+
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await toggleFeaturedInstitution(supabase, normalizedId, currentlyFeatured);
+
+    if (error) {
+      setFeaturedInstitutionIds((prev) => {
+        const next = new Set(prev);
+        if (currentlyFeatured) next.add(normalizedId);
+        else next.delete(normalizedId);
+        return next;
+      });
+      console.error("[admin][featured-accounts][institution]", error);
+      setInstitutionsListError("Öne çıkarma durumu güncellenemedi.");
+    }
+
+    setTogglingFeaturedInstitutionId(null);
+  };
+
+  const handleToggleFeaturedInstructor = async (instructorId: number) => {
+    const normalizedId = Number(instructorId);
+    if (!Number.isFinite(normalizedId) || normalizedId <= 0) return;
+    if (togglingFeaturedInstructorId === normalizedId) return;
+
+    const currentlyFeatured = featuredInstructorIds.has(normalizedId);
+    setTogglingFeaturedInstructorId(normalizedId);
+
+    setFeaturedInstructorIds((prev) => {
+      const next = new Set(prev);
+      if (currentlyFeatured) next.delete(normalizedId);
+      else next.add(normalizedId);
+      return next;
+    });
+
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await toggleFeaturedInstructor(supabase, normalizedId, currentlyFeatured);
+
+    if (error) {
+      setFeaturedInstructorIds((prev) => {
+        const next = new Set(prev);
+        if (currentlyFeatured) next.add(normalizedId);
+        else next.delete(normalizedId);
+        return next;
+      });
+      console.error("[admin][featured-accounts][instructor]", error);
+      setInstructorsListError("Öne çıkarma durumu güncellenemedi.");
+    }
+
+    setTogglingFeaturedInstructorId(null);
+  };
+
+  const handleMoveFeaturedAccount = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= featuredAccountsList.length) return;
+
+    const current = featuredAccountsList[index];
+    const target = featuredAccountsList[targetIndex];
+    if (!current || !target || reorderingFeaturedId) return;
+
+    setReorderingFeaturedId(current.featuredId);
+    setFeaturedAccountsListError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await swapFeaturedDisplayOrders(
+      supabase,
+      { featuredId: current.featuredId, displayOrder: current.displayOrder },
+      { featuredId: target.featuredId, displayOrder: target.displayOrder },
+    );
+
+    if (error) {
+      console.error("[admin][featured-accounts] swap:", error);
+      setFeaturedAccountsListError("Sıralama güncellenemedi.");
+    } else {
+      setFeaturedAccountsReloadKey((prev) => prev + 1);
+    }
+
+    setReorderingFeaturedId(null);
+  };
+
+  const handleRemoveFeaturedAccount = async (row: FeaturedAccountAdminRow) => {
+    if (removingFeaturedAccountId === row.featuredId) return;
+
+    setRemovingFeaturedAccountId(row.featuredId);
+    setFeaturedAccountsListError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await deactivateFeaturedAccountById(supabase, row.featuredId);
+
+    if (error) {
+      console.error("[admin][featured-accounts] deactivate:", error);
+      setFeaturedAccountsListError("Öne çıkarmadan kaldırılamadı.");
+    } else {
+      const normalizedEntityId = Number(row.entityId);
+      if (row.accountType === FEATURED_ACCOUNT_TYPE_INSTITUTION) {
+        setFeaturedInstitutionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(normalizedEntityId);
+          return next;
+        });
+      } else if (row.accountType === FEATURED_ACCOUNT_TYPE_INSTRUCTOR) {
+        setFeaturedInstructorIds((prev) => {
+          const next = new Set(prev);
+          next.delete(normalizedEntityId);
+          return next;
+        });
+      }
+      setFeaturedAccountsReloadKey((prev) => prev + 1);
+    }
+
+    setRemovingFeaturedAccountId(null);
+  };
+
   const handleCancelDeleteConfirm = () => {
     if (
       deletingIndividualUserId !== null ||
@@ -2062,7 +2260,9 @@ export default function AdminPageClient() {
   }, [approvalDecisionTarget]);
 
   const activeTabTitle =
-    activeTab === "users"
+    activeTab === "featured-accounts"
+      ? "Öne Çıkarılan Hesaplar"
+      : activeTab === "users"
       ? "Bireysel Kullanıcılar"
       : activeTab === "instructors"
         ? "Eğitmenler"
@@ -2105,6 +2305,14 @@ export default function AdminPageClient() {
               >
                 <Building2 className="admin-sidebar-nav-icon" />
                 <span>Kurumlar</span>
+              </button>
+              <button
+                type="button"
+                className={`admin-sidebar-nav-item ${activeTab === "featured-accounts" ? "admin-sidebar-nav-item--active" : ""}`}
+                onClick={() => setActiveTab("featured-accounts")}
+              >
+                <Star className="admin-sidebar-nav-icon" />
+                <span>Öne Çıkarılan Hesaplar</span>
               </button>
               <button
                 type="button"
@@ -2259,6 +2467,7 @@ export default function AdminPageClient() {
                           <th>İlçe</th>
                           <th>Görsel Sayısı</th>
                           <th>Düzenle</th>
+                          <th>Öne Çıkar</th>
                           <th>Sil</th>
                         </tr>
                       </thead>
@@ -2277,6 +2486,31 @@ export default function AdminPageClient() {
                               <Link href={`/panel?institutionId=${row.id}`} className="admin-institutions-action-btn" aria-label="Kurum düzenle">
                                 <PencilLine size={16} />
                               </Link>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className={`admin-institutions-action-btn${
+                                  featuredInstitutionIds.has(Number(row.id))
+                                    ? " admin-institutions-action-btn--featured-active"
+                                    : ""
+                                }`}
+                                onClick={() => void handleToggleFeaturedInstitution(row.id)}
+                                disabled={togglingFeaturedInstitutionId === row.id}
+                                aria-label={
+                                  featuredInstitutionIds.has(Number(row.id))
+                                    ? "Öne çıkarmayı kaldır"
+                                    : "Öne çıkar"
+                                }
+                                aria-pressed={featuredInstitutionIds.has(Number(row.id))}
+                              >
+                                <Star
+                                  size={16}
+                                  fill={
+                                    featuredInstitutionIds.has(Number(row.id)) ? "currentColor" : "none"
+                                  }
+                                />
+                              </button>
                             </td>
                             <td>
                               <button
@@ -2347,6 +2581,96 @@ export default function AdminPageClient() {
                       </div>
                     </div>
                   </>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {activeTab === "featured-accounts" ? (
+            <Card className="admin-main-card">
+              <CardContent className="admin-main-card-content admin-main-card-content--institutions">
+                <div className="admin-main-card-header admin-main-card-header--institutions">
+                  <div className="admin-institutions-header-left">
+                    <h1 className="admin-main-card-title">Öne Çıkarılan Hesaplar</h1>
+                    <span className="admin-institutions-total-badge">
+                      {`${featuredAccountsList.length.toLocaleString("tr-TR")} AKTİF`}
+                    </span>
+                  </div>
+                </div>
+
+                {featuredAccountsListLoading ? (
+                  <div className="admin-institutions-empty">Yükleniyor...</div>
+                ) : featuredAccountsListError ? (
+                  <div className="admin-institutions-empty">{featuredAccountsListError}</div>
+                ) : featuredAccountsList.length === 0 ? (
+                  <div className="admin-institutions-empty">Henüz öne çıkarılan hesap yok.</div>
+                ) : (
+                  <table className="admin-institutions-table">
+                    <thead>
+                      <tr>
+                        <th>Sıra</th>
+                        <th>Tür</th>
+                        <th>Ad</th>
+                        <th>Kategori / Branş</th>
+                        <th>İlçe</th>
+                        <th>Görsel Sayısı</th>
+                        <th>Sıralama</th>
+                        <th>Öne Çıkarmadan Kaldır</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {featuredAccountsList.map((row, index) => (
+                        <tr key={row.featuredId}>
+                          <td>{index + 1}</td>
+                          <td>{row.typeLabel}</td>
+                          <td>{row.name}</td>
+                          <td className="admin-institutions-category-cell">
+                            <span className="admin-institutions-category-badge">
+                              {row.categoryOrBranch}
+                            </span>
+                          </td>
+                          <td>{row.district}</td>
+                          <td>{row.mediaCount === null ? "-" : row.mediaCount}</td>
+                          <td>
+                            <div className="admin-institutions-sort-actions">
+                              <button
+                                type="button"
+                                className="admin-institutions-action-btn"
+                                onClick={() => void handleMoveFeaturedAccount(index, "up")}
+                                disabled={index === 0 || reorderingFeaturedId !== null}
+                                aria-label="Yukarı taşı"
+                              >
+                                <ArrowUp size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-institutions-action-btn"
+                                onClick={() => void handleMoveFeaturedAccount(index, "down")}
+                                disabled={
+                                  index === featuredAccountsList.length - 1 ||
+                                  reorderingFeaturedId !== null
+                                }
+                                aria-label="Aşağı taşı"
+                              >
+                                <ArrowDown size={16} />
+                              </button>
+                            </div>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-institutions-action-btn admin-institutions-action-btn--featured-active"
+                              onClick={() => void handleRemoveFeaturedAccount(row)}
+                              disabled={removingFeaturedAccountId === row.featuredId}
+                              aria-label="Öne çıkarmadan kaldır"
+                            >
+                              <StarOff size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </CardContent>
             </Card>
@@ -2573,6 +2897,7 @@ export default function AdminPageClient() {
                           <th>Branş</th>
                           <th>İlçe</th>
                           <th>Düzenle</th>
+                          <th>Öne Çıkar</th>
                           <th>Sil</th>
                         </tr>
                       </thead>
@@ -2592,6 +2917,31 @@ export default function AdminPageClient() {
                                 aria-label="Eğitmen düzenle"
                               >
                                 <PencilLine size={16} />
+                              </button>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className={`admin-instructors-action-btn${
+                                  featuredInstructorIds.has(Number(row.id))
+                                    ? " admin-instructors-action-btn--featured-active"
+                                    : ""
+                                }`}
+                                onClick={() => void handleToggleFeaturedInstructor(row.id)}
+                                disabled={togglingFeaturedInstructorId === row.id}
+                                aria-label={
+                                  featuredInstructorIds.has(Number(row.id))
+                                    ? "Öne çıkarmayı kaldır"
+                                    : "Öne çıkar"
+                                }
+                                aria-pressed={featuredInstructorIds.has(Number(row.id))}
+                              >
+                                <Star
+                                  size={16}
+                                  fill={
+                                    featuredInstructorIds.has(Number(row.id)) ? "currentColor" : "none"
+                                  }
+                                />
                               </button>
                             </td>
                             <td>
@@ -3859,6 +4209,7 @@ export default function AdminPageClient() {
 
           {activeTab !== "overview" &&
           activeTab !== "institutions" &&
+          activeTab !== "featured-accounts" &&
           activeTab !== "users" &&
           activeTab !== "instructors" &&
           activeTab !== "approval-requests" &&

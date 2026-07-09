@@ -5,13 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { Building2, Heart, UserRound } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   resolveInstitutionIdsByPriceRange,
   resolveInstitutionIdsByPriceRangeSelections,
 } from "@/lib/institutionPriceRangeFilter";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionLogoUrl";
 import {
   fetchPublicInstructorsForListing,
   getPublicInstructorDetailHref,
@@ -219,31 +218,17 @@ async function resolveInstitutionIdsByFeatureChoices(
   const targetIds = Array.from(targetChoiceIds);
   const idSet = new Set<number>();
 
-  const singleDefIds = definitions.filter((d) => d.input_type === "single_select").map((d) => d.id);
-  if (singleDefIds.length > 0) {
-    const { data: entRows, error: e1 } = await supabase
-      .from("institution_feature_entries")
-      .select("institution_id, selected_choice_id")
-      .in("feature_definition_id", singleDefIds)
-      .not("selected_choice_id", "is", null);
-
-    if (e1) throw e1;
-    for (const row of (entRows ?? []) as Array<{ institution_id: number; selected_choice_id: number | null }>) {
-      const sid = Number(row.selected_choice_id);
-      const iid = Number(row.institution_id);
-      if (Number.isFinite(iid) && Number.isFinite(sid) && targetChoiceIds.has(sid)) idSet.add(iid);
-    }
-  }
-
-  const multiDefIds = definitions.filter((d) => d.input_type === "multi_select").map((d) => d.id);
-  if (multiDefIds.length > 0) {
-    const { data: multiEntries, error: e2 } = await supabase
+  const choiceDefIds = definitions
+    .filter((d) => d.input_type === "single_select" || d.input_type === "multi_select")
+    .map((d) => d.id);
+  if (choiceDefIds.length > 0) {
+    const { data: choiceEntries, error: e2 } = await supabase
       .from("institution_feature_entries")
       .select("id, institution_id")
-      .in("feature_definition_id", multiDefIds);
+      .in("feature_definition_id", choiceDefIds);
 
     if (e2) throw e2;
-    const entries = (multiEntries ?? []) as Array<{ id: number; institution_id: number }>;
+    const entries = (choiceEntries ?? []) as Array<{ id: number; institution_id: number }>;
     const entryIds = entries.map((e) => e.id).filter((id) => Number.isFinite(id));
     const entryIdToInstitutionId = new Map<number, number>();
     for (const e of entries) {

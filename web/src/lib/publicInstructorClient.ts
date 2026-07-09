@@ -50,6 +50,8 @@ export type PublicInstructorRow = {
   phone?: string | null;
   is_approved?: boolean | null;
   is_active?: boolean | null;
+  category_id?: number | null;
+  category_name?: string | null;
 };
 
 function hasSupabaseResponseError(error: unknown): boolean {
@@ -120,6 +122,50 @@ async function enrichPublicInstructorContact(
     instagram_url: hasInstagram ? row.instagram_url : contact.instagram_url ?? null,
     x_url: hasX ? row.x_url : contact.x_url ?? null,
     linkedin_url: hasLinkedin ? row.linkedin_url : contact.linkedin_url ?? null,
+  };
+}
+
+async function enrichPublicInstructorCategory(
+  row: PublicInstructorRow,
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<PublicInstructorRow> {
+  if (String(row.category_name ?? "").trim()) return row;
+
+  let categoryId = row.category_id;
+  if (categoryId == null || !Number.isFinite(Number(categoryId))) {
+    const { data, error } = await supabase
+      .from(INSTRUCTORS_TABLE)
+      .select("category_id")
+      .eq("id", row.id)
+      .eq("is_active", true)
+      .eq("is_approved", true)
+      .maybeSingle();
+    if (error || !data) return row;
+    categoryId = (data as { category_id?: number | null }).category_id ?? null;
+  }
+
+  if (categoryId == null || !Number.isFinite(Number(categoryId))) return row;
+
+  const { data: catData, error: catError } = await supabase
+    .from("instructor_categories")
+    .select("name")
+    .eq("id", Number(categoryId))
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (catError || !catData) {
+    return { ...row, category_id: Number(categoryId) };
+  }
+
+  const categoryName = String((catData as { name?: string | null }).name ?? "").trim();
+  if (!categoryName) {
+    return { ...row, category_id: Number(categoryId) };
+  }
+
+  return {
+    ...row,
+    category_id: Number(categoryId),
+    category_name: categoryName,
   };
 }
 
@@ -222,7 +268,8 @@ export async function fetchPublicInstructorByParamClient(
   for (const { table, select } of attempts) {
     const { data, error } = await queryPublicInstructorRow(table, select, trimmed, supabase);
     if (!hasSupabaseResponseError(error) && data) {
-      const enriched = await enrichPublicInstructorContact(data, supabase);
+      const withContact = await enrichPublicInstructorContact(data, supabase);
+      const enriched = await enrichPublicInstructorCategory(withContact, supabase);
       return { row: enriched, error: null };
     }
     if (hasSupabaseResponseError(error)) {

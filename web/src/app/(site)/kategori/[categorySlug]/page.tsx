@@ -9,7 +9,7 @@ import {
   EMPTY_SCHOOL_CATEGORY_FILTERS,
   type SchoolCategoryFilterPayload,
 } from "@/components/category/schoolCategoryFilterTypes";
-import { fetchInstitutionCategoryBySlug } from "@/lib/institutionCategoriesClient";
+import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 
 export default function DynamicCategoryPage() {
   const params = useParams<{ categorySlug?: string | string[] }>();

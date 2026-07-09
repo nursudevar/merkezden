@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  buildUiToInstructorChoiceIdMap,
+  fetchInstructorRealFeatureDefinitionsClient,
+  INSTRUCTOR_FEATURE_ENTRIES_TABLE,
+  INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
+  isInstructorPriceRangeFeature,
+  type InstructorFeatureDefinitionRow,
+} from "@/lib/instructorFeaturesClient";
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import {
   buildProfileSearchVariants,
@@ -8,9 +16,11 @@ import {
 } from "@/lib/profileSearch";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
+import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
-  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, price_range, graduated_university, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at";
+  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, graduated_university, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at";
 
 const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "name",
@@ -27,7 +37,6 @@ const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "education_level",
   "lesson_type",
   "service_type",
-  "price_range",
   "graduated_university",
   "website",
 ] as const;
@@ -52,7 +61,6 @@ export type PublicInstructorListRow = {
   education_level?: string | null;
   lesson_type?: string | null;
   service_type?: string | null;
-  price_range?: string | null;
   graduated_university?: string | null;
   website?: string | null;
   experience_years?: number | null;
@@ -76,10 +84,10 @@ export type FeaturedInstructorItem = {
 };
 
 export type InstructorListingFilters = {
-  educationLevelTerms: string[];
-  serviceTypeTerms: string[];
-  lessonTypeTerms: string[];
+  /** null = feature filtresi yok; boş Set = eşleşme yok */
+  featureFilterIds: Set<number> | null;
   branchTitleTerms: string[];
+  /** Genel arama / liste fiyat slider'ı — fiyat_araligi feature üzerinden çözülür */
   priceRange: { min: number; max: number } | null;
 };
 
@@ -131,6 +139,32 @@ function pickInitial(name: string): string {
   return trimmed ? trimmed.charAt(0).toLocaleUpperCase("tr-TR") : "E";
 }
 
+function intersectInstructorIdSets(a: Set<number>, b: Set<number>): Set<number> {
+  const out = new Set<number>();
+  for (const id of a) {
+    if (b.has(id)) out.add(id);
+  }
+  return out;
+}
+
+async function resolveInstructorIdsForUserPriceRange(
+  supabase: SupabaseBrowser,
+  userRange: { min: number; max: number },
+): Promise<Set<number>> {
+  const { definitions } = await fetchInstructorRealFeatureDefinitionsClient(supabase);
+  const priceDefinition = definitions.find((row) =>
+    isInstructorPriceRangeFeature({ name: row.name ?? "", slug: row.slug }),
+  );
+  if (!priceDefinition) return new Set<number>();
+
+  return resolveInstructorIdsForPriceRangeDefinition(
+    supabase,
+    Number(priceDefinition.id),
+    String(priceDefinition.input_type ?? "multi_select"),
+    userRange,
+  );
+}
+
 export async function fetchPublicInstructorsForListing(
   supabase: SupabaseBrowser,
   options?: {
@@ -140,6 +174,7 @@ export async function fetchPublicInstructorsForListing(
     city?: string;
     priceRange?: { min: number; max: number } | null;
     limit?: number;
+    allowedInstructorIds?: Set<number>;
   },
 ): Promise<PublicInstructorListRow[]> {
   const searchTerm = String(options?.searchTerm ?? "").trim();
@@ -147,6 +182,24 @@ export async function fetchPublicInstructorsForListing(
   const city = String(options?.city ?? "").trim();
   const categoryId = options?.categoryId;
   const hardLimit = options?.limit ?? 600;
+  let allowedInstructorIds = options?.allowedInstructorIds;
+
+  if (options?.priceRange) {
+    const priceFilterIds = await resolveInstructorIdsForUserPriceRange(
+      supabase,
+      options.priceRange,
+    );
+    if (priceFilterIds.size === 0) return [];
+    allowedInstructorIds =
+      allowedInstructorIds !== undefined
+        ? intersectInstructorIdSets(allowedInstructorIds, priceFilterIds)
+        : priceFilterIds;
+  }
+
+  if (allowedInstructorIds !== undefined && allowedInstructorIds.size === 0) {
+    return [];
+  }
+
   const rows: PublicInstructorListRow[] = [];
   const relatedInstructorIds = searchTerm
     ? await resolveInstructorIdsByProfileSearch(supabase, searchTerm)
@@ -170,6 +223,9 @@ export async function fetchPublicInstructorsForListing(
     }
     if (district) {
       query = query.eq("district", district);
+    }
+    if (allowedInstructorIds !== undefined && allowedInstructorIds.size > 0) {
+      query = query.in("id", Array.from(allowedInstructorIds));
     }
     if (searchTerm) {
       query = applyPublicInstructorSearchFilter(query, searchTerm, relatedInstructorIds);
@@ -197,11 +253,9 @@ export async function fetchPublicInstructorsForListing(
   );
 
   const filteredRows = applyInstructorListingFilters(rows, {
-    educationLevelTerms: [],
-    serviceTypeTerms: [],
-    lessonTypeTerms: [],
+    featureFilterIds: null,
     branchTitleTerms: [],
-    priceRange: options?.priceRange ?? null,
+    priceRange: null,
   });
 
   return filteredRows.slice(0, hardLimit);
@@ -230,6 +284,7 @@ export type MappedPublicInstructorListItem = {
 export function mapPublicInstructorToListItem(
   row: PublicInstructorListRow,
   supabase: SupabaseBrowser,
+  priceLabel?: string,
 ): MappedPublicInstructorListItem | null {
   const numericId = Number(row.id);
   if (!Number.isFinite(numericId) || numericId <= 0) return null;
@@ -240,7 +295,7 @@ export function mapPublicInstructorToListItem(
   const about = String(row.about ?? "").trim();
   const bio = String(row.bio ?? "").trim();
   const description = about || bio || title || branch;
-  const priceRange = String(row.price_range ?? "").trim();
+  const priceRange = String(priceLabel ?? "").trim();
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) ||
     undefined;
@@ -291,21 +346,6 @@ function isPriceRangeDefinition(row: { name?: string | null; slug?: string | nul
     t.includes(" fiyat ") ||
     t.includes("ucret")
   );
-}
-
-function isEducationLevelDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFilterKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return t.includes("egitim seviyesi") || t.includes("education level");
-}
-
-function isServiceTypeDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFilterKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return t.includes("hizmet tipi") || t.includes("servis tipi") || t.includes("service type");
-}
-
-function isLessonTypeDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFilterKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return t.includes("ders tipi") || t.includes("lesson type");
 }
 
 function isBranchOrTitleDefinition(row: { name?: string | null; slug?: string | null }): boolean {
@@ -400,14 +440,226 @@ function fieldMatchesAnyTerm(value: string | null | undefined, terms: string[]):
   });
 }
 
+function intersectSets(a: Set<number>, b: Set<number>): Set<number> {
+  const out = new Set<number>();
+  for (const id of a) {
+    if (b.has(id)) out.add(id);
+  }
+  return out;
+}
+
+function applyIntersect(
+  accumulated: Set<number> | null,
+  next: Set<number>,
+): Set<number> {
+  return accumulated === null ? new Set<number>(next) : intersectSets(accumulated, next);
+}
+
+function isFilterIdSetEmpty(allowedIds: Set<number> | null): boolean {
+  return allowedIds !== null && allowedIds.size === 0;
+}
+
+function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undefined): boolean {
+  if (!payload) return false;
+  if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
+    return true;
+  if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
+    return true;
+  if (Object.keys(payload.commonMulti).some((k) => (payload.commonMulti[Number(k)] ?? []).length > 0))
+    return true;
+  if (
+    Object.keys(payload.commonRange).some((k) => {
+      const r = payload.commonRange[Number(k)] ?? { min: "", max: "" };
+      return String(r.min ?? "").trim() !== "" || String(r.max ?? "").trim() !== "";
+    })
+  )
+    return true;
+  if (Object.keys(payload.groupSelections).some((k) => (payload.groupSelections[Number(k)] ?? []).length > 0))
+    return true;
+  return false;
+}
+
+async function resolveInstructorIdsForInstructorChoice(
+  supabase: SupabaseBrowser,
+  definitionId: number,
+  choiceId: number,
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  const { data: entries, error: e1 } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+    .select("id, instructor_id")
+    .eq("feature_definition_id", definitionId);
+  if (e1) throw e1;
+
+  const rows = (entries ?? []) as Array<{ id: number; instructor_id: number }>;
+  const entryToInstructor = new Map<number, number>();
+  rows.forEach((r) => entryToInstructor.set(Number(r.id), Number(r.instructor_id)));
+  const entryIds = rows.map((r) => r.id).filter((id) => Number.isFinite(id));
+  if (entryIds.length === 0) return out;
+
+  const { data: links, error: e2 } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
+    .select("instructor_feature_entry_id, choice_id")
+    .in("instructor_feature_entry_id", entryIds)
+    .eq("choice_id", choiceId);
+  if (e2) throw e2;
+
+  for (const row of (links ?? []) as Array<{ instructor_feature_entry_id: number }>) {
+    const iid = entryToInstructor.get(Number(row.instructor_feature_entry_id));
+    if (Number.isFinite(iid)) out.add(iid!);
+  }
+  return out;
+}
+
+async function resolveInstructorIdsForBooleanDefinition(
+  supabase: SupabaseBrowser,
+  definitionId: number,
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  const { data, error } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+    .select("instructor_id")
+    .eq("feature_definition_id", definitionId)
+    .eq("boolean_answer", true);
+  if (error) throw error;
+  for (const row of (data ?? []) as Array<{ instructor_id: number }>) {
+    const iid = Number(row.instructor_id);
+    if (Number.isFinite(iid)) out.add(iid);
+  }
+  return out;
+}
+
+async function resolveInstructorIdsNumberRangeForDefinition(
+  supabase: SupabaseBrowser,
+  definitionId: number,
+  minBound: number | null,
+  maxBound: number | null,
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  const { data, error } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+    .select("instructor_id, number_answer, text_answer")
+    .eq("feature_definition_id", definitionId);
+  if (error) throw error;
+
+  for (const row of (data ?? []) as Array<{
+    instructor_id: number;
+    number_answer: number | null;
+    text_answer: string | null;
+  }>) {
+    const iid = Number(row.instructor_id);
+    if (!Number.isFinite(iid)) continue;
+    let n: number | null = null;
+    if (row.number_answer != null && Number.isFinite(Number(row.number_answer))) {
+      n = Number(row.number_answer);
+    } else {
+      const t = String(row.text_answer ?? "").trim();
+      if (t) {
+        const parsed = Number(t.replace(",", "."));
+        if (Number.isFinite(parsed)) n = parsed;
+      }
+    }
+    if (n == null || !Number.isFinite(n)) continue;
+    if (minBound != null && n < minBound) continue;
+    if (maxBound != null && n > maxBound) continue;
+    out.add(iid);
+  }
+  return out;
+}
+
+async function resolveInstructorIdsForPriceRangeDefinition(
+  supabase: SupabaseBrowser,
+  instructorDefinitionId: number,
+  inputType: string,
+  userRange: { min: number; max: number },
+): Promise<Set<number>> {
+  const idSet = new Set<number>();
+  const choiceRangeById = new Map<number, { min: number; max: number }>();
+
+  const { data: choicesRaw, error: chErr } = await supabase
+    .from("instructor_feature_choices")
+    .select("id, name")
+    .eq("feature_definition_id", instructorDefinitionId)
+    .eq("is_active", true);
+  if (!chErr) {
+    for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
+      const cid = Number(c.id);
+      if (!Number.isFinite(cid)) continue;
+      const r = parsePriceRangeFromText(String(c.name ?? ""));
+      if (r) choiceRangeById.set(cid, r);
+    }
+  }
+
+  const { data: entriesRaw, error: entErr } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+    .select("id, instructor_id, number_answer, text_answer")
+    .eq("feature_definition_id", instructorDefinitionId);
+  if (entErr) throw entErr;
+
+  const entries = (entriesRaw ?? []) as Array<{
+    id: number;
+    instructor_id: number;
+    number_answer: number | null;
+    text_answer: string | null;
+  }>;
+
+  const choiceEntryIdToInstructor = new Map<number, number>();
+  for (const e of entries) {
+    const iid = Number(e.instructor_id);
+    if (!Number.isFinite(iid)) continue;
+    const it = inputType.toLowerCase();
+
+    if (it === "single_select" || it === "multi_select") {
+      choiceEntryIdToInstructor.set(Number(e.id), iid);
+    } else if (it === "number") {
+      const n = Number(e.number_answer);
+      if (!Number.isFinite(n)) continue;
+      if (rangesOverlap({ min: n, max: n }, userRange)) idSet.add(iid);
+    } else if (it === "text") {
+      const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
+      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
+    }
+  }
+
+  if (choiceEntryIdToInstructor.size > 0 && choiceRangeById.size > 0) {
+    const matchingChoiceIds = Array.from(choiceRangeById.entries())
+      .filter(([, r]) => rangesOverlap(r, userRange))
+      .map(([cid]) => cid);
+    if (matchingChoiceIds.length > 0) {
+      const { data: links, error: linkErr } = await supabase
+        .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
+        .select("instructor_feature_entry_id, choice_id")
+        .in("instructor_feature_entry_id", Array.from(choiceEntryIdToInstructor.keys()))
+        .in("choice_id", matchingChoiceIds);
+      if (linkErr) throw linkErr;
+      for (const row of (links ?? []) as Array<{ instructor_feature_entry_id: number }>) {
+        const iid = choiceEntryIdToInstructor.get(Number(row.instructor_feature_entry_id));
+        if (Number.isFinite(iid)) idSet.add(iid!);
+      }
+    }
+  }
+
+  return idSet;
+}
+
 function hasInstructorListingFilters(filters: InstructorListingFilters): boolean {
   return (
-    filters.educationLevelTerms.length > 0 ||
-    filters.serviceTypeTerms.length > 0 ||
-    filters.lessonTypeTerms.length > 0 ||
+    filters.featureFilterIds !== null ||
     filters.branchTitleTerms.length > 0 ||
     filters.priceRange != null
   );
+}
+
+function applyInstructorBranchTitleFilter(
+  rows: PublicInstructorListRow[],
+  branchTitleTerms: string[],
+): PublicInstructorListRow[] {
+  if (branchTitleTerms.length === 0) return rows;
+  return rows.filter((row) => {
+    const branchMatch = fieldMatchesAnyTerm(row.branch, branchTitleTerms);
+    const titleMatch = fieldMatchesAnyTerm(row.title, branchTitleTerms);
+    return branchMatch || titleMatch;
+  });
 }
 
 export function applyInstructorListingFilters(
@@ -416,213 +668,276 @@ export function applyInstructorListingFilters(
 ): PublicInstructorListRow[] {
   if (!hasInstructorListingFilters(filters)) return rows;
 
-  return rows.filter((row) => {
-    if (
-      filters.educationLevelTerms.length > 0 &&
-      !fieldMatchesAnyTerm(row.education_level, filters.educationLevelTerms)
-    ) {
-      return false;
-    }
-    if (
-      filters.serviceTypeTerms.length > 0 &&
-      !fieldMatchesAnyTerm(row.service_type, filters.serviceTypeTerms)
-    ) {
-      return false;
-    }
-    if (
-      filters.lessonTypeTerms.length > 0 &&
-      !fieldMatchesAnyTerm(row.lesson_type, filters.lessonTypeTerms)
-    ) {
-      return false;
-    }
-    if (filters.branchTitleTerms.length > 0) {
-      const branchMatch = fieldMatchesAnyTerm(row.branch, filters.branchTitleTerms);
-      const titleMatch = fieldMatchesAnyTerm(row.title, filters.branchTitleTerms);
-      if (!branchMatch && !titleMatch) return false;
-    }
-    if (filters.priceRange) {
-      const rowRange = parsePriceRangeFromText(String(row.price_range ?? ""));
-      if (!rowRange || !rangesOverlap(rowRange, filters.priceRange)) return false;
-    }
-    return true;
-  });
-}
+  let filtered = rows;
 
-type SchoolCategoryFilterPayload = {
-  institutionTypeId: number | null;
-  commonSingle: Record<number, string>;
-  commonMulti: Record<number, string[]>;
-  commonRange: Record<number, { min: string; max: string }>;
-  groupSelections: Record<number, string[]>;
-};
+  if (filters.featureFilterIds !== null) {
+    if (filters.featureFilterIds.size === 0) return [];
+    filtered = filtered.filter((row) => filters.featureFilterIds!.has(Number(row.id)));
+  }
+
+  if (filters.branchTitleTerms.length > 0) {
+    filtered = applyInstructorBranchTitleFilter(filtered, filters.branchTitleTerms);
+  }
+
+  return filtered;
+}
 
 export async function buildInstructorListingFiltersFromSchoolPayload(
   supabase: SupabaseBrowser,
   payload: SchoolCategoryFilterPayload | undefined,
 ): Promise<InstructorListingFilters> {
   const empty: InstructorListingFilters = {
-    educationLevelTerms: [],
-    serviceTypeTerms: [],
-    lessonTypeTerms: [],
+    featureFilterIds: null,
     branchTitleTerms: [],
     priceRange: null,
   };
-  if (!payload) return empty;
+  if (!payload || !hasAnySchoolPayloadFilters(payload)) return empty;
 
-  const definitionIds = new Set<number>();
-  const choiceIds = new Set<number>();
+  const uiDefinitionIds = new Set<number>();
+  const uiChoiceIds = new Set<number>();
 
   for (const [defIdStr, choiceIdStr] of Object.entries(payload.commonSingle)) {
     const defId = Number(defIdStr);
     const choiceId = Number(String(choiceIdStr ?? "").trim());
-    if (Number.isFinite(defId)) definitionIds.add(defId);
-    if (Number.isFinite(choiceId)) choiceIds.add(choiceId);
+    if (Number.isFinite(defId)) uiDefinitionIds.add(defId);
+    if (Number.isFinite(choiceId)) uiChoiceIds.add(choiceId);
   }
 
   for (const [defIdStr, choiceIdList] of Object.entries(payload.commonMulti)) {
     const defId = Number(defIdStr);
-    if (Number.isFinite(defId)) definitionIds.add(defId);
+    if (Number.isFinite(defId)) uiDefinitionIds.add(defId);
     for (const choiceIdStr of choiceIdList ?? []) {
       const choiceId = Number(String(choiceIdStr).trim());
-      if (Number.isFinite(choiceId)) choiceIds.add(choiceId);
+      if (Number.isFinite(choiceId)) uiChoiceIds.add(choiceId);
     }
   }
 
   for (const defIdStr of Object.keys(payload.commonRange)) {
     const defId = Number(defIdStr);
-    if (Number.isFinite(defId)) definitionIds.add(defId);
+    if (Number.isFinite(defId)) uiDefinitionIds.add(defId);
   }
 
   for (const keys of Object.values(payload.groupSelections)) {
     for (const key of keys ?? []) {
       if (String(key).startsWith("def:")) {
         const defId = Number(String(key).slice(4));
-        if (Number.isFinite(defId)) definitionIds.add(defId);
+        if (Number.isFinite(defId)) uiDefinitionIds.add(defId);
         continue;
       }
       const { choiceId, definitionId } = parseChoiceKey(String(key));
-      if (choiceId != null) choiceIds.add(choiceId);
-      if (definitionId != null) definitionIds.add(definitionId);
+      if (choiceId != null) uiChoiceIds.add(choiceId);
+      if (definitionId != null) uiDefinitionIds.add(definitionId);
     }
   }
 
-  if (definitionIds.size === 0 && choiceIds.size === 0) return empty;
+  const defIdList = Array.from(uiDefinitionIds);
+  const choiceIdList = Array.from(uiChoiceIds);
 
-  const defIdList = Array.from(definitionIds);
-  const choiceIdList = Array.from(choiceIds);
-
-  const [defsResult, choicesResult] = await Promise.all([
+  const [defsResult, choicesResult, realDefsResult, realChoicesResult] = await Promise.all([
     defIdList.length > 0
       ? supabase
           .from("institution_feature_definitions")
-          .select("id, name, slug")
+          .select("id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order")
           .in("id", defIdList)
       : Promise.resolve({ data: [], error: null }),
     choiceIdList.length > 0
       ? supabase
           .from("institution_feature_choices")
-          .select("id, name, feature_definition_id")
+          .select("id, feature_definition_id, name, slug, is_active")
           .in("id", choiceIdList)
       : Promise.resolve({ data: [], error: null }),
+    fetchInstructorRealFeatureDefinitionsClient(supabase),
+    supabase
+      .from("instructor_feature_choices")
+      .select("id, feature_definition_id, name, slug, is_active")
+      .eq("is_active", true),
   ]);
 
   if (defsResult.error) throw defsResult.error;
   if (choicesResult.error) throw choicesResult.error;
+  if (realDefsResult.error) throw realDefsResult.error;
+  if (realChoicesResult.error) throw realChoicesResult.error;
 
-  const defMetaById = new Map<number, { name: string; slug: string | null }>();
-  for (const row of (defsResult.data ?? []) as Array<{
+  const uiDefinitions = ((defsResult.data ?? []) as InstructorFeatureDefinitionRow[]).filter((d) =>
+    Number.isFinite(d.id),
+  );
+  const uiChoices = ((choicesResult.data ?? []) as Array<{
     id: number;
+    feature_definition_id: number;
     name?: string | null;
     slug?: string | null;
-  }>) {
-    if (!Number.isFinite(row.id)) continue;
-    defMetaById.set(row.id, { name: String(row.name ?? ""), slug: row.slug ?? null });
-  }
+    is_active?: boolean;
+  }>).filter((c) => c.is_active !== false);
 
-  const choiceMetaById = new Map<number, { name: string; definitionId: number | null }>();
-  for (const row of (choicesResult.data ?? []) as Array<{
-    id: number;
-    name?: string | null;
-    feature_definition_id?: number | null;
-  }>) {
-    if (!Number.isFinite(row.id)) continue;
-    choiceMetaById.set(row.id, {
-      name: String(row.name ?? "").trim(),
-      definitionId:
-        row.feature_definition_id != null && Number.isFinite(Number(row.feature_definition_id))
-          ? Number(row.feature_definition_id)
-          : null,
+  const { uiFeatureIdToRealDefinition, instructorChoiceIdByUiKey } = buildUiToInstructorChoiceIdMap(
+    uiDefinitions,
+    uiChoices,
+    realDefsResult.definitions,
+    ((realChoicesResult.data ?? []) as Array<{
+      id: number;
+      feature_definition_id: number;
+      name?: string | null;
+      slug?: string | null;
+      is_active?: boolean;
+    }>).filter((c) => c.is_active !== false),
+  );
+
+  const defMetaById = new Map<number, { name: string; slug: string | null; inputType: string }>();
+  for (const row of uiDefinitions) {
+    defMetaById.set(row.id, {
+      name: String(row.name ?? ""),
+      slug: row.slug ?? null,
+      inputType: String(row.input_type ?? ""),
     });
   }
 
-  const filters: InstructorListingFilters = {
-    educationLevelTerms: [],
-    serviceTypeTerms: [],
-    lessonTypeTerms: [],
-    branchTitleTerms: [],
-    priceRange: null,
-  };
+  const choiceMetaById = new Map<number, { name: string; definitionId: number | null }>();
+  for (const row of uiChoices) {
+    choiceMetaById.set(row.id, {
+      name: String(row.name ?? "").trim(),
+      definitionId: Number.isFinite(row.feature_definition_id) ? row.feature_definition_id : null,
+    });
+  }
 
-  const pushChoiceTerm = (definitionId: number, choiceName: string) => {
-    const label = String(choiceName ?? "").trim();
-    if (!label) return;
-    const meta = defMetaById.get(definitionId);
-    if (!meta) return;
-    if (isEducationLevelDefinition(meta)) filters.educationLevelTerms.push(label);
-    else if (isServiceTypeDefinition(meta)) filters.serviceTypeTerms.push(label);
-    else if (isLessonTypeDefinition(meta)) filters.lessonTypeTerms.push(label);
-    else if (isBranchOrTitleDefinition(meta)) filters.branchTitleTerms.push(label);
+  const branchTitleTerms: string[] = [];
+  let current: Set<number> | null = null;
+
+  const resolveMappedChoiceSet = async (
+    uiDefId: number,
+    uiChoiceId: number,
+  ): Promise<Set<number> | null> => {
+    const meta = defMetaById.get(uiDefId);
+    if (meta && isBranchOrTitleDefinition(meta)) {
+      const label = choiceMetaById.get(uiChoiceId)?.name ?? "";
+      if (label) branchTitleTerms.push(label);
+      return null;
+    }
+
+    const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
+    const instructorChoiceId = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiChoiceId}`);
+    if (!realDef || !Number.isFinite(instructorChoiceId)) {
+      if (realDef) {
+        console.warn("[instructor-filter] choice map bulunamadı:", {
+          uiDefId,
+          uiChoiceId,
+          uiChoiceName: choiceMetaById.get(uiChoiceId)?.name ?? null,
+        });
+      }
+      return new Set<number>();
+    }
+
+    return resolveInstructorIdsForInstructorChoice(
+      supabase,
+      Number(realDef.id),
+      instructorChoiceId!,
+    );
   };
 
   for (const [defIdStr, choiceIdStr] of Object.entries(payload.commonSingle)) {
-    const defId = Number(defIdStr);
-    const choiceId = Number(String(choiceIdStr ?? "").trim());
-    if (!Number.isFinite(defId) || !Number.isFinite(choiceId)) continue;
-    const choice = choiceMetaById.get(choiceId);
-    pushChoiceTerm(defId, choice?.name ?? "");
+    const uiDefId = Number(defIdStr);
+    const uiChoiceId = Number(String(choiceIdStr ?? "").trim());
+    if (!Number.isFinite(uiDefId) || !Number.isFinite(uiChoiceId)) continue;
+    const set = await resolveMappedChoiceSet(uiDefId, uiChoiceId);
+    if (set === null) continue;
+    current = applyIntersect(current, set);
+    if (isFilterIdSetEmpty(current)) break;
   }
 
   for (const [defIdStr, choiceIdList] of Object.entries(payload.commonMulti)) {
-    const defId = Number(defIdStr);
-    if (!Number.isFinite(defId)) continue;
-    for (const choiceIdStr of choiceIdList ?? []) {
-      const choiceId = Number(String(choiceIdStr).trim());
-      if (!Number.isFinite(choiceId)) continue;
-      const choice = choiceMetaById.get(choiceId);
-      pushChoiceTerm(defId, choice?.name ?? "");
+    const uiDefId = Number(defIdStr);
+    if (!Number.isFinite(uiDefId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) continue;
+    const union = new Set<number>();
+    let skippedFeatureGroup = true;
+    for (const cidStr of choiceIdList) {
+      const uiChoiceId = Number(String(cidStr).trim());
+      if (!Number.isFinite(uiChoiceId)) continue;
+      const set = await resolveMappedChoiceSet(uiDefId, uiChoiceId);
+      if (set === null) continue;
+      skippedFeatureGroup = false;
+      set.forEach((id) => union.add(id));
     }
+    if (skippedFeatureGroup) continue;
+    current = applyIntersect(current, union);
+    if (isFilterIdSetEmpty(current)) break;
   }
 
   for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
-    const defId = Number(defIdStr);
-    if (!Number.isFinite(defId)) continue;
-    const meta = defMetaById.get(defId);
-    if (!meta || !isPriceRangeDefinition(meta)) continue;
+    const uiDefId = Number(defIdStr);
+    if (!Number.isFinite(uiDefId)) continue;
+    const meta = defMetaById.get(uiDefId);
+    if (!meta) continue;
+
     const minS = String(range?.min ?? "").trim();
     const maxS = String(range?.max ?? "").trim();
     if (!minS && !maxS) continue;
-    const minN = parseOptionalNumber(minS) ?? 0;
-    const maxN = parseOptionalNumber(maxS) ?? Number.POSITIVE_INFINITY;
-    filters.priceRange = {
-      min: Math.min(minN, maxN),
-      max: Math.max(minN, maxN),
-    };
+
+    const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
+    if (!realDef) {
+      current = applyIntersect(current, new Set<number>());
+      if (isFilterIdSetEmpty(current)) break;
+      continue;
+    }
+
+    if (isPriceRangeDefinition(meta)) {
+      const minN = parseOptionalNumber(minS) ?? 0;
+      const maxN = parseOptionalNumber(maxS) ?? Number.POSITIVE_INFINITY;
+      const userRange = { min: Math.min(minN, maxN), max: Math.max(minN, maxN) };
+      current = applyIntersect(
+        current,
+        await resolveInstructorIdsForPriceRangeDefinition(
+          supabase,
+          Number(realDef.id),
+          meta.inputType,
+          userRange,
+        ),
+      );
+    } else {
+      const minBound = minS ? parseOptionalNumber(minS) : null;
+      const maxBound = maxS ? parseOptionalNumber(maxS) : null;
+      current = applyIntersect(
+        current,
+        await resolveInstructorIdsNumberRangeForDefinition(
+          supabase,
+          Number(realDef.id),
+          minBound,
+          maxBound,
+        ),
+      );
+    }
+    if (isFilterIdSetEmpty(current)) break;
   }
 
   for (const keys of Object.values(payload.groupSelections)) {
-    for (const key of keys ?? []) {
+    if (!Array.isArray(keys) || keys.length === 0) continue;
+    const union = new Set<number>();
+    for (const key of keys) {
       const keyStr = String(key);
-      if (keyStr.startsWith("def:")) continue;
-      const { choiceId, definitionId } = parseChoiceKey(keyStr);
-      if (choiceId == null) continue;
-      const choice = choiceMetaById.get(choiceId);
-      const defId = definitionId ?? choice?.definitionId;
-      if (defId == null) continue;
-      pushChoiceTerm(defId, choice?.name ?? "");
+      if (keyStr.startsWith("def:")) {
+        const uiDefId = Number(keyStr.slice(4));
+        if (!Number.isFinite(uiDefId)) continue;
+        const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
+        if (!realDef) continue;
+        const set = await resolveInstructorIdsForBooleanDefinition(supabase, Number(realDef.id));
+        set.forEach((id) => union.add(id));
+        continue;
+      }
+      if (keyStr.startsWith("choice:")) {
+        const { choiceId, definitionId } = parseChoiceKey(keyStr);
+        if (choiceId == null || definitionId == null) continue;
+        const set = await resolveMappedChoiceSet(definitionId, choiceId);
+        if (set === null) continue;
+        set.forEach((id) => union.add(id));
+      }
     }
+    current = applyIntersect(current, union);
+    if (isFilterIdSetEmpty(current)) break;
   }
 
-  return filters;
+  return {
+    featureFilterIds: current,
+    branchTitleTerms: Array.from(new Set(branchTitleTerms)),
+    priceRange: null,
+  };
 }
 
 export async function fetchFeaturedPublicInstructors(
@@ -660,6 +975,7 @@ export async function fetchFeaturedPublicInstructors(
 export function mapPublicInstructorToFeaturedItem(
   row: PublicInstructorListRow,
   supabase: SupabaseBrowser,
+  priceLabel?: string,
 ): FeaturedInstructorItem | null {
   const numericId = Number(row.id);
   if (!Number.isFinite(numericId) || numericId <= 0) return null;
@@ -667,7 +983,7 @@ export function mapPublicInstructorToFeaturedItem(
   const name = mapPublicInstructorDisplayName(row);
   const branch = String(row.branch ?? "").trim();
   const title = String(row.title ?? "").trim();
-  const priceRange = String(row.price_range ?? "").trim();
+  const priceRange = String(priceLabel ?? "").trim();
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) || "";
 
@@ -682,6 +998,174 @@ export function mapPublicInstructorToFeaturedItem(
     title: title || undefined,
     priceRange: priceRange || undefined,
   };
+}
+
+async function resolveInstructorIdsForSingleSelectChoice(
+  supabase: SupabaseBrowser,
+  definitionId: number,
+  choiceId: number,
+): Promise<Set<number>> {
+  const fromEntryChoices = await resolveInstructorIdsForInstructorChoice(
+    supabase,
+    definitionId,
+    choiceId,
+  );
+  if (fromEntryChoices.size > 0) return fromEntryChoices;
+
+  const out = new Set<number>();
+  const { data, error } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+    .select("instructor_id")
+    .eq("feature_definition_id", definitionId)
+    .eq("selected_choice_id", choiceId);
+  if (error) throw error;
+
+  for (const row of (data ?? []) as Array<{ instructor_id: number }>) {
+    const instructorId = Number(row.instructor_id);
+    if (Number.isFinite(instructorId)) out.add(instructorId);
+  }
+  return out;
+}
+
+function unionInstructorIdSets(sets: Array<Set<number>>): Set<number> {
+  const out = new Set<number>();
+  for (const set of sets) {
+    for (const instructorId of set) out.add(instructorId);
+  }
+  return out;
+}
+
+export function hasInstructorCategoryFilterPayload(
+  payload: InstructorCategoryFilterPayload | undefined,
+): boolean {
+  if (!payload) return false;
+  if (Object.values(payload.booleanValues).some(Boolean)) return true;
+  if (
+    Object.keys(payload.singleSelect).some((definitionId) =>
+      String(payload.singleSelect[Number(definitionId)] ?? "").trim(),
+    )
+  ) {
+    return true;
+  }
+  if (
+    Object.keys(payload.multiSelect).some(
+      (definitionId) => (payload.multiSelect[Number(definitionId)] ?? []).length > 0,
+    )
+  ) {
+    return true;
+  }
+  if (
+    Object.keys(payload.numberRange).some((definitionId) => {
+      const range = payload.numberRange[Number(definitionId)] ?? { min: "", max: "" };
+      return String(range.min ?? "").trim() !== "" || String(range.max ?? "").trim() !== "";
+    })
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Eğitmenler liste sayfası feature filtreleri.
+ * Aynı definition / boolean group içinde OR (union), farklı filtreler arasında AND (intersection).
+ * Aktif filtre yoksa null döner (kısıtlama uygulanmaz).
+ */
+export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
+  supabase: SupabaseBrowser,
+  payload: InstructorCategoryFilterPayload | undefined,
+): Promise<Set<number> | null> {
+  if (!hasInstructorCategoryFilterPayload(payload)) return null;
+
+  let accumulated: Set<number> | null = null;
+  const groupMembership = payload!.booleanDefinitionGroupIds ?? {};
+  const selectedBooleanDefinitionIds = Object.entries(payload!.booleanValues)
+    .filter(([, isSelected]) => Boolean(isSelected))
+    .map(([definitionIdStr]) => Number(definitionIdStr))
+    .filter((definitionId) => Number.isFinite(definitionId));
+
+  const booleanSelectionsByGroup = new Map<number, number[]>();
+  const standaloneBooleanDefinitionIds: number[] = [];
+
+  for (const definitionId of selectedBooleanDefinitionIds) {
+    const groupId = Number(groupMembership[definitionId]);
+    if (Number.isFinite(groupId) && groupId > 0) {
+      const current = booleanSelectionsByGroup.get(groupId) ?? [];
+      current.push(definitionId);
+      booleanSelectionsByGroup.set(groupId, current);
+      continue;
+    }
+    standaloneBooleanDefinitionIds.push(definitionId);
+  }
+
+  for (const definitionIds of booleanSelectionsByGroup.values()) {
+    const perDefinitionSets: Set<number>[] = [];
+    for (const definitionId of definitionIds) {
+      perDefinitionSets.push(await resolveInstructorIdsForBooleanDefinition(supabase, definitionId));
+    }
+    if (perDefinitionSets.length === 0) continue;
+    accumulated = applyIntersect(accumulated, unionInstructorIdSets(perDefinitionSets));
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  for (const definitionId of standaloneBooleanDefinitionIds) {
+    const matchingIds = await resolveInstructorIdsForBooleanDefinition(supabase, definitionId);
+    accumulated = applyIntersect(accumulated, matchingIds);
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  for (const [definitionIdStr, choiceIdStr] of Object.entries(payload!.singleSelect)) {
+    const definitionId = Number(definitionIdStr);
+    const choiceId = Number(String(choiceIdStr ?? "").trim());
+    if (!Number.isFinite(definitionId) || !Number.isFinite(choiceId)) continue;
+    const matchingIds = await resolveInstructorIdsForSingleSelectChoice(
+      supabase,
+      definitionId,
+      choiceId,
+    );
+    accumulated = applyIntersect(accumulated, matchingIds);
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  for (const [definitionIdStr, choiceIdList] of Object.entries(payload!.multiSelect)) {
+    const definitionId = Number(definitionIdStr);
+    if (!Number.isFinite(definitionId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) {
+      continue;
+    }
+
+    const perChoiceSets: Set<number>[] = [];
+    for (const choiceIdStr of choiceIdList) {
+      const choiceId = Number(String(choiceIdStr ?? "").trim());
+      if (!Number.isFinite(choiceId)) continue;
+      perChoiceSets.push(
+        await resolveInstructorIdsForSingleSelectChoice(supabase, definitionId, choiceId),
+      );
+    }
+
+    if (perChoiceSets.length === 0) continue;
+    accumulated = applyIntersect(accumulated, unionInstructorIdSets(perChoiceSets));
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  for (const [definitionIdStr, range] of Object.entries(payload!.numberRange)) {
+    const definitionId = Number(definitionIdStr);
+    if (!Number.isFinite(definitionId)) continue;
+    const minText = String(range?.min ?? "").trim();
+    const maxText = String(range?.max ?? "").trim();
+    if (!minText && !maxText) continue;
+
+    const minBound = minText ? parseOptionalNumber(minText) : null;
+    const maxBound = maxText ? parseOptionalNumber(maxText) : null;
+    const matchingIds = await resolveInstructorIdsNumberRangeForDefinition(
+      supabase,
+      definitionId,
+      minBound,
+      maxBound,
+    );
+    accumulated = applyIntersect(accumulated, matchingIds);
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  return accumulated ?? new Set<number>();
 }
 
 export async function resolveInstitutionCategoryIdByName(
