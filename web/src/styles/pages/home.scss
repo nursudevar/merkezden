@@ -2121,9 +2121,11 @@ a.service-card {
 }
 
 .home-main-category-card {
-  background: #ffffff;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #6d5dfc 0%, #7f56d9 42%, #ff9807 100%) border-box;
   border-radius: 16px;
-  border: 1px solid #ececf2;
+  border: 1px solid transparent;
   padding: 0px 16px 8px;
   min-height: 168px;
   max-height: 200px;
