@@ -200,13 +200,6 @@ export default function AnnouncementsPage() {
 
       <main className="main-content">
         <div className="announcements-page">
-          <section className="blog-listing-header">
-            <h1 className="blog-listing-title">Duyurular</h1>
-            <p className="blog-listing-subtitle">
-              Platformdaki en yeni gelişmeleri, kampanyaları ve bilgilendirmeleri buradan takip edin.
-            </p>
-          </section>
-
           <AnnouncementCategoryTabs
             categories={categories}
             selectedCategory={selectedCategory}

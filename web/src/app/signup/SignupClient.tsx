@@ -16,6 +16,10 @@ import {
   Star,
   Table2,
   Tags,
+  TrendingUp,
+  UserRound,
+  Users,
+  Wallet,
 } from "lucide-react";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
@@ -139,12 +143,45 @@ const CORPORATE_FEATURES: SignupFeatureItem[] = [
   },
 ];
 
+const INSTRUCTOR_FEATURES: SignupFeatureItem[] = [
+  {
+    title: "Profesyonel Profil Sayfası",
+    description: "Branşlarınızı, deneyimlerinizi ve eğitim bilgilerinizi detaylı tanıtın.",
+    icon: UserRound,
+  },
+  {
+    title: "Uygun Fiyat Politikası",
+    description: "Düşük üyelik maliyetleriyle eğitim kalitenize odaklanın.",
+    icon: Wallet,
+  },
+  {
+    title: "Seo Avantajları",
+    description: "Merkezden.com sayesinde Google’da görünürlüğünüzü arttırın.",
+    icon: TrendingUp,
+  },
+  {
+    title: "Geniş Eğitim Kitlesi",
+    description: "Türkiye’nin en kapsamlı eğitim platformunda yer alın.",
+    icon: Users,
+  },
+  {
+    title: "Öne Çıkanlar Sayfası",
+    description: "Öne çıkın, daha fazla öğrenciye ulaşın.",
+    icon: Star,
+  },
+  {
+    title: "Öğrenci Talep Analizi",
+    description: "Profil ziyaretlerinizi ve öğrenci ilgisini takip edin.",
+    icon: BarChart3,
+  },
+];
+
 function SignupFeatureCard({
   item,
   accent,
 }: {
   item: SignupFeatureItem;
-  accent: "purple" | "orange";
+  accent: "purple" | "orange" | "navy";
 }) {
   const Icon = item.icon;
 
@@ -190,9 +227,15 @@ function SignupPasswordToggle({
 
 export default function SignupClient() {
   const [activeTab, setActiveTab] = useState<SignupTab>("individual");
+  const activeFeatures =
+    activeTab === "individual"
+      ? INDIVIDUAL_FEATURES
+      : activeTab === "instructor"
+        ? INSTRUCTOR_FEATURES
+        : CORPORATE_FEATURES;
+  const activeFeatureAccent: "purple" | "orange" | "navy" =
+    activeTab === "individual" ? "purple" : activeTab === "instructor" ? "navy" : "orange";
   const isIndividualTab = activeTab === "individual";
-  const activeFeatures = isIndividualTab ? INDIVIDUAL_FEATURES : CORPORATE_FEATURES;
-  const activeFeatureAccent: "purple" | "orange" = isIndividualTab ? "purple" : "orange";
   const [showPassword, setShowPassword] = useState(false);
   const [individualFormData, setIndividualFormData] = useState<IndividualSignupFormData>({
     firstName: "",

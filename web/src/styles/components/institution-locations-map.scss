@@ -53,6 +53,7 @@
   font-weight: $font-medium;
   color: #4f46e5;
   letter-spacing: -0.01em;
+  text-decoration: none;
   @include transition-colors;
 
   &:hover {
@@ -157,6 +158,315 @@
 .institution-map-modal-body--with-list {
   gap: 14px;
   align-items: stretch;
+}
+
+.institution-map-page {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px 20px 40px;
+  background: $bg-zinc-50;
+  min-height: calc(100vh - 120px);
+}
+
+.institution-map-page-inner {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+}
+
+.haritada-ara-page {
+  width: 100%;
+  box-sizing: border-box;
+
+  .category-page-layout-container {
+    width: 100%;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 30px;
+    padding-right: 30px;
+    box-sizing: border-box;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+
+    @media (max-width: 1023px) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    @media (max-width: 480px) {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+  }
+
+  .haritada-ara-sidebar {
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+
+    @media (min-width: 1024px) {
+      width: 260px;
+    }
+  }
+
+  /* Grid kolonunu koruyan boş yer tutucu — sabit panel bunun left/width’ini alır */
+  .haritada-ara-sidebar-slot {
+    display: none;
+
+    @media (min-width: 1024px) {
+      display: block;
+      width: 260px;
+      max-width: 100%;
+      height: 0;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      pointer-events: none;
+      visibility: hidden;
+    }
+  }
+
+  .haritada-ara-filter-fixed {
+    width: 100%;
+    box-sizing: border-box;
+
+    @media (max-width: 1023px) {
+      display: none;
+    }
+
+    /* fixed olmadan önce akışta görünmesin (yanlış konum flaşı) */
+    @media (min-width: 1024px) {
+      position: fixed;
+      top: 0;
+      left: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    &--active {
+      z-index: 40;
+      visibility: visible;
+      pointer-events: auto;
+      overflow: visible;
+    }
+
+    .haritada-ara-filter-sidebar,
+    .haritada-ara-filter-sidebar.category-filter-sidebar {
+      width: 100% !important;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .haritada-ara-filter-sidebar .category-filter-sidebar-card {
+      position: static !important;
+      top: auto !important;
+      max-height: none;
+      overflow: visible;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 18px;
+    }
+  }
+
+  .category-page-layout-results,
+  .haritada-ara-results {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /* Ana sayfa `.search-container` / `.search-button` ile birebir */
+  .search-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .search-field {
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    border-top-left-radius: 9999px;
+    border-bottom-left-radius: 9999px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border: 1px solid $border-light;
+    border-right: 0;
+    background-color: #f9fafb;
+    padding: 0 20px;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    color: $default-text-color;
+    @include shadow-sm;
+    @include transition;
+
+    &::placeholder {
+      color: $text-placeholder;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $purple-main;
+    }
+
+    &:hover {
+      border-color: $purple-main;
+      box-shadow: 0 2px 8px rgba($purple-main, 0.1);
+    }
+  }
+
+  .search-button {
+    height: 38px;
+    width: 20%;
+    min-width: 44px;
+    border-radius: 0;
+    border-top-right-radius: 9999px;
+    border-bottom-right-radius: 9999px;
+    background: linear-gradient(to right, $purple-main, $purple-light, $purple-dark);
+    padding: 0 !important;
+    color: $bg-white;
+    @include transition-colors;
+    cursor: pointer;
+    border: none;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba($purple-main, 0.2);
+    @include flex-center;
+
+    &:hover {
+      background: linear-gradient(to right, $purple-dark, $purple-main, $purple-light);
+      box-shadow: 0 4px 8px rgba($purple-main, 0.3);
+    }
+
+    svg,
+    .icon-md {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .institution-map-page-panel {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .institution-map-modal-body,
+  .institution-map-modal-body--page,
+  .institution-locations-map-wrapper,
+  .institution-locations-map-wrapper--modal,
+  .institution-locations-map,
+  .institution-locations-map--modal,
+  .map-modal-visible-institutions,
+  .map-modal-visible-institutions-grid {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .institution-map-modal-header {
+    padding: 16px 20px;
+  }
+}
+
+.haritada-ara-nearby-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba($purple-main, 0.28);
+  background: rgba($purple-main, 0.06);
+  color: $purple-main;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  @include transition;
+  transition-property: background-color, border-color, color, box-shadow;
+
+  &:hover:not(:disabled) {
+    background: rgba($purple-main, 0.1);
+    border-color: rgba($purple-main, 0.45);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  &--active {
+    background: $purple-main;
+    border-color: $purple-main;
+    color: $bg-white;
+    box-shadow: 0 6px 16px rgba($purple-main, 0.22);
+
+    &:hover:not(:disabled) {
+      background: $purple-main;
+      border-color: $purple-main;
+      color: $bg-white;
+      filter: brightness(0.96);
+    }
+  }
+}
+
+.haritada-ara-nearby-btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+
+  &--spin {
+    animation: haritada-ara-spin 0.8s linear infinite;
+  }
+}
+
+.haritada-ara-nearby-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b42318;
+}
+
+@keyframes haritada-ara-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.institution-map-page-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $bg-white;
+  border-radius: 20px;
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.institution-map-modal-body--page {
+  max-height: none;
+  overflow: visible;
+}
+
+.institution-map-modal-body--page.institution-map-modal-body--with-list .institution-locations-map-wrapper--modal {
+  min-height: 420px;
+}
+
+.institution-map-modal-body--page.institution-map-modal-body--with-list .institution-locations-map--modal {
+  min-height: 420px;
 }
 
 .map-modal-category-filters {

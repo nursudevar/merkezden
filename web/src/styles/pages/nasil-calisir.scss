@@ -149,6 +149,10 @@
   box-sizing: border-box;
 }
 
+.nasil-calisir-big-card--navy .nasil-calisir-big-card-media {
+  background: linear-gradient(138deg, #7a5fff 0%, #ff9807 100%);
+}
+
 .nasil-calisir-section {
   margin-bottom: 28px;
 }
@@ -193,6 +197,11 @@
   border-color: #ffe9cc;
 }
 
+.nasil-calisir-feature-card--navy {
+  background: linear-gradient(145deg, #ebe4ff 0%, #ffe9cc 100%);
+  border-color: rgba(122, 95, 255, 0.22);
+}
+
 .nasil-calisir-feature-card--purple:hover {
   background: linear-gradient(145deg, #6973f5 0%, #7b54d8 100%);
   border-color: transparent;
@@ -200,6 +209,11 @@
 
 .nasil-calisir-feature-card--orange:hover {
   background: linear-gradient(145deg, #ffa53d 0%, #ff8f21 100%);
+  border-color: transparent;
+}
+
+.nasil-calisir-feature-card--navy:hover {
+  background: linear-gradient(145deg, #7a5fff 0%, #ff9807 100%);
   border-color: transparent;
 }
 

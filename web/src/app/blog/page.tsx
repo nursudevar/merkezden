@@ -195,13 +195,6 @@ function BlogPageContent() {
 
       <main className="main-content">
         <div className="blog-listing-page">
-          <div className="blog-listing-header">
-            <h1 className="blog-listing-title">Blog Yazıları</h1>
-            <p className="blog-listing-subtitle">
-              Öğretmenler, öğrenciler ve eğitimciler için en güncel trendler, pedagojik ipuçları ve detaylı analizler.
-            </p>
-          </div>
-
           <CategoryTabs
             categories={allCategories}
             selectedCategory={selectedCategory}
@@ -254,10 +247,7 @@ export default function BlogPage() {
         <HeaderClientWrapper />
         <main className="main-content">
           <div className="blog-listing-page">
-            <div className="blog-listing-header">
-              <h1 className="blog-listing-title">Blog Yazıları</h1>
-              <p className="blog-listing-subtitle">Yükleniyor...</p>
-            </div>
+            <p className="blog-listing-loading">Blog yazıları yükleniyor…</p>
           </div>
         </main>
       </div>

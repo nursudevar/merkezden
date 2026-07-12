@@ -739,12 +739,6 @@ export default function Home() {
                 markers={institutionMapMarkers}
                 loading={institutionMapLoading}
                 showSeparatorAfter
-                showViewportInstitutionList
-                onToggleFavorite={handleFavoriteToggle}
-                favoriteIds={favoriteIds}
-                favoritesEnabled={favoritesEnabled && !favoritesLoading}
-                favoriteActionLoadingIds={favoriteActionLoadingIds}
-                isAuthenticated={Boolean(user)}
               />
               <div className="filter-section">
                 <div className="filter-section-title">
@@ -1257,12 +1251,12 @@ export default function Home() {
             </>
           ) : null}
 
-          <section className="purple-featured-section" aria-label="Sürücü Kursları">
+          <section className="purple-featured-section" aria-label="Aramıza Yeni Katılanlar">
             <div className="purple-featured-bg" aria-hidden />
             <div className="purple-featured-inner">
               <div className="purple-featured-heading">
                 <span className="purple-featured-kicker">Sizin için özenle seçildi.</span>
-                <h2 className="purple-featured-title">Sürücü Kursları</h2>
+                <h2 className="purple-featured-title">Aramıza Yeni Katılanlar</h2>
               </div>
 
               <HomePurpleFeaturedMarquee />
@@ -1324,7 +1318,7 @@ export default function Home() {
         )}
       >
         <ExpandableChatHeader>
-          <h2 className="expandable-chat-header-title">Bize ulaşın</h2>
+          <h2 className="expandable-chat-header-title">Meko Asistan</h2>
         </ExpandableChatHeader>
         <ExpandableChatBody>
           <div className="expandable-chat-starter">

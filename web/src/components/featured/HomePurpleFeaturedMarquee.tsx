@@ -17,7 +17,6 @@ type PurpleFeaturedCard = {
   badge: string;
   title: string;
   location: string;
-  cta: string;
   imageUrl: string;
   slug: string;
   source: string;
@@ -51,7 +50,6 @@ function mapRowToPurpleCard(
     badge: "YENİ",
     title,
     location,
-    cta: "Detayları Gör",
     imageUrl,
     slug,
     source: String(row.source ?? "").trim(),
@@ -192,7 +190,6 @@ export function HomePurpleFeaturedMarquee() {
                   <MapPin className="purple-featured-card-location-icon" aria-hidden />
                   <span>{card.location}</span>
                 </div>
-                <div className="purple-featured-card-cta">{card.cta} ›</div>
               </div>
             </Link>
           );

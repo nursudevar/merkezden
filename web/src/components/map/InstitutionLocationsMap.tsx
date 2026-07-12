@@ -111,12 +111,44 @@ function MapBoundsReporter({
   return null;
 }
 
+function MapFocusController({
+  focusTarget,
+}: {
+  focusTarget?: InstitutionMapFocusTarget | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!focusTarget) return;
+    const lat = Number(focusTarget.lat);
+    const lng = Number(focusTarget.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const zoom = Number.isFinite(Number(focusTarget.zoom)) ? Number(focusTarget.zoom) : 13;
+    try {
+      map.flyTo([lat, lng], zoom, { duration: 0.85 });
+    } catch {
+      /* map teardown */
+    }
+  }, [map, focusTarget?.token, focusTarget?.lat, focusTarget?.lng, focusTarget?.zoom]);
+
+  return null;
+}
+
+export type InstitutionMapFocusTarget = {
+  lat: number;
+  lng: number;
+  zoom?: number;
+  /** Aynı konuma tekrar odaklanmayı tetiklemek için */
+  token: number;
+};
+
 export type InstitutionLocationsMapProps = {
   variant?: "inline" | "modal";
   markers: InstitutionMapMarker[];
   loading?: boolean;
   renderEmptyMap?: boolean;
   onBoundsChange?: (bounds: InstitutionMapViewportBounds) => void;
+  focusTarget?: InstitutionMapFocusTarget | null;
 };
 
 export default function InstitutionLocationsMap({
@@ -125,6 +157,7 @@ export default function InstitutionLocationsMap({
   loading = false,
   renderEmptyMap = false,
   onBoundsChange,
+  focusTarget = null,
 }: InstitutionLocationsMapProps) {
   const router = useRouter();
   const mapInstanceId = useId().replace(/:/g, "");
@@ -184,6 +217,7 @@ export default function InstitutionLocationsMap({
         >
           <MapInvalidateSize />
           <MapBoundsReporter onBoundsChange={onBoundsChange} />
+          <MapFocusController focusTarget={focusTarget} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

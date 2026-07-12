@@ -542,11 +542,54 @@ $signup-layout-tight: 1020px;
   max-width: 100%;
   box-sizing: border-box;
   animation: signup-tab-fade-in 920ms ease;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    background 0.28s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    background: linear-gradient(180deg, rgba(122, 95, 255, 0.2) 0%, rgba(122, 95, 255, 0.1) 100%);
+    border-color: rgba(122, 95, 255, 0.32);
+    box-shadow: 0 16px 32px rgba(53, 45, 112, 0.12);
+
+    .signup-feature-icon-wrap {
+      transform: scale(1.08);
+      box-shadow: 0 6px 14px rgba(95, 79, 244, 0.22);
+    }
+  }
 }
 
 .signup-feature-card--orange {
   background: linear-gradient(180deg, rgba(255, 152, 7, 0.14) 0%, rgba(255, 152, 7, 0.07) 80%);
   border-color: rgba(255, 152, 7, 0.18);
+
+  &:hover {
+    background: linear-gradient(180deg, rgba(255, 152, 7, 0.24) 0%, rgba(255, 152, 7, 0.12) 80%);
+    border-color: rgba(255, 152, 7, 0.36);
+    box-shadow: 0 16px 32px rgba(240, 127, 17, 0.14);
+
+    .signup-feature-icon-wrap {
+      box-shadow: 0 6px 14px rgba(240, 127, 17, 0.24);
+    }
+  }
+}
+
+.signup-feature-card--navy {
+  background: linear-gradient(145deg, #ebe4ff 0%, #ffe9cc 100%);
+  border-color: rgba(122, 95, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(122, 95, 255, 0.1);
+
+  &:hover {
+    background: linear-gradient(145deg, #ddd2ff 0%, #ffd9a8 100%);
+    border-color: rgba(255, 152, 7, 0.4);
+    box-shadow: 0 16px 32px rgba(122, 95, 255, 0.16);
+
+    .signup-feature-icon-wrap {
+      box-shadow: 0 6px 14px rgba(122, 95, 255, 0.28);
+    }
+  }
 }
 
 .signup-feature-icon-wrap {
@@ -560,11 +603,19 @@ $signup-layout-tight: 1020px;
   margin-bottom: 10px;
   background: rgba(106, 117, 246, 0.14);
   color: #5f4ff4;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
 }
 
 .signup-feature-icon-wrap--orange {
   background: rgba(255, 152, 7, 0.14);
   color: #f07f11;
+}
+
+.signup-feature-icon-wrap--navy {
+  background: linear-gradient(145deg, #7a5fff 0%, #ff9807 100%);
+  color: #fff;
 }
 
 .signup-feature-icon {

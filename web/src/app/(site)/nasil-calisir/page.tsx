@@ -15,6 +15,9 @@ import {
   Tags,
   TrendingUp,
   UserPlus,
+  UserRound,
+  Users,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
@@ -23,7 +26,7 @@ import "@/styles/pages/nasil-calisir.scss";
 export const metadata: Metadata = {
   title: "Nasıl Çalışır? | Merkezden",
   description:
-    "Merkezden.com platformunda bireysel kullanıcılar ve kurumlar için temel akışı 30 saniyede keşfedin.",
+    "Merkezden.com platformunda bireysel kullanıcılar, kurumlar ve eğitmenler için temel akışı 30 saniyede keşfedin.",
 };
 
 type FeatureCardItem = {
@@ -98,12 +101,45 @@ const INSTITUTION_FEATURES: FeatureCardItem[] = [
   },
 ];
 
+const INSTRUCTOR_FEATURES: FeatureCardItem[] = [
+  {
+    title: "Profesyonel Profil Sayfası",
+    description: "Branşlarınızı, deneyimlerinizi ve eğitim bilgilerinizi detaylı tanıtın.",
+    icon: UserRound,
+  },
+  {
+    title: "Uygun Fiyat Politikası",
+    description: "Düşük üyelik maliyetleriyle eğitim kalitenize odaklanın.",
+    icon: Wallet,
+  },
+  {
+    title: "Seo Avantajları",
+    description: "Merkezden.com sayesinde Google’da görünürlüğünüzü arttırın.",
+    icon: TrendingUp,
+  },
+  {
+    title: "Geniş Eğitim Kitlesi",
+    description: "Türkiye’nin en kapsamlı eğitim platformunda yer alın.",
+    icon: Users,
+  },
+  {
+    title: "Öne Çıkanlar Sayfası",
+    description: "Öne çıkın, daha fazla öğrenciye ulaşın.",
+    icon: Star,
+  },
+  {
+    title: "Öğrenci Talep Analizi",
+    description: "Profil ziyaretlerinizi ve öğrenci ilgisini takip edin.",
+    icon: BarChart3,
+  },
+];
+
 function FeatureItemCard({
   item,
   accent,
 }: {
   item: FeatureCardItem;
-  accent: "purple" | "orange";
+  accent: "purple" | "orange" | "navy";
 }) {
   const Icon = item.icon;
 
@@ -172,9 +208,9 @@ export default function NasilCalisirPage() {
           </section>
         </section>
 
-        <section className="nasil-calisir-row" aria-label="Kurumlar ve eğitmenler için temel kullanım akışı">
+        <section className="nasil-calisir-row" aria-label="Kurumlar için temel kullanım akışı">
           <article className="nasil-calisir-big-card nasil-calisir-visual">
-            <h2 className="nasil-calisir-big-card-title">Kurumlar / Eğitmenler İçin</h2>
+            <h2 className="nasil-calisir-big-card-title">Kurumlar İçin</h2>
             <ul className="nasil-calisir-big-card-list">
               <li>
                 <UserPlus className="nasil-calisir-big-card-list-icon" />
@@ -207,6 +243,46 @@ export default function NasilCalisirPage() {
             <div className="nasil-calisir-feature-grid">
               {INSTITUTION_FEATURES.map((item) => (
                 <FeatureItemCard key={item.title} item={item} accent="orange" />
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <section className="nasil-calisir-row" aria-label="Özel ders ve eğitmenler için temel kullanım akışı">
+          <article className="nasil-calisir-big-card nasil-calisir-big-card--navy nasil-calisir-visual">
+            <h2 className="nasil-calisir-big-card-title">Özel Ders / Eğitmenler İçin</h2>
+            <ul className="nasil-calisir-big-card-list">
+              <li>
+                <UserRound className="nasil-calisir-big-card-list-icon" />
+                <span>Branşlarınızı ve eğitim bilgilerinizi tanıtın.</span>
+              </li>
+              <li>
+                <Search className="nasil-calisir-big-card-list-icon" />
+                <span>Merkezden.com SEO avantajlarından yararlanın.</span>
+              </li>
+              <li>
+                <TrendingUp className="nasil-calisir-big-card-list-icon" />
+                <span>Ders taleplerinizi arttırın.</span>
+              </li>
+            </ul>
+
+            <div className="nasil-calisir-big-card-media">
+              <img
+                src="/images/ozel-ders.png"
+                alt="Özel ders ve eğitmenler için nasıl çalışır görseli"
+                className="nasil-calisir-big-card-media-image"
+              />
+            </div>
+
+            <Link href="/signup" className="nasil-calisir-big-card-cta">
+              Ücretsiz Kayıt Olun
+            </Link>
+          </article>
+
+          <section className="nasil-calisir-section nasil-calisir-features">
+            <div className="nasil-calisir-feature-grid">
+              {INSTRUCTOR_FEATURES.map((item) => (
+                <FeatureItemCard key={item.title} item={item} accent="navy" />
               ))}
             </div>
           </section>

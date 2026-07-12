@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Building2, Globe, Megaphone, UserRound } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
 } from "@/components/AnnouncementDetailModal";
@@ -12,28 +12,21 @@ import {
   type HomeAnnouncementItem,
 } from "@/lib/homeAnnouncementsClient";
 
-function buildContentPreview(text: string, maxLen: number): string {
-  const normalized = String(text ?? "").trim().replace(/\s+/g, " ");
-  if (!normalized) return "";
-  if (normalized.length <= maxLen) return normalized;
-  return `${normalized.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
-}
-
 function HomeAnnouncementCard({
   announcement,
   isDuplicate,
-  canRenderImage,
   onOpen,
-  onImageError,
 }: {
   announcement: HomeAnnouncementItem;
   isDuplicate?: boolean;
-  canRenderImage: boolean;
   onOpen: (item: HomeAnnouncementItem) => void;
-  onImageError: () => void;
 }) {
-  const hasLink = Boolean((announcement.linkUrl ?? "").trim());
-  const preview = buildContentPreview(announcement.content, 72);
+  const [imageBroken, setImageBroken] = useState(false);
+  const imageUrl = (announcement.imageUrl ?? "").trim();
+  const hasImage = Boolean(imageUrl) && !imageBroken;
+  const contentText = String(announcement.content ?? "").trim().replace(/\s+/g, " ");
+  const ownerName = (announcement.ownerName ?? "").trim();
+  const titleText = String(announcement.title ?? "").trim();
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -52,39 +45,36 @@ function HomeAnnouncementCard({
       onClick={() => onOpen(announcement)}
       onKeyDown={handleKeyDown}
     >
-      <div className="duyurular-card-image-wrapper">
-        {canRenderImage ? (
-          <img
-            src={announcement.imageUrl ?? ""}
-            alt=""
-            className="duyurular-card-image"
-            onError={onImageError}
-          />
-        ) : (
-          <div className="duyurular-card-placeholder" aria-hidden>
-            {announcement.sourceType === "instructor" ? (
-              <UserRound size={28} />
-            ) : (
-              <Building2 size={28} />
-            )}
+      {hasImage ? (
+        <div className="home-announcement-card-content home-announcement-card-content--with-image">
+          <div className="home-announcement-card-media">
+            {/* eslint-disable-next-line @next/next/no-img-element -- remote announcement image URLs */}
+            <img
+              className="home-announcement-card-image"
+              src={imageUrl}
+              alt={announcement.title}
+              onError={() => setImageBroken(true)}
+            />
           </div>
-        )}
-        <div className="duyurular-card-overlay" aria-hidden />
-      </div>
-      <div className="duyurular-card-content">
-        <h3 className="duyurular-card-title">{announcement.title}</h3>
-        {preview ? <p className="duyurular-card-preview">{preview}</p> : null}
-        <div className="duyurular-card-footer">
-          {announcement.ownerName ? (
-            <span className="duyurular-card-owner">{announcement.ownerName}</span>
+
+          <div className="home-announcement-card-info">
+            <h3 className="home-announcement-card-title">{titleText}</h3>
+            {ownerName ? (
+              <div className="home-announcement-card-owner">{ownerName}</div>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <div className="home-announcement-card-content home-announcement-card-content--without-image">
+          <h3 className="home-announcement-card-title">{titleText}</h3>
+          {contentText ? (
+            <p className="home-announcement-card-summary">{contentText}</p>
           ) : null}
-          {hasLink ? (
-            <span className="duyurular-card-link-indicator" aria-hidden>
-              <Globe size={12} />
-            </span>
+          {ownerName ? (
+            <div className="home-announcement-card-owner">{ownerName}</div>
           ) : null}
         </div>
-      </div>
+      )}
     </article>
   );
 }
@@ -93,7 +83,6 @@ export function HomeAnnouncementsMarquee() {
   const [isMarqueeMounted, setIsMarqueeMounted] = useState(false);
   const [announcements, setAnnouncements] = useState<HomeAnnouncementItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(() => new Set());
   const [activeAnnouncement, setActiveAnnouncement] = useState<HomeAnnouncementItem | null>(null);
   const sliderRef = useRef<HTMLDivElement | null>(null);
 
@@ -211,23 +200,13 @@ export function HomeAnnouncementsMarquee() {
             >
               {marqueeList.map((announcement, index) => {
                 const isDuplicate = index >= announcements.length;
-                const canRenderImage =
-                  Boolean(announcement.imageUrl) && !brokenImageIds.has(announcement.id);
 
                 return (
                   <HomeAnnouncementCard
                     key={`${announcement.id}-${index}`}
                     announcement={announcement}
                     isDuplicate={isDuplicate}
-                    canRenderImage={canRenderImage}
                     onOpen={openAnnouncement}
-                    onImageError={() =>
-                      setBrokenImageIds((prev) => {
-                        const next = new Set(prev);
-                        next.add(announcement.id);
-                        return next;
-                      })
-                    }
                   />
                 );
               })}

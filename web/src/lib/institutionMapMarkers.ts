@@ -15,6 +15,8 @@ export type InstitutionMapMarker = {
   categoryName: string;
   categorySlug: string;
   categoryId: number | null;
+  city: string;
+  district: string;
 };
 
 type InstitutionLocationRow = {
@@ -32,6 +34,8 @@ type InstitutionRow = {
   official_email: string | null;
   logo: string | null;
   slug: string | null;
+  city: string | null;
+  district: string | null;
   institution_type?:
     | {
         name?: string | null;
@@ -135,6 +139,8 @@ function mergeLocationRowsWithInstitutionRows(
         categoryName: String(categoryRow?.name ?? "").trim(),
         categorySlug: String(categoryRow?.slug ?? "").trim(),
         categoryId: Number.isFinite(Number(categoryRow?.id)) ? Number(categoryRow?.id) : null,
+        city: String(institution.city ?? "").trim(),
+        district: String(institution.district ?? "").trim(),
       };
       return marker;
     })
@@ -153,7 +159,7 @@ async function fetchInstitutionRowsByIds(
     const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
     const { data, error } = await supabase
       .from("institutions")
-      .select("id, institution_name, address, official_phone, official_email, logo, slug, institution_type:institution_types(name, category:institution_categories(id, name, slug))")
+      .select("id, institution_name, address, official_phone, official_email, logo, slug, city, district, institution_type:institution_types(name, category:institution_categories(id, name, slug))")
       .in("id", chunk)
       .eq("is_approved", true);
 
