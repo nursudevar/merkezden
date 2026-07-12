@@ -2121,11 +2121,11 @@ a.service-card {
 }
 
 .home-main-category-card {
-  background:
-    linear-gradient(#ffffff, #ffffff) padding-box,
-    linear-gradient(135deg, #6d5dfc 0%, #7f56d9 42%, #ff9807 100%) border-box;
+  position: relative;
+  isolation: isolate;
+  background: #ffffff;
   border-radius: 16px;
-  border: 1px solid transparent;
+  border: none;
   padding: 0px 16px 8px;
   min-height: 168px;
   max-height: 200px;
@@ -2138,10 +2138,76 @@ a.service-card {
   overflow: hidden;
   text-align: center;
 
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -45%;
+    z-index: -2;
+    background: conic-gradient(
+      from 0deg,
+      #6d5dfc 0%,
+      #7f56d9 22%,
+      #e879f9 42%,
+      #ff9807 68%,
+      #ffb347 82%,
+      #6d5dfc 100%
+    );
+    animation: home-main-category-border-spin 6s linear infinite;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: 15px;
+    background: #ffffff;
+    pointer-events: none;
+    transition: inset 0.25s ease, border-radius 0.25s ease;
+  }
+
+  &:hover::before {
+    animation-duration: 7s;
+  }
+
+  &:hover::after {
+    inset: 1.5px;
+    border-radius: 14.5px;
+  }
+
   @media (max-width: 1180px) {
     min-height: 162px;
     max-height: 194px;
     padding: 12px 12px 10px;
+  }
+
+  @media (max-width: 768px) {
+    &::before {
+      animation-duration: 18s;
+    }
+
+    &:hover::before {
+      animation-duration: 10s;
+    }
+  }
+}
+
+@keyframes home-main-category-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-main-category-card::before {
+    inset: 0;
+    animation: none;
+    background: linear-gradient(135deg, #6d5dfc 0%, #7f56d9 42%, #ff9807 100%);
+  }
+
+  .home-main-category-card:hover::before {
+    animation: none;
   }
 }
 
