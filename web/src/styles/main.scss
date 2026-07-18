@@ -268,14 +268,6 @@ button,
 }
 
 // Filter option background colors
-.filter-option-child {
-  background-color: $bg-light-blue;
-}
-
-.filter-option-adult {
-  background-color: $bg-light-purple;
-}
-
 .filter-option-online {
   background-color: $bg-light-green;
 }
@@ -328,4 +320,8 @@ button,
 .category-header-pets {
   background-color: $bg-light-yellow-alt;
 }
+
+// Large desktop (≥1600px) shared content width — must stay last in this file
+@import 'layout/large-desktop';
+
 

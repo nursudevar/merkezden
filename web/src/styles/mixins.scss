@@ -1,3 +1,16 @@
+// Large desktop (≥1600px): expand shared content width without changing smaller breakpoints
+$large-desktop-min: 1600px;
+$large-desktop-max: 1600px;
+$large-desktop-gutter: 64px;
+
+@mixin large-desktop-content-width {
+  @media (min-width: $large-desktop-min) {
+    width: calc(100% - #{$large-desktop-gutter});
+    max-width: $large-desktop-max;
+    box-sizing: border-box;
+  }
+}
+
 @mixin flex-center {
   display: flex;
   align-items: center;

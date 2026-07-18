@@ -28,6 +28,17 @@ import {
   PriceRangeSliderFilter,
   type PriceRangeSliderValue,
 } from "@/components/filters/PriceRangeSliderFilter";
+import { AgeRangeSliderFilter } from "@/components/filters/AgeRangeSliderFilter";
+import {
+  INSTITUTION_STUDENT_AGE_DEFINITION_ID,
+  INSTRUCTOR_STUDENT_AGE_DEFINITION_ID,
+  STUDENT_AGE_FILTER_MAX,
+  STUDENT_AGE_FILTER_MIN,
+  isStudentAgeFieldName,
+  splitStudentAgeChoices,
+  getStudentAgeSpecialDisplayName,
+  type StudentAgeRangeValue,
+} from "@/lib/institutionStudentAgeFilter";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
 import {
@@ -223,6 +234,19 @@ function isPriceRangeCommonField(field: CommonField): boolean {
   return (
     field.definitionId === INSTITUTION_PRICE_RANGE_DEFINITION_ID ||
     isInstitutionPriceRangeFieldName(field.name)
+  );
+}
+
+function isStudentAgeCommonField(field: {
+  kind: string;
+  definitionId: number;
+  name: string;
+}): boolean {
+  if (field.kind !== "multi_select" && field.kind !== "single_select") return false;
+  return (
+    field.definitionId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
+    field.definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
+    isStudentAgeFieldName(field.name)
   );
 }
 
@@ -952,6 +976,22 @@ function useCategoryFilterSidebarModel({
     });
   };
 
+  /** Öğrenci yaşı aralığı: özel checkbox seçimlerini silmez. */
+  const setCommonAgeRange = (definitionId: number, value: StudentAgeRangeValue) => {
+    setSelectedCommonRange((prev) => {
+      const next = { ...prev };
+      if (!value) {
+        delete next[definitionId];
+        return next;
+      }
+      next[definitionId] = {
+        min: String(value.min),
+        max: String(value.max),
+      };
+      return next;
+    });
+  };
+
   const onSchoolFilterPayloadChangeRef = useRef(onSchoolFilterPayloadChange);
   onSchoolFilterPayloadChangeRef.current = onSchoolFilterPayloadChange;
   const onInstructorFilterPayloadChangeRef = useRef(onInstructorFilterPayloadChange);
@@ -1221,6 +1261,7 @@ function useCategoryFilterSidebarModel({
     toggleCommonMultiExpanded,
     setCommonRange,
     setCommonPriceRange,
+    setCommonAgeRange,
     renderedFeatureGroups,
     instructorFields: visibleInstructorFields,
     instructorFieldsLoading,
@@ -1357,6 +1398,7 @@ function CategoryFilterSidebarView({
     toggleCommonMultiExpanded,
     setCommonRange,
     setCommonPriceRange,
+    setCommonAgeRange,
     renderedFeatureGroups,
     instructorFields,
     instructorFieldsLoading,
@@ -1384,6 +1426,18 @@ function CategoryFilterSidebarView({
     return {
       min: Number.isFinite(min) ? min : INSTITUTION_PRICE_FILTER_MIN,
       max: Number.isFinite(max) ? max : INSTITUTION_PRICE_FILTER_MAX,
+    };
+  };
+
+  const getCommonAgeRangeSliderValue = (definitionId: number): StudentAgeRangeValue => {
+    const current = selectedCommonRange[definitionId];
+    if (!current) return null;
+    const min = Number(String(current.min ?? "").trim());
+    const max = Number(String(current.max ?? "").trim());
+    if (!Number.isFinite(min) && !Number.isFinite(max)) return null;
+    return {
+      min: Number.isFinite(min) ? min : STUDENT_AGE_FILTER_MIN,
+      max: Number.isFinite(max) ? max : STUDENT_AGE_FILTER_MAX,
     };
   };
 
@@ -1713,6 +1767,64 @@ function CategoryFilterSidebarView({
                       }
 
                       if (field.kind === "multi_select") {
+                        if (isStudentAgeCommonField(field)) {
+                          const { special } = splitStudentAgeChoices(
+                            field.choices.map((c) => ({
+                              id: c.id,
+                              name: c.name,
+                              display_order: null,
+                            })),
+                          );
+                          const selectedSet =
+                            selectedCommonMulti[field.definitionId] ?? new Set<string>();
+                          return (
+                            <div
+                              className="category-filter-section"
+                              key={`instructor-multi-${field.definitionId}`}
+                            >
+                              <h3 className="category-filter-section-title">
+                                {field.name.toLocaleUpperCase("tr-TR")}
+                              </h3>
+                              <AgeRangeSliderFilter
+                                value={getCommonAgeRangeSliderValue(field.definitionId)}
+                                onChange={(nextRange) =>
+                                  setCommonAgeRange(field.definitionId, nextRange)
+                                }
+                                className="category-filter-price-slider"
+                              />
+                              {special.length > 0 ? (
+                                <div className="category-filter-section-checkboxes category-filter-section-checkboxes--age-special">
+                                  {special.map((choice) => {
+                                    const key = String(choice.id);
+                                    const isChecked = selectedSet.has(key);
+                                    return (
+                                      <label
+                                        key={choice.id}
+                                        className={`category-filter-checkbox-option category-filter-checkbox-option--age-special${
+                                          isChecked
+                                            ? " category-filter-checkbox-option--selected"
+                                            : ""
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() =>
+                                            toggleInstructorMulti(field.definitionId, choice.id)
+                                          }
+                                          className="category-filter-checkbox-input"
+                                        />
+                                        <span className="category-filter-checkbox-label">
+                                          {getStudentAgeSpecialDisplayName(choice.name)}
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        }
                         const selectedSet =
                           selectedCommonMulti[field.definitionId] ?? new Set<string>();
                         const isExpanded = expandedInstructorMultiIds.has(field.definitionId);
@@ -1931,6 +2043,60 @@ function CategoryFilterSidebarView({
                 }
 
                 if (field.kind === "multi_select") {
+                  if (isStudentAgeCommonField(field)) {
+                    const { special } = splitStudentAgeChoices(
+                      field.choices.map((c) => ({
+                        id: c.id,
+                        name: c.name,
+                        display_order: null,
+                      })),
+                    );
+                    const selectedSet =
+                      selectedCommonMulti[field.definitionId] ?? new Set<string>();
+                    return (
+                      <div
+                        className="category-filter-section"
+                        key={`common-${field.definitionId}`}
+                      >
+                        <h3 className="category-filter-section-title">
+                          {field.name.toLocaleUpperCase("tr-TR")}
+                        </h3>
+                        <AgeRangeSliderFilter
+                          value={getCommonAgeRangeSliderValue(field.definitionId)}
+                          onChange={(nextRange) =>
+                            setCommonAgeRange(field.definitionId, nextRange)
+                          }
+                          className="category-filter-price-slider"
+                        />
+                        {special.length > 0 ? (
+                          <div className="category-filter-section-checkboxes category-filter-section-checkboxes--age-special">
+                            {special.map((c) => {
+                              const key = String(c.id);
+                              const isChecked = selectedSet.has(key);
+                              return (
+                                <label
+                                  key={c.id}
+                                  className={`category-filter-checkbox-option category-filter-checkbox-option--age-special${
+                                    isChecked ? " category-filter-checkbox-option--selected" : ""
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => toggleCommonMulti(field.definitionId, c.id)}
+                                    className="category-filter-checkbox-input"
+                                  />
+                                  <span className="category-filter-checkbox-label">
+                                    {getStudentAgeSpecialDisplayName(c.name)}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  }
                   if (isPriceRangeCommonField(field)) {
                     return (
                       <div

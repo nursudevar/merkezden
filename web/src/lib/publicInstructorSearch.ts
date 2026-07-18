@@ -18,6 +18,12 @@ import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructor
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
+import {
+  INSTRUCTOR_STUDENT_AGE_DEFINITION_ID,
+  INSTITUTION_STUDENT_AGE_DEFINITION_ID,
+  isStudentAgeDefinition,
+  resolveInstructorIdsByStudentAgeFilter,
+} from "@/lib/institutionStudentAgeFilter";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
   "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, graduated_university, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at";
@@ -815,14 +821,14 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
 
     const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
     const instructorChoiceId = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiChoiceId}`);
-    if (!realDef || !Number.isFinite(instructorChoiceId)) {
-      if (realDef) {
-        console.warn("[instructor-filter] choice map bulunamadı:", {
-          uiDefId,
-          uiChoiceId,
-          uiChoiceName: choiceMetaById.get(uiChoiceId)?.name ?? null,
-        });
-      }
+    // Kurum tarafında olup eğitmen şemasında karşılığı olmayan tanımları atla (AND'i bozma).
+    if (!realDef) return null;
+    if (!Number.isFinite(instructorChoiceId)) {
+      console.warn("[instructor-filter] choice map bulunamadı:", {
+        uiDefId,
+        uiChoiceId,
+        uiChoiceName: choiceMetaById.get(uiChoiceId)?.name ?? null,
+      });
       return new Set<number>();
     }
 
@@ -846,6 +852,14 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
   for (const [defIdStr, choiceIdList] of Object.entries(payload.commonMulti)) {
     const uiDefId = Number(defIdStr);
     if (!Number.isFinite(uiDefId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) continue;
+    const uiMeta = defMetaById.get(uiDefId);
+    if (
+      uiDefId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
+      (uiMeta != null &&
+        isStudentAgeDefinition({ id: uiDefId, name: uiMeta.name, slug: uiMeta.slug }))
+    ) {
+      continue;
+    }
     const union = new Set<number>();
     let skippedFeatureGroup = true;
     for (const cidStr of choiceIdList) {
@@ -861,6 +875,7 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
     if (isFilterIdSetEmpty(current)) break;
   }
 
+  const handledStudentAgeUiDefs = new Set<number>();
   for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
     const uiDefId = Number(defIdStr);
     if (!Number.isFinite(uiDefId)) continue;
@@ -869,6 +884,37 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
 
     const minS = String(range?.min ?? "").trim();
     const maxS = String(range?.max ?? "").trim();
+    const specialChoiceIds = (payload.commonMulti[uiDefId] ?? [])
+      .map((cid) => Number(String(cid).trim()))
+      .filter((cid) => Number.isFinite(cid));
+
+    const isAge =
+      uiDefId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
+      isStudentAgeDefinition({ id: uiDefId, name: meta.name, slug: meta.slug });
+
+    if (isAge) {
+      handledStudentAgeUiDefs.add(uiDefId);
+      if (!minS && !maxS && specialChoiceIds.length === 0) continue;
+      const minN = minS ? parseOptionalNumber(minS) : null;
+      const maxN = maxS ? parseOptionalNumber(maxS) : null;
+      const userRange =
+        minN != null || maxN != null
+          ? { min: minN ?? 1, max: maxN ?? Number.POSITIVE_INFINITY }
+          : null;
+      const mappedSpecialIds: number[] = [];
+      for (const uiCid of specialChoiceIds) {
+        const mapped = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiCid}`);
+        if (mapped != null && Number.isFinite(mapped)) mappedSpecialIds.push(Number(mapped));
+      }
+      const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
+        userRange,
+        specialChoiceIds: mappedSpecialIds,
+      });
+      current = applyIntersect(current, new Set(matched));
+      if (isFilterIdSetEmpty(current)) break;
+      continue;
+    }
+
     if (!minS && !maxS) continue;
 
     const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
@@ -904,6 +950,32 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
         ),
       );
     }
+    if (isFilterIdSetEmpty(current)) break;
+  }
+
+  for (const [defIdStr, choiceIdList] of Object.entries(payload.commonMulti)) {
+    const uiDefId = Number(defIdStr);
+    if (!Number.isFinite(uiDefId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) continue;
+    if (handledStudentAgeUiDefs.has(uiDefId)) continue;
+    const uiMeta = defMetaById.get(uiDefId);
+    const isAge =
+      uiDefId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
+      (uiMeta != null &&
+        isStudentAgeDefinition({ id: uiDefId, name: uiMeta.name, slug: uiMeta.slug }));
+    if (!isAge) continue;
+    const specialChoiceIds = choiceIdList
+      .map((cid) => Number(String(cid).trim()))
+      .filter((cid) => Number.isFinite(cid));
+    if (specialChoiceIds.length === 0) continue;
+    const mappedSpecialIds: number[] = [];
+    for (const uiCid of specialChoiceIds) {
+      const mapped = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiCid}`);
+      if (mapped != null && Number.isFinite(mapped)) mappedSpecialIds.push(Number(mapped));
+    }
+    const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
+      specialChoiceIds: mappedSpecialIds,
+    });
+    current = applyIntersect(current, new Set(matched));
     if (isFilterIdSetEmpty(current)) break;
   }
 
@@ -1132,6 +1204,14 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
       continue;
     }
 
+    // Öğrenci yaşı: range + özel seçenekler birlikte OR (aşağıda numberRange ile birleştirilir)
+    if (
+      definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
+      isStudentAgeDefinition({ id: definitionId })
+    ) {
+      continue;
+    }
+
     const perChoiceSets: Set<number>[] = [];
     for (const choiceIdStr of choiceIdList) {
       const choiceId = Number(String(choiceIdStr ?? "").trim());
@@ -1146,11 +1226,38 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
     if (isFilterIdSetEmpty(accumulated)) return accumulated;
   }
 
+  const studentAgeDefIdsHandled = new Set<number>();
   for (const [definitionIdStr, range] of Object.entries(payload!.numberRange)) {
     const definitionId = Number(definitionIdStr);
     if (!Number.isFinite(definitionId)) continue;
     const minText = String(range?.min ?? "").trim();
     const maxText = String(range?.max ?? "").trim();
+    const specialChoiceIds = (payload!.multiSelect[definitionId] ?? [])
+      .map((cid) => Number(String(cid).trim()))
+      .filter((cid) => Number.isFinite(cid));
+
+    const isAge =
+      definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
+      isStudentAgeDefinition({ id: definitionId });
+
+    if (isAge) {
+      studentAgeDefIdsHandled.add(definitionId);
+      if (!minText && !maxText && specialChoiceIds.length === 0) continue;
+      const minBound = minText ? parseOptionalNumber(minText) : null;
+      const maxBound = maxText ? parseOptionalNumber(maxText) : null;
+      const userRange =
+        minBound != null || maxBound != null
+          ? { min: minBound ?? 1, max: maxBound ?? Number.POSITIVE_INFINITY }
+          : null;
+      const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
+        userRange,
+        specialChoiceIds,
+      });
+      accumulated = applyIntersect(accumulated, new Set(matched));
+      if (isFilterIdSetEmpty(accumulated)) return accumulated;
+      continue;
+    }
+
     if (!minText && !maxText) continue;
 
     const minBound = minText ? parseOptionalNumber(minText) : null;
@@ -1162,6 +1269,28 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
       maxBound,
     );
     accumulated = applyIntersect(accumulated, matchingIds);
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  // Yalnızca özel checkbox seçilmiş yaş filtresi (range yok)
+  for (const [definitionIdStr, choiceIdList] of Object.entries(payload!.multiSelect)) {
+    const definitionId = Number(definitionIdStr);
+    if (!Number.isFinite(definitionId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) {
+      continue;
+    }
+    if (studentAgeDefIdsHandled.has(definitionId)) continue;
+    const isAge =
+      definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
+      isStudentAgeDefinition({ id: definitionId });
+    if (!isAge) continue;
+    const specialChoiceIds = choiceIdList
+      .map((cid) => Number(String(cid).trim()))
+      .filter((cid) => Number.isFinite(cid));
+    if (specialChoiceIds.length === 0) continue;
+    const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
+      specialChoiceIds,
+    });
+    accumulated = applyIntersect(accumulated, new Set(matched));
     if (isFilterIdSetEmpty(accumulated)) return accumulated;
   }
 
@@ -1188,4 +1317,49 @@ export async function resolveInstitutionCategoryIdByName(
   );
 
   return row && Number.isFinite(row.id) ? row.id : null;
+}
+
+/**
+ * Kategori sayfalarında eğitmen listesi için instructor_categories.id çözer.
+ * institution_categories.id ile instructors.category_id karıştırılmamalı.
+ */
+export async function resolveInstructorCategoryIdBySlugOrName(
+  supabase: SupabaseBrowser,
+  options: { slug?: string | null; name?: string | null },
+): Promise<number | null> {
+  const slug = String(options.slug ?? "").trim();
+  if (slug) {
+    const { data, error } = await supabase
+      .from("instructor_categories")
+      .select("id")
+      .eq("is_active", true)
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!error && data && Number.isFinite(Number((data as { id: number }).id))) {
+      return Number((data as { id: number }).id);
+    }
+  }
+
+  const name = String(options.name ?? "").trim();
+  if (!name) return null;
+
+  const { data, error } = await supabase
+    .from("instructor_categories")
+    .select("id, name, slug")
+    .eq("is_active", true);
+
+  if (error || !data?.length) return null;
+
+  const normalizedTarget = name.toLocaleLowerCase("tr-TR");
+  const rows = data as Array<{ id: number; name: string | null; slug: string | null }>;
+  const exact = rows.find(
+    (item) => String(item.name ?? "").trim().toLocaleLowerCase("tr-TR") === normalizedTarget,
+  );
+  if (exact && Number.isFinite(exact.id)) return exact.id;
+
+  const fuzzy = rows.find((item) => {
+    const key = `${item.name ?? ""} ${item.slug ?? ""}`.toLocaleLowerCase("tr-TR");
+    return key.includes(normalizedTarget) || normalizedTarget.includes(String(item.name ?? "").trim().toLocaleLowerCase("tr-TR"));
+  });
+  return fuzzy && Number.isFinite(fuzzy.id) ? fuzzy.id : null;
 }

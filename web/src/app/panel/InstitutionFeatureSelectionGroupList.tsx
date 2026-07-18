@@ -104,11 +104,21 @@ export function InstitutionFeatureSelectionGroupList({
               Icon: Star,
             };
           }
-          if (groupNameKey === "ödeme seçenekleri") {
+          if (groupNameKey === "ödeme seçenekleri" || groupNameKey === "ödeme yöntemleri") {
             return {
               titleClass: "panel-institutions-group-title--physical",
               iconClass: "panel-institutions-group-title-icon--physical",
               Icon: CreditCard,
+            };
+          }
+          if (
+            groupNameKey === "sürücü kursu imkanları" ||
+            groupNameKey === "sürücü kursu özellikleri"
+          ) {
+            return {
+              titleClass: "panel-institutions-group-title--school",
+              iconClass: "panel-institutions-group-title-icon--school",
+              Icon: Building,
             };
           }
           return {
@@ -282,6 +292,17 @@ export function InstitutionFeatureSelectionGroupList({
                             </button>
                             {institutionFeatureChoices
                               .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
+                              .slice()
+                              .sort((a, b) => {
+                                const orderA = Number.isFinite(Number(a.display_order))
+                                  ? Number(a.display_order)
+                                  : Number.MAX_SAFE_INTEGER;
+                                const orderB = Number.isFinite(Number(b.display_order))
+                                  ? Number(b.display_order)
+                                  : Number.MAX_SAFE_INTEGER;
+                                if (orderA !== orderB) return orderA - orderB;
+                                return a.id - b.id;
+                              })
                               .map((choice) => (
                                 <button
                                   key={choice.id}
@@ -317,6 +338,17 @@ export function InstitutionFeatureSelectionGroupList({
                       <div className="panel-institutions-feature-multi">
                         {institutionFeatureChoices
                           .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
+                          .slice()
+                          .sort((a, b) => {
+                            const orderA = Number.isFinite(Number(a.display_order))
+                              ? Number(a.display_order)
+                              : Number.MAX_SAFE_INTEGER;
+                            const orderB = Number.isFinite(Number(b.display_order))
+                              ? Number(b.display_order)
+                              : Number.MAX_SAFE_INTEGER;
+                            if (orderA !== orderB) return orderA - orderB;
+                            return a.id - b.id;
+                          })
                           .map((choice) => {
                             const choiceId = String(choice.id);
                             const selectedValues = institutionMultiSelectValues[feature.id] ?? [];

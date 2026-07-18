@@ -10,11 +10,17 @@ type InstructorFeatureChoiceRow = {
   id: number;
   feature_definition_id: number;
   name?: string | null;
+  display_order?: number | null;
   is_active: boolean;
 };
 
 export type InstructorFeatureSelectionGroup = {
-  group: { id: number; name: string; category_slug?: string | null };
+  group: {
+    id: number;
+    name: string;
+    category_slug?: string | null;
+    display_order?: number | null;
+  };
   features: InstructorFeatureDefinitionForSelection[];
 };
 
@@ -107,11 +113,21 @@ export function InstructorFeatureSelectionGroupList({
               Icon: Star,
             };
           }
-          if (groupNameKey === "ödeme seçenekleri") {
+          if (groupNameKey === "ödeme seçenekleri" || groupNameKey === "ödeme yöntemleri") {
             return {
               titleClass: "egitmen-panel-features-group-title--physical",
               iconClass: "egitmen-panel-features-group-title-icon--physical",
               Icon: CreditCard,
+            };
+          }
+          if (
+            groupNameKey === "sürücü kursu imkanları" ||
+            groupNameKey === "sürücü kursu özellikleri"
+          ) {
+            return {
+              titleClass: "egitmen-panel-features-group-title--school",
+              iconClass: "egitmen-panel-features-group-title-icon--school",
+              Icon: Building,
             };
           }
           return {
@@ -298,6 +314,17 @@ export function InstructorFeatureSelectionGroupList({
                             </button>
                             {instructorFeatureChoices
                               .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
+                              .slice()
+                              .sort((a, b) => {
+                                const orderA = Number.isFinite(Number(a.display_order))
+                                  ? Number(a.display_order)
+                                  : Number.MAX_SAFE_INTEGER;
+                                const orderB = Number.isFinite(Number(b.display_order))
+                                  ? Number(b.display_order)
+                                  : Number.MAX_SAFE_INTEGER;
+                                if (orderA !== orderB) return orderA - orderB;
+                                return a.id - b.id;
+                              })
                               .map((choice) => (
                                 <button
                                   key={choice.id}
@@ -333,6 +360,17 @@ export function InstructorFeatureSelectionGroupList({
                       <div className="egitmen-panel-features-feature-multi">
                         {instructorFeatureChoices
                           .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
+                          .slice()
+                          .sort((a, b) => {
+                            const orderA = Number.isFinite(Number(a.display_order))
+                              ? Number(a.display_order)
+                              : Number.MAX_SAFE_INTEGER;
+                            const orderB = Number.isFinite(Number(b.display_order))
+                              ? Number(b.display_order)
+                              : Number.MAX_SAFE_INTEGER;
+                            if (orderA !== orderB) return orderA - orderB;
+                            return a.id - b.id;
+                          })
                           .map((choice) => {
                             const choiceId = String(choice.id);
                             const selectedValues = instructorMultiSelectValues[feature.id] ?? [];

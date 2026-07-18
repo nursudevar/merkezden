@@ -126,7 +126,39 @@ export function getDisplayInstructorFeatureName(name: string): string {
   return trimmed;
 }
 
-const INSTRUCTOR_EXCLUDED_CATEGORY_SLUGS = new Set(["okul", "okullar"]);
+/**
+ * Eğitmen tarafında asla gösterilmeyecek tesis/imkan grupları (ad veya slug).
+ * Kategori slug allowlist kullanılmaz — DB’deki diğer gruplar kategori eşleşince görünür.
+ */
+const INSTRUCTOR_EXCLUDED_FACILITY_GROUP_KEYS = new Set([
+  "fiziki_imkanlar",
+  "fiziksel_imkanlar",
+  "okul_imkanlari",
+]);
+
+function normalizeInstructorGroupKey(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ç/g, "c")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export function isInstructorExcludedFacilityGroup(
+  group: Pick<InstructorFeatureGroupRow, "name" | "slug">,
+): boolean {
+  const keys = [
+    normalizeInstructorGroupKey(String(group.name ?? "")),
+    normalizeInstructorGroupKey(String(group.slug ?? "")),
+  ].filter(Boolean);
+  return keys.some((key) => INSTRUCTOR_EXCLUDED_FACILITY_GROUP_KEYS.has(key));
+}
 
 export function resolveInstructorCategorySlug(
   categoryId: number | null | undefined,
@@ -151,13 +183,20 @@ export function resolveInstructorCategoryDisplayName(
 }
 
 export function isInstructorFeatureGroupVisibleForCategory(
-  group: Pick<InstructorFeatureGroupRow, "category_slug">,
+  group: Pick<InstructorFeatureGroupRow, "name" | "slug" | "category_slug">,
   instructorCategorySlug: string | null,
 ): boolean {
-  const groupSlug = (group.category_slug ?? "").trim();
-  if (!groupSlug) return true;
-  if (INSTRUCTOR_EXCLUDED_CATEGORY_SLUGS.has(groupSlug.toLocaleLowerCase("tr-TR"))) return false;
-  return instructorCategorySlug !== null && groupSlug === instructorCategorySlug;
+  if (isInstructorExcludedFacilityGroup(group)) return false;
+
+  const groupCategorySlug = (group.category_slug ?? "").trim();
+  // Genel gruplar (category_slug boş) — hariç tutulanlar dışında herkese
+  if (!groupCategorySlug) return true;
+
+  if (instructorCategorySlug == null) return false;
+  return (
+    groupCategorySlug.toLocaleLowerCase("tr-TR") ===
+    instructorCategorySlug.trim().toLocaleLowerCase("tr-TR")
+  );
 }
 
 export function filterInstructorFeatureGroupsForListingFilter(

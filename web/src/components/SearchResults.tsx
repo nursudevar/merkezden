@@ -12,6 +12,11 @@ import {
   resolveInstitutionIdsByPriceRangeSelections,
 } from "@/lib/institutionPriceRangeFilter";
 import {
+  resolveInstitutionIdsByStudentAgeFilter,
+  resolveInstructorIdsByStudentAgeFilter,
+  type StudentAgeRangeValue,
+} from "@/lib/institutionStudentAgeFilter";
+import {
   fetchPublicInstructorsForListing,
   getPublicInstructorDetailHref,
   mapPublicInstructorDisplayName,
@@ -53,8 +58,12 @@ interface SearchResultsProps {
   districtFilter?: string;
   /** Kurum türü: `private` = Özel, `public` = Devlet; birden fazla seçimde OR mantığı */
   schoolStatusFilters?: ("private" | "public")[];
-  /** Öğrenci yaşı: `child` = Çocuk (0-17), `adult` = Yetişkin (18+); birden fazla seçimde OR mantığı */
-  studentAgeFilters?: ("child" | "adult")[];
+  /** Öğrenci yaşı aralığı (kesişim mantığı); hem kurum hem eğitmen */
+  studentAgeRange?: StudentAgeRangeValue;
+  /** Sayısal olmayan öğrenci yaşı seçenekleri (ör. Mezun / Özel Gereksinimli) */
+  studentAgeSpecialChoiceIds?: number[];
+  /** Özel seçenek etiketleri — eğitmen tarafında choice id farklılıklarında isim eşlemesi için */
+  studentAgeSpecialChoiceNames?: string[];
   /** Hizmet tipi: yüz yüze / online / bireysel / grup; birden fazla seçimde OR mantığı */
   serviceTypeFilters?: ("face" | "online" | "individual" | "group")[];
   /** Aylık fiyat aralığı (TL). `defaultMin`/`defaultMax` ile verilen tam aralıktan sapıldığında devreye girer. */
@@ -94,18 +103,6 @@ function isOkulDurumuDefinition(row: { name?: string | null; slug?: string | nul
   );
 }
 
-function isOgrenciYasiDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return (
-    t.includes("ogrenci yasi") ||
-    t.includes("ogrenci_yasi") ||
-    t.includes("yas araligi") ||
-    t === "yas" ||
-    t.endsWith(" yas") ||
-    t.startsWith("yas ")
-  );
-}
-
 function isHizmetTipiDefinition(row: { name?: string | null; slug?: string | null }): boolean {
   const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
   return (
@@ -121,29 +118,6 @@ function choiceLabelMatchesSchoolStatus(choiceName: string, status: "private" | 
     return n === "özel" || n.startsWith("özel ") || n === "private";
   }
   return n === "devlet" || n.startsWith("devlet ") || n.includes("devlet") || n === "public";
-}
-
-function choiceLabelMatchesStudentAge(choiceName: string, target: "child" | "adult"): boolean {
-  const raw = String(choiceName ?? "").trim();
-  const n = raw.toLocaleLowerCase("tr-TR");
-  const norm = normalizeFeatureKey(raw);
-  if (target === "child") {
-    return (
-      n.includes("çocuk") ||
-      norm.includes("cocuk") ||
-      n.includes("0-17") ||
-      n.includes("0 17") ||
-      n.includes("child") ||
-      n.includes("kid")
-    );
-  }
-  return (
-    n.includes("yetişkin") ||
-    norm.includes("yetiskin") ||
-    n.includes("18+") ||
-    n.includes("18 +") ||
-    n.includes("adult")
-  );
 }
 
 function choiceLabelMatchesServiceType(choiceName: string, target: "face" | "online" | "individual" | "group"): boolean {
@@ -268,18 +242,6 @@ async function resolveInstitutionIdsBySchoolStatuses(
   );
 }
 
-async function resolveInstitutionIdsByStudentAges(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  ages: ("child" | "adult")[]
-): Promise<number[]> {
-  if (ages.length === 0) return [];
-  return resolveInstitutionIdsByFeatureChoices(
-    supabase,
-    isOgrenciYasiDefinition,
-    (name) => ages.some((a) => choiceLabelMatchesStudentAge(name, a))
-  );
-}
-
 async function resolveInstitutionIdsByServiceTypes(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   types: ("face" | "online" | "individual" | "group")[]
@@ -297,7 +259,9 @@ export default function SearchResults({
   cityFilter,
   districtFilter,
   schoolStatusFilters,
-  studentAgeFilters,
+  studentAgeRange,
+  studentAgeSpecialChoiceIds,
+  studentAgeSpecialChoiceNames,
   serviceTypeFilters,
   priceRangeFilter,
   priceRangeSelections,
@@ -341,7 +305,16 @@ export default function SearchResults({
   const trimmedCity = String(cityFilter ?? "").trim();
   const trimmedDistrict = String(districtFilter ?? "").trim();
   const schoolStatuses = schoolStatusFilters ?? [];
-  const studentAges = studentAgeFilters ?? [];
+  const studentAgeSpecialIds = studentAgeSpecialChoiceIds ?? [];
+  const studentAgeSpecialNames = studentAgeSpecialChoiceNames ?? [];
+  const studentAgeFilterActive =
+    Boolean(studentAgeRange) ||
+    studentAgeSpecialIds.length > 0 ||
+    studentAgeSpecialNames.length > 0;
+  const studentAgeRangeKey = studentAgeRange
+    ? `${studentAgeRange.min}-${studentAgeRange.max}`
+    : "";
+  const studentAgeSpecialNamesKey = studentAgeSpecialNames.join("|");
   const serviceTypes = serviceTypeFilters ?? [];
   const priceSelectionLabels = priceRangeSelections ?? [];
   const priceSelectionFilterIsActive = priceSelectionLabels.length > 0;
@@ -359,7 +332,7 @@ export default function SearchResults({
     trimmedQuery.length > 0 ||
     trimmedDistrict.length > 0 ||
     schoolStatuses.length > 0 ||
-    studentAges.length > 0 ||
+    studentAgeFilterActive ||
     serviceTypes.length > 0 ||
     priceFilterIsActive ||
     institutionTypeIdList.length > 0;
@@ -408,15 +381,25 @@ export default function SearchResults({
             baseQuery = baseQuery.in("id", allowedIds);
           }
 
-          if (studentAges.length > 0) {
-            const ageIds = await resolveInstitutionIdsByStudentAges(supabase, studentAges);
-            if (ageIds.length === 0) {
-              setResults([]);
-              setVisibleCount(pageSizeRef.current);
-              setError(null);
-              return;
+          let studentAgeInstructorIds: Set<number> | undefined;
+          if (studentAgeFilterActive) {
+            const [instAgeIds, instrAgeIds] = await Promise.all([
+              resolveInstitutionIdsByStudentAgeFilter(supabase, {
+                userRange: studentAgeRange,
+                specialChoiceIds: studentAgeSpecialIds,
+                specialChoiceNames: studentAgeSpecialNames,
+              }),
+              resolveInstructorIdsByStudentAgeFilter(supabase, {
+                userRange: studentAgeRange,
+                specialChoiceNames: studentAgeSpecialNames,
+              }),
+            ]);
+            studentAgeInstructorIds = new Set(instrAgeIds);
+            if (instAgeIds.length === 0) {
+              baseQuery = baseQuery.in("id", [-1]);
+            } else {
+              baseQuery = baseQuery.in("id", instAgeIds);
             }
-            baseQuery = baseQuery.in("id", ageIds);
           }
 
           if (serviceTypes.length > 0) {
@@ -492,6 +475,7 @@ export default function SearchResults({
                 priceFilterIsActive && !priceSelectionFilterIsActive
                   ? { min: priceMin, max: priceMax }
                   : undefined,
+              allowedInstructorIds: studentAgeInstructorIds,
             }),
           ]);
 
@@ -608,7 +592,7 @@ export default function SearchResults({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, schoolStatuses.join(","), studentAges.join(","), serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(",")]);
+  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, studentAgeSpecialIds.join(","), studentAgeSpecialNamesKey, serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(",")]);
 
   if (!hasActiveFilter) {
     return null;

@@ -13,6 +13,7 @@ import {
   fetchPublicInstructorsForListing,
   mapPublicInstructorToListItem,
   resolveInstitutionCategoryIdByName,
+  resolveInstructorCategoryIdBySlugOrName,
 } from "@/lib/publicInstructorSearch";
 import {
   buildProfileSearchVariants,
@@ -24,6 +25,10 @@ import {
   sortWithFeaturedPriority,
   type FeaturedOrderMap,
 } from "@/lib/featuredAccountsClient";
+import {
+  isStudentAgeDefinition,
+  resolveInstitutionIdsByStudentAgeFilter,
+} from "@/lib/institutionStudentAgeFilter";
 
 export type CategoryResultItem = {
   id: string;
@@ -714,12 +719,40 @@ async function fetchRowsByIdsChunked(
 
 async function fetchCategoryInstructorResults(
   supabase: SupabaseBrowser,
-  categoryId: number | null,
-  district: string,
-  searchTerm: string,
-  schoolFilters?: SchoolCategoryFilterPayload,
+  options: {
+    institutionCategoryId: number | null;
+    categoryName: string;
+    categorySlug?: string;
+    district: string;
+    searchTerm: string;
+    schoolFilters?: SchoolCategoryFilterPayload;
+  },
 ): Promise<CategoryResultItem[]> {
-  if (categoryId == null || !Number.isFinite(categoryId)) return [];
+  const {
+    institutionCategoryId,
+    categoryName,
+    categorySlug,
+    district,
+    searchTerm,
+    schoolFilters,
+  } = options;
+
+  // instructors.category_id → instructor_categories (kurum kategori id'si değil)
+  const instructorCategoryId = await resolveInstructorCategoryIdBySlugOrName(supabase, {
+    slug: categorySlug,
+    name: categoryName,
+  });
+
+  if (instructorCategoryId == null || !Number.isFinite(instructorCategoryId)) {
+    if (institutionCategoryId != null) {
+      console.info("[category][instructors] instructor kategorisi bulunamadı:", {
+        categoryName,
+        categorySlug: categorySlug || null,
+        institutionCategoryId,
+      });
+    }
+    return [];
+  }
 
   const instructorFilters = await buildInstructorListingFiltersFromSchoolPayload(
     supabase,
@@ -727,7 +760,7 @@ async function fetchCategoryInstructorResults(
   );
 
   const rows = await fetchPublicInstructorsForListing(supabase, {
-    categoryId,
+    categoryId: instructorCategoryId,
     district,
     city: FIXED_CITY,
     searchTerm,
@@ -885,7 +918,14 @@ export function useCategoryInstitutions(
               district,
               searchTerm,
             ),
-            fetchCategoryInstructorResults(supabase, categoryId, district, searchTerm, schoolFilters),
+            fetchCategoryInstructorResults(supabase, {
+              institutionCategoryId: categoryId,
+              categoryName: targetName,
+              categorySlug,
+              district,
+              searchTerm,
+              schoolFilters,
+            }),
             featuredOrderPromise,
           ]);
 
@@ -921,13 +961,14 @@ export function useCategoryInstitutions(
         let current = new Set<number>(baseIds);
 
         if (current.size === 0) {
-          const instructorOnly = await fetchCategoryInstructorResults(
-            supabase,
-            categoryId,
+          const instructorOnly = await fetchCategoryInstructorResults(supabase, {
+            institutionCategoryId: categoryId,
+            categoryName: targetName,
+            categorySlug,
             district,
             searchTerm,
-            payload,
-          );
+            schoolFilters: payload,
+          });
           if (cancelled) return;
           setResults(instructorOnly);
           setIsLoading(false);
@@ -968,9 +1009,46 @@ export function useCategoryInstitutions(
         }
         if (cancelled) return;
 
+        const studentAgeDefIds = new Set<number>();
+        for (const [defId, meta] of defMetaById.entries()) {
+          if (isStudentAgeDefinition({ id: defId, name: meta.name, slug: meta.slug })) {
+            studentAgeDefIds.add(defId);
+          }
+        }
+
+        for (const defId of studentAgeDefIds) {
+          const range = payload.commonRange[defId];
+          const minS = String(range?.min ?? "").trim();
+          const maxS = String(range?.max ?? "").trim();
+          const specialChoiceIds = (payload.commonMulti[defId] ?? [])
+            .map((cid) => Number(String(cid).trim()))
+            .filter((cid) => Number.isFinite(cid));
+          const hasRange = Boolean(minS || maxS);
+          if (!hasRange && specialChoiceIds.length === 0) continue;
+
+          const minN = minS ? parseOptionalNumber(minS) : null;
+          const maxN = maxS ? parseOptionalNumber(maxS) : null;
+          const userRange =
+            hasRange && (minN != null || maxN != null)
+              ? {
+                  min: minN ?? 1,
+                  max: maxN ?? Number.POSITIVE_INFINITY,
+                }
+              : null;
+
+          const matchedIds = await resolveInstitutionIdsByStudentAgeFilter(supabase, {
+            userRange,
+            specialChoiceIds,
+          });
+          current = intersectSets(current, new Set(matchedIds));
+          if (current.size === 0) break;
+        }
+        if (cancelled) return;
+
         for (const [defIdStr, choiceIds] of Object.entries(payload.commonMulti)) {
           const defId = Number(defIdStr);
           if (!Number.isFinite(defId) || !Array.isArray(choiceIds) || choiceIds.length === 0) continue;
+          if (studentAgeDefIds.has(defId)) continue;
           const union = new Set<number>();
           for (const cidStr of choiceIds) {
             const cid = Number(String(cidStr).trim());
@@ -986,6 +1064,7 @@ export function useCategoryInstitutions(
         for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
           const defId = Number(defIdStr);
           if (!Number.isFinite(defId)) continue;
+          if (studentAgeDefIds.has(defId)) continue;
           const minS = String(range?.min ?? "").trim();
           const maxS = String(range?.max ?? "").trim();
           if (!minS && !maxS) continue;
@@ -1030,13 +1109,14 @@ export function useCategoryInstitutions(
         if (cancelled) return;
 
         const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
-        const instructorResults = await fetchCategoryInstructorResults(
-          supabase,
-          categoryId,
+        const instructorResults = await fetchCategoryInstructorResults(supabase, {
+          institutionCategoryId: categoryId,
+          categoryName: targetName,
+          categorySlug,
           district,
           searchTerm,
-          payload,
-        );
+          schoolFilters: payload,
+        });
         const featuredOrderResult = await featuredOrderPromise;
         if (cancelled) return;
         console.info("[category][institutions] filtreli liste sonucu:", {

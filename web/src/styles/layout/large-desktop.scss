@@ -1,0 +1,38 @@
+// Shared large-desktop content width (≥1600px).
+// Import after base container max-width rules so this override wins in cascade.
+@import '../mixins';
+
+@media (min-width: $large-desktop-min) {
+  .header-container,
+  .footer-container,
+  .homepage-footer-extension-inner,
+  .main-layout,
+  .category-page-layout-container,
+  .category-breadcrumb-container,
+  .category-hero-container,
+  .home-patili-dostlar-row,
+  .content-layout,
+  .purple-featured-inner,
+  .auth-content-wrapper,
+  .about-page,
+  .announcements-page,
+  .blog-listing-page,
+  .contact-page-main,
+  .nasil-calisir-page-container,
+  .uyelik-layout,
+  .panel-page-container,
+  .egitmen-panel-page-container,
+  .admin-page-container,
+  .profile-page-container,
+  .okullar-page,
+  .institution-detail-container,
+  .instructor-detail-container,
+  .public-instructors-page,
+  .featured-institutions-page,
+  .category-page-content,
+  .haritada-ara-page .category-page-layout-container {
+    width: calc(100% - #{$large-desktop-gutter});
+    max-width: $large-desktop-max;
+    box-sizing: border-box;
+  }
+}

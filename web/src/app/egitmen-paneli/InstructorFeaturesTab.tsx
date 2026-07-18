@@ -206,9 +206,22 @@ export function InstructorFeaturesTab({
             placeholder: f.placeholder,
             unit: f.unit,
           }));
-        return { group, features };
+        return {
+          group: {
+            id: group.id,
+            name: group.name,
+            category_slug: group.category_slug,
+            display_order: group.display_order,
+          },
+          features,
+        };
       })
-      .filter((item) => item.features.length > 0);
+      .filter((item) => item.features.length > 0)
+      .sort(
+        (a, b) =>
+          (a.group.display_order ?? Number.MAX_SAFE_INTEGER) -
+          (b.group.display_order ?? Number.MAX_SAFE_INTEGER),
+      );
   }, [featureDefinitions, featureGroups, instructorCategorySlug]);
 
   const upperGroups = groupsWithFeatures.filter(

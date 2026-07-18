@@ -1183,8 +1183,9 @@ interface InstitutionDetailPreparedData {
 
         const { data: choicesData, error: choicesError } = await supabase
           .from("institution_feature_choices")
-          .select("id, feature_definition_id, name, is_active")
+          .select("id, feature_definition_id, name, display_order, is_active")
           .eq("is_active", true)
+          .order("display_order", { ascending: true, nullsFirst: false })
           .order("id", { ascending: true });
         if (choicesError) throw choicesError;
         if (cancelled) return;

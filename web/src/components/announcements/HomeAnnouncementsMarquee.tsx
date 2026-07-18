@@ -99,8 +99,10 @@ export function HomeAnnouncementsMarquee() {
       if (!categoryCard) return;
 
       const { width, height } = categoryCard.getBoundingClientRect();
-      const roundedWidth = Math.round(width);
-      const roundedHeight = Math.round(height);
+      // Kategori kartlarından biraz daha büyük (abartmadan)
+      const scale = 1.1;
+      const roundedWidth = Math.round(width * scale);
+      const roundedHeight = Math.round(height * scale);
 
       if (roundedWidth > 0) {
         slider.style.setProperty("--duyurular-card-width", `${roundedWidth}px`);

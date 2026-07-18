@@ -240,7 +240,7 @@ export async function fetchPublicInstructorFeatureDisplayClient(
   ] = await Promise.all([
     supabase
       .from("instructor_feature_groups")
-      .select("id, name, display_order, is_active, category_slug")
+      .select("id, name, slug, display_order, is_active, category_slug")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
     supabase
@@ -251,8 +251,9 @@ export async function fetchPublicInstructorFeatureDisplayClient(
       .order("display_order", { ascending: true }),
     supabase
       .from("instructor_feature_choices")
-      .select("id, feature_definition_id, name, is_active")
+      .select("id, feature_definition_id, name, display_order, is_active")
       .eq("is_active", true)
+      .order("display_order", { ascending: true })
       .order("id", { ascending: true }),
     supabase
       .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
@@ -297,19 +298,32 @@ export async function fetchPublicInstructorFeatureDisplayClient(
   const groups = ((groupsData ?? []) as Array<{
     id: number;
     name: string;
+    slug?: string | null;
+    display_order?: number | null;
     category_slug?: string | null;
-  }>).filter((g) =>
-    isInstructorFeatureGroupVisibleForCategory(
-      { category_slug: g.category_slug ?? null },
-      instructorCategorySlug,
-    ),
-  );
+  }>)
+    .filter((g) =>
+      isInstructorFeatureGroupVisibleForCategory(
+        {
+          name: g.name,
+          slug: g.slug ?? null,
+          category_slug: g.category_slug ?? null,
+        },
+        instructorCategorySlug,
+      ),
+    )
+    .sort(
+      (a, b) =>
+        (Number.isFinite(Number(a.display_order)) ? Number(a.display_order) : Number.MAX_SAFE_INTEGER) -
+        (Number.isFinite(Number(b.display_order)) ? Number(b.display_order) : Number.MAX_SAFE_INTEGER),
+    );
 
   const definitions = (definitionsData ?? []) as DetailFeatureDefinition[];
   const choices = (choicesData ?? []) as Array<{
     id: number;
     feature_definition_id: number;
     name: string | null;
+    display_order?: number | null;
   }>;
 
   const visibleGroupIds = new Set(groups.map((g) => g.id));
@@ -317,9 +331,14 @@ export async function fetchPublicInstructorFeatureDisplayClient(
 
   const entriesByFeatureId = new Map(entries.map((e) => [e.feature_definition_id, e]));
   const choiceNameById = new Map<number, string>();
+  const choiceOrderById = new Map<number, number>();
   choices.forEach((c) => {
     const label = String(c.name ?? "").trim();
     if (label) choiceNameById.set(c.id, label);
+    choiceOrderById.set(
+      c.id,
+      Number.isFinite(Number(c.display_order)) ? Number(c.display_order) : Number.MAX_SAFE_INTEGER,
+    );
   });
   const choiceIdsByEntryId = new Map<number, number[]>();
   entryChoices.forEach((row) => {
@@ -327,6 +346,17 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     if (!current.includes(row.choice_id)) current.push(row.choice_id);
     choiceIdsByEntryId.set(row.instructor_feature_entry_id, current);
   });
+
+  const orderedChoiceLabels = (choiceIds: number[]): string[] => {
+    return [...choiceIds]
+      .sort(
+        (a, b) =>
+          (choiceOrderById.get(a) ?? Number.MAX_SAFE_INTEGER) -
+          (choiceOrderById.get(b) ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map((id) => choiceNameById.get(id) ?? "")
+      .filter(Boolean);
+  };
 
   const extractValue = (feature: DetailFeatureDefinition): string | string[] | null => {
     const entry = entriesByFeatureId.get(feature.id);
@@ -341,16 +371,12 @@ export async function fetchPublicInstructorFeatureDisplayClient(
         const label = choiceNameById.get(Number(entry.selected_choice_id));
         return label ?? null;
       }
-      const labels = (choiceIdsByEntryId.get(entry.id) ?? [])
-        .map((id) => choiceNameById.get(id) ?? "")
-        .filter(Boolean);
+      const labels = orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []);
       return labels[0] ?? null;
     }
 
     if (feature.input_type === "multi_select") {
-      const labels = (choiceIdsByEntryId.get(entry.id) ?? [])
-        .map((id) => choiceNameById.get(id) ?? "")
-        .filter(Boolean);
+      const labels = orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []);
       return labels.length > 0 ? labels : null;
     }
 
@@ -413,18 +439,16 @@ export async function fetchPublicInstructorFeatureDisplayClient(
           const choiceLabel = choiceNameById.get(Number(entry.selected_choice_id));
           if (choiceLabel) badges.push(choiceLabel);
         } else {
-          (choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceId) => {
-            const choiceLabel = choiceNameById.get(choiceId);
-            if (choiceLabel) badges.push(choiceLabel);
+          orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceLabel) => {
+            badges.push(choiceLabel);
           });
         }
         continue;
       }
 
       if (feature.input_type === "multi_select") {
-        (choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceId) => {
-          const choiceLabel = choiceNameById.get(choiceId);
-          if (choiceLabel) badges.push(choiceLabel);
+        orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceLabel) => {
+          badges.push(choiceLabel);
         });
         continue;
       }

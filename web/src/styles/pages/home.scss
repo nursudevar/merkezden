@@ -1048,6 +1048,56 @@
   align-items: flex-start;
 }
 
+.filter-section-options--age-special {
+  margin-top: 10px;
+  width: 100%;
+  gap: 6px;
+}
+
+.filter-option--age-special {
+  width: 100%;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 152, 7, 0.16);
+  font-size: 12px;
+  font-weight: $font-medium;
+  line-height: 1.25;
+  color: $text-zinc-700;
+
+  &:hover {
+    background-color: rgba(255, 152, 7, 0.06);
+    border-color: rgba(255, 152, 7, 0.28);
+  }
+}
+
+.filter-option--age-special-selected {
+  background-color: rgba(255, 152, 7, 0.12);
+  border-color: rgba(255, 152, 7, 0.4);
+  color: darken($orange-primary, 8%);
+
+  &:hover {
+    background-color: rgba(255, 152, 7, 0.16);
+  }
+
+  .filter-indicator--age-special {
+    background-color: $orange-primary;
+    border-color: $orange-primary;
+  }
+}
+
+.filter-indicator--age-special {
+  width: 15px;
+  height: 15px;
+  border-width: 1.5px;
+  border-radius: 4px;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
 .education-type-pills {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1540,6 +1590,90 @@
 
 .price-slider:focus-within .price-slider-track {
   box-shadow: 0 2px 6px rgba($purple-main, 0.3);
+}
+
+/* Öğrenci Yaşı aralığı — turuncu tema (home sidebar’da mor fiyat stillerini ezer) */
+.age-range-slider-filter {
+  .price-range-slider-input,
+  .age-range-slider-input {
+    border-color: rgba(255, 152, 7, 0.22);
+
+    &:hover {
+      border-color: rgba(255, 152, 7, 0.42);
+      box-shadow: 0 6px 14px rgba(255, 152, 7, 0.1);
+    }
+
+    &:focus {
+      border-color: $orange-primary;
+      box-shadow: 0 0 0 2px rgba(255, 152, 7, 0.16);
+    }
+  }
+
+  .price-slider-track {
+    background: linear-gradient(90deg, rgba(255, 152, 7, 0.18), rgba(255, 179, 71, 0.24));
+    box-shadow: inset 0 1px 2px rgba(17, 24, 39, 0.06);
+  }
+
+  .price-slider-range {
+    background: linear-gradient(90deg, #f59e0b 0%, $orange-primary 55%, #ffb347 100%);
+    box-shadow: 0 4px 12px rgba(255, 152, 7, 0.28);
+  }
+
+  .price-slider-thumb {
+    background: linear-gradient(135deg, #f59e0b, $orange-primary);
+    box-shadow: 0 4px 10px rgba(255, 152, 7, 0.3), 0 0 0 1px rgba(255, 152, 7, 0.18);
+
+    &:hover,
+    &:active,
+    &:focus-visible {
+      box-shadow: 0 5px 12px rgba(255, 152, 7, 0.36), 0 0 0 3px rgba(255, 152, 7, 0.14);
+    }
+  }
+
+  .price-slider:hover .price-slider-track,
+  .price-slider:focus-within .price-slider-track {
+    box-shadow: 0 2px 6px rgba(255, 152, 7, 0.22);
+  }
+
+  .price-range-slider-tick {
+    width: 28px;
+  }
+
+  .price-range-slider-tick-marker {
+    background: rgba(255, 152, 7, 0.4);
+  }
+
+  .price-range-slider-tick:hover {
+    color: darken($orange-primary, 8%);
+
+    .price-range-slider-tick-marker {
+      background: rgba(255, 152, 7, 0.65);
+    }
+  }
+
+  .price-range-slider-tick--active {
+    color: rgba(240, 127, 17, 0.85);
+
+    .price-range-slider-tick-marker {
+      background: rgba(255, 152, 7, 0.58);
+    }
+  }
+
+  .price-range-slider-tick--endpoint {
+    color: darken($orange-primary, 6%);
+
+    .price-range-slider-tick-label {
+      color: rgba(230, 126, 10, 0.95);
+    }
+  }
+
+  .price-range-slider-tick-label {
+    font-size: 11px;
+  }
+
+  .price-range-slider-control {
+    padding-bottom: 24px;
+  }
 }
 
 .price-filter-labels {
@@ -2152,7 +2286,7 @@ a.service-card {
       #ffb347 82%,
       #6d5dfc 100%
     );
-    animation: home-main-category-border-spin 6s linear infinite;
+    animation: home-main-category-border-spin 2s linear infinite;
     pointer-events: none;
   }
 
@@ -3219,11 +3353,11 @@ a.search-result-card {
   width: 100%;
   overflow: hidden;
   margin-bottom: 10px;
-  min-height: var(--duyurular-card-height, 200px);
+  min-height: var(--duyurular-card-height, 220px);
   --duyurular-card-gap: 10px;
-  /* CSS fallback — JS ile .home-main-category-card ölçüsüne senkronlanır */
-  --duyurular-card-width: calc((min(100vw, 1280px) - 412px - 30px) / 4);
-  --duyurular-card-height: 200px;
+  /* CSS fallback — JS ile .home-main-category-card × 1.1 ölçüsüne senkronlanır */
+  --duyurular-card-width: calc((min(100vw, 1280px) - 412px - 30px) / 4 * 1.1);
+  --duyurular-card-height: 220px;
 
   &--loading {
     display: flex;
@@ -3232,17 +3366,17 @@ a.search-result-card {
   }
 
   @media (max-width: 1180px) {
-    --duyurular-card-width: calc((min(100vw, 1280px) - 412px - 12px) / 2);
-    --duyurular-card-height: 194px;
-    min-height: 194px;
+    --duyurular-card-width: calc((min(100vw, 1280px) - 412px - 12px) / 2 * 1.1);
+    --duyurular-card-height: 213px;
+    min-height: 213px;
   }
 
   @media (max-width: 1023px) {
-    --duyurular-card-width: calc((min(100vw, 1280px) - 60px - 12px) / 2);
+    --duyurular-card-width: calc((min(100vw, 1280px) - 60px - 12px) / 2 * 1.1);
   }
 
   @media (max-width: 640px) {
-    --duyurular-card-width: calc((100vw - 32px - 12px) / 2);
+    --duyurular-card-width: calc((100vw - 32px - 12px) / 2 * 1.1);
     --duyurular-card-gap: 12px;
   }
 }
@@ -3252,8 +3386,7 @@ a.search-result-card {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: var(--duyurular-card-height, 200px);
-  color: lightgray;
+  min-height: var(--duyurular-card-height, 220px);
 }
 
 .duyurular-loading-icon {
@@ -3282,9 +3415,9 @@ a.search-result-card {
   width: var(--duyurular-card-width);
   min-width: var(--duyurular-card-width);
   max-width: var(--duyurular-card-width);
-  height: var(--duyurular-card-height, 200px);
-  min-height: var(--duyurular-card-height, 200px);
-  max-height: var(--duyurular-card-height, 200px);
+  height: var(--duyurular-card-height, 220px);
+  min-height: var(--duyurular-card-height, 220px);
+  max-height: var(--duyurular-card-height, 220px);
   box-sizing: border-box;
   overflow: hidden;
   border: none;
@@ -5570,5 +5703,5 @@ a.home-individual-instructor-item {
   }
 }
 
-
+@import '../layout/large-desktop';
 

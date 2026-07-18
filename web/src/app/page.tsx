@@ -32,17 +32,20 @@ import { getCategoryHref, HOME_MAIN_CATEGORY_ORDER } from "@/lib/categoryHelpers
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { User } from "@supabase/supabase-js";
 import { PriceRangeSliderFilter, type PriceRangeSliderValue } from "@/components/filters/PriceRangeSliderFilter";
+import { AgeRangeSliderFilter } from "@/components/filters/AgeRangeSliderFilter";
 import {
   INSTITUTION_PRICE_FILTER_MAX,
   INSTITUTION_PRICE_FILTER_MIN,
 } from "@/lib/institutionPriceRangeFilter";
+import {
+  fetchInstitutionStudentAgeChoices,
+  getStudentAgeSpecialDisplayName,
+  splitStudentAgeChoices,
+  type StudentAgeChoice,
+  type StudentAgeRangeValue,
+} from "@/lib/institutionStudentAgeFilter";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
-
-const ageOptions = [
-  { value: "child", label: "Çocuk (0-17 yaş)", className: "filter-option filter-option-child" },
-  { value: "adult", label: "Yetişkin (18+ yaş)", className: "filter-option filter-option-adult" },
-];
 
 const serviceOptions = [
   { value: "face", label: "Yüz Yüze", icon: MapPin },
@@ -366,7 +369,9 @@ export default function Home() {
     () => new Set()
   );
   const [selectedSchoolStatuses, setSelectedSchoolStatuses] = useState<Set<"private" | "public">>(() => new Set());
-  const [selectedAgeOptions, setSelectedAgeOptions] = useState<Set<"child" | "adult">>(() => new Set());
+  const [selectedAgeRange, setSelectedAgeRange] = useState<StudentAgeRangeValue>(null);
+  const [selectedAgeSpecialOptions, setSelectedAgeSpecialOptions] = useState<Set<number>>(() => new Set());
+  const [ageSpecialOptions, setAgeSpecialOptions] = useState<StudentAgeChoice[]>([]);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const { markers: institutionMapMarkers, loading: institutionMapLoading } = useAllInstitutionMapMarkers();
 
@@ -381,7 +386,8 @@ export default function Home() {
         (query && query.trim().length > 0) ||
         selectedDistrict ||
         selectedSchoolStatuses.size > 0 ||
-        selectedAgeOptions.size > 0 ||
+        selectedAgeRange != null ||
+        selectedAgeSpecialOptions.size > 0 ||
         selectedServiceTypes.size > 0 ||
         selectedPriceRange != null ||
         sidebarInstitutionTypeIds.length > 0
@@ -390,7 +396,8 @@ export default function Home() {
       query,
       selectedDistrict,
       selectedSchoolStatuses,
-      selectedAgeOptions,
+      selectedAgeRange,
+      selectedAgeSpecialOptions,
       selectedServiceTypes,
       selectedPriceRange,
       sidebarInstitutionTypeIds,
@@ -570,6 +577,36 @@ export default function Home() {
     return () => {
       cancelled = true;
       subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    void (async () => {
+      try {
+        const choices = await fetchInstitutionStudentAgeChoices(supabase);
+        if (cancelled) return;
+        const { special } = splitStudentAgeChoices(choices);
+        setAgeSpecialOptions(special);
+        setSelectedAgeSpecialOptions((prev) => {
+          if (prev.size === 0) return prev;
+          const validIds = new Set(special.map((c) => c.id));
+          const next = new Set<number>();
+          prev.forEach((id) => {
+            if (validIds.has(id)) next.add(id);
+          });
+          return next;
+        });
+      } catch (err) {
+        console.error("[home][student-age-choices]", err);
+        if (!cancelled) setAgeSpecialOptions([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -890,33 +927,41 @@ export default function Home() {
                   />
                   <span>Öğrenci Yaşı</span>
                 </div>
-                <div className="filter-section-options">
-                  {ageOptions.map((option) => {
-                    const v = option.value as "child" | "adult";
-                    const isSelected = selectedAgeOptions.has(v);
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`${option.className} ${isSelected ? 'filter-option--selected' : ''}`}
-                        onClick={() => {
-                          setSelectedAgeOptions((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(v)) next.delete(v);
-                            else next.add(v);
-                            return next;
-                          });
-                          scrollToResultsOnMobile();
-                        }}
-                      >
-                        <span className={`filter-indicator ${isSelected ? 'filter-indicator--checked' : ''}`}>
-                          {isSelected && <Check size={14} />}
-                        </span>
-                        <span>{option.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <AgeRangeSliderFilter
+                  value={selectedAgeRange}
+                  onChange={(nextRange) => {
+                    setSelectedAgeRange(nextRange);
+                    scrollToResultsOnMobile();
+                  }}
+                />
+                {ageSpecialOptions.length > 0 ? (
+                  <div className="filter-section-options filter-section-options--age-special">
+                    {ageSpecialOptions.map((option) => {
+                      const isSelected = selectedAgeSpecialOptions.has(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`filter-option filter-option--age-special ${isSelected ? "filter-option--selected filter-option--age-special-selected" : ""}`}
+                          onClick={() => {
+                            setSelectedAgeSpecialOptions((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(option.id)) next.delete(option.id);
+                              else next.add(option.id);
+                              return next;
+                            });
+                            scrollToResultsOnMobile();
+                          }}
+                        >
+                          <span className={`filter-indicator filter-indicator--age-special ${isSelected ? "filter-indicator--checked" : ""}`}>
+                            {isSelected && <Check size={12} />}
+                          </span>
+                          <span>{getStudentAgeSpecialDisplayName(option.name)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
               <Separator />
               <div className="filter-section">
@@ -1152,7 +1197,11 @@ export default function Home() {
               cityFilter="Ankara"
               districtFilter={selectedDistrict}
               schoolStatusFilters={Array.from(selectedSchoolStatuses)}
-              studentAgeFilters={Array.from(selectedAgeOptions)}
+              studentAgeRange={selectedAgeRange}
+              studentAgeSpecialChoiceIds={Array.from(selectedAgeSpecialOptions)}
+              studentAgeSpecialChoiceNames={ageSpecialOptions
+                .filter((opt) => selectedAgeSpecialOptions.has(opt.id))
+                .map((opt) => opt.name)}
               serviceTypeFilters={Array.from(selectedServiceTypes)}
               priceRangeFilter={
                 selectedPriceRange
@@ -1171,7 +1220,8 @@ export default function Home() {
                 setSelectedDistrict("");
                 setSelectedNeighborhood("");
                 setSelectedSchoolStatuses(new Set());
-                setSelectedAgeOptions(new Set());
+                setSelectedAgeRange(null);
+                setSelectedAgeSpecialOptions(new Set());
                 setSelectedServiceTypes(new Set());
                 setSelectedPriceRange(null);
                 setSelectedCategoryItems(new Set());

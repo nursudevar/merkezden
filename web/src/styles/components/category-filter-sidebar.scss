@@ -283,6 +283,10 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+
+  + .category-filter-section-checkboxes {
+    margin-top: 12px;
+  }
 }
 
 .price-range-slider-inputs {
@@ -543,6 +547,98 @@
   }
 }
 
+/* Öğrenci Yaşı — turuncu tema (fiyat filtresinin mor stilini bozmaz) */
+.age-range-slider-filter {
+  .age-range-slider-input,
+  .price-range-slider-input {
+    border-color: rgba(255, 152, 7, 0.22);
+
+    &:hover {
+      border-color: rgba(255, 152, 7, 0.4);
+      box-shadow: 0 6px 14px rgba(255, 152, 7, 0.1);
+    }
+
+    &:focus {
+      border-color: $orange-primary;
+      box-shadow: 0 0 0 2px rgba(255, 152, 7, 0.16);
+    }
+  }
+
+  .age-range-slider,
+  .price-slider {
+    .price-slider-track {
+      background: linear-gradient(90deg, rgba(255, 152, 7, 0.16), rgba(255, 179, 71, 0.22));
+    }
+
+    .price-slider-range {
+      background: linear-gradient(90deg, #f59e0b 0%, $orange-primary 55%, #ffb347 100%);
+      box-shadow: 0 4px 12px rgba(255, 152, 7, 0.28);
+    }
+
+    .price-slider-thumb {
+      background: linear-gradient(135deg, #f59e0b, $orange-primary);
+      box-shadow: 0 4px 10px rgba(255, 152, 7, 0.3), 0 0 0 1px rgba(255, 152, 7, 0.18);
+
+      &:hover {
+        box-shadow: 0 5px 12px rgba(255, 152, 7, 0.36), 0 0 0 3px rgba(255, 152, 7, 0.12);
+      }
+
+      &:focus-visible {
+        box-shadow: 0 5px 12px rgba(255, 152, 7, 0.36), 0 0 0 4px rgba(255, 152, 7, 0.16);
+      }
+    }
+  }
+
+  .price-range-slider-tick-marker {
+    background: rgba(255, 152, 7, 0.38);
+  }
+
+  .price-range-slider-tick:hover {
+    color: darken($orange-primary, 8%);
+
+    .price-range-slider-tick-marker {
+      background: rgba(255, 152, 7, 0.62);
+    }
+  }
+
+  .price-range-slider-tick:focus-visible {
+    color: darken($orange-primary, 8%);
+
+    .price-range-slider-tick-marker {
+      background: rgba(255, 152, 7, 0.72);
+    }
+  }
+
+  .price-range-slider-tick--active {
+    color: rgba(240, 127, 17, 0.85);
+
+    .price-range-slider-tick-marker {
+      background: rgba(255, 152, 7, 0.58);
+    }
+  }
+
+  .price-range-slider-tick--endpoint {
+    color: darken($orange-primary, 6%);
+
+    .price-range-slider-tick-label {
+      color: rgba(230, 126, 10, 0.95);
+    }
+  }
+
+  .price-range-slider-tick {
+    width: 28px;
+  }
+
+  .price-range-slider-tick-label {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .price-range-slider-control {
+    padding-bottom: 24px;
+  }
+}
+
 /* Dinamik feature group filtreleri — Okul kategori sayfasında DB'den gelen
    feature_groups/definitions/choices için kompakt checkbox listesi (2 sütunlu). */
 .category-filter-section-checkboxes {
@@ -553,6 +649,46 @@
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
+  }
+}
+
+.category-filter-section-checkboxes--age-special {
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.category-filter-checkbox-option--age-special {
+  padding: 5px 8px;
+  gap: 6px;
+  border-radius: 7px;
+  border-color: rgba(255, 152, 7, 0.18);
+  font-size: 12px;
+
+  &:hover {
+    background-color: rgba(255, 152, 7, 0.06);
+    border-color: rgba(255, 152, 7, 0.3);
+  }
+
+  .category-filter-checkbox-input {
+    width: 14px;
+    height: 14px;
+    accent-color: $orange-primary;
+  }
+
+  .category-filter-checkbox-label {
+    white-space: normal;
+    line-height: 1.25;
+    font-weight: $font-medium;
+  }
+
+  &.category-filter-checkbox-option--selected {
+    background-color: rgba(255, 152, 7, 0.12);
+    border-color: rgba(255, 152, 7, 0.4);
+
+    .category-filter-checkbox-label {
+      color: darken($orange-primary, 6%);
+    }
   }
 }
 
