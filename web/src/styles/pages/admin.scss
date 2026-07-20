@@ -895,7 +895,8 @@
 }
 
 .admin-individual-users-modal {
-  width: min(100%, 480px);
+  width: 100%;
+  max-width: 480px;
   background: #fff;
   border-radius: 16px;
   border: 1px solid $border-light;
@@ -1299,7 +1300,8 @@
 }
 
 .admin-instructors-modal {
-  width: min(100%, 480px);
+  width: 100%;
+  max-width: 480px;
   background: #fff;
   border-radius: 16px;
   border: 1px solid $border-light;
@@ -1745,7 +1747,8 @@
 }
 
 .admin-announcements-modal {
-  width: min(100%, 520px);
+  width: 100%;
+  max-width: 520px;
   background: #fff;
   border-radius: 16px;
   border: 1px solid $border-light;
@@ -2201,7 +2204,8 @@
 }
 
 .admin-blog-posts-page-search-input {
-  width: min(220px, 100%);
+  width: 100%;
+  max-width: 220px;
 }
 
 .admin-blog-posts-page-jump-input {
@@ -2249,7 +2253,8 @@
 }
 
 .admin-blog-posts-modal {
-  width: min(560px, 100%);
+  width: 100%;
+  max-width: 560px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   border-radius: 12px;
@@ -2667,7 +2672,8 @@
 }
 
 .admin-approval-requests-modal {
-  width: min(720px, 100%);
+  width: 100%;
+  max-width: 720px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   background: #fff;

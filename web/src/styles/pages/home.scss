@@ -606,12 +606,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(100%, 180px);
+  width: 100%;
+  max-width: 180px;
   min-height: 0;
   overflow: hidden;
 
   @media (min-width: 1024px) {
     width: 320px;
+    max-width: none;
     align-self: stretch;
   }
 }
@@ -634,7 +636,8 @@
 
 @media (max-width: 1023px) {
   .home-patili-dostlar-meko {
-    width: min(100%, 150px);
+    width: 100%;
+    max-width: 150px;
     height: auto;
     aspect-ratio: 1 / 1.15;
     align-self: center;
@@ -723,7 +726,8 @@
 .institution-map-modal-panel {
   position: relative;
   z-index: 1;
-  width: min(96vw, 1120px);
+  width: 96vw;
+  max-width: 1120px;
   max-height: min(92vh, 860px);
   display: flex;
   flex-direction: column;
@@ -2238,7 +2242,6 @@ a.service-card {
   width: 100%;
   padding: 2px 0 8px;
   overflow: hidden;
-  /* Ana Kategoriler kart ölçü referansı — duyurular kartları bu değerleri kullanır */
   --home-card-height: 200px;
   --home-card-min-height: 168px;
 
@@ -3355,8 +3358,8 @@ a.search-result-card {
   margin-bottom: 10px;
   min-height: var(--duyurular-card-height, 220px);
   --duyurular-card-gap: 10px;
-  /* CSS fallback — JS ile .home-main-category-card × 1.1 ölçüsüne senkronlanır */
-  --duyurular-card-width: calc((min(100vw, 1280px) - 412px - 30px) / 4 * 1.1);
+  /* Referans ölçü (15" / masaüstü): 250 × 220 — tablet/mobilde de aynı hissedilecek şekilde korunur */
+  --duyurular-card-width: 250px;
   --duyurular-card-height: 220px;
 
   &--loading {
@@ -3365,18 +3368,14 @@ a.search-result-card {
     justify-content: center;
   }
 
-  @media (max-width: 1180px) {
-    --duyurular-card-width: calc((min(100vw, 1280px) - 412px - 12px) / 2 * 1.1);
-    --duyurular-card-height: 213px;
-    min-height: 213px;
-  }
-
   @media (max-width: 1023px) {
-    --duyurular-card-width: calc((min(100vw, 1280px) - 60px - 12px) / 2 * 1.1);
+    --duyurular-card-width: 240px;
+    --duyurular-card-height: 211px;
   }
 
   @media (max-width: 640px) {
-    --duyurular-card-width: calc((100vw - 32px - 12px) / 2 * 1.1);
+    --duyurular-card-width: 230px;
+    --duyurular-card-height: 202px;
     --duyurular-card-gap: 12px;
   }
 }
@@ -4298,7 +4297,7 @@ a.search-result-card {
 
 .content-layout-title {
   margin: 0 0 16px;
-  font-size: 1.5rem;
+  font-size: 24px;
   font-weight: 700;
   color: inherit;
 }

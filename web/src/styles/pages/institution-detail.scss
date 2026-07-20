@@ -5,21 +5,21 @@
 .institution-detail-page {
   background-color: $bg-zinc-50;
   min-height: 100vh;
-  padding: 2rem 0;
+  padding: 32px 0;
 
   @media (max-width: 1024px) {
-    padding: 1.5rem 0;
+    padding: 24px 0;
   }
 
   @media (max-width: 768px) {
-    padding: 1rem 0;
+    padding: 16px 0;
   }
 }
 
 .institution-detail-container {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 16px;
 
   @media (max-width: 640px) {
     padding: 0 16px;
@@ -28,7 +28,7 @@
 
 // Breadcrumb
 .institution-breadcrumb {
-  margin-bottom: 1.5rem;
+  margin-bottom: 24px;
 }
 
 .institution-breadcrumb-container {
@@ -63,7 +63,7 @@
 
 // Hero Card
 .institution-hero {
-  margin-bottom: 2rem;
+  margin-bottom: 32px;
   border: 1px solid $border-light;
   border-radius: 24px;
   overflow: hidden;
@@ -83,16 +83,16 @@
 }
 
 .institution-hero-content {
-  padding: 2rem;
+  padding: 32px;
 
   @media (max-width: 768px) {
-    padding: 1.5rem;
+    padding: 24px;
   }
 }
 
 .institution-hero-main {
   display: flex;
-  gap: 2rem;
+  gap: 32px;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -105,7 +105,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
   align-items: center;
 
   @media (max-width: 768px) {
@@ -139,7 +139,7 @@
   border: 1px solid rgba(109, 93, 252, 0.14);
   color: $purple-main;
   text-align: center;
-  padding: 0.75rem;
+  padding: 12px;
 
   p {
     margin: 0;
@@ -187,19 +187,19 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
 }
 
 .institution-title-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 16px;
 
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
   }
 }
 
@@ -218,12 +218,12 @@
 .institution-rating-badge {
   background: $yellow-bg;
   color: $yellow-main;
-  padding: 0.25rem 0.75rem;
+  padding: 4px 12px;
   border-radius: 8px;
   border: 1px solid rgba(245, 158, 11, 0.2);
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 4px;
   font-size: $text-sm;
   font-weight: $font-bold;
   white-space: nowrap;
@@ -236,7 +236,7 @@
 .institution-rating-count {
   color: $yellow-hover;
   font-weight: $font-normal;
-  margin-left: 0.25rem;
+  margin-left: 4px;
 }
 
 .institution-description {
@@ -255,7 +255,7 @@
 .institution-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
   color: $text-zinc-600;
   font-size: $text-sm;
 
@@ -267,7 +267,7 @@
 .institution-meta-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 
   svg {
     color: $text-zinc-500;
@@ -279,7 +279,7 @@
   align-items: center;
   justify-content: center;
   width: fit-content;
-  padding: 0.3rem 0.75rem;
+  padding: 4.8px 12px;
   border-radius: 999px;
   border: 1px solid rgba(109, 93, 252, 0.24);
   background: rgba(109, 93, 252, 0.08);
@@ -287,7 +287,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
-  gap: 0.4rem;
+  gap: 6.4px;
 }
 
 .institution-meta-badge--category {
@@ -307,10 +307,10 @@
   border: 1px solid rgba(34, 197, 94, 0.24);
   border-radius: 999px;
   width: fit-content;
-  padding: 0.3rem 0.75rem;
+  padding: 4.8px 12px;
   font-size: 14px;
   font-weight: 600;
-  gap: 0.4rem;
+  gap: 6.4px;
 
   svg {
     color: $green-main;
@@ -319,8 +319,8 @@
 
 .institution-actions {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 12px;
+  margin-top: 8px;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -349,12 +349,12 @@
   z-index: 100;
   background: $bg-zinc-50;
   border-bottom: 1px solid $border-light;
-  margin-bottom: 2rem;
-  padding-top: 0.5rem;
-  margin-left: -1rem;
-  margin-right: -1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  margin-bottom: 32px;
+  padding-top: 8px;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding-left: 16px;
+  padding-right: 16px;
 
   @media (max-width: 640px) {
     margin-left: -16px;
@@ -366,7 +366,7 @@
 
 .institution-tabs-list {
   display: flex;
-  gap: 2rem;
+  gap: 32px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -379,7 +379,7 @@
   @media (max-width: 640px) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem 1rem;
+    gap: 8px 16px;
     overflow-x: visible;
   }
 }
@@ -388,7 +388,7 @@
 @media (max-width: 640px) {
   .institution-tabs-list .institution-tab-item {
     justify-content: center;
-    padding: 0.625rem 0.5rem;
+    padding: 10px 8px;
     white-space: nowrap;
   }
 }
@@ -396,8 +396,8 @@
 .institution-tab-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.25rem;
+  gap: 8px;
+  padding: 12px 4px;
   text-decoration: none;
   color: $text-zinc-600;
   font-weight: $font-bold;
@@ -425,7 +425,7 @@
 .institution-content-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 2rem;
+  gap: 32px;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -434,7 +434,7 @@
 
 // Sections
 .institution-section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 40px;
   scroll-margin-top: 100px;
 }
 
@@ -442,7 +442,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 .institution-section-title {
@@ -451,7 +451,7 @@
   color: $default-text-color;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   margin-bottom: 30px;
 
   &::before {
@@ -477,22 +477,22 @@
 }
 
 .institution-section-card {
-  margin-top: 1rem;
+  margin-top: 16px;
   border: 1px solid $border-light;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .institution-features-card {
-  margin-top: 1.25rem;
+  margin-top: 20px;
 }
 
 .institution-features-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
+  gap: 16px;
+  margin-bottom: 8px;
 }
 
 .institution-features-groups {
@@ -504,7 +504,7 @@
 .institution-features-group {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .institution-features-group-title {
@@ -514,16 +514,16 @@
   color: $default-text-color;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   border-bottom: 1px solid $border-light;
-  padding-bottom: 0.4rem;
+  padding-bottom: 6.4px;
   margin-bottom: 20px;
 }
 
 .institution-features-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.7rem;
+  gap: 11.2px;
 }
 
 .institution-features-academic-list {
@@ -534,7 +534,7 @@
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    row-gap: 0.9rem;
+    row-gap: 14.4px;
   }
 }
 
@@ -542,7 +542,7 @@
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
-  column-gap: 0.65rem;
+  column-gap: 10.4px;
   min-width: 0;
 }
 
@@ -559,7 +559,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -612,12 +612,12 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 1rem;
+  padding: 16px;
 }
 
 .institution-about-text {
   p {
-    margin-bottom: 1rem;
+    margin-bottom: 16px;
     color: $text-zinc-700;
     line-height: 1.7;
     font-size: $text-base;
@@ -634,8 +634,8 @@
   display: grid;
   grid-template-columns: 2fr 1fr;
   grid-template-rows: auto auto;
-  gap: 0.75rem;
-  margin-top: 1rem;
+  gap: 12px;
+  margin-top: 16px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -677,8 +677,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
-  padding: 1rem;
+  gap: 10.4px;
+  padding: 16px;
   text-align: center;
   background: rgba(109, 93, 252, 0.04);
   border: 1px solid rgba(109, 93, 252, 0.14);
@@ -721,7 +721,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 16px;
 }
 
 .institution-gallery-modal {
@@ -733,16 +733,16 @@
   border-radius: 18px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
   overflow: auto;
-  padding: 1rem;
+  padding: 16px;
 }
 
 .institution-gallery-modal-header {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.75rem;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 0.9rem;
+  margin-bottom: 14.4px;
 }
 
 .institution-gallery-modal-title {
@@ -753,7 +753,7 @@
 }
 
 .institution-gallery-modal-subtitle {
-  margin: 0.2rem 0 0;
+  margin: 3.2px 0 0;
   color: $text-zinc-600;
   font-size: $text-xs;
 }
@@ -762,22 +762,22 @@
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .institution-gallery-modal-filters {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 6.4px;
   background: $bg-zinc-50;
   border: 1px solid $border-light;
   border-radius: 999px;
-  padding: 0.25rem;
+  padding: 4px;
 }
 
 .institution-gallery-modal-filter {
   height: 30px;
-  padding: 0 0.85rem;
+  padding: 0 13.6px;
   border-radius: 999px;
   border: 0;
   background: transparent;
@@ -809,7 +809,7 @@
 .institution-gallery-modal-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 12px;
 
   @media (max-width: 992px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -859,7 +859,7 @@
 .institution-gallery-viewer {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .institution-gallery-viewer-back {
@@ -870,8 +870,8 @@
   color: $purple-main;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0 0.85rem;
+  gap: 6.4px;
+  padding: 0 13.6px;
   font-size: $text-xs;
   font-weight: $font-semibold;
   cursor: pointer;
@@ -941,7 +941,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 1rem;
+  padding: 16px;
 }
 
 .institution-gallery-image {
@@ -954,8 +954,8 @@
 }
 
 .institution-review-button {
-  height: 2rem;
-  padding: 0 1rem;
+  height: 32px;
+  padding: 0 16px;
   background: linear-gradient(135deg, $purple-main 0%, $purple-dark 100%);
   color: $bg-white;
   border: none;
@@ -978,8 +978,8 @@
 .institution-reviews-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .institution-review-card {
@@ -991,18 +991,18 @@
 .institution-review-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: 12px;
   align-items: flex-start;
 
   @media (max-width: 640px) {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 8px;
   }
 }
 
 .institution-review-user {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
   align-items: center;
 }
 
@@ -1058,7 +1058,7 @@
   top: 100px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 24px;
   height: fit-content;
   border: 1px solid $border-light;
   border-radius: 16px;
@@ -1074,13 +1074,13 @@
 
 .institution-sidebar-header {
   background: rgba(109, 93, 252, 0.03);
-  padding: 1rem;
+  padding: 16px;
   border-bottom: 1px solid $border-light;
   color: $purple-main;
   font-weight: $font-bold;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   font-size: $text-base;
 
   svg {
@@ -1089,7 +1089,7 @@
 }
 
 .institution-sidebar-body {
-  padding: 1.25rem;
+  padding: 20px;
 }
 
 .institution-map-preview {
@@ -1097,7 +1097,7 @@
   border-radius: 8px;
   background-size: cover;
   background-position: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 20px;
   position: relative;
   border: 1px solid $border-light;
   overflow: hidden;
@@ -1116,7 +1116,7 @@
   background: rgba(109, 93, 252, 0.08);
   color: $purple-main;
   text-align: center;
-  padding: 0.75rem;
+  padding: 12px;
 
   p {
     margin: 0;
@@ -1129,13 +1129,13 @@
 .institution-contact-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .institution-contact-item {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .institution-contact-icon {
@@ -1160,7 +1160,7 @@
   font-weight: $font-bold;
   color: $text-zinc-600;
   text-transform: uppercase;
-  margin-bottom: 0.25rem;
+  margin-bottom: 4px;
 }
 
 .institution-contact-value {
@@ -1169,7 +1169,7 @@
   line-height: 1.5;
 
   > div {
-    margin-bottom: 0.125rem;
+    margin-bottom: 2px;
   }
 }
 
@@ -1197,7 +1197,7 @@
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  padding: 0.3rem 0.75rem;
+  padding: 4.8px 12px;
   border-radius: 999px;
   font-size: $text-sm;
   font-weight: $font-semibold;
@@ -1224,7 +1224,7 @@
   align-items: center;
   gap: 8px;
   width: fit-content;
-  padding: 0.3rem 0.75rem;
+  padding: 4.8px 12px;
   border-radius: 999px;
   font-size: $text-sm;
   font-weight: $font-semibold;
@@ -1238,7 +1238,7 @@
 .institution-loading-skeleton {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 24px;
 }
 
 .institution-skeleton-breadcrumb,
@@ -1282,7 +1282,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 32px;
 }
 
 .institution-not-found-container {
@@ -1294,13 +1294,13 @@
   font-size: $text-3xl;
   font-weight: $font-bold;
   color: $default-text-color;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 .institution-not-found-description {
   font-size: $text-base;
   color: $text-zinc-600;
-  margin-bottom: 2rem;
+  margin-bottom: 32px;
   line-height: 1.6;
 }
 
@@ -1332,7 +1332,7 @@
 
 /* Kurum detay sayfası — Duyurular tab içeriği (alt alta tek sütun kart liste) */
 .institution-announcements-card {
-  margin-top: 1.25rem;
+  margin-top: 20px;
 }
 
 .institution-announcements-tab {

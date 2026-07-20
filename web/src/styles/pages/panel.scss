@@ -3631,7 +3631,8 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 }
 
 .panel-subscription-modal-content {
-  width: min(1320px, 100%);
+  width: 100%;
+  max-width: 1320px;
   max-height: calc(100vh - 48px);
   border-radius: 20px;
   border: 1px solid rgba($border-default, 0.35);

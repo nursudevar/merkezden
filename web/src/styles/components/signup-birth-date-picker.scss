@@ -74,7 +74,8 @@
   right: auto;
   bottom: calc(100% + 6px);
   top: auto;
-  width: min(100%, 300px);
+  width: 100%;
+  max-width: 300px;
   z-index: 40;
   padding: 8px 10px 6px;
   background: $bg-white;

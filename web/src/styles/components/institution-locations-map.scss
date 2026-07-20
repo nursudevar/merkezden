@@ -93,7 +93,8 @@
 .institution-map-modal-panel {
   position: relative;
   z-index: 1;
-  width: min(96vw, 1120px);
+  width: 96vw;
+  max-width: 1120px;
   max-height: min(92vh, 860px);
   display: flex;
   flex-direction: column;
@@ -169,7 +170,8 @@
 }
 
 .institution-map-page-inner {
-  width: min(100%, 1120px);
+  width: 100%;
+  max-width: 1120px;
   margin: 0 auto;
 }
 

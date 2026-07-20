@@ -13,14 +13,14 @@
 }
 
 .announcements-page-title {
-  font-size: clamp(2rem, 2.8vw, 2.5rem);
+  font-size: clamp(32px, 2.8vw, 40px);
   font-weight: 700;
   color: #111827;
   margin: 0;
 }
 
 .announcements-page-subtitle {
-  font-size: 1rem;
+  font-size: 16px;
   color: #4b5563;
   margin: 0;
 }
@@ -28,7 +28,7 @@
 .announcements-page-back-link {
   display: inline-flex;
   width: fit-content;
-  font-size: 0.95rem;
+  font-size: 15.2px;
   font-weight: 600;
   color: #6d5dfc;
   text-decoration: none;
@@ -44,7 +44,7 @@
 }
 
 .announcements-list-section-title {
-  font-size: 1.25rem;
+  font-size: 20px;
   font-weight: 700;
   color: #111827;
   margin: 0 0 14px 0;

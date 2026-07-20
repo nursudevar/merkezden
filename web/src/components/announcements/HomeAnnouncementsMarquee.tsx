@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
 import AnnouncementDetailModal, {
@@ -84,53 +84,9 @@ export function HomeAnnouncementsMarquee() {
   const [announcements, setAnnouncements] = useState<HomeAnnouncementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeAnnouncement, setActiveAnnouncement] = useState<HomeAnnouncementItem | null>(null);
-  const sliderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setIsMarqueeMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const slider = sliderRef.current;
-    if (!slider) return;
-
-    const syncCardSizeFromCategories = () => {
-      const categoryCard = document.querySelector<HTMLElement>(".home-main-category-card");
-      if (!categoryCard) return;
-
-      const { width, height } = categoryCard.getBoundingClientRect();
-      // Kategori kartlarından biraz daha büyük (abartmadan)
-      const scale = 1.1;
-      const roundedWidth = Math.round(width * scale);
-      const roundedHeight = Math.round(height * scale);
-
-      if (roundedWidth > 0) {
-        slider.style.setProperty("--duyurular-card-width", `${roundedWidth}px`);
-      }
-      if (roundedHeight > 0) {
-        slider.style.setProperty("--duyurular-card-height", `${roundedHeight}px`);
-      }
-    };
-
-    syncCardSizeFromCategories();
-
-    const resizeObserver = new ResizeObserver(syncCardSizeFromCategories);
-    const categoryCard = document.querySelector<HTMLElement>(".home-main-category-card");
-    if (categoryCard) {
-      resizeObserver.observe(categoryCard);
-    }
-
-    const categoriesGrid = document.querySelector<HTMLElement>(".home-main-categories-grid");
-    if (categoriesGrid) {
-      resizeObserver.observe(categoriesGrid);
-    }
-
-    window.addEventListener("resize", syncCardSizeFromCategories);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", syncCardSizeFromCategories);
-    };
   }, []);
 
   useEffect(() => {
@@ -187,7 +143,6 @@ export function HomeAnnouncementsMarquee() {
         </div>
 
         <div
-          ref={sliderRef}
           className={`duyurular-slider${loading ? " duyurular-slider--loading" : ""}`}
         >
           {loading ? (
