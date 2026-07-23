@@ -226,18 +226,39 @@ async function fetchAllSuccessLocationRows(): Promise<InstitutionLocationRow[]> 
 }
 
 /** Ana sayfa: tüm geocode edilmiş kurum konumları */
+let allInstitutionMapMarkersCache: InstitutionMapMarker[] | null = null;
+let allInstitutionMapMarkersInflight: Promise<InstitutionMapMarker[]> | null = null;
+
 export async function fetchAllInstitutionMapMarkers(): Promise<InstitutionMapMarker[]> {
-  const locationRows = await fetchAllSuccessLocationRows();
-  if (locationRows.length === 0) return [];
-  const institutionIds = locationRows
-    .map((row) => row.institution_id)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (allInstitutionMapMarkersCache) {
+    return allInstitutionMapMarkersCache;
+  }
+  if (allInstitutionMapMarkersInflight) {
+    return allInstitutionMapMarkersInflight;
+  }
 
-  const institutionsById = await fetchInstitutionRowsByIds(institutionIds);
+  allInstitutionMapMarkersInflight = (async () => {
+    const locationRows = await fetchAllSuccessLocationRows();
+    if (locationRows.length === 0) {
+      allInstitutionMapMarkersCache = [];
+      return [];
+    }
+    const institutionIds = locationRows
+      .map((row) => row.institution_id)
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 
-  return dedupeMarkersByInstitutionId(
-    mergeLocationRowsWithInstitutionRows(locationRows, institutionsById),
-  );
+    const institutionsById = await fetchInstitutionRowsByIds(institutionIds);
+
+    const markers = dedupeMarkersByInstitutionId(
+      mergeLocationRowsWithInstitutionRows(locationRows, institutionsById),
+    );
+    allInstitutionMapMarkersCache = markers;
+    return markers;
+  })().finally(() => {
+    allInstitutionMapMarkersInflight = null;
+  });
+
+  return allInstitutionMapMarkersInflight;
 }
 
 /** Kategori listesi: yalnızca verilen kurumlar için konum birleştirme */

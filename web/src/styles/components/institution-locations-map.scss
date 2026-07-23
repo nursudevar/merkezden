@@ -438,6 +438,40 @@
   color: #b42318;
 }
 
+.haritada-ara-reset-filters-section {
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.haritada-ara-reset-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background: $bg-white;
+  color: $text-zinc-700;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  @include transition;
+  transition-property: background-color, border-color, color;
+
+  &:hover {
+    border-color: rgba($purple-main, 0.35);
+    color: $purple-main;
+    background: rgba($purple-main, 0.04);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($purple-main, 0.35);
+    outline-offset: 2px;
+  }
+}
+
 @keyframes haritada-ara-spin {
   to {
     transform: rotate(360deg);

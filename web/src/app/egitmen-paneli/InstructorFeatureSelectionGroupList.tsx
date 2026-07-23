@@ -2,9 +2,17 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
+import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import {
   isInstructorTimeTextFeature,
 } from "@/lib/instructorFeaturesClient";
+import {
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeMaxFeature,
+  isStudentAgeMinFeature,
+  isStudentAgeRangeNumberFeature,
+  validateStudentAgeRangeValues,
+} from "@/lib/studentAgeRangeFeature";
 
 type InstructorFeatureChoiceRow = {
   id: number;
@@ -52,6 +60,8 @@ type InstructorFeatureSelectionGroupListProps = {
   instructorFeatureChoices: InstructorFeatureChoiceRow[];
   openInstructorSelectId: number | null;
   setOpenInstructorSelectId: Dispatch<SetStateAction<number | null>>;
+  studentAgeRangeError?: string | null;
+  setStudentAgeRangeError?: Dispatch<SetStateAction<string | null>>;
 };
 
 export function InstructorFeatureSelectionGroupList({
@@ -72,10 +82,32 @@ export function InstructorFeatureSelectionGroupList({
   instructorFeatureChoices,
   openInstructorSelectId,
   setOpenInstructorSelectId,
+  studentAgeRangeError = null,
+  setStudentAgeRangeError,
 }: InstructorFeatureSelectionGroupListProps) {
   return (
     <>
       {groups.map(({ group, features }) => {
+        const visibleFeatures = features.filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature));
+        const ageMinFeature = visibleFeatures.find((f) => isStudentAgeMinFeature(f));
+        const ageMaxFeature = visibleFeatures.find((f) => isStudentAgeMaxFeature(f));
+        let ageRangeRendered = false;
+
+        const updateAgeNumber = (featureId: number, value: string) => {
+          const nextMin =
+            ageMinFeature && featureId === ageMinFeature.id
+              ? value
+              : (instructorNumberFeatureValues[ageMinFeature?.id ?? -1] ?? "");
+          const nextMax =
+            ageMaxFeature && featureId === ageMaxFeature.id
+              ? value
+              : (instructorNumberFeatureValues[ageMaxFeature?.id ?? -1] ?? "");
+          setInstructorNumberFeatureValues((prev) => ({ ...prev, [featureId]: value }));
+          if (setStudentAgeRangeError && ageMinFeature && ageMaxFeature) {
+            setStudentAgeRangeError(validateStudentAgeRangeValues(nextMin, nextMax));
+          }
+        };
+
         const groupNameKey = group.name.trim().toLocaleLowerCase("tr-TR");
         const groupHeaderMeta = (() => {
           if (groupNameKey === "başlıca özellikler") {
@@ -147,7 +179,32 @@ export function InstructorFeatureSelectionGroupList({
               {group.name}
             </h4>
             <div className="egitmen-panel-features-features-grid egitmen-panel-features-features-grid--selection">
-              {features.map((feature) => (
+              {visibleFeatures.map((feature) => {
+                if (
+                  isStudentAgeRangeNumberFeature(feature) &&
+                  ageMinFeature &&
+                  ageMaxFeature
+                ) {
+                  if (ageRangeRendered) return null;
+                  ageRangeRendered = true;
+                  return (
+                    <div
+                      key={`student-age-range-${ageMinFeature.id}-${ageMaxFeature.id}`}
+                      className="egitmen-panel-features-selection-item egitmen-panel-features-feature-item--full"
+                    >
+                      <StudentAgeRangeFields
+                        variant="instructor"
+                        minValue={instructorNumberFeatureValues[ageMinFeature.id] ?? ""}
+                        maxValue={instructorNumberFeatureValues[ageMaxFeature.id] ?? ""}
+                        onMinChange={(value) => updateAgeNumber(ageMinFeature.id, value)}
+                        onMaxChange={(value) => updateAgeNumber(ageMaxFeature.id, value)}
+                        error={studentAgeRangeError}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
                 <div
                   key={feature.id}
                   className={`egitmen-panel-features-selection-item ${
@@ -401,7 +458,8 @@ export function InstructorFeatureSelectionGroupList({
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         );

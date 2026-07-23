@@ -66,6 +66,7 @@ export default function DynamicCategoryPage() {
   const { results, isLoading, error, districts } = useCategoryInstitutions(categoryName, {
     search: searchText,
     district,
+    categorySlug: resolvedSlug,
     schoolFilters: categoryFilters,
   });
 

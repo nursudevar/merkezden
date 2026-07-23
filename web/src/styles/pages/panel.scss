@@ -1403,6 +1403,26 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   gap: 8px;
 }
 
+.panel-institutions-feature-age-range-fields {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+
+  > .panel-institutions-feature-input {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 520px) {
+    flex-direction: column;
+  }
+}
+
 .panel-institutions-feature-unit {
   font-size: $text-xs;
   color: $text-zinc-500;

@@ -2,6 +2,8 @@
  * Okul kategori sayfası sol panel filtrelerinin `useCategoryInstitutions` ile
  * paylaşılan seri hali. Tüm alanlar opsiyonel / boş olabilir.
  */
+import type { StudentAgeFilterTextPayload } from "@/lib/institutionStudentAgeFilter";
+
 export type SchoolCategoryFilterPayload = {
   institutionTypeId: number | null;
   /** Başlıca Özellikler single_select: definitionId → seçilen choice id (string). */
@@ -12,6 +14,8 @@ export type SchoolCategoryFilterPayload = {
   commonRange: Record<number, { min: string; max: string }>;
   /** Kategori-spesifik gruplar: groupId → seçilen anahtarlar (`choice:123:def:456` | `def:456`). */
   groupSelections: Record<number, string[]>;
+  /** Öğrenci yaşı (ham metin); ana sayfa ile aynı davranış. */
+  studentAgeRange: StudentAgeFilterTextPayload | null;
 };
 
 export const EMPTY_SCHOOL_CATEGORY_FILTERS: SchoolCategoryFilterPayload = {
@@ -20,4 +24,5 @@ export const EMPTY_SCHOOL_CATEGORY_FILTERS: SchoolCategoryFilterPayload = {
   commonMulti: {},
   commonRange: {},
   groupSelections: {},
+  studentAgeRange: null,
 };

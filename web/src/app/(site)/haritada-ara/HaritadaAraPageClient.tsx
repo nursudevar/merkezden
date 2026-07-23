@@ -14,10 +14,28 @@ import {
   toggleFavorite,
 } from "@/lib/favorites/favoritesClient";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import { haversineDistanceKm, isValidLatLng } from "@/lib/geoDistance";
+import {
+  beginUserGeolocationRequest,
+  diagnoseGeolocationPreflight,
+} from "@/lib/geolocationClient";
 
 const DESKTOP_MIN_WIDTH = 1024;
 /** Header altında kalacak minimum üst boşluk */
 const FILTER_PIN_TOP = 100;
+
+/** Yakınımdaki arama: harita zoom (mevcut flyTo davranışı; yarıçap kuralı yok — viewport listesi). */
+const NEARBY_MAP_ZOOM = 13;
+
+/** Harita ilk açılış merkezi / zoom (InstitutionLocationsMap ile aynı). */
+const DEFAULT_MAP_CENTER = { lat: 39.9334, lng: 32.8597 };
+const DEFAULT_MAP_ZOOM = 10;
+
+const GEO_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 20000,
+  maximumAge: 0,
+};
 
 function normalizeLocationKey(value: string): string {
   return value
@@ -61,6 +79,7 @@ export function HaritadaAraPageClient() {
   const fixedFilterRef = useRef<HTMLDivElement>(null);
 
   const [selectedCity, setSelectedCity] = useState("");
+  const [defaultCity, setDefaultCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearchQuery, setAppliedSearchQuery] = useState("");
@@ -68,7 +87,11 @@ export function HaritadaAraPageClient() {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [nearbyActive, setNearbyActive] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mapFocus, setMapFocus] = useState<InstitutionMapFocusTarget | null>(null);
+  const nearbyRequestIdRef = useRef(0);
+  const nearbyInFlightRef = useRef(false);
+  const activeGeoCancelRef = useRef<(() => void) | null>(null);
 
   const cities = useMemo(
     () => Object.keys(cityDistrictMap).sort((a, b) => a.localeCompare(b, "tr")),
@@ -82,7 +105,7 @@ export function HaritadaAraPageClient() {
 
   const filteredMarkers = useMemo(() => {
     const searchKey = normalizeLocationKey(appliedSearchQuery);
-    return markers.filter((marker) => {
+    const filtered = markers.filter((marker) => {
       if (!markerMatchesCity(marker, selectedCity)) return false;
       if (!markerMatchesDistrict(marker, selectedDistrict)) return false;
       if (!searchKey) return true;
@@ -98,7 +121,25 @@ export function HaritadaAraPageClient() {
       );
       return haystack.includes(searchKey);
     });
-  }, [markers, selectedCity, selectedDistrict, appliedSearchQuery]);
+
+    if (!nearbyActive || !userLocation) return filtered;
+
+    return [...filtered].sort((a, b) => {
+      const da = haversineDistanceKm(
+        userLocation.lat,
+        userLocation.lng,
+        a.latitude,
+        a.longitude,
+      );
+      const db = haversineDistanceKm(
+        userLocation.lat,
+        userLocation.lng,
+        b.latitude,
+        b.longitude,
+      );
+      return da - db;
+    });
+  }, [markers, selectedCity, selectedDistrict, appliedSearchQuery, nearbyActive, userLocation]);
 
   const syncFixedFilterPosition = useCallback(() => {
     const slot = sidebarSlotRef.current;
@@ -198,6 +239,7 @@ export function HaritadaAraPageClient() {
         (city) => normalizeLocationKey(city) === "ankara",
       );
       if (ankaraKey) {
+        setDefaultCity(ankaraKey);
         setSelectedCity((prev) => prev || ankaraKey);
       }
     })();
@@ -280,77 +322,142 @@ export function HaritadaAraPageClient() {
     }, 220);
   }, []);
 
-  const handleSearchSubmit = useCallback(() => {
-    setAppliedSearchQuery(searchQuery.trim());
+  const clearNearbyMode = useCallback(() => {
     setNearbyActive(false);
     setNearbyError(null);
+    setUserLocation(null);
+  }, []);
+
+  const handleSearchSubmit = useCallback(() => {
+    setAppliedSearchQuery(searchQuery.trim());
+    clearNearbyMode();
     closeDrawerAndScrollToResults();
-  }, [searchQuery, closeDrawerAndScrollToResults]);
+  }, [searchQuery, clearNearbyMode, closeDrawerAndScrollToResults]);
 
   const handleCityChange = useCallback(
     (city: string) => {
       setSelectedCity(city);
       setSelectedDistrict("");
-      setNearbyActive(false);
-      setNearbyError(null);
+      clearNearbyMode();
       closeDrawerAndScrollToResults();
     },
-    [closeDrawerAndScrollToResults],
+    [clearNearbyMode, closeDrawerAndScrollToResults],
   );
 
   const handleDistrictChange = useCallback(
     (district: string) => {
       setSelectedDistrict(district);
-      setNearbyActive(false);
-      setNearbyError(null);
+      clearNearbyMode();
       closeDrawerAndScrollToResults();
     },
-    [closeDrawerAndScrollToResults],
+    [clearNearbyMode, closeDrawerAndScrollToResults],
   );
 
+  useEffect(() => {
+    return () => {
+      nearbyRequestIdRef.current += 1;
+      nearbyInFlightRef.current = false;
+      activeGeoCancelRef.current?.();
+      activeGeoCancelRef.current = null;
+    };
+  }, []);
+
   const handleNearbyClick = useCallback(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) {
-      setNearbyError("Tarayıcınız konum servisini desteklemiyor.");
+    if (nearbyInFlightRef.current) return;
+
+    const preflight = diagnoseGeolocationPreflight();
+    if (!preflight.ok) {
+      setNearbyActive(false);
+      setUserLocation(null);
+      setNearbyLoading(false);
+      setNearbyError(preflight.message);
       return;
     }
+
+    nearbyInFlightRef.current = true;
+    const requestId = ++nearbyRequestIdRef.current;
+    activeGeoCancelRef.current?.();
+
+    // getCurrentPosition kullanıcı tıklamasında senkron başlatılır (gesture zinciri).
+    const { cancel, promise } = beginUserGeolocationRequest(GEO_OPTIONS);
+    activeGeoCancelRef.current = cancel;
 
     setNearbyLoading(true);
     setNearbyError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        setNearbyActive(true);
-        setNearbyLoading(false);
-        setMapFocus({
-          lat,
-          lng,
-          zoom: 13,
-          token: Date.now(),
-        });
-        closeDrawerAndScrollToResults();
-      },
-      (error) => {
-        setNearbyLoading(false);
+    void promise.then((outcome) => {
+      if (requestId !== nearbyRequestIdRef.current) return;
+
+      activeGeoCancelRef.current = null;
+      nearbyInFlightRef.current = false;
+      setNearbyLoading(false);
+
+      if (!outcome.ok) {
         setNearbyActive(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          setNearbyError("Konum izni verilmedi. Tarayıcı ayarlarından konum erişimini açın.");
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          setNearbyError("Konum bilgisi alınamadı. Lütfen tekrar deneyin.");
-        } else if (error.code === error.TIMEOUT) {
-          setNearbyError("Konum isteği zaman aşımına uğradı. Lütfen tekrar deneyin.");
-        } else {
-          setNearbyError("Konum alınırken bir hata oluştu.");
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 60000,
-      },
-    );
+        setUserLocation(null);
+        setNearbyError(outcome.message);
+        return;
+      }
+
+      const lat = Number(outcome.lat);
+      const lng = Number(outcome.lng);
+
+      if (!isValidLatLng(lat, lng)) {
+        setNearbyActive(false);
+        setUserLocation(null);
+        setNearbyError("Konum bilgisi alınamadı. Lütfen tekrar deneyin.");
+        return;
+      }
+
+      setSelectedCity("");
+      setSelectedDistrict("");
+      setAppliedSearchQuery("");
+      setUserLocation({ lat, lng });
+      setNearbyActive(true);
+      setMapFocus({
+        lat,
+        lng,
+        zoom: NEARBY_MAP_ZOOM,
+        token: Date.now(),
+      });
+      closeDrawerAndScrollToResults();
+    });
   }, [closeDrawerAndScrollToResults]);
+
+  const hasActiveFilters = useMemo(() => {
+    if (searchQuery.trim() || appliedSearchQuery.trim()) return true;
+    if (selectedDistrict) return true;
+    if (nearbyActive) return true;
+    if (defaultCity && selectedCity !== defaultCity) return true;
+    return false;
+  }, [
+    searchQuery,
+    appliedSearchQuery,
+    selectedDistrict,
+    nearbyActive,
+    selectedCity,
+    defaultCity,
+  ]);
+
+  const handleResetFilters = useCallback(() => {
+    nearbyRequestIdRef.current += 1;
+    nearbyInFlightRef.current = false;
+    activeGeoCancelRef.current?.();
+    activeGeoCancelRef.current = null;
+    setNearbyLoading(false);
+    setSearchQuery("");
+    setAppliedSearchQuery("");
+    setSelectedDistrict("");
+    setSelectedCity(defaultCity);
+    clearNearbyMode();
+    setMapFocus({
+      lat: DEFAULT_MAP_CENTER.lat,
+      lng: DEFAULT_MAP_CENTER.lng,
+      zoom: DEFAULT_MAP_ZOOM,
+      token: Date.now(),
+    });
+    closeDrawerAndScrollToResults();
+  }, [defaultCity, clearNearbyMode, closeDrawerAndScrollToResults]);
 
   const handleFavoriteToggle = useCallback(
     async (institutionId: number, e: React.MouseEvent) => {
@@ -413,6 +520,8 @@ export function HaritadaAraPageClient() {
     nearbyLoading,
     nearbyError,
     nearbyActive,
+    showResetFilters: hasActiveFilters,
+    onResetFilters: handleResetFilters,
   };
 
   return (

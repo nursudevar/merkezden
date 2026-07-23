@@ -1,18 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input, Slider } from "@/components/ui";
 import {
   STUDENT_AGE_FILTER_MAX,
   STUDENT_AGE_FILTER_MIN,
   STUDENT_AGE_RANGE_TICKS,
   formatStudentAgeFilterValue,
-  type StudentAgeRangeValue,
+  type StudentAgeFilterTextPayload,
 } from "@/lib/institutionStudentAgeFilter";
+import { STUDENT_AGE_INPUT_STEP } from "@/lib/studentAgeRangeFeature";
 
 type AgeRangeSliderFilterProps = {
-  value: StudentAgeRangeValue;
-  onChange: (value: StudentAgeRangeValue) => void;
+  value: StudentAgeFilterTextPayload | null;
+  onChange: (value: StudentAgeFilterTextPayload | null) => void;
   min?: number;
   max?: number;
   step?: number;
@@ -23,11 +24,19 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function parseInputValue(value: string): number | null {
-  const digits = String(value ?? "").replace(/[^\d]/g, "");
-  if (!digits) return null;
-  const parsed = Number(digits);
-  return Number.isFinite(parsed) ? parsed : null;
+/** Yazım sırasında serbest bırakılır; filtre uygulamasında ayrı parse edilir. */
+function isEditableDecimalText(raw: string): boolean {
+  if (raw === "") return true;
+  if (!/^[\d.,]*$/.test(raw)) return false;
+  return (raw.match(/[.,]/g)?.length ?? 0) <= 1;
+}
+
+/** Slider konumu: yalnızca tamamlanmış sayılar. */
+function parseCompleteDecimal(raw: string): number | null {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed || /[.,]$/.test(trimmed)) return null;
+  const value = Number(trimmed.replace(",", "."));
+  return Number.isFinite(value) ? value : null;
 }
 
 export function AgeRangeSliderFilter({
@@ -35,57 +44,69 @@ export function AgeRangeSliderFilter({
   onChange,
   min = STUDENT_AGE_FILTER_MIN,
   max = STUDENT_AGE_FILTER_MAX,
-  step = 1,
+  step = STUDENT_AGE_INPUT_STEP,
   className = "",
 }: AgeRangeSliderFilterProps) {
+  const [minText, setMinText] = useState(value?.min ?? "");
+  const [maxText, setMaxText] = useState(value?.max ?? "");
+  const minFocusedRef = useRef(false);
+  const maxFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (minFocusedRef.current || maxFocusedRef.current) return;
+    setMinText(value?.min ?? "");
+    setMaxText(value?.max ?? "");
+  }, [value]);
+
+  const emitTexts = useCallback(
+    (nextMin: string, nextMax: string) => {
+      if (!nextMin.trim() && !nextMax.trim()) {
+        onChange(null);
+        return;
+      }
+      onChange({ min: nextMin, max: nextMax });
+    },
+    [onChange],
+  );
+
   const normalizedValue = useMemo(() => {
-    if (!value) return null;
-    const nextMin = clamp(Math.min(value.min, value.max), min, max);
-    const nextMax = clamp(Math.max(value.min, value.max), min, max);
+    const parsedMin = parseCompleteDecimal(minText);
+    const parsedMax = parseCompleteDecimal(maxText);
+    if (parsedMin == null || parsedMax == null) return null;
+    const nextMin = clamp(Math.min(parsedMin, parsedMax), min, max);
+    const nextMax = clamp(Math.max(parsedMin, parsedMax), min, max);
     if (nextMin === min && nextMax === max) return null;
     return { min: nextMin, max: nextMax };
-  }, [max, min, value]);
+  }, [max, min, minText, maxText]);
 
   const sliderValue = normalizedValue ? [normalizedValue.min, normalizedValue.max] : [min, max];
-  const minInput = normalizedValue ? formatStudentAgeFilterValue(normalizedValue.min) : "";
-  const maxInput = normalizedValue ? formatStudentAgeFilterValue(normalizedValue.max) : "";
 
   const commitRange = (nextMin: number, nextMax: number) => {
     const clampedMin = clamp(Math.min(nextMin, nextMax), min, max);
     const clampedMax = clamp(Math.max(nextMin, nextMax), min, max);
     if (clampedMin === min && clampedMax === max) {
+      setMinText("");
+      setMaxText("");
       onChange(null);
       return;
     }
-    onChange({ min: clampedMin, max: clampedMax });
+    const nextMinText = formatStudentAgeFilterValue(clampedMin);
+    const nextMaxText = formatStudentAgeFilterValue(clampedMax);
+    setMinText(nextMinText);
+    setMaxText(nextMaxText);
+    onChange({ min: nextMinText, max: nextMaxText });
   };
 
   const handleMinInputChange = (rawValue: string) => {
-    const parsed = parseInputValue(rawValue);
-    const currentMax = parseInputValue(maxInput);
-    if (parsed == null && currentMax == null) {
-      onChange(null);
-      return;
-    }
-    if (parsed == null) {
-      commitRange(min, currentMax ?? max);
-      return;
-    }
-    commitRange(parsed, currentMax ?? max);
+    if (!isEditableDecimalText(rawValue)) return;
+    setMinText(rawValue);
+    emitTexts(rawValue, maxText);
   };
 
   const handleMaxInputChange = (rawValue: string) => {
-    const parsed = parseInputValue(rawValue);
-    const currentMin = parseInputValue(minInput);
-    if (parsed == null && currentMin == null) {
-      onChange(null);
-      return;
-    }
-    if (parsed == null) {
-      commitRange(currentMin ?? min, max);
-      return;
-    }
-    commitRange(currentMin ?? min, parsed);
+    if (!isEditableDecimalText(rawValue)) return;
+    setMaxText(rawValue);
+    emitTexts(minText, rawValue);
   };
 
   const handleTickClick = (tickValue: number) => {
@@ -109,22 +130,34 @@ export function AgeRangeSliderFilter({
     <div className={`price-range-slider-filter age-range-slider-filter ${className}`.trim()}>
       <div className="price-range-slider-inputs">
         <label className="price-range-slider-field">
-          <span className="price-range-slider-label">Min</span>
+          <span className="price-range-slider-label">Minimum Yaş</span>
           <Input
             type="text"
-            inputMode="numeric"
-            value={minInput}
+            inputMode="decimal"
+            value={minText}
+            onFocus={() => {
+              minFocusedRef.current = true;
+            }}
+            onBlur={() => {
+              minFocusedRef.current = false;
+            }}
             onChange={(event) => handleMinInputChange(event.target.value)}
             placeholder={formatStudentAgeFilterValue(min)}
             className="price-range-slider-input age-range-slider-input"
           />
         </label>
         <label className="price-range-slider-field">
-          <span className="price-range-slider-label">Max</span>
+          <span className="price-range-slider-label">Maksimum Yaş</span>
           <Input
             type="text"
-            inputMode="numeric"
-            value={maxInput}
+            inputMode="decimal"
+            value={maxText}
+            onFocus={() => {
+              maxFocusedRef.current = true;
+            }}
+            onBlur={() => {
+              maxFocusedRef.current = false;
+            }}
             onChange={(event) => handleMaxInputChange(event.target.value)}
             placeholder={formatStudentAgeFilterValue(max)}
             className="price-range-slider-input age-range-slider-input"

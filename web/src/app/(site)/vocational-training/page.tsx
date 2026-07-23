@@ -66,6 +66,7 @@ export default function VocationalTrainingPage() {
   const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     district,
+    categorySlug,
     schoolFilters: categoryFilters,
   });
 

@@ -35,7 +35,13 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import {
+  findStudentAgeRangeDefinitions,
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeRangeNumberFeature,
+  parseStudentAgeDecimalInput,
+  validateStudentAgeRangeValues,
+} from "@/lib/studentAgeRangeFeature";
 import {
   loadInstitutionRowForAuthUserClient,
   loadInstitutionRowByIdClient,
@@ -46,6 +52,7 @@ import {
   institutionTimeToInputHHMM,
   inputHHMMToDbTimeOrNull,
   isAverageClassSizeInstitutionFeature,
+  resolveInstitutionLogoPublicUrl,
 } from "@/lib/institutionHelpers";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { SavingOverlay } from "@/components/SavingOverlay";
@@ -581,6 +588,7 @@ interface InstitutionDetailPreparedData {
   const [institutionBooleanFeatureValues, setInstitutionBooleanFeatureValues] = useState<Record<number, boolean>>({});
   const [institutionTextFeatureValues, setInstitutionTextFeatureValues] = useState<Record<number, string>>({});
   const [institutionNumberFeatureValues, setInstitutionNumberFeatureValues] = useState<Record<number, string>>({});
+  const [studentAgeRangeError, setStudentAgeRangeError] = useState<string | null>(null);
   const [institutionSingleSelectValues, setInstitutionSingleSelectValues] = useState<Record<number, string>>({});
   const [institutionMultiSelectValues, setInstitutionMultiSelectValues] = useState<Record<number, string[]>>({});
   const [institutionFeaturesSaving, setInstitutionFeaturesSaving] = useState(false);
@@ -1732,6 +1740,25 @@ interface InstitutionDetailPreparedData {
       const shouldPersistFeature = (featureId: number) =>
         saveOnlyFeatureIds === null || saveOnlyFeatureIds.has(featureId);
 
+      const ageDefs = findStudentAgeRangeDefinitions(institutionFeatureDefinitions);
+      if (
+        ageDefs.min &&
+        ageDefs.max &&
+        (shouldPersistFeature(ageDefs.min.id) || shouldPersistFeature(ageDefs.max.id))
+      ) {
+        const ageError = validateStudentAgeRangeValues(
+          institutionNumberFeatureValues[ageDefs.min.id] ?? "",
+          institutionNumberFeatureValues[ageDefs.max.id] ?? "",
+        );
+        if (ageError) {
+          setStudentAgeRangeError(ageError);
+          flashInstitutionFeaturesSaveMessage(ageError);
+          setInstitutionFeaturesSaving(false);
+          return;
+        }
+        setStudentAgeRangeError(null);
+      }
+
       if (canEditInstitutionCategory) {
         const parsedCategoryId = Number(String(institutionCategoryId ?? "").trim());
         if (Number.isFinite(parsedCategoryId) && parsedCategoryId > 0) {
@@ -1832,8 +1859,15 @@ interface InstitutionDetailPreparedData {
           continue;
         }
 
-        const parsedNumber = Number(rawValue);
-        if (!Number.isFinite(parsedNumber)) continue;
+        let parsedNumber: number;
+        if (isStudentAgeRangeNumberFeature(feature)) {
+          const ageParsed = parseStudentAgeDecimalInput(rawValue);
+          if (ageParsed.kind !== "ok") continue;
+          parsedNumber = ageParsed.value;
+        } else {
+          parsedNumber = Number(rawValue);
+          if (!Number.isFinite(parsedNumber)) continue;
+        }
 
         if (isAverageClassSizeInstitutionFeature(feature.name) && parsedNumber < 0) {
           flashInstitutionFeaturesSaveMessage("Ortalama sınıf mevcudu negatif bir değer olamaz.");
@@ -1861,6 +1895,7 @@ interface InstitutionDetailPreparedData {
       const choiceBasedFeatures = institutionFeatureDefinitions.filter(
         (feature) =>
           (feature.input_type === "single_select" || feature.input_type === "multi_select") &&
+          !isLegacyStudentAgeMultiSelectFeature(feature) &&
           shouldPersistFeature(feature.id)
       );
 
@@ -2051,14 +2086,25 @@ interface InstitutionDetailPreparedData {
   const selectionGroups = institutionGroupsWithFeatures
     .map(({ group, features }) => ({
       group,
-      features: features.filter(
-        (feature) =>
-          (feature.input_type === "text" ||
+      features: features
+        .filter(
+          (feature) =>
+            feature.input_type === "text" ||
             feature.input_type === "number" ||
-          (feature.input_type === "boolean" ||
+            feature.input_type === "boolean" ||
             feature.input_type === "multi_select" ||
-            feature.input_type === "single_select"))
-      ),
+            feature.input_type === "single_select",
+        )
+        .filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature))
+        .map((feature) => ({
+          id: feature.id,
+          name: feature.name,
+          slug: feature.slug ?? null,
+          input_type: feature.input_type,
+          help_text: feature.help_text,
+          placeholder: feature.placeholder,
+          unit: feature.unit,
+        })),
     }))
     .filter((item) => item.features.length > 0);
   /** Üst kartta yalnızca Kategori (ayrı section) + Başlıca Özellikler grubu; diğer tüm gruplar alt alanda (category_slug). */
@@ -3399,6 +3445,8 @@ interface InstitutionDetailPreparedData {
                       institutionFeatureChoices={institutionFeatureChoices}
                       openInstitutionSelectId={openInstitutionSelectId}
                       setOpenInstitutionSelectId={setOpenInstitutionSelectId}
+                      studentAgeRangeError={studentAgeRangeError}
+                      setStudentAgeRangeError={setStudentAgeRangeError}
                     />
 
                     {institutionSelectionLowerGroups.length === 0 ? (
@@ -3459,6 +3507,8 @@ interface InstitutionDetailPreparedData {
                     institutionFeatureChoices={institutionFeatureChoices}
                     openInstitutionSelectId={openInstitutionSelectId}
                     setOpenInstitutionSelectId={setOpenInstitutionSelectId}
+                    studentAgeRangeError={studentAgeRangeError}
+                    setStudentAgeRangeError={setStudentAgeRangeError}
                   />
                 </div>
                 <div className="panel-institutions-actions">

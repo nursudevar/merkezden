@@ -25,6 +25,9 @@ import {
   type InstructorFeatureFormState,
   type InstructorFeatureGroupRow,
 } from "@/lib/instructorFeaturesClient";
+import {
+  isLegacyStudentAgeMultiSelectFeature,
+} from "@/lib/studentAgeRangeFeature";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { Button } from "@/components/ui";
 import {
@@ -75,6 +78,7 @@ export function InstructorFeaturesTab({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveToastMessage, setSaveToastMessage] = useState<string | null>(null);
   const [saveToastNonce, setSaveToastNonce] = useState(0);
+  const [studentAgeRangeError, setStudentAgeRangeError] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<InstructorFeatureCategoryRow[]>([]);
   const [categoryId, setCategoryId] = useState("");
@@ -196,6 +200,7 @@ export function InstructorFeaturesTab({
           .filter((f) => f.group_id === group.id)
           .filter((f) => SUPPORTED_INPUT_TYPES.has(f.input_type))
           .filter((f) => !isInstructorPanelHiddenFeature(f))
+          .filter((f) => !isLegacyStudentAgeMultiSelectFeature(f))
           .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
           .map((f) => ({
             id: f.id,
@@ -287,10 +292,14 @@ export function InstructorFeaturesTab({
 
     const validationError = validateInstructorFeatureForm(featureDefinitions, form, featureIdsToSave);
     if (validationError) {
+      setStudentAgeRangeError(
+        validationError.includes("yaş") || validationError.includes("Yaş") ? validationError : null,
+      );
       flashSaveMessage(validationError);
       setSaving(false);
       return;
     }
+    setStudentAgeRangeError(null);
 
     try {
       const supabase = createSupabaseBrowserClient();
@@ -384,6 +393,8 @@ export function InstructorFeaturesTab({
     instructorFeatureChoices: featureChoices,
     openInstructorSelectId,
     setOpenInstructorSelectId,
+    studentAgeRangeError,
+    setStudentAgeRangeError,
   };
 
   const saveButton = (

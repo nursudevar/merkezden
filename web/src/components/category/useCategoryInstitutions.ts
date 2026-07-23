@@ -26,9 +26,13 @@ import {
   type FeaturedOrderMap,
 } from "@/lib/featuredAccountsClient";
 import {
-  isStudentAgeDefinition,
+  extractStudentAgeFilterQueryFromRangePayload,
+  isStudentAgeFilterDefinitionId,
+  isStudentAgeFilterTextActive,
   resolveInstitutionIdsByStudentAgeFilter,
+  resolveStudentAgeFilterFromPayload,
 } from "@/lib/institutionStudentAgeFilter";
+import { isLegacyStudentAgeMultiSelectFeature } from "@/lib/studentAgeRangeFeature";
 
 export type CategoryResultItem = {
   id: string;
@@ -416,6 +420,7 @@ function parseOptionalNumber(raw: string): number | null {
 
 function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undefined): boolean {
   if (!payload) return false;
+  if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
   if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
     return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
@@ -1009,46 +1014,37 @@ export function useCategoryInstitutions(
         }
         if (cancelled) return;
 
-        const studentAgeDefIds = new Set<number>();
-        for (const [defId, meta] of defMetaById.entries()) {
-          if (isStudentAgeDefinition({ id: defId, name: meta.name, slug: meta.slug })) {
-            studentAgeDefIds.add(defId);
-          }
-        }
+        const defMetaList = Array.from(defMetaById.entries()).map(([id, meta]) => ({
+          id,
+          name: meta.name,
+          slug: meta.slug,
+          input_type: inputTypeByDefId.get(id) ?? null,
+        }));
 
-        for (const defId of studentAgeDefIds) {
-          const range = payload.commonRange[defId];
-          const minS = String(range?.min ?? "").trim();
-          const maxS = String(range?.max ?? "").trim();
-          const specialChoiceIds = (payload.commonMulti[defId] ?? [])
-            .map((cid) => Number(String(cid).trim()))
-            .filter((cid) => Number.isFinite(cid));
-          const hasRange = Boolean(minS || maxS);
-          if (!hasRange && specialChoiceIds.length === 0) continue;
-
-          const minN = minS ? parseOptionalNumber(minS) : null;
-          const maxN = maxS ? parseOptionalNumber(maxS) : null;
-          const userRange =
-            hasRange && (minN != null || maxN != null)
-              ? {
-                  min: minN ?? 1,
-                  max: maxN ?? Number.POSITIVE_INFINITY,
-                }
-              : null;
-
+        const studentAgeFilter = resolveStudentAgeFilterFromPayload(payload, defMetaList);
+        if (studentAgeFilter) {
           const matchedIds = await resolveInstitutionIdsByStudentAgeFilter(supabase, {
-            userRange,
-            specialChoiceIds,
+            userFilter: studentAgeFilter,
           });
           current = intersectSets(current, new Set(matchedIds));
-          if (current.size === 0) break;
         }
         if (cancelled) return;
 
         for (const [defIdStr, choiceIds] of Object.entries(payload.commonMulti)) {
           const defId = Number(defIdStr);
           if (!Number.isFinite(defId) || !Array.isArray(choiceIds) || choiceIds.length === 0) continue;
-          if (studentAgeDefIds.has(defId)) continue;
+          const meta = defMetaById.get(defId);
+          if (
+            meta &&
+            isLegacyStudentAgeMultiSelectFeature({
+              slug: meta.slug,
+              name: meta.name,
+              input_type: inputTypeByDefId.get(defId) ?? "multi_select",
+            })
+          ) {
+            continue;
+          }
+          if (isStudentAgeFilterDefinitionId(defId, defMetaList)) continue;
           const union = new Set<number>();
           for (const cidStr of choiceIds) {
             const cid = Number(String(cidStr).trim());
@@ -1064,7 +1060,7 @@ export function useCategoryInstitutions(
         for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
           const defId = Number(defIdStr);
           if (!Number.isFinite(defId)) continue;
-          if (studentAgeDefIds.has(defId)) continue;
+          if (isStudentAgeFilterDefinitionId(defId, defMetaList)) continue;
           const minS = String(range?.min ?? "").trim();
           const maxS = String(range?.max ?? "").trim();
           if (!minS && !maxS) continue;

@@ -214,7 +214,6 @@ export function InstitutionMapSearchExperience({
           </p>
         ) : null}
         <InstitutionLocationsMap
-          key={`${mapKeyPrefix}-experience-${selectedMapCategory}`}
           variant="modal"
           markers={categoryMarkers}
           loading={loading}

@@ -10,6 +10,13 @@ import {
   parseValidTimeHHMM,
 } from "@/lib/instructorFeaturesClient";
 import {
+  STUDENT_AGE_RANGE_LABEL,
+  findStudentAgeRangeDefinitions,
+  formatStudentAgeDisplay,
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeRangeNumberFeature,
+} from "@/lib/studentAgeRangeFeature";
+import {
   fetchPublicInstructorByParamClient,
   publicInstructorDisplayName,
   type PublicInstructorRow,
@@ -404,7 +411,40 @@ export async function fetchPublicInstructorFeatureDisplayClient(
       .filter((f) => f.group_id === groupId)
       .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
 
+    const usedIds = new Set<number>();
+    const ageDefs = findStudentAgeRangeDefinitions(visibleDefinitions);
+    const ageInThisGroup =
+      ageDefs.min &&
+      ageDefs.max &&
+      (ageDefs.min.group_id === groupId || ageDefs.max.group_id === groupId);
+    if (ageInThisGroup && ageDefs.min && ageDefs.max) {
+      const minEntry = entriesByFeatureId.get(ageDefs.min.id);
+      const maxEntry = entriesByFeatureId.get(ageDefs.max.id);
+      const minVal =
+        typeof minEntry?.number_answer === "number" && Number.isFinite(minEntry.number_answer)
+          ? minEntry.number_answer
+          : null;
+      const maxVal =
+        typeof maxEntry?.number_answer === "number" && Number.isFinite(maxEntry.number_answer)
+          ? maxEntry.number_answer
+          : null;
+      if (minVal != null && maxVal != null) {
+        usedIds.add(ageDefs.min.id);
+        usedIds.add(ageDefs.max.id);
+        // Yalnızca min'in grubunda bir kez göster
+        if (ageDefs.min.group_id === groupId) {
+          lines.push({
+            label: STUDENT_AGE_RANGE_LABEL,
+            value: formatStudentAgeDisplay(minVal, maxVal),
+          });
+        }
+      }
+    }
+
     for (const feature of features) {
+      if (usedIds.has(feature.id)) continue;
+      if (isStudentAgeRangeNumberFeature(feature)) continue;
+      if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
       const value = extractValue(feature);
       if (!value || (Array.isArray(value) && value.length === 0)) continue;
       const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
@@ -424,7 +464,26 @@ export async function fetchPublicInstructorFeatureDisplayClient(
       .filter((f) => f.group_id === groupId)
       .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
 
+    const ageDefs = findStudentAgeRangeDefinitions(features);
+    if (ageDefs.min && ageDefs.max) {
+      const minEntry = entriesByFeatureId.get(ageDefs.min.id);
+      const maxEntry = entriesByFeatureId.get(ageDefs.max.id);
+      const minVal =
+        typeof minEntry?.number_answer === "number" && Number.isFinite(minEntry.number_answer)
+          ? minEntry.number_answer
+          : null;
+      const maxVal =
+        typeof maxEntry?.number_answer === "number" && Number.isFinite(maxEntry.number_answer)
+          ? maxEntry.number_answer
+          : null;
+      if (minVal != null && maxVal != null) {
+        badges.push(`${STUDENT_AGE_RANGE_LABEL}: ${formatStudentAgeDisplay(minVal, maxVal)}`);
+      }
+    }
+
     for (const feature of features) {
+      if (isStudentAgeRangeNumberFeature(feature)) continue;
+      if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
       const entry = entriesByFeatureId.get(feature.id);
       if (!entry) continue;
       const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());

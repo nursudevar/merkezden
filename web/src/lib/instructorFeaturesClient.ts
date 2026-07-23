@@ -3,6 +3,16 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INSTRUCTORS_TABLE, type InstructorProfileRow } from "@/lib/instructorProfileClient";
 import { institutionTimeToInputHHMM } from "@/lib/institutionHelpers";
+import {
+  STUDENT_AGE_RANGE_LABEL,
+  findStudentAgeRangeDefinitions,
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeMaxFeature,
+  isStudentAgeMinFeature,
+  isStudentAgeRangeNumberFeature,
+  parseStudentAgeDecimalInput,
+  validateStudentAgeRangeValues,
+} from "@/lib/studentAgeRangeFeature";
 
 export const INSTRUCTOR_FEATURE_ENTRIES_TABLE = "instructor_feature_entries" as const;
 export const INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE = "instructor_feature_entry_choices" as const;
@@ -84,7 +94,12 @@ export type InstructorFilterField =
       definitionId: number;
       name: string;
       unit: string | null;
-};
+    }
+  | {
+      kind: "student_age_range";
+      definitionId: number;
+      name: string;
+    };
 
 function hasSupabaseResponseError(error: unknown): boolean {
   if (error == null) return false;
@@ -451,6 +466,10 @@ export function validateInstructorFeatureForm(
   const saveSet = new Set(featureIdsToSave);
   let minPrice: number | null = null;
   let maxPrice: number | null = null;
+  let minAgeRaw = "";
+  let maxAgeRaw = "";
+  let hasAgeMin = false;
+  let hasAgeMax = false;
 
   for (const feature of definitions) {
     if (!saveSet.has(feature.id)) continue;
@@ -484,6 +503,21 @@ export function validateInstructorFeatureForm(
         maxPrice = n;
       }
     }
+
+    if (feature.input_type === "number" && isStudentAgeMinFeature(feature)) {
+      hasAgeMin = true;
+      minAgeRaw = form.numberValues[feature.id] ?? "";
+    }
+
+    if (feature.input_type === "number" && isStudentAgeMaxFeature(feature)) {
+      hasAgeMax = true;
+      maxAgeRaw = form.numberValues[feature.id] ?? "";
+    }
+  }
+
+  if (hasAgeMin && hasAgeMax) {
+    const ageError = validateStudentAgeRangeValues(minAgeRaw, maxAgeRaw);
+    if (ageError) return ageError;
   }
 
   const startFeature = definitions.find(
@@ -998,6 +1032,8 @@ export function buildInstructorFilterFieldsFromSchema(
 
   const sortedGroups = [...groups].sort(compareDisplayOrder);
   const fields: InstructorFilterField[] = [];
+  const ageDefs = findStudentAgeRangeDefinitions(definitions);
+  let ageRangeInserted = false;
 
   for (const group of sortedGroups) {
     const groupDefinitions = [...(definitionsByGroup.get(group.id) ?? [])].sort(compareDisplayOrder);
@@ -1032,6 +1068,29 @@ export function buildInstructorFilterFieldsFromSchema(
 
       // Fiyat aralığı /egitmenler sayfasında range slider ile filtrelenir; checkbox olarak gösterilmez.
       if (isInstructorPriceRangeFeature(definition)) {
+        continue;
+      }
+
+      if (
+        isLegacyStudentAgeMultiSelectFeature({
+          slug: definition.slug,
+          name: definition.name,
+          input_type: inputType,
+        })
+      ) {
+        continue;
+      }
+
+      if (isStudentAgeRangeNumberFeature(definition)) {
+        flushBooleanBuffer();
+        if (ageDefs.min && ageDefs.max && !ageRangeInserted) {
+          fields.push({
+            kind: "student_age_range",
+            definitionId: ageDefs.min.id,
+            name: STUDENT_AGE_RANGE_LABEL,
+          });
+          ageRangeInserted = true;
+        }
         continue;
       }
 
@@ -1472,8 +1531,15 @@ export async function saveInstructorFeaturesClient(
       }
       continue;
     }
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) continue;
+    let parsed: number;
+    if (isStudentAgeRangeNumberFeature(feature)) {
+      const ageParsed = parseStudentAgeDecimalInput(raw);
+      if (ageParsed.kind !== "ok") continue;
+      parsed = ageParsed.value;
+    } else {
+      parsed = Number(raw);
+      if (!Number.isFinite(parsed)) continue;
+    }
     if (existing) {
       const { error } = await supabase
         .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)

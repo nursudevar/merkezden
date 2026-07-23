@@ -27,6 +27,7 @@ export default function SchoolPage() {
   const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     district,
+    categorySlug: CATEGORY_SLUG,
     schoolFilters,
   });
 

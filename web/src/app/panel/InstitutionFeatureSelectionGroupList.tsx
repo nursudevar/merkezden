@@ -2,7 +2,15 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
+import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import { isAverageClassSizeInstitutionFeature } from "@/lib/institutionHelpers";
+import {
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeMaxFeature,
+  isStudentAgeMinFeature,
+  isStudentAgeRangeNumberFeature,
+  validateStudentAgeRangeValues,
+} from "@/lib/studentAgeRangeFeature";
 
 type InstitutionFeatureChoiceRow = {
   id: number;
@@ -22,6 +30,7 @@ export type InstitutionFeatureSelectionGroup = {
 export type InstitutionFeatureDefinitionForSelection = {
   id: number;
   name: string;
+  slug: string | null;
   input_type: "boolean" | "text" | "number" | "single_select" | "multi_select" | string;
   help_text: string | null;
   placeholder: string | null;
@@ -44,6 +53,8 @@ type InstitutionFeatureSelectionGroupListProps = {
   institutionFeatureChoices: InstitutionFeatureChoiceRow[];
   openInstitutionSelectId: number | null;
   setOpenInstitutionSelectId: Dispatch<SetStateAction<number | null>>;
+  studentAgeRangeError?: string | null;
+  setStudentAgeRangeError?: Dispatch<SetStateAction<string | null>>;
 };
 
 export function InstitutionFeatureSelectionGroupList({
@@ -62,11 +73,31 @@ export function InstitutionFeatureSelectionGroupList({
   institutionFeatureChoices,
   openInstitutionSelectId,
   setOpenInstitutionSelectId,
+  studentAgeRangeError = null,
+  setStudentAgeRangeError,
 }: InstitutionFeatureSelectionGroupListProps) {
   return (
     <>
       {groups.map(({ group, features }) => {
-        const visibleFeatures = features;
+        const visibleFeatures = features.filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature));
+        const ageMinFeature = visibleFeatures.find((f) => isStudentAgeMinFeature(f));
+        const ageMaxFeature = visibleFeatures.find((f) => isStudentAgeMaxFeature(f));
+        let ageRangeRendered = false;
+
+        const updateAgeNumber = (featureId: number, value: string) => {
+          const nextMin =
+            ageMinFeature && featureId === ageMinFeature.id
+              ? value
+              : (institutionNumberFeatureValues[ageMinFeature?.id ?? -1] ?? "");
+          const nextMax =
+            ageMaxFeature && featureId === ageMaxFeature.id
+              ? value
+              : (institutionNumberFeatureValues[ageMaxFeature?.id ?? -1] ?? "");
+          setInstitutionNumberFeatureValues((prev) => ({ ...prev, [featureId]: value }));
+          if (setStudentAgeRangeError && ageMinFeature && ageMaxFeature) {
+            setStudentAgeRangeError(validateStudentAgeRangeValues(nextMin, nextMax));
+          }
+        };
         const groupNameKey = group.name.trim().toLocaleLowerCase("tr-TR");
         const groupHeaderMeta = (() => {
           if (groupNameKey === "başlıca özellikler") {
@@ -138,7 +169,32 @@ export function InstitutionFeatureSelectionGroupList({
               {group.name}
             </h4>
             <div className="panel-institutions-features-grid panel-institutions-features-grid--selection">
-              {visibleFeatures.map((feature) => (
+              {visibleFeatures.map((feature) => {
+                if (
+                  isStudentAgeRangeNumberFeature(feature) &&
+                  ageMinFeature &&
+                  ageMaxFeature
+                ) {
+                  if (ageRangeRendered) return null;
+                  ageRangeRendered = true;
+                  return (
+                    <div
+                      key={`student-age-range-${ageMinFeature.id}-${ageMaxFeature.id}`}
+                      className="panel-institutions-selection-item panel-institutions-feature-item--full"
+                    >
+                      <StudentAgeRangeFields
+                        variant="institution"
+                        minValue={institutionNumberFeatureValues[ageMinFeature.id] ?? ""}
+                        maxValue={institutionNumberFeatureValues[ageMaxFeature.id] ?? ""}
+                        onMinChange={(value) => updateAgeNumber(ageMinFeature.id, value)}
+                        onMaxChange={(value) => updateAgeNumber(ageMaxFeature.id, value)}
+                        error={studentAgeRangeError}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
                 <div
                   key={feature.id}
                   className={`panel-institutions-selection-item ${
@@ -382,7 +438,8 @@ export function InstitutionFeatureSelectionGroupList({
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         );

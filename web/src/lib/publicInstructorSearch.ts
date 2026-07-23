@@ -19,11 +19,16 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
 import {
-  INSTRUCTOR_STUDENT_AGE_DEFINITION_ID,
-  INSTITUTION_STUDENT_AGE_DEFINITION_ID,
-  isStudentAgeDefinition,
+  extractStudentAgeFilterQueryFromRangePayload,
+  isStudentAgeFilterDefinitionId,
+  isStudentAgeFilterTextActive,
   resolveInstructorIdsByStudentAgeFilter,
+  resolveStudentAgeFilterFromPayload,
 } from "@/lib/institutionStudentAgeFilter";
+import {
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeRangeNumberFeature,
+} from "@/lib/studentAgeRangeFeature";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
   "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, graduated_university, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at";
@@ -467,6 +472,7 @@ function isFilterIdSetEmpty(allowedIds: Set<number> | null): boolean {
 
 function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undefined): boolean {
   if (!payload) return false;
+  if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
   if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
     return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
@@ -854,9 +860,13 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
     if (!Number.isFinite(uiDefId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) continue;
     const uiMeta = defMetaById.get(uiDefId);
     if (
-      uiDefId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
-      (uiMeta != null &&
-        isStudentAgeDefinition({ id: uiDefId, name: uiMeta.name, slug: uiMeta.slug }))
+      uiMeta != null &&
+      (isStudentAgeRangeNumberFeature(uiMeta) ||
+        isLegacyStudentAgeMultiSelectFeature({
+          slug: uiMeta.slug,
+          name: uiMeta.name,
+          input_type: uiMeta.inputType,
+        }))
     ) {
       continue;
     }
@@ -875,46 +885,31 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
     if (isFilterIdSetEmpty(current)) break;
   }
 
-  const handledStudentAgeUiDefs = new Set<number>();
+  const defMetaList = Array.from(defMetaById.entries()).map(([id, meta]) => ({
+    id,
+    name: meta.name,
+    slug: meta.slug,
+  }));
+  const studentAgeFilter = resolveStudentAgeFilterFromPayload(payload, defMetaList);
+  if (studentAgeFilter) {
+    const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
+      userFilter: studentAgeFilter,
+    });
+    current = applyIntersect(current, new Set(matched));
+    if (isFilterIdSetEmpty(current)) {
+      /* empty */
+    }
+  }
+
   for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
     const uiDefId = Number(defIdStr);
     if (!Number.isFinite(uiDefId)) continue;
+    if (isStudentAgeFilterDefinitionId(uiDefId, defMetaList)) continue;
     const meta = defMetaById.get(uiDefId);
     if (!meta) continue;
 
     const minS = String(range?.min ?? "").trim();
     const maxS = String(range?.max ?? "").trim();
-    const specialChoiceIds = (payload.commonMulti[uiDefId] ?? [])
-      .map((cid) => Number(String(cid).trim()))
-      .filter((cid) => Number.isFinite(cid));
-
-    const isAge =
-      uiDefId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
-      isStudentAgeDefinition({ id: uiDefId, name: meta.name, slug: meta.slug });
-
-    if (isAge) {
-      handledStudentAgeUiDefs.add(uiDefId);
-      if (!minS && !maxS && specialChoiceIds.length === 0) continue;
-      const minN = minS ? parseOptionalNumber(minS) : null;
-      const maxN = maxS ? parseOptionalNumber(maxS) : null;
-      const userRange =
-        minN != null || maxN != null
-          ? { min: minN ?? 1, max: maxN ?? Number.POSITIVE_INFINITY }
-          : null;
-      const mappedSpecialIds: number[] = [];
-      for (const uiCid of specialChoiceIds) {
-        const mapped = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiCid}`);
-        if (mapped != null && Number.isFinite(mapped)) mappedSpecialIds.push(Number(mapped));
-      }
-      const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
-        userRange,
-        specialChoiceIds: mappedSpecialIds,
-      });
-      current = applyIntersect(current, new Set(matched));
-      if (isFilterIdSetEmpty(current)) break;
-      continue;
-    }
-
     if (!minS && !maxS) continue;
 
     const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
@@ -950,32 +945,6 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
         ),
       );
     }
-    if (isFilterIdSetEmpty(current)) break;
-  }
-
-  for (const [defIdStr, choiceIdList] of Object.entries(payload.commonMulti)) {
-    const uiDefId = Number(defIdStr);
-    if (!Number.isFinite(uiDefId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) continue;
-    if (handledStudentAgeUiDefs.has(uiDefId)) continue;
-    const uiMeta = defMetaById.get(uiDefId);
-    const isAge =
-      uiDefId === INSTITUTION_STUDENT_AGE_DEFINITION_ID ||
-      (uiMeta != null &&
-        isStudentAgeDefinition({ id: uiDefId, name: uiMeta.name, slug: uiMeta.slug }));
-    if (!isAge) continue;
-    const specialChoiceIds = choiceIdList
-      .map((cid) => Number(String(cid).trim()))
-      .filter((cid) => Number.isFinite(cid));
-    if (specialChoiceIds.length === 0) continue;
-    const mappedSpecialIds: number[] = [];
-    for (const uiCid of specialChoiceIds) {
-      const mapped = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiCid}`);
-      if (mapped != null && Number.isFinite(mapped)) mappedSpecialIds.push(Number(mapped));
-    }
-    const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
-      specialChoiceIds: mappedSpecialIds,
-    });
-    current = applyIntersect(current, new Set(matched));
     if (isFilterIdSetEmpty(current)) break;
   }
 
@@ -1111,6 +1080,7 @@ export function hasInstructorCategoryFilterPayload(
   payload: InstructorCategoryFilterPayload | undefined,
 ): boolean {
   if (!payload) return false;
+  if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
   if (Object.values(payload.booleanValues).some(Boolean)) return true;
   if (
     Object.keys(payload.singleSelect).some((definitionId) =>
@@ -1204,13 +1174,8 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
       continue;
     }
 
-    // Öğrenci yaşı: range + özel seçenekler birlikte OR (aşağıda numberRange ile birleştirilir)
-    if (
-      definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
-      isStudentAgeDefinition({ id: definitionId })
-    ) {
-      continue;
-    }
+    // Eski öğrenci yaşı multi_select choice filtreleri kullanılmaz
+    // (slug bilgisini numberRange defs ile birlikte aşağıda ele alıyoruz; burada id ile atlama yok)
 
     const perChoiceSets: Set<number>[] = [];
     for (const choiceIdStr of choiceIdList) {
@@ -1226,38 +1191,39 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
     if (isFilterIdSetEmpty(accumulated)) return accumulated;
   }
 
-  const studentAgeDefIdsHandled = new Set<number>();
+  const numberRangeDefIds = Object.keys(payload!.numberRange)
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id));
+  let numberRangeDefs: Array<{ id: number; slug: string | null }> = [];
+  if (numberRangeDefIds.length > 0) {
+    const { data: ageDefsData, error: ageDefsError } = await supabase
+      .from("instructor_feature_definitions")
+      .select("id, slug")
+      .in("id", numberRangeDefIds);
+    if (ageDefsError) throw ageDefsError;
+    numberRangeDefs = ((ageDefsData ?? []) as Array<{ id: number; slug?: string | null }>).map(
+      (d) => ({ id: Number(d.id), slug: d.slug ?? null }),
+    );
+  }
+
+  const studentAgeFilter = resolveStudentAgeFilterFromPayload(
+    { studentAgeRange: payload!.studentAgeRange, numberRange: payload!.numberRange },
+    numberRangeDefs,
+  );
+  if (studentAgeFilter) {
+    const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
+      userFilter: studentAgeFilter,
+    });
+    accumulated = applyIntersect(accumulated, new Set(matched));
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
   for (const [definitionIdStr, range] of Object.entries(payload!.numberRange)) {
     const definitionId = Number(definitionIdStr);
     if (!Number.isFinite(definitionId)) continue;
+    if (isStudentAgeFilterDefinitionId(definitionId, numberRangeDefs)) continue;
     const minText = String(range?.min ?? "").trim();
     const maxText = String(range?.max ?? "").trim();
-    const specialChoiceIds = (payload!.multiSelect[definitionId] ?? [])
-      .map((cid) => Number(String(cid).trim()))
-      .filter((cid) => Number.isFinite(cid));
-
-    const isAge =
-      definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
-      isStudentAgeDefinition({ id: definitionId });
-
-    if (isAge) {
-      studentAgeDefIdsHandled.add(definitionId);
-      if (!minText && !maxText && specialChoiceIds.length === 0) continue;
-      const minBound = minText ? parseOptionalNumber(minText) : null;
-      const maxBound = maxText ? parseOptionalNumber(maxText) : null;
-      const userRange =
-        minBound != null || maxBound != null
-          ? { min: minBound ?? 1, max: maxBound ?? Number.POSITIVE_INFINITY }
-          : null;
-      const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
-        userRange,
-        specialChoiceIds,
-      });
-      accumulated = applyIntersect(accumulated, new Set(matched));
-      if (isFilterIdSetEmpty(accumulated)) return accumulated;
-      continue;
-    }
-
     if (!minText && !maxText) continue;
 
     const minBound = minText ? parseOptionalNumber(minText) : null;
@@ -1269,28 +1235,6 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
       maxBound,
     );
     accumulated = applyIntersect(accumulated, matchingIds);
-    if (isFilterIdSetEmpty(accumulated)) return accumulated;
-  }
-
-  // Yalnızca özel checkbox seçilmiş yaş filtresi (range yok)
-  for (const [definitionIdStr, choiceIdList] of Object.entries(payload!.multiSelect)) {
-    const definitionId = Number(definitionIdStr);
-    if (!Number.isFinite(definitionId) || !Array.isArray(choiceIdList) || choiceIdList.length === 0) {
-      continue;
-    }
-    if (studentAgeDefIdsHandled.has(definitionId)) continue;
-    const isAge =
-      definitionId === INSTRUCTOR_STUDENT_AGE_DEFINITION_ID ||
-      isStudentAgeDefinition({ id: definitionId });
-    if (!isAge) continue;
-    const specialChoiceIds = choiceIdList
-      .map((cid) => Number(String(cid).trim()))
-      .filter((cid) => Number.isFinite(cid));
-    if (specialChoiceIds.length === 0) continue;
-    const matched = await resolveInstructorIdsByStudentAgeFilter(supabase, {
-      specialChoiceIds,
-    });
-    accumulated = applyIntersect(accumulated, new Set(matched));
     if (isFilterIdSetEmpty(accumulated)) return accumulated;
   }
 

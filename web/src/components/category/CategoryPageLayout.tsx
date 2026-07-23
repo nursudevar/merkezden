@@ -29,6 +29,7 @@ function hasMeaningfulSelectionChange(
   if (JSON.stringify(prev.commonSingle) !== JSON.stringify(next.commonSingle)) return true;
   if (JSON.stringify(prev.commonMulti) !== JSON.stringify(next.commonMulti)) return true;
   if (JSON.stringify(prev.groupSelections) !== JSON.stringify(next.groupSelections)) return true;
+  if (JSON.stringify(prev.studentAgeRange) !== JSON.stringify(next.studentAgeRange)) return true;
   return false;
 }
 

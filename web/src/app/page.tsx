@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Separator, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ExpandableChat, ExpandableChatHeader, ExpandableChatBody, ExpandableChatFooter } from "@/components/ui";
-import { Search as SearchIcon, Wifi, Users, Check, MapPin, Building2, Landmark, UserRound, SlidersHorizontal } from "lucide-react";
+import { Search as SearchIcon, Wifi, Users, MapPin, Building2, Landmark, UserRound, SlidersHorizontal } from "lucide-react";
 import { HomeAnnouncementsMarquee } from "@/components/announcements/HomeAnnouncementsMarquee";
 import { HomeBlogSection } from "@/components/blog/HomeBlogSection";
 import { HomeFeaturedInstitutionsList } from "@/components/featured/HomeFeaturedInstitutionsList";
@@ -38,11 +38,8 @@ import {
   INSTITUTION_PRICE_FILTER_MIN,
 } from "@/lib/institutionPriceRangeFilter";
 import {
-  fetchInstitutionStudentAgeChoices,
-  getStudentAgeSpecialDisplayName,
-  splitStudentAgeChoices,
-  type StudentAgeChoice,
-  type StudentAgeRangeValue,
+  isStudentAgeFilterTextActive,
+  type StudentAgeFilterTextPayload,
 } from "@/lib/institutionStudentAgeFilter";
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
@@ -369,9 +366,7 @@ export default function Home() {
     () => new Set()
   );
   const [selectedSchoolStatuses, setSelectedSchoolStatuses] = useState<Set<"private" | "public">>(() => new Set());
-  const [selectedAgeRange, setSelectedAgeRange] = useState<StudentAgeRangeValue>(null);
-  const [selectedAgeSpecialOptions, setSelectedAgeSpecialOptions] = useState<Set<number>>(() => new Set());
-  const [ageSpecialOptions, setAgeSpecialOptions] = useState<StudentAgeChoice[]>([]);
+  const [selectedAgeRange, setSelectedAgeRange] = useState<StudentAgeFilterTextPayload | null>(null);
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const { markers: institutionMapMarkers, loading: institutionMapLoading } = useAllInstitutionMapMarkers();
 
@@ -386,8 +381,7 @@ export default function Home() {
         (query && query.trim().length > 0) ||
         selectedDistrict ||
         selectedSchoolStatuses.size > 0 ||
-        selectedAgeRange != null ||
-        selectedAgeSpecialOptions.size > 0 ||
+        isStudentAgeFilterTextActive(selectedAgeRange) ||
         selectedServiceTypes.size > 0 ||
         selectedPriceRange != null ||
         sidebarInstitutionTypeIds.length > 0
@@ -397,7 +391,6 @@ export default function Home() {
       selectedDistrict,
       selectedSchoolStatuses,
       selectedAgeRange,
-      selectedAgeSpecialOptions,
       selectedServiceTypes,
       selectedPriceRange,
       sidebarInstitutionTypeIds,
@@ -577,36 +570,6 @@ export default function Home() {
     return () => {
       cancelled = true;
       subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const supabase = createSupabaseBrowserClient();
-
-    void (async () => {
-      try {
-        const choices = await fetchInstitutionStudentAgeChoices(supabase);
-        if (cancelled) return;
-        const { special } = splitStudentAgeChoices(choices);
-        setAgeSpecialOptions(special);
-        setSelectedAgeSpecialOptions((prev) => {
-          if (prev.size === 0) return prev;
-          const validIds = new Set(special.map((c) => c.id));
-          const next = new Set<number>();
-          prev.forEach((id) => {
-            if (validIds.has(id)) next.add(id);
-          });
-          return next;
-        });
-      } catch (err) {
-        console.error("[home][student-age-choices]", err);
-        if (!cancelled) setAgeSpecialOptions([]);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
     };
   }, []);
 
@@ -934,34 +897,6 @@ export default function Home() {
                     scrollToResultsOnMobile();
                   }}
                 />
-                {ageSpecialOptions.length > 0 ? (
-                  <div className="filter-section-options filter-section-options--age-special">
-                    {ageSpecialOptions.map((option) => {
-                      const isSelected = selectedAgeSpecialOptions.has(option.id);
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          className={`filter-option filter-option--age-special ${isSelected ? "filter-option--selected filter-option--age-special-selected" : ""}`}
-                          onClick={() => {
-                            setSelectedAgeSpecialOptions((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(option.id)) next.delete(option.id);
-                              else next.add(option.id);
-                              return next;
-                            });
-                            scrollToResultsOnMobile();
-                          }}
-                        >
-                          <span className={`filter-indicator filter-indicator--age-special ${isSelected ? "filter-indicator--checked" : ""}`}>
-                            {isSelected && <Check size={12} />}
-                          </span>
-                          <span>{getStudentAgeSpecialDisplayName(option.name)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
               </div>
               <Separator />
               <div className="filter-section">
@@ -1198,10 +1133,6 @@ export default function Home() {
               districtFilter={selectedDistrict}
               schoolStatusFilters={Array.from(selectedSchoolStatuses)}
               studentAgeRange={selectedAgeRange}
-              studentAgeSpecialChoiceIds={Array.from(selectedAgeSpecialOptions)}
-              studentAgeSpecialChoiceNames={ageSpecialOptions
-                .filter((opt) => selectedAgeSpecialOptions.has(opt.id))
-                .map((opt) => opt.name)}
               serviceTypeFilters={Array.from(selectedServiceTypes)}
               priceRangeFilter={
                 selectedPriceRange
@@ -1221,7 +1152,6 @@ export default function Home() {
                 setSelectedNeighborhood("");
                 setSelectedSchoolStatuses(new Set());
                 setSelectedAgeRange(null);
-                setSelectedAgeSpecialOptions(new Set());
                 setSelectedServiceTypes(new Set());
                 setSelectedPriceRange(null);
                 setSelectedCategoryItems(new Set());

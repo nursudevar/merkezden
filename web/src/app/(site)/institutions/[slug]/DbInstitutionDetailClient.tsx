@@ -27,6 +27,13 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionHelpers";
+import {
+  STUDENT_AGE_RANGE_LABEL,
+  findStudentAgeRangeDefinitions,
+  formatStudentAgeDisplay,
+  isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeRangeNumberFeature,
+} from "@/lib/studentAgeRangeFeature";
 import ShareButton from "./ShareButton";
 import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
@@ -689,6 +696,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           }
 
           if (feature.input_type === "multi_select") {
+            if (isLegacyStudentAgeMultiSelectFeature(feature)) return;
             const selectedIds = selectedChoiceIdsByEntryId.get(entry.id) ?? [];
             selectedIds.forEach((choiceId) => {
               const label = choiceNameById.get(choiceId);
@@ -705,6 +713,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           }
 
           if (feature.input_type === "number") {
+            if (isStudentAgeRangeNumberFeature(feature)) return;
             if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return;
             const unit = (feature.unit ?? "").trim();
             badges.push(`${getDisplayFeatureName(feature.name)}: ${entry.number_answer}${unit ? ` ${unit}` : ""}`);
@@ -791,7 +800,29 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             "saat",
           ),
         );
-        pull("Öğrenci Yaşı", hasAny("ogrenci yasi", "yas araligi", "yas", "ogrenci_yasi"));
+        {
+          const ageDefs = findStudentAgeRangeDefinitions(definitions);
+          if (ageDefs.min && ageDefs.max) {
+            const minEntry = entriesByFeatureId.get(ageDefs.min.id);
+            const maxEntry = entriesByFeatureId.get(ageDefs.max.id);
+            const minVal =
+              typeof minEntry?.number_answer === "number" && Number.isFinite(minEntry.number_answer)
+                ? minEntry.number_answer
+                : null;
+            const maxVal =
+              typeof maxEntry?.number_answer === "number" && Number.isFinite(maxEntry.number_answer)
+                ? maxEntry.number_answer
+                : null;
+            if (minVal != null && maxVal != null) {
+              usedFeatureIds.add(ageDefs.min.id);
+              usedFeatureIds.add(ageDefs.max.id);
+              nextAcademicLines.push({
+                label: STUDENT_AGE_RANGE_LABEL,
+                value: formatStudentAgeDisplay(minVal, maxVal),
+              });
+            }
+          }
+        }
         pull("Ortalama Sınıf Mevcudu", hasAny("ortalama sinif mevcudu", "sinif mevcudu", "mevcud"));
         pull("Hizmet Tipi", hasAny("hizmet tipi", "hizmet_tipi", "servis tipi", "service_type", "service type"));
         pull(
@@ -812,6 +843,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         );
         for (const feature of orderedRest) {
           if (usedFeatureIds.has(feature.id)) continue;
+          if (isStudentAgeRangeNumberFeature(feature)) continue;
+          if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
           const value = extractFeatureValue(feature);
           if (!value || (Array.isArray(value) && value.length === 0)) continue;
           const label = getDisplayFeatureName(feature.name ?? "");

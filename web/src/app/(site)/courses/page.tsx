@@ -69,6 +69,7 @@ export default function CoursesPage() {
   const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     district,
+    categorySlug,
     schoolFilters: categoryFilters,
   });
 
