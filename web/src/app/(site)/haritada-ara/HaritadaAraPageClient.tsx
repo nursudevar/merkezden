@@ -32,9 +32,9 @@ const DEFAULT_MAP_CENTER = { lat: 39.9334, lng: 32.8597 };
 const DEFAULT_MAP_ZOOM = 10;
 
 const GEO_OPTIONS: PositionOptions = {
-  enableHighAccuracy: true,
+  enableHighAccuracy: false,
   timeout: 20000,
-  maximumAge: 0,
+  maximumAge: 60000,
 };
 
 function normalizeLocationKey(value: string): string {
@@ -378,7 +378,6 @@ export function HaritadaAraPageClient() {
     const requestId = ++nearbyRequestIdRef.current;
     activeGeoCancelRef.current?.();
 
-    // getCurrentPosition kullanıcı tıklamasında senkron başlatılır (gesture zinciri).
     const { cancel, promise } = beginUserGeolocationRequest(GEO_OPTIONS);
     activeGeoCancelRef.current = cancel;
 

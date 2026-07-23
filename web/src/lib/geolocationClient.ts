@@ -6,11 +6,18 @@ export type GeolocationRequestOutcome =
   | { ok: true; lat: number; lng: number }
   | { ok: false; message: string };
 
+/** Mobil tarayıcılarda daha güvenilir varsayılanlar (iOS/Safari). */
 const DEFAULT_OPTIONS: PositionOptions = {
-  enableHighAccuracy: true,
+  enableHighAccuracy: false,
   timeout: 20000,
-  maximumAge: 0,
+  maximumAge: 60000,
 };
+
+const LOCATION_UNAVAILABLE_MESSAGE =
+  "Konum bilgisi alınamadı. Cihazınızın konum servisinin açık olduğundan emin olun.";
+
+const PERMISSION_BLOCKED_MESSAGE =
+  "Konum erişimi engellendi. Tarayıcı veya cihaz ayarlarında konum servisinin açık olduğundan emin olun.";
 
 function isLocalDevelopmentHost(hostname: string): boolean {
   const host = hostname.trim().toLowerCase();
@@ -99,7 +106,7 @@ async function readGeolocationPermissionState(): Promise<PermissionState | null>
   }
 }
 
-/** PERMISSION_DENIED için ek teşhis — izin API'si desteklenmiyorsa null döner. */
+/** Tarayıcının döndürdüğü error.code korunur; yalnızca kullanıcı mesajı türetilir. */
 export async function resolveGeolocationErrorMessage(
   error: GeolocationPositionError,
 ): Promise<string> {
@@ -108,7 +115,7 @@ export async function resolveGeolocationErrorMessage(
   }
 
   if (error.code === error.POSITION_UNAVAILABLE) {
-    return "Konum bilgisi alınamadı. Cihazınızın konum servisinin açık olduğundan emin olun.";
+    return LOCATION_UNAVAILABLE_MESSAGE;
   }
 
   if (error.code !== error.PERMISSION_DENIED) {
@@ -141,13 +148,10 @@ export async function resolveGeolocationErrorMessage(
     return "Bu sayfada konum erişimi tarayıcı güvenlik politikası tarafından engelleniyor.";
   }
 
-  return "Konum erişimi engellendi. Tarayıcı veya cihaz ayarlarında konum servisinin açık olduğundan emin olun.";
+  return PERMISSION_BLOCKED_MESSAGE;
 }
 
-/**
- * Kullanıcı tıklaması içinde senkron başlatılmalıdır.
- * Tek getCurrentPosition isteği; iptal edilebilir.
- */
+/** Kullanıcı tıklaması içinde senkron başlatılmalıdır. */
 export function beginUserGeolocationRequest(
   options: PositionOptions = DEFAULT_OPTIONS,
 ): {
