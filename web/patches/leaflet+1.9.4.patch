@@ -1,16 +1,16 @@
 diff --git a/node_modules/leaflet/dist/leaflet-src.js b/node_modules/leaflet/dist/leaflet-src.js
-index 5a5879d..c8f2a1b 100644
+index eeb30df..714a21f 100644
 --- a/node_modules/leaflet/dist/leaflet-src.js
 +++ b/node_modules/leaflet/dist/leaflet-src.js
 @@ -2541,6 +2541,7 @@
-   // @function setPosition(el: HTMLElement, point: Point)
-   // Sets the position of `el` to `point`. Can be used with [`L.DomUtil.getPosition`](#domutil-getposition).
+   // using CSS translate or top/left positioning depending on the browser
+   // (used by Leaflet internally to position its layers).
    function setPosition(el, point) {
 +  	if (!el) { return; }
  
    	/*eslint-disable */
    	el._leaflet_pos = point;
-@@ -2558,6 +2559,7 @@
+@@ -2560,6 +2561,7 @@
    	// this method is only used for elements previously positioned using setPosition,
    	// so it's safe to cache the position for performance
  
