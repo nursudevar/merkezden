@@ -27,7 +27,10 @@ import {
   type InstructorFeatureGroupRow,
 } from "@/lib/instructorFeaturesClient";
 import {
+  findStudentAgeRangeDefinitions,
+  isInstructorPanelStudentAgeCategorySlug,
   isLegacyStudentAgeMultiSelectFeature,
+  isStudentAgeRangeNumberFeature,
 } from "@/lib/studentAgeRangeFeature";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { Button } from "@/components/ui";
@@ -194,6 +197,8 @@ export function InstructorFeaturesTab({
   }, [categories, categoryId, instructorRow.category_id]);
 
   const groupsWithFeatures = useMemo((): InstructorFeatureSelectionGroup[] => {
+    const showStudentAge = isInstructorPanelStudentAgeCategorySlug(instructorCategorySlug);
+
     return resolveInstructorFeatureGroupsForActiveCategory(featureGroups, instructorCategorySlug)
       .map((group) => {
         const features: InstructorFeatureDefinitionForSelection[] = featureDefinitions
@@ -201,6 +206,7 @@ export function InstructorFeaturesTab({
           .filter((f) => SUPPORTED_INPUT_TYPES.has(f.input_type))
           .filter((f) => !isInstructorPanelHiddenFeature(f))
           .filter((f) => !isLegacyStudentAgeMultiSelectFeature(f))
+          .filter((f) => showStudentAge || !isStudentAgeRangeNumberFeature(f))
           .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
           .map((f) => ({
             id: f.id,
@@ -249,6 +255,16 @@ export function InstructorFeaturesTab({
     }
     return Array.from(ids);
   }, [groupsWithFeatures]);
+
+  /** Gizli kategorilerde Öğrenci Yaşı entry'lerini silme — yalnızca UI görünürlüğü değişir. */
+  const protectedStudentAgeDefinitionIds = useMemo(() => {
+    if (isInstructorPanelStudentAgeCategorySlug(instructorCategorySlug)) return [] as number[];
+    const ageDefs = findStudentAgeRangeDefinitions(featureDefinitions);
+    const ids: number[] = [];
+    if (ageDefs.min) ids.push(ageDefs.min.id);
+    if (ageDefs.max) ids.push(ageDefs.max.id);
+    return ids;
+  }, [featureDefinitions, instructorCategorySlug]);
 
   const setBoolean = (updater: React.SetStateAction<Record<number, boolean>>) => {
     setForm((prev) => ({
@@ -324,6 +340,7 @@ export function InstructorFeaturesTab({
           form,
           featureIdsToSave,
           categoryIdToSave,
+          protectedDefinitionIds: protectedStudentAgeDefinitionIds,
         },
         supabase,
       );

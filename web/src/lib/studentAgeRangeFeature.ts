@@ -11,6 +11,32 @@ export const STUDENT_AGE_INPUT_MIN = 0.5;
 export const STUDENT_AGE_INPUT_MAX = 99;
 export const STUDENT_AGE_INPUT_STEP = 0.5;
 
+/**
+ * Eğitmen panelinde Öğrenci Yaşı (min/max) gösterilecek kategori slug'ları.
+ * Patili Dostlar ve Sürücü Kursu dahil değildir.
+ */
+export const INSTRUCTOR_PANEL_STUDENT_AGE_CATEGORY_SLUGS = [
+  "kurs-sinava-hazirlik",
+  "yabanci-dil",
+  "sanat",
+  "spor",
+  "kisisel-gelisim",
+  "mesleki-egitim",
+  "ozel-egitim",
+] as const;
+
+export function isInstructorPanelStudentAgeCategorySlug(
+  slug: string | null | undefined,
+): boolean {
+  const normalized = String(slug ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i");
+  return (INSTRUCTOR_PANEL_STUDENT_AGE_CATEGORY_SLUGS as readonly string[]).includes(
+    normalized,
+  );
+}
+
 function normalizeFeatureSlug(slug: string | null | undefined): string {
   return String(slug ?? "")
     .trim()

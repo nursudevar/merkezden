@@ -1551,11 +1551,16 @@ export function collectStaleInstructorFeatureEntryIds(args: {
   currentValidDefinitionIds: ReadonlySet<number>;
   definitionsById: ReadonlyMap<number, InstructorFeatureDefinitionRef>;
   form: InstructorFeatureFormState;
+  /** Kategori gizlenince bile korunacak definition'lar (ör. Öğrenci Yaşı). */
+  protectedDefinitionIds?: ReadonlySet<number>;
 }): number[] {
   const staleEntryIds: number[] = [];
+  const protectedIds = args.protectedDefinitionIds ?? new Set<number>();
 
   for (const entry of args.dbEntries) {
     const defId = entry.feature_definition_id;
+    if (protectedIds.has(defId)) continue;
+
     if (!args.currentValidDefinitionIds.has(defId)) {
       staleEntryIds.push(entry.id);
       continue;
@@ -1585,6 +1590,8 @@ export type SaveInstructorFeaturesParams = {
   featureIdsToSave: number[];
   /** Yalnızca instructors.can_edit_category === true iken çağırıcı tarafından gönderilir. */
   categoryIdToSave?: number;
+  /** Stale reconciliation sırasında silinmeyecek definition id'leri. */
+  protectedDefinitionIds?: number[];
 };
 
 export async function saveInstructorFeaturesClient(
@@ -1600,9 +1607,11 @@ export async function saveInstructorFeaturesClient(
     form,
     featureIdsToSave,
     categoryIdToSave,
+    protectedDefinitionIds,
   } = params;
 
   const currentValidDefinitionIds = new Set(featureIdsToSave);
+  const protectedDefinitionIdSet = new Set(protectedDefinitionIds ?? []);
   const shouldPersist = (featureId: number) => currentValidDefinitionIds.has(featureId);
 
   const categoryPatch: DirectInstructorFeaturePatch = {};
@@ -1647,6 +1656,7 @@ export async function saveInstructorFeaturesClient(
     currentValidDefinitionIds,
     definitionsById,
     form,
+    protectedDefinitionIds: protectedDefinitionIdSet,
   });
 
   if (staleEntryIds.length > 0) {
