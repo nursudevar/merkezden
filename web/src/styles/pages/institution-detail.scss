@@ -589,15 +589,43 @@
   padding: 0px 20px;
   border-radius: 18px;
   border: 1px solid $purple-main;
-  background: rgba(109, 93, 252, 0.01);
-  color: $text-zinc-700;
+  background: rgba($purple-main, 0.04);
+  color: $purple-main;
   font-size: $text-sm;
   font-weight: $font-semibold;
   line-height: 1.35;
+  @include transition;
+  transition-property: background, border-color, color, box-shadow;
+
+  &:hover {
+    background: rgba($purple-main, 0.1);
+    border-color: $purple-dark;
+    color: $purple-dark;
+    box-shadow: 0 0 0 3px rgba($purple-main, 0.12);
+  }
 }
 
 .institution-features-badge--answer {
   align-self: center;
+}
+
+.institution-extra-branches-card {
+  .institution-section-title::before {
+    background: $orange-primary;
+  }
+
+  .institution-features-badge {
+    border-color: $orange-primary;
+    background: rgba($orange-primary, 0.04);
+    color: $orange-primary;
+
+    &:hover {
+      background: rgba($orange-primary, 0.1);
+      border-color: darken($orange-primary, 8%);
+      color: darken($orange-primary, 8%);
+      box-shadow: 0 0 0 3px rgba($orange-primary, 0.12);
+    }
+  }
 }
 
 .institution-features-empty {

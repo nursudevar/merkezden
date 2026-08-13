@@ -79,6 +79,17 @@ export type InstitutionMapMarkerSource = {
   official_email?: string;
 };
 
+/** Kategori listesinden gelen kurum meta verisi — institution tablosu tekrar sorgulanmaz. */
+export type InstitutionMapMarkerListSource = InstitutionMapMarkerSource & {
+  logoUrl?: string;
+  institutionTypeName?: string;
+  categoryName?: string;
+  categorySlug?: string;
+  categoryId?: number | null;
+  city?: string;
+  district?: string;
+};
+
 const LOCATION_CHUNK = 200;
 /** PostgREST varsayılan max_rows (1000); range ile sayfalama için sayfa boyutu */
 const LOCATION_PAGE_SIZE = 1000;
@@ -102,6 +113,47 @@ function dedupeMarkersByInstitutionId(markers: InstitutionMapMarker[]): Institut
     if (!byId.has(marker.id)) byId.set(marker.id, marker);
   }
   return Array.from(byId.values());
+}
+
+function mergeLocationRowsWithListSources(
+  locationRows: InstitutionLocationRow[],
+  sourcesById: Map<number, InstitutionMapMarkerListSource>,
+): InstitutionMapMarker[] {
+  return locationRows
+    .map((location) => {
+      const source = sourcesById.get(location.institution_id);
+      const lat = Number(location.latitude);
+      const lng = Number(location.longitude);
+      const slug = String(source?.slug ?? "").trim();
+
+      if (!source || !slug || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return null;
+      }
+
+      const marker: InstitutionMapMarker = {
+        id: source.id,
+        slug,
+        institution_name: String(source.name ?? "Kurum").trim() || "Kurum",
+        address:
+          String(source.address ?? "").trim() || "Adres bilgisi bulunamadı",
+        official_phone: String(source.official_phone ?? "").trim(),
+        official_email: String(source.official_email ?? "").trim(),
+        logoUrl: String(source.logoUrl ?? "").trim(),
+        institutionTypeName: String(source.institutionTypeName ?? "").trim(),
+        latitude: lat,
+        longitude: lng,
+        categoryName: String(source.categoryName ?? "").trim(),
+        categorySlug: String(source.categorySlug ?? "").trim(),
+        categoryId:
+          source.categoryId != null && Number.isFinite(Number(source.categoryId))
+            ? Number(source.categoryId)
+            : null,
+        city: String(source.city ?? "").trim(),
+        district: String(source.district ?? "").trim(),
+      };
+      return marker;
+    })
+    .filter((item): item is InstitutionMapMarker => Boolean(item));
 }
 
 function mergeLocationRowsWithInstitutionRows(
@@ -261,7 +313,25 @@ export async function fetchAllInstitutionMapMarkers(): Promise<InstitutionMapMar
   return allInstitutionMapMarkersInflight;
 }
 
-/** Kategori listesi: yalnızca verilen kurumlar için konum birleştirme */
+/** Kategori listesi: liste meta verisi + yalnızca konum sorgusu */
+export async function fetchInstitutionMapMarkersForListSources(
+  sources: InstitutionMapMarkerListSource[],
+): Promise<InstitutionMapMarker[]> {
+  const validSources = sources.filter(
+    (s) => Number.isFinite(s.id) && String(s.slug ?? "").trim() && String(s.name ?? "").trim(),
+  );
+  if (validSources.length === 0) return [];
+
+  const sourcesById = new Map(validSources.map((source) => [source.id, source]));
+  const institutionIds = validSources.map((source) => source.id);
+  const locationRows = await fetchSuccessLocationsForIds(institutionIds);
+
+  return dedupeMarkersByInstitutionId(
+    mergeLocationRowsWithListSources(locationRows, sourcesById),
+  );
+}
+
+/** Kategori listesi: yalnızca verilen kurumlar için konum birleştirme (institution re-fetch) */
 export async function fetchInstitutionMapMarkersForSources(
   sources: InstitutionMapMarkerSource[],
 ): Promise<InstitutionMapMarker[]> {
@@ -271,8 +341,10 @@ export async function fetchInstitutionMapMarkersForSources(
   if (validSources.length === 0) return [];
 
   const institutionIds = validSources.map((source) => source.id);
-  const locationRows = await fetchSuccessLocationsForIds(institutionIds);
-  const institutionsById = await fetchInstitutionRowsByIds(institutionIds);
+  const [locationRows, institutionsById] = await Promise.all([
+    fetchSuccessLocationsForIds(institutionIds),
+    fetchInstitutionRowsByIds(institutionIds),
+  ]);
 
   return dedupeMarkersByInstitutionId(
     mergeLocationRowsWithInstitutionRows(locationRows, institutionsById),

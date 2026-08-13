@@ -101,12 +101,29 @@
 }
 
 .category-filter-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   font-size: 13px;
   font-weight: $font-bold;
   color: $default-text-color;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0;
+}
+
+.category-filter-section-title-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
+  color: #0f172a;
+  stroke: currentColor;
+  stroke-width: 1.5;
 }
 
 .category-filter-section-inputs {

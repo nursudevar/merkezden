@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -10,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { RotateCcw, Search } from "lucide-react";
+import { Building2, Clock3, Languages, MapPin, RotateCcw, Search, Users, UsersRound, WalletCards, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
@@ -22,6 +23,8 @@ import {
   INSTITUTION_PRICE_FILTER_MIN,
   isInstitutionPriceRangeFieldName,
   orderPriceRangeChoicesFromCanonical,
+  parseInstructorPriceRangeBound,
+  rangesOverlap,
   sortPriceRangeChoicesByMin,
 } from "@/lib/institutionPriceRangeFilter";
 import {
@@ -52,6 +55,11 @@ import {
 } from "@/lib/instructorFeaturesClient";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import {
+  HIGH_SCHOOL_TYPE_OPTIONS,
+  LISE_INSTITUTION_TYPE_ID,
+  OKUL_CATEGORY_SLUG,
+} from "@/lib/schoolInstitutionTypes";
 
 export interface CategoryFilterConfig {
   categories?: Array<{ label: string; count: number; value: string }>;
@@ -179,7 +187,630 @@ function sortCheckboxOptionsByLabel<T>(options: T[], getLabel: (option: T) => st
   );
 }
 const COMMON_GROUP_NAME_KEY = "başlıca özellikler";
+const PATILI_DOSTLAR_CATEGORY_SLUG = "patili-dostlar";
+const KURS_SINAVA_HAZIRLIK_CATEGORY_SLUG = "kurs-sinava-hazirlik";
+const YABANCI_DIL_CATEGORY_SLUG = "yabanci-dil";
+const SANAT_CATEGORY_SLUG = "sanat";
+const SPOR_CATEGORY_SLUG = "spor";
+const KISISEL_GELISIM_CATEGORY_SLUG = "kisisel-gelisim";
+const MESLEKI_EGITIM_CATEGORY_SLUG = "mesleki-egitim";
+const OZEL_EGITIM_CATEGORY_SLUG = "ozel-egitim";
+const SURUCU_KURSU_CATEGORY_SLUG = "surucu-kursu";
+
+/** Eğitmen public filtre — Patili Dostlar şema alan sırası (fiyat Hizmet Yeri sonrası inject). */
+const PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER = [
+  "evcil hayvan turu",
+  "hizmet turu",
+  "hizmet tipi",
+  "hizmet yeri",
+  "fiziki imkanlar",
+  "musait gunler",
+  "calisma saatleri",
+  "egitim dili",
+  "ucret tipi",
+  "odeme secenekleri",
+] as const;
+
+const PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER_KEYS = new Set<string>(
+  PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER,
+);
+
+/** Global Başlıca öğrenci/ders + hedef dışı alanlar — Patili'de gizlenir. */
+const PATILI_DOSTLAR_HIDDEN_FILTER_NAMES = new Set([
+  "ogrenci yasi",
+  "ders seviyesi",
+  "ogrencinin egitim seviyesi",
+  "egitim seviyesi",
+  "egitmenin seviyesi",
+  "ders verme sikligi",
+  "ders suresi",
+  "musait saat baslangic",
+  "musait saat bitis",
+  "musait saat baslangic bitis",
+  "deneme dersi mevcuttur",
+  "deneme dersi",
+  "egitim ozellikleri",
+]);
+
+/** Eğitmen public filtre — yalnızca Kurs / Sınava Hazırlık şema alan sırası (yaş/fiyat ayrı section). */
+const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER = [
+  "kurs turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES = new Set(["kurs ozellikleri"]);
+
+/** Eğitmen public filtre — yalnızca Yabancı Dil şema alan sırası (yaş/fiyat ayrı section). */
+const YABANCI_DIL_INSTRUCTOR_FILTER_ORDER = [
+  "yabanci dil turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "ogrencinin egitim seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+/** Eğitmen public filtre — yalnızca Sanat şema alan sırası (yaş/fiyat ayrı section). */
+const SANAT_INSTRUCTOR_FILTER_ORDER = [
+  "sanat turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const SANAT_HIDDEN_FILTER_NAMES = new Set(["ogrencinin egitim seviyesi"]);
+
+/** Eğitmen public filtre — yalnızca Spor şema alan sırası (yaş/fiyat ayrı section). */
+const SPOR_INSTRUCTOR_FILTER_ORDER = [
+  "spor turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const SPOR_HIDDEN_FILTER_NAMES = new Set([
+  "ogrencinin egitim seviyesi",
+  "tesis turu",
+  "egitim ozellikleri",
+]);
+
+/** Eğitmen public filtre — yalnızca Kişisel Gelişim şema alan sırası (yaş/fiyat ayrı section). */
+const KISISEL_GELISIM_INSTRUCTOR_FILTER_ORDER = [
+  "egitim turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const KISISEL_GELISIM_HIDDEN_FILTER_NAMES = new Set([
+  "ogrencinin egitim seviyesi",
+  "egitim ozellikleri",
+]);
+
+/** Eğitmen public filtre — yalnızca Mesleki Eğitim şema alan sırası (yaş/fiyat ayrı section). */
+const MESLEKI_EGITIM_INSTRUCTOR_FILTER_ORDER = [
+  "egitim turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const MESLEKI_EGITIM_HIDDEN_FILTER_NAMES = new Set([
+  "ogrencinin egitim seviyesi",
+  "egitim ozellikleri",
+]);
+
+/** Eğitmen public filtre — yalnızca Özel Eğitim şema alan sırası (yaş/fiyat ayrı section). */
+const OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER = [
+  "ozel egitim turleri",
+  "hizmet tipi",
+  "hizmet yeri",
+  "ders seviyesi",
+  "ogrencinin egitim seviyesi",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const OZEL_EGITIM_HIDDEN_FILTER_NAMES = new Set(["egitim ozellikleri"]);
+
+/** Eğitmen public filtre — yalnızca Sürücü Kursu şema alan sırası (fiyat Araç İmkanı sonrası inject). */
+const SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER = [
+  "hizmet turleri",
+  "hizmet tipi",
+  "arac tipleri",
+  "arac imkani",
+  "musait gunler",
+  "calisma saatleri",
+  "ders verme sikligi",
+  "ders suresi",
+  "egitim dili",
+  "ucret tipi",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER_KEYS = new Set<string>(
+  SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER,
+);
+
+const SURUCU_KURSU_HIDDEN_FILTER_NAMES = new Set([
+  "ders seviyesi",
+  "ogrencinin egitim seviyesi",
+  "egitim seviyesi",
+  "hizmet yeri",
+  "egitim ozellikleri",
+  "kurs ozellikleri",
+  "surucu kursu ozellikleri",
+]);
+
+/** Kişisel Gelişim — "Eğitim Türleri" ve olası DB adı varyantlarını tek anahtara indirger. */
+function normalizeKisiselGelisimFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "egitim turleri" ||
+    key === "kisisel gelisim egitim turleri" ||
+    key === "kisisel gelisim turleri" ||
+    key.endsWith(" egitim turleri")
+  ) {
+    return "egitim turleri";
+  }
+  return key;
+}
+
+/** Mesleki Eğitim — "Eğitim Türleri" / "Mesleki Eğitim Türleri" varyantlarını tek anahtara indirger. */
+function normalizeMeslekiEgitimFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "egitim turleri" ||
+    key === "mesleki egitim turleri" ||
+    key === "mesleki egitim egitim turleri" ||
+    key.endsWith(" egitim turleri")
+  ) {
+    return "egitim turleri";
+  }
+  return key;
+}
+
+/** Özel Eğitim — "Özel Eğitim Türleri" ve olası DB adı varyantlarını tek anahtara indirger. */
+function normalizeOzelEgitimFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "ozel egitim turleri" ||
+    key === "ozel egitim egitim turleri" ||
+    (key.includes("ozel") && key.includes("egitim") && key.includes("tur") && !key.includes("seviye"))
+  ) {
+    return "ozel egitim turleri";
+  }
+  return key;
+}
+
+/** Sürücü Kursu — Hizmet Türleri / Araç Tipleri / Araç İmkanı / Ödeme varyantlarını tek anahtara indirger. */
+function normalizeSurucuKursuFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "hizmet turleri" ||
+    key.endsWith(" hizmet turleri") ||
+    (key.includes("hizmet") && key.includes("turleri"))
+  ) {
+    return "hizmet turleri";
+  }
+  if (
+    key === "arac tipleri" ||
+    key === "arac tipi" ||
+    (key.includes("arac") && key.includes("tip"))
+  ) {
+    return "arac tipleri";
+  }
+  if (
+    key === "arac imkani" ||
+    key === "arac imkanlari" ||
+    key === "surucu kursu imkanlari" ||
+    ((key.includes("imkan") || key.includes("imkanlar")) &&
+      (key.includes("arac") || key.includes("surucu")))
+  ) {
+    return "arac imkani";
+  }
+  if (
+    key === "odeme secenekleri" ||
+    key === "odeme yontemleri" ||
+    (key.includes("odeme") && (key.includes("secenek") || key.includes("yontem")))
+  ) {
+    return "odeme secenekleri";
+  }
+  return key;
+}
+
+function normalizeInstructorFilterOrderKey(name: string): string {
+  return name
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ç/g, "c")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function orderKursSinavaHazirlikInstructorFields(
+  fields: InstructorFilterField[],
+): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeInstructorFilterOrderKey(field.name);
+    return !KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderYabanciDilInstructorFields(
+  fields: InstructorFilterField[],
+): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    YABANCI_DIL_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => field.kind !== "student_age_range");
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderSanatInstructorFields(fields: InstructorFilterField[]): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    SANAT_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeInstructorFilterOrderKey(field.name);
+    return !SANAT_HIDDEN_FILTER_NAMES.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderSporInstructorFields(fields: InstructorFilterField[]): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    SPOR_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeInstructorFilterOrderKey(field.name);
+    return !SPOR_HIDDEN_FILTER_NAMES.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderKisiselGelisimInstructorFields(
+  fields: InstructorFilterField[],
+): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    KISISEL_GELISIM_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeKisiselGelisimFilterOrderKey(field.name);
+    return !KISISEL_GELISIM_HIDDEN_FILTER_NAMES.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeKisiselGelisimFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeKisiselGelisimFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderMeslekiEgitimInstructorFields(
+  fields: InstructorFilterField[],
+): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    MESLEKI_EGITIM_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeMeslekiEgitimFilterOrderKey(field.name);
+    return !MESLEKI_EGITIM_HIDDEN_FILTER_NAMES.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeMeslekiEgitimFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeMeslekiEgitimFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderOzelEgitimInstructorFields(fields: InstructorFilterField[]): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeOzelEgitimFilterOrderKey(field.name);
+    return !OZEL_EGITIM_HIDDEN_FILTER_NAMES.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeOzelEgitimFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeOzelEgitimFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function orderSurucuKursuInstructorFields(fields: InstructorFilterField[]): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeSurucuKursuFilterOrderKey(field.name);
+    const rawKey = normalizeInstructorFilterOrderKey(field.name);
+    if (SURUCU_KURSU_HIDDEN_FILTER_NAMES.has(key) || SURUCU_KURSU_HIDDEN_FILTER_NAMES.has(rawKey)) {
+      return false;
+    }
+    // Hedef listede olmayan ekstra alanları (Araç Sayısı, Fiziki İmkanlar, …) gösterme.
+    return SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER_KEYS.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizeSurucuKursuFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeSurucuKursuFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+/** Patili — Evcil Hayvan / Hizmet Türü / Fiziki-Ödeme grup adı varyantlarını tek anahtara indirger. */
+function normalizePatiliDostlarFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "evcil hayvan turu" ||
+    key === "evcil hayvan turleri" ||
+    (key.includes("evcil") && key.includes("hayvan") && key.includes("tur"))
+  ) {
+    return "evcil hayvan turu";
+  }
+  if (
+    key === "hizmet turu" ||
+    key === "hizmet turleri" ||
+    (key.includes("hizmet") && key.includes("tur") && !key.includes("tip") && !key.includes("yer"))
+  ) {
+    return "hizmet turu";
+  }
+  if (
+    key === "fiziki imkanlar" ||
+    key === "fiziksel imkanlar" ||
+    (key.includes("fizik") && key.includes("imkan"))
+  ) {
+    return "fiziki imkanlar";
+  }
+  if (key === "odeme secenekleri" || (key.includes("odeme") && key.includes("secenek"))) {
+    return "odeme secenekleri";
+  }
+  if (
+    key === "deneme dersi mevcuttur" ||
+    key === "deneme dersi" ||
+    (key.includes("deneme") && key.includes("ders"))
+  ) {
+    return "deneme dersi mevcuttur";
+  }
+  return key;
+}
+
+function orderPatiliDostlarInstructorFields(
+  fields: InstructorFilterField[],
+): InstructorFilterField[] {
+  const orderIndex = new Map<string, number>(
+    PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
+  );
+
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizePatiliDostlarFilterOrderKey(field.name);
+    const rawKey = normalizeInstructorFilterOrderKey(field.name);
+    if (PATILI_DOSTLAR_HIDDEN_FILTER_NAMES.has(key)) return false;
+    if (PATILI_DOSTLAR_HIDDEN_FILTER_NAMES.has(rawKey)) return false;
+    if (rawKey.includes("musait saat")) return false;
+    // Hedef listede olmayan ekstra grup/alanları gösterme.
+    return PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER_KEYS.has(key);
+  });
+
+  return [...filtered].sort((a, b) => {
+    const aIndex = orderIndex.get(normalizePatiliDostlarFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizePatiliDostlarFilterOrderKey(b.name));
+    const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
+    const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
+  });
+}
+
+function isBaslicaOzelliklerGroupName(name: string | null | undefined): boolean {
+  return (name ?? "").trim().toLocaleLowerCase("tr-TR") === COMMON_GROUP_NAME_KEY;
+}
+
+function categoryUsesGlobalBaslicaCommonFields(categorySlug: string): boolean {
+  return String(categorySlug ?? "").trim() !== PATILI_DOSTLAR_CATEGORY_SLUG;
+}
+
+function resolveOverlappingPriceChoiceIds(
+  choices: Array<{ id: number; name: string }>,
+  userRange: { min: number; max: number },
+): string[] {
+  const normalized = {
+    min: Math.max(
+      INSTITUTION_PRICE_FILTER_MIN,
+      Math.min(userRange.min, userRange.max),
+    ),
+    max: Math.min(
+      INSTITUTION_PRICE_FILTER_MAX,
+      Math.max(userRange.min, userRange.max),
+    ),
+  };
+
+  return choices
+    .filter((choice) => {
+      const choiceRange = parseInstructorPriceRangeBound(choice.name);
+      return choiceRange != null && rangesOverlap(choiceRange, normalized);
+    })
+    .map((choice) => String(choice.id));
+}
+
+function buildPatiliBaslicaCommonField(
+  def: FeatureDefinitionRow,
+  choicesByDefinition: Map<number, FeatureChoiceRow[]>,
+): CommonField | null {
+  const displayName = getDisplayFeatureName(def.name ?? "");
+  const inputType = String(def.input_type ?? "").trim().toLowerCase();
+  const defChoices = (choicesByDefinition.get(def.id) ?? [])
+    .map((c) => ({ id: c.id, name: String(c.name ?? "").trim() }))
+    .filter((c) => Boolean(c.name));
+  const orderedChoices = isInstitutionPriceRangeFieldName(displayName)
+    ? orderPriceRangeChoicesFromCanonical(defChoices)
+    : defChoices;
+
+  if (inputType === "single_select") {
+    if (orderedChoices.length === 0) return null;
+    return {
+      kind: "single_select",
+      definitionId: def.id,
+      name: displayName,
+      placeholder: `${displayName} seçin`,
+      choices: orderedChoices,
+    };
+  }
+
+  if (inputType === "multi_select") {
+    if (orderedChoices.length === 0) return null;
+    return {
+      kind: "multi_select",
+      definitionId: def.id,
+      name: displayName,
+      choices: orderedChoices,
+    };
+  }
+
+  return null;
+}
 const ALL_DISTRICTS_VALUE = "__all__";
+const CLEAR_SUBCATEGORY_VALUE = "__clear_subcategory__";
+const CLEAR_HIGH_SCHOOL_TYPE_VALUE = "__clear_high_school_type__";
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
 const CLEAR_INSTRUCTOR_CATEGORY_VALUE = "__all_categories__";
 
@@ -219,6 +850,63 @@ function getDisplayFeatureName(name: string): string {
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
   if (key === "okul saatleri" || key === "kurum saatleri") return "Kurum Saatleri";
   return trimmed;
+}
+
+const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
+  arama: Search,
+  konum: MapPin,
+  "kurum turu": Building2,
+  "hizmet tipi": Users,
+  "egitim dili": Languages,
+  "kurum saatleri": Clock3,
+  "ortalama sinif mevcudu": UsersRound,
+  "aylik ortalama fiyat araligi": WalletCards,
+};
+
+function normalizeCategoryFilterSectionTitleKey(title: string): string {
+  return title
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getCategoryFilterSectionIcon(title: string): LucideIcon | null {
+  return CATEGORY_FILTER_SECTION_ICON_MAP[normalizeCategoryFilterSectionTitleKey(title)] ?? null;
+}
+
+function CategoryFilterSectionTitle({ title }: { title: string }) {
+  const titleKey = normalizeCategoryFilterSectionTitleKey(title);
+
+  if (titleKey === "ogrenci yasi") {
+    return (
+      <h3 className="category-filter-section-title">
+        <Image
+          src="/images/identification.svg"
+          alt="Öğrenci Yaşı"
+          width={20}
+          height={20}
+          className="category-filter-section-title-icon"
+        />
+        <span>{title}</span>
+      </h3>
+    );
+  }
+
+  const Icon = getCategoryFilterSectionIcon(title);
+
+  return (
+    <h3 className="category-filter-section-title">
+      {Icon ? (
+        <Icon className="category-filter-section-title-icon" size={20} aria-hidden />
+      ) : null}
+      <span>{title}</span>
+    </h3>
+  );
 }
 
 function normalizeCommonFieldNameKey(name: string): string {
@@ -338,8 +1026,15 @@ function useCategoryFilterSidebarModel({
 
   const [subcategoryTypes, setSubcategoryTypes] = useState<Array<{ id: number; name: string }>>([]);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>("");
+  const [selectedHighSchoolType, setSelectedHighSchoolType] = useState<string>("");
 
   const [commonFields, setCommonFields] = useState<CommonField[]>([]);
+  /** Patili Dostlar: category_slug=patili-dostlar Başlıca Özellikler tanımları (definition bazlı). */
+  const [patiliBaslicaFields, setPatiliBaslicaFields] = useState<CommonField[]>([]);
+  /** Patili fiyat slider UI state (choice eşlemesi selectedCommonMulti üzerinden gider). */
+  const [patiliPriceSliderRange, setPatiliPriceSliderRange] = useState<
+    Record<number, PriceRangeSliderValue>
+  >({});
   const [selectedCommonSingle, setSelectedCommonSingle] = useState<Record<number, string>>({});
   const [selectedCommonMulti, setSelectedCommonMulti] = useState<Record<number, Set<string>>>({});
   const [selectedCommonRange, setSelectedCommonRange] = useState<
@@ -369,16 +1064,40 @@ function useCategoryFilterSidebarModel({
   const searchPlaceholder = config?.searchPlaceholder ?? "Kurum adı ara...";
   const hasInstructorFeatureMode = filterSchemaSource === "instructor";
   const effectiveSlug = enabled && !hasInstructorFeatureMode ? String(categorySlug ?? "").trim() : "";
+  const showSchoolSubcategoryFilters = effectiveSlug === OKUL_CATEGORY_SLUG;
   const hasDynamicFeatureMode = effectiveSlug.length > 0;
+  const isPatiliDostlarCategory = effectiveSlug === PATILI_DOSTLAR_CATEGORY_SLUG;
+  const usesGlobalBaslicaCommonFields = categoryUsesGlobalBaslicaCommonFields(effectiveSlug);
   const isLinkedSearch = typeof onLinkedSearchChange === "function";
   const isLinkedDistrict = typeof onLinkedDistrictChange === "function";
   const displaySearch = isLinkedSearch ? (linkedSearch ?? "") : search;
   const displayDistrict = isLinkedDistrict ? (linkedDistrict ?? "") : district;
 
+  const resetCategoryFeatureFilters = useCallback(() => {
+    setSelectedSubcategoryId("");
+    setSelectedHighSchoolType("");
+    setSelectedCommonSingle({});
+    setSelectedCommonMulti({});
+    setSelectedCommonRange({});
+    setPatiliPriceSliderRange({});
+    setSelectedStudentAgeRange(null);
+    setSelectedFeatureOptionsByGroup({});
+    setExpandedGroupIds(new Set());
+    setExpandedCommonMultiIds(new Set());
+  }, []);
+
+  const [trackedFeatureFilterSlug, setTrackedFeatureFilterSlug] = useState(effectiveSlug);
+  if (trackedFeatureFilterSlug !== effectiveSlug) {
+    setTrackedFeatureFilterSlug(effectiveSlug);
+    resetCategoryFeatureFilters();
+  }
+
   // Kategoriye özel feature gruplarını + tanımlarını + seçeneklerini yükle.
   useEffect(() => {
     if (!hasDynamicFeatureMode) {
       setFeatureGroups([]);
+      setPatiliBaslicaFields([]);
+      setPatiliPriceSliderRange({});
       setFeatureGroupsError(null);
       setFeatureGroupsLoading(false);
       return;
@@ -387,6 +1106,8 @@ function useCategoryFilterSidebarModel({
     let cancelled = false;
     setFeatureGroupsLoading(true);
     setFeatureGroupsError(null);
+    setPatiliBaslicaFields([]);
+    setPatiliPriceSliderRange({});
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
@@ -408,6 +1129,7 @@ function useCategoryFilterSidebarModel({
         );
         setFeatureGroupsError("Filtreler yüklenemedi.");
         setFeatureGroups([]);
+        setPatiliBaslicaFields([]);
         setFeatureGroupsLoading(false);
         return;
       }
@@ -418,6 +1140,7 @@ function useCategoryFilterSidebarModel({
 
       if (groupRows.length === 0) {
         setFeatureGroups([]);
+        setPatiliBaslicaFields([]);
         setFeatureGroupsLoading(false);
         return;
       }
@@ -440,6 +1163,7 @@ function useCategoryFilterSidebarModel({
         );
         setFeatureGroupsError("Filtreler yüklenemedi.");
         setFeatureGroups([]);
+        setPatiliBaslicaFields([]);
         setFeatureGroupsLoading(false);
         return;
       }
@@ -466,6 +1190,7 @@ function useCategoryFilterSidebarModel({
           );
           setFeatureGroupsError("Filtreler yüklenemedi.");
           setFeatureGroups([]);
+          setPatiliBaslicaFields([]);
           setFeatureGroupsLoading(false);
           return;
         }
@@ -491,52 +1216,70 @@ function useCategoryFilterSidebarModel({
         choicesByDefinition.set(choice.feature_definition_id, arr);
       });
 
-      const builtGroups: FeatureFilterGroup[] = groupRows
-        .map((group): FeatureFilterGroup | null => {
-          const defs = definitionsByGroup.get(group.id) ?? [];
-          const options: FeatureFilterOption[] = [];
-          const seenLabels = new Set<string>();
+      const builtGroups: FeatureFilterGroup[] = [];
+      const patiliBaslicaFieldsList: CommonField[] = [];
 
+      for (const group of groupRows) {
+        const defs = definitionsByGroup.get(group.id) ?? [];
+        const groupName = String(group.name ?? "").trim();
+
+        if (isPatiliDostlarCategory && isBaslicaOzelliklerGroupName(group.name)) {
           defs.forEach((def) => {
-            const inputType = String(def.input_type ?? "").trim().toLowerCase();
-            const defName = String(def.name ?? "").trim();
+            const field = buildPatiliBaslicaCommonField(def, choicesByDefinition);
+            if (field) patiliBaslicaFieldsList.push(field);
+          });
+          continue;
+        }
 
-            if (inputType === "boolean") {
-              if (!defName) return;
-              const key = `def:${def.id}`;
-              if (seenLabels.has(defName.toLocaleLowerCase("tr-TR"))) return;
-              seenLabels.add(defName.toLocaleLowerCase("tr-TR"));
-              options.push({ key, label: defName });
-              return;
-            }
+        const options: FeatureFilterOption[] = [];
+        const seenLabels = new Set<string>();
 
-            if (inputType === "single_select" || inputType === "multi_select") {
-              const choices = choicesByDefinition.get(def.id) ?? [];
-              choices.forEach((choice) => {
-                const label = String(choice.name ?? "").trim();
-                if (!label) return;
-                const labelKey = label.toLocaleLowerCase("tr-TR");
+        defs.forEach((def) => {
+          const inputType = String(def.input_type ?? "").trim().toLowerCase();
+          const defName = String(def.name ?? "").trim();
+
+          if (inputType === "boolean") {
+            if (!defName) return;
+            const key = `def:${def.id}`;
+            if (seenLabels.has(defName.toLocaleLowerCase("tr-TR"))) return;
+            seenLabels.add(defName.toLocaleLowerCase("tr-TR"));
+            options.push({ key, label: defName });
+            return;
+          }
+
+          if (inputType === "single_select" || inputType === "multi_select") {
+            const choices = choicesByDefinition.get(def.id) ?? [];
+            const seenLabelsInDefinition = new Set<string>();
+            choices.forEach((choice) => {
+              const label = String(choice.name ?? "").trim();
+              if (!label) return;
+              const labelKey = label.toLocaleLowerCase("tr-TR");
+              if (isPatiliDostlarCategory) {
+                if (seenLabelsInDefinition.has(labelKey)) return;
+                seenLabelsInDefinition.add(labelKey);
+              } else {
                 if (seenLabels.has(labelKey)) return;
                 seenLabels.add(labelKey);
-                options.push({ key: `choice:${choice.id}:def:${def.id}`, label });
-              });
-              return;
-            }
+              }
+              options.push({ key: `choice:${choice.id}:def:${def.id}`, label });
+            });
+            return;
+          }
 
-            // number / text vb. — bu sürümde (filtreleme henüz aktif değil)
-            // option olarak render edilmiyor.
-          });
+          // number / text vb. — bu sürümde (filtreleme henüz aktif değil)
+          // option olarak render edilmiyor.
+        });
 
-          if (options.length === 0) return null;
+        if (options.length === 0) continue;
 
-          return {
-            id: group.id,
-            name: String(group.name ?? "").trim(),
-            options,
-          };
-        })
-        .filter((g): g is FeatureFilterGroup => g !== null);
+        builtGroups.push({
+          id: group.id,
+          name: groupName,
+          options,
+        });
+      }
 
+      setPatiliBaslicaFields(patiliBaslicaFieldsList);
       setFeatureGroups(builtGroups);
       setFeatureGroupsLoading(false);
     })();
@@ -602,12 +1345,40 @@ function useCategoryFilterSidebarModel({
 
   const visibleInstructorFields = useMemo(() => {
     if (!instructorSchemaData) return [];
-    return buildInstructorFilterFieldsForListingCategory(
+    const fields = buildInstructorFilterFieldsForListingCategory(
       instructorSchemaData.groups,
       instructorSchemaData.definitions,
       instructorSchemaData.choices,
       instructorCategorySlug || null,
     );
+    if (instructorCategorySlug === KURS_SINAVA_HAZIRLIK_CATEGORY_SLUG) {
+      return orderKursSinavaHazirlikInstructorFields(fields);
+    }
+    if (instructorCategorySlug === YABANCI_DIL_CATEGORY_SLUG) {
+      return orderYabanciDilInstructorFields(fields);
+    }
+    if (instructorCategorySlug === SANAT_CATEGORY_SLUG) {
+      return orderSanatInstructorFields(fields);
+    }
+    if (instructorCategorySlug === SPOR_CATEGORY_SLUG) {
+      return orderSporInstructorFields(fields);
+    }
+    if (instructorCategorySlug === KISISEL_GELISIM_CATEGORY_SLUG) {
+      return orderKisiselGelisimInstructorFields(fields);
+    }
+    if (instructorCategorySlug === MESLEKI_EGITIM_CATEGORY_SLUG) {
+      return orderMeslekiEgitimInstructorFields(fields);
+    }
+    if (instructorCategorySlug === OZEL_EGITIM_CATEGORY_SLUG) {
+      return orderOzelEgitimInstructorFields(fields);
+    }
+    if (instructorCategorySlug === SURUCU_KURSU_CATEGORY_SLUG) {
+      return orderSurucuKursuInstructorFields(fields);
+    }
+    if (instructorCategorySlug === PATILI_DOSTLAR_CATEGORY_SLUG) {
+      return orderPatiliDostlarInstructorFields(fields);
+    }
+    return fields;
   }, [instructorSchemaData, instructorCategorySlug]);
 
   const prevInstructorCategorySlugRef = useRef(instructorCategorySlug);
@@ -624,11 +1395,12 @@ function useCategoryFilterSidebarModel({
     setExpandedInstructorBooleanGroupIds(new Set());
   }, [hasInstructorFeatureMode, instructorCategorySlug]);
 
-  // Alt Kategori — institution_types (kategoriye bağlı). Slug verildiğinde aktif.
+  // Alt Kategori — yalnızca Okul sayfasında institution_types (kategoriye bağlı).
   useEffect(() => {
-    if (!hasDynamicFeatureMode) {
+    if (!hasDynamicFeatureMode || !showSchoolSubcategoryFilters) {
       setSubcategoryTypes([]);
       setSelectedSubcategoryId("");
+      setSelectedHighSchoolType("");
       return;
     }
 
@@ -689,15 +1461,18 @@ function useCategoryFilterSidebarModel({
     return () => {
       cancelled = true;
     };
-  }, [effectiveSlug, hasDynamicFeatureMode]);
+  }, [effectiveSlug, hasDynamicFeatureMode, showSchoolSubcategoryFilters]);
+
+  useEffect(() => {
+    if (selectedSubcategoryId !== String(LISE_INSTITUTION_TYPE_ID)) {
+      setSelectedHighSchoolType("");
+    }
+  }, [selectedSubcategoryId]);
 
   // "Başlıca Özellikler" feature group + definitions + choices (slug'tan bağımsız).
   useEffect(() => {
-    if (!hasDynamicFeatureMode) {
+    if (!hasDynamicFeatureMode || !usesGlobalBaslicaCommonFields) {
       setCommonFields([]);
-      setSelectedCommonSingle({});
-      setSelectedCommonMulti({});
-      setSelectedCommonRange({});
       return;
     }
 
@@ -706,7 +1481,7 @@ function useCategoryFilterSidebarModel({
     (async () => {
       const supabase = createSupabaseBrowserClient();
 
-      // Tüm aktif gruplar (genelde küçük bir tablodur); name-eşleşmesiyle "Başlıca Özellikler"i seç.
+      // Global Başlıca: name eşleşmesi + category_slug boş.
       const { data: groupsData, error: groupsError } = await supabase
         .from("institution_feature_groups")
         .select("id, name, display_order, is_active, category_slug")
@@ -725,9 +1500,12 @@ function useCategoryFilterSidebarModel({
       }
 
       const groups = (groupsData ?? []) as FeatureGroupRow[];
-      const commonGroup = groups.find(
-        (g) => (g.name ?? "").trim().toLocaleLowerCase("tr-TR") === COMMON_GROUP_NAME_KEY,
-      );
+      // Yalnız global Başlıca (category_slug boş). Category-specific Başlıca seçilmesin.
+      const commonGroup = groups.find((g) => {
+        const nameKey = (g.name ?? "").trim().toLocaleLowerCase("tr-TR");
+        if (nameKey !== COMMON_GROUP_NAME_KEY) return false;
+        return !String(g.category_slug ?? "").trim();
+      });
       if (!commonGroup) {
         setCommonFields([]);
         return;
@@ -847,7 +1625,7 @@ function useCategoryFilterSidebarModel({
     return () => {
       cancelled = true;
     };
-  }, [hasDynamicFeatureMode]);
+  }, [hasDynamicFeatureMode, usesGlobalBaslicaCommonFields]);
 
   const handleFilterChange = (updates: Partial<FilterState>) => {
     const nextSearch = updates.search !== undefined ? updates.search : displaySearch;
@@ -989,6 +1767,38 @@ function useCategoryFilterSidebarModel({
     });
   };
 
+  const setPatiliPriceRange = (
+    definitionId: number,
+    choices: Array<{ id: number; name: string }>,
+    value: PriceRangeSliderValue,
+  ) => {
+    setPatiliPriceSliderRange((prev) => {
+      const next = { ...prev };
+      if (!value) {
+        delete next[definitionId];
+      } else {
+        next[definitionId] = value;
+      }
+      return next;
+    });
+
+    setSelectedCommonMulti((prev) => {
+      const next = { ...prev };
+      if (!value) {
+        delete next[definitionId];
+        return next;
+      }
+
+      const overlappingIds = resolveOverlappingPriceChoiceIds(choices, value);
+      if (overlappingIds.length === 0) {
+        delete next[definitionId];
+      } else {
+        next[definitionId] = new Set(overlappingIds);
+      }
+      return next;
+    });
+  };
+
   /** Öğrenci yaşı: bağımsız ham metin (ana sayfa ile aynı). */
   const setStudentAgeRange = (value: StudentAgeFilterTextPayload | null) => {
     setSelectedStudentAgeRange(value);
@@ -1053,6 +1863,10 @@ function useCategoryFilterSidebarModel({
     const institutionTypeId =
       rawSub && Number.isFinite(Number(rawSub)) && Number(rawSub) > 0 ? Number(rawSub) : null;
 
+    const rawHighSchool = selectedHighSchoolType.trim();
+    const highSchoolType =
+      institutionTypeId === LISE_INSTITUTION_TYPE_ID && rawHighSchool ? rawHighSchool : null;
+
     const commonSingle: Record<number, string> = {};
     for (const [k, v] of Object.entries(selectedCommonSingle)) {
       const id = Number(k);
@@ -1091,6 +1905,7 @@ function useCategoryFilterSidebarModel({
 
     emitPayload({
       institutionTypeId,
+      highSchoolType,
       commonSingle,
       commonMulti,
       commonRange,
@@ -1103,6 +1918,7 @@ function useCategoryFilterSidebarModel({
   }, [
     hasDynamicFeatureMode,
     selectedSubcategoryId,
+    selectedHighSchoolType,
     commonSingleKey,
     commonMultiKey,
     commonRangeKey,
@@ -1191,6 +2007,7 @@ function useCategoryFilterSidebarModel({
     if (String(displayDistrict ?? "").trim()) return true;
     if (String(selectedCategory ?? "").trim()) return true;
     if (String(selectedSubcategoryId ?? "").trim()) return true;
+    if (String(selectedHighSchoolType ?? "").trim()) return true;
     if (priceRange != null) return true;
     if (isStudentAgeFilterTextActive(selectedStudentAgeRange)) return true;
     for (const v of Object.values(selectedCommonSingle)) {
@@ -1199,6 +2016,9 @@ function useCategoryFilterSidebarModel({
     }
     for (const set of Object.values(selectedCommonMulti)) {
       if ((set?.size ?? 0) > 0) return true;
+    }
+    for (const range of Object.values(patiliPriceSliderRange)) {
+      if (range != null) return true;
     }
     for (const r of Object.values(selectedCommonRange)) {
       if (String(r?.min ?? "").trim() !== "" || String(r?.max ?? "").trim() !== "") return true;
@@ -1218,10 +2038,12 @@ function useCategoryFilterSidebarModel({
     displayDistrict,
     selectedCategory,
     selectedSubcategoryId,
+    selectedHighSchoolType,
     priceRange,
     selectedCommonSingle,
     selectedCommonMulti,
     selectedCommonRange,
+    patiliPriceSliderRange,
     selectedStudentAgeRange,
     selectedFeatureOptionsByGroup,
     hasInstructorFeatureMode,
@@ -1238,14 +2060,7 @@ function useCategoryFilterSidebarModel({
     setDistrict("");
     setSelectedCategory("");
     setPriceRange(null);
-    setSelectedSubcategoryId("");
-    setSelectedCommonSingle({});
-    setSelectedCommonMulti({});
-    setSelectedCommonRange({});
-    setSelectedStudentAgeRange(null);
-    setSelectedFeatureOptionsByGroup({});
-    setExpandedGroupIds(new Set());
-    setExpandedCommonMultiIds(new Set());
+    resetCategoryFeatureFilters();
     setSelectedInstructorBoolean({});
     setExpandedInstructorMultiIds(new Set());
     setExpandedInstructorBooleanGroupIds(new Set());
@@ -1258,7 +2073,14 @@ function useCategoryFilterSidebarModel({
       category: "",
       priceRange: null,
     });
-  }, [isLinkedSearch, isLinkedDistrict, onLinkedSearchChange, onLinkedDistrictChange, onFilterChange]);
+  }, [
+    isLinkedSearch,
+    isLinkedDistrict,
+    onLinkedSearchChange,
+    onLinkedDistrictChange,
+    onFilterChange,
+    resetCategoryFeatureFilters,
+  ]);
 
   return {
     categories,
@@ -1280,7 +2102,14 @@ function useCategoryFilterSidebarModel({
     subcategoryTypes,
     selectedSubcategoryId,
     setSelectedSubcategoryId,
+    selectedHighSchoolType,
+    setSelectedHighSchoolType,
+    showSchoolSubcategoryFilters,
     commonFields,
+    patiliBaslicaFields,
+    isPatiliDostlarCategory,
+    usesGlobalBaslicaCommonFields,
+    patiliPriceSliderRange,
     selectedCommonSingle,
     setSelectedCommonSingle,
     selectedCommonMulti,
@@ -1293,6 +2122,7 @@ function useCategoryFilterSidebarModel({
     toggleCommonMultiExpanded,
     setCommonRange,
     setCommonPriceRange,
+    setPatiliPriceRange,
     setCommonAgeRange,
     setStudentAgeRange,
     selectedStudentAgeRange,
@@ -1419,7 +2249,17 @@ function CategoryFilterSidebarView({
     featureGroupsError,
     selectedFeatureOptionsByGroup,
     expandedGroupIds,
+    subcategoryTypes,
+    selectedSubcategoryId,
+    setSelectedSubcategoryId,
+    selectedHighSchoolType,
+    setSelectedHighSchoolType,
+    showSchoolSubcategoryFilters,
     commonFields,
+    patiliBaslicaFields,
+    isPatiliDostlarCategory,
+    usesGlobalBaslicaCommonFields,
+    patiliPriceSliderRange,
     selectedCommonSingle,
     setSelectedCommonSingle,
     selectedCommonMulti,
@@ -1432,6 +2272,7 @@ function CategoryFilterSidebarView({
     toggleCommonMultiExpanded,
     setCommonRange,
     setCommonPriceRange,
+    setPatiliPriceRange,
     setCommonAgeRange,
     setStudentAgeRange,
     selectedStudentAgeRange,
@@ -1453,6 +2294,61 @@ function CategoryFilterSidebarView({
   } = model;
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  const isKursSinavaHazirlikInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === KURS_SINAVA_HAZIRLIK_CATEGORY_SLUG;
+  const isYabanciDilInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === YABANCI_DIL_CATEGORY_SLUG;
+  const isSanatInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === SANAT_CATEGORY_SLUG;
+  const isSporInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === SPOR_CATEGORY_SLUG;
+  const isKisiselGelisimInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === KISISEL_GELISIM_CATEGORY_SLUG;
+  const isMeslekiEgitimInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === MESLEKI_EGITIM_CATEGORY_SLUG;
+  const isOzelEgitimInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === OZEL_EGITIM_CATEGORY_SLUG;
+  const isSurucuKursuInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === SURUCU_KURSU_CATEGORY_SLUG;
+  const isPatiliDostlarInstructorCategory =
+    hasInstructorFeatureMode &&
+    String(selectedCategory ?? "").trim() === PATILI_DOSTLAR_CATEGORY_SLUG;
+  const patiliHasHizmetYeriField =
+    isPatiliDostlarInstructorCategory &&
+    instructorFields.some(
+      (field) => normalizePatiliDostlarFilterOrderKey(field.name) === "hizmet yeri",
+    );
+  const usesInjectedAgePriceInstructorOrder =
+    isKursSinavaHazirlikInstructorCategory ||
+    isYabanciDilInstructorCategory ||
+    isSanatInstructorCategory ||
+    isSporInstructorCategory ||
+    isKisiselGelisimInstructorCategory ||
+    isMeslekiEgitimInstructorCategory ||
+    isOzelEgitimInstructorCategory ||
+    isSurucuKursuInstructorCategory ||
+    isPatiliDostlarInstructorCategory;
+
+  const renderInstructorPriceFilterSection = (keySuffix: string) => (
+    <div className="category-filter-section" key={`instructor-price-${keySuffix}`}>
+      <CategoryFilterSectionTitle title="AYLIK ORTALAMA FİYAT ARALIĞI" />
+      <PriceRangeSliderFilter
+        value={priceRange}
+        onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
+        className="category-filter-price-slider"
+      />
+    </div>
+  );
+
   const getCommonRangeSliderValue = (definitionId: number): PriceRangeSliderValue => {
     const current = selectedCommonRange[definitionId];
     if (!current) return null;
@@ -1475,9 +2371,7 @@ function CategoryFilterSidebarView({
 
   const renderStudentAgeFilterSection = (keySuffix: string) => (
     <div className="category-filter-section" key={`student-age-${keySuffix}`}>
-      <h3 className="category-filter-section-title">
-        {STUDENT_AGE_RANGE_LABEL.toLocaleUpperCase("tr-TR")}
-      </h3>
+      <CategoryFilterSectionTitle title={STUDENT_AGE_RANGE_LABEL.toLocaleUpperCase("tr-TR")} />
       <AgeRangeSliderFilter
         value={getCommonAgeRangeSliderValue()}
         onChange={setStudentAgeRange}
@@ -1503,6 +2397,7 @@ function CategoryFilterSidebarView({
 
   const hasAdvancedFilters =
     commonFields.length > 0 ||
+    patiliBaslicaFields.length > 0 ||
     renderedFeatureGroups.length > 0 ||
     instructorFields.length > 0;
   const showLoginHint =
@@ -1538,7 +2433,7 @@ function CategoryFilterSidebarView({
             />
           ) : null}
           <div className="category-filter-section">
-            <h3 className="category-filter-section-title">ARAMA</h3>
+            <CategoryFilterSectionTitle title="ARAMA" />
             <div className="category-filter-section-inputs">
               <div className="category-filter-search-wrapper">
                 <Search size={18} className="category-filter-search-icon" />
@@ -1554,7 +2449,7 @@ function CategoryFilterSidebarView({
           </div>
 
           <div className="category-filter-section">
-            <h3 className="category-filter-section-title">KONUM</h3>
+            <CategoryFilterSectionTitle title="KONUM" />
             <div className="category-filter-section-inputs">
               <Select value={city} disabled>
                 <SelectTrigger className="category-filter-select">
@@ -1643,20 +2538,80 @@ function CategoryFilterSidebarView({
             </div>
           ) : null}
 
-          {hasInstructorFeatureMode ? (
+          {showSchoolSubcategoryFilters && subcategoryTypes.length > 0 ? (
             <div className="category-filter-section">
-              <h3 className="category-filter-section-title">AYLIK ORTALAMA FİYAT ARALIĞI</h3>
-              <PriceRangeSliderFilter
-                value={priceRange}
-                onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
-                className="category-filter-price-slider"
-              />
+              <CategoryFilterSectionTitle title="ALT KATEGORİ" />
+              <div className="category-filter-section-inputs">
+                <Select
+                  value={selectedSubcategoryId ? selectedSubcategoryId : CLEAR_SUBCATEGORY_VALUE}
+                  onValueChange={(value) =>
+                    setSelectedSubcategoryId(value === CLEAR_SUBCATEGORY_VALUE ? "" : value)
+                  }
+                >
+                  <SelectTrigger className="category-filter-select">
+                    <SelectValue placeholder="Alt Kategori Seçin" />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="select-content home-location-dropdown"
+                    side="bottom"
+                    avoidCollisions={false}
+                  >
+                    <SelectItem value={CLEAR_SUBCATEGORY_VALUE} className="select-item">
+                      Tüm Alt Kategoriler
+                    </SelectItem>
+                    {subcategoryTypes.map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)} className="select-item">
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          ) : null}
+
+          {showSchoolSubcategoryFilters &&
+          selectedSubcategoryId === String(LISE_INSTITUTION_TYPE_ID) ? (
+            <div className="category-filter-section">
+              <CategoryFilterSectionTitle title="LİSE TÜRÜ" />
+              <div className="category-filter-section-inputs">
+                <Select
+                  value={selectedHighSchoolType ? selectedHighSchoolType : CLEAR_HIGH_SCHOOL_TYPE_VALUE}
+                  onValueChange={(value) =>
+                    setSelectedHighSchoolType(value === CLEAR_HIGH_SCHOOL_TYPE_VALUE ? "" : value)
+                  }
+                >
+                  <SelectTrigger className="category-filter-select">
+                    <SelectValue placeholder="Lise Türü Seçin" />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="select-content home-location-dropdown"
+                    side="bottom"
+                    avoidCollisions={false}
+                  >
+                    <SelectItem value={CLEAR_HIGH_SCHOOL_TYPE_VALUE} className="select-item">
+                      Tüm Lise Türleri
+                    </SelectItem>
+                    {HIGH_SCHOOL_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.slug} value={option.slug} className="select-item">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
+
+          {hasInstructorFeatureMode && !usesInjectedAgePriceInstructorOrder ? (
+            renderInstructorPriceFilterSection("default")
           ) : null}
 
           {hasDynamicFeatureMode || hasInstructorFeatureMode ? (
             <>
-              {renderStudentAgeFilterSection(hasInstructorFeatureMode ? "instructor" : "school")}
+              {!isPatiliDostlarCategory && !usesInjectedAgePriceInstructorOrder
+                ? renderStudentAgeFilterSection(hasInstructorFeatureMode ? "instructor" : "school")
+                : null}
               {hasInstructorFeatureMode ? (
                 <>
                   {instructorFieldsLoading ? (
@@ -1669,6 +2624,186 @@ function CategoryFilterSidebarView({
                     </div>
                   ) : (
                     instructorFields.map((field) => {
+                      const fieldOrderKey = normalizeInstructorFilterOrderKey(field.name);
+                      const wrapOrderedInstructorSpecialSections = (
+                        section: ReactNode,
+                        sectionKey: string,
+                      ): ReactNode => {
+                        if (section == null) return section;
+
+                        if (isKursSinavaHazirlikInstructorCategory) {
+                          if (fieldOrderKey === "kurs turleri") {
+                            return (
+                              <Fragment key={`kurs-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("kurs-sinava-hazirlik")}
+                              </Fragment>
+                            );
+                          }
+                          if (fieldOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`kurs-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("kurs-sinava-hazirlik")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isYabanciDilInstructorCategory) {
+                          if (fieldOrderKey === "yabanci dil turleri") {
+                            return (
+                              <Fragment key={`yabanci-dil-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("yabanci-dil")}
+                              </Fragment>
+                            );
+                          }
+                          if (fieldOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`yabanci-dil-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("yabanci-dil")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isSanatInstructorCategory) {
+                          if (fieldOrderKey === "sanat turleri") {
+                            return (
+                              <Fragment key={`sanat-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("sanat")}
+                              </Fragment>
+                            );
+                          }
+                          if (fieldOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`sanat-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("sanat")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isSporInstructorCategory) {
+                          if (fieldOrderKey === "spor turleri") {
+                            return (
+                              <Fragment key={`spor-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("spor")}
+                              </Fragment>
+                            );
+                          }
+                          if (fieldOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`spor-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("spor")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isKisiselGelisimInstructorCategory) {
+                          const kisiselOrderKey = normalizeKisiselGelisimFilterOrderKey(field.name);
+                          if (kisiselOrderKey === "egitim turleri") {
+                            return (
+                              <Fragment key={`kisisel-gelisim-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("kisisel-gelisim")}
+                              </Fragment>
+                            );
+                          }
+                          if (kisiselOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`kisisel-gelisim-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("kisisel-gelisim")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isMeslekiEgitimInstructorCategory) {
+                          const meslekiOrderKey = normalizeMeslekiEgitimFilterOrderKey(field.name);
+                          if (meslekiOrderKey === "egitim turleri") {
+                            return (
+                              <Fragment key={`mesleki-egitim-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("mesleki-egitim")}
+                              </Fragment>
+                            );
+                          }
+                          if (meslekiOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`mesleki-egitim-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("mesleki-egitim")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isOzelEgitimInstructorCategory) {
+                          const ozelOrderKey = normalizeOzelEgitimFilterOrderKey(field.name);
+                          if (ozelOrderKey === "ozel egitim turleri") {
+                            return (
+                              <Fragment key={`ozel-egitim-slot-${sectionKey}`}>
+                                {section}
+                                {renderStudentAgeFilterSection("ozel-egitim")}
+                              </Fragment>
+                            );
+                          }
+                          if (ozelOrderKey === "hizmet yeri") {
+                            return (
+                              <Fragment key={`ozel-egitim-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("ozel-egitim")}
+                              </Fragment>
+                            );
+                          }
+                          return section;
+                        }
+
+                        if (isSurucuKursuInstructorCategory) {
+                          const surucuOrderKey = normalizeSurucuKursuFilterOrderKey(field.name);
+                          if (surucuOrderKey === "arac imkani") {
+                            return (
+                              <Fragment key={`surucu-kursu-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("surucu-kursu")}
+                              </Fragment>
+                            );
+                          }
+                        }
+
+                        if (isPatiliDostlarInstructorCategory) {
+                          const patiliOrderKey = normalizePatiliDostlarFilterOrderKey(field.name);
+                          const shouldInjectPatiliPrice =
+                            patiliOrderKey === "hizmet yeri" ||
+                            (!patiliHasHizmetYeriField && patiliOrderKey === "hizmet tipi");
+                          if (shouldInjectPatiliPrice) {
+                            return (
+                              <Fragment key={`patili-dostlar-slot-${sectionKey}`}>
+                                {section}
+                                {renderInstructorPriceFilterSection("patili-dostlar")}
+                              </Fragment>
+                            );
+                          }
+                        }
+
+                        return section;
+                      };
+
                       if (field.kind === "boolean_group") {
                         const isExpanded = expandedInstructorBooleanGroupIds.has(field.groupId);
                         const sortedOptions = sortCheckboxOptionsByLabel(
@@ -1680,14 +2815,12 @@ function CategoryFilterSidebarView({
                           : sortedOptions.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
                         const hasMore = sortedOptions.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
 
-                        return (
+                        return wrapOrderedInstructorSpecialSections(
                           <div
                             className="category-filter-section"
                             key={`instructor-bool-group-${field.groupId}`}
                           >
-                            <h3 className="category-filter-section-title">
-                              {field.name.toLocaleUpperCase("tr-TR")}
-                            </h3>
+                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                             <div className={checkboxListClassName(sortedOptions.length)}>
                               {visibleOptions.map((option) => {
                                 const isChecked = Boolean(
@@ -1725,20 +2858,19 @@ function CategoryFilterSidebarView({
                                   : `Daha Fazla Göster (+${sortedOptions.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
                               </button>
                             ) : null}
-                          </div>
+                          </div>,
+                          `bool-group-${field.groupId}`,
                         );
                       }
 
                       if (field.kind === "boolean") {
                         const isChecked = Boolean(selectedInstructorBoolean[field.definitionId]);
-                        return (
+                        return wrapOrderedInstructorSpecialSections(
                           <div
                             className="category-filter-section"
                             key={`instructor-bool-${field.definitionId}`}
                           >
-                            <h3 className="category-filter-section-title">
-                              {field.name.toLocaleUpperCase("tr-TR")}
-                            </h3>
+                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                             <div className={checkboxListClassName(1)}>
                               <label
                                 className={`category-filter-checkbox-option${
@@ -1754,7 +2886,8 @@ function CategoryFilterSidebarView({
                                 <span className="category-filter-checkbox-label">{field.name}</span>
                               </label>
                             </div>
-                          </div>
+                          </div>,
+                          `bool-${field.definitionId}`,
                         );
                       }
 
@@ -1763,14 +2896,12 @@ function CategoryFilterSidebarView({
                         const selectValue = selectedValue
                           ? String(selectedValue)
                           : CLEAR_SINGLE_SELECT_VALUE;
-                        return (
+                        return wrapOrderedInstructorSpecialSections(
                           <div
                             className="category-filter-section"
                             key={`instructor-single-${field.definitionId}`}
                           >
-                            <h3 className="category-filter-section-title">
-                              {field.name.toLocaleUpperCase("tr-TR")}
-                            </h3>
+                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                             <div className="category-filter-section-inputs">
                               <Select
                                 value={selectValue}
@@ -1808,7 +2939,8 @@ function CategoryFilterSidebarView({
                                 </SelectContent>
                               </Select>
                             </div>
-                          </div>
+                          </div>,
+                          `single-${field.definitionId}`,
                         );
                       }
 
@@ -1828,14 +2960,12 @@ function CategoryFilterSidebarView({
                           ? sortedChoices
                           : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
                         const hasMore = sortedChoices.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
-                        return (
+                        return wrapOrderedInstructorSpecialSections(
                           <div
                             className="category-filter-section"
                             key={`instructor-multi-${field.definitionId}`}
                           >
-                            <h3 className="category-filter-section-title">
-                              {field.name.toLocaleUpperCase("tr-TR")}
-                            </h3>
+                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                             <div className={checkboxListClassName(sortedChoices.length)}>
                               {visibleChoices.map((choice) => {
                                 const key = String(choice.id);
@@ -1874,19 +3004,18 @@ function CategoryFilterSidebarView({
                                   : `Daha Fazla Göster (+${sortedChoices.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
                               </button>
                             ) : null}
-                          </div>
+                          </div>,
+                          `multi-${field.definitionId}`,
                         );
                       }
 
                       const value = selectedCommonRange[field.definitionId] ?? { min: "", max: "" };
-                      return (
+                      return wrapOrderedInstructorSpecialSections(
                         <div
                           className="category-filter-section"
                           key={`instructor-number-${field.definitionId}`}
                         >
-                          <h3 className="category-filter-section-title">
-                            {field.name.toLocaleUpperCase("tr-TR")}
-                          </h3>
+                          <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                           <div className="category-filter-price-inputs">
                             <Input
                               type="number"
@@ -1910,14 +3039,15 @@ function CategoryFilterSidebarView({
                               className="category-filter-price-input"
                             />
                           </div>
-                        </div>
+                        </div>,
+                        `number-${field.definitionId}`,
                       );
                     })
                   )}
                 </>
               ) : null}
 
-              {hasDynamicFeatureMode
+              {hasDynamicFeatureMode && usesGlobalBaslicaCommonFields
                 ? commonFields.map((field) => {
                 if (field.kind === "single_select") {
                   if (isPriceRangeCommonField(field)) {
@@ -1926,9 +3056,7 @@ function CategoryFilterSidebarView({
                         className="category-filter-section"
                         key={`common-${field.definitionId}`}
                       >
-                        <h3 className="category-filter-section-title">
-                          {field.name.toLocaleUpperCase("tr-TR")}
-                        </h3>
+                        <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                         <PriceRangeSliderFilter
                           value={getCommonRangeSliderValue(field.definitionId)}
                           onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
@@ -1944,9 +3072,7 @@ function CategoryFilterSidebarView({
                       className="category-filter-section"
                       key={`common-${field.definitionId}`}
                     >
-                      <h3 className="category-filter-section-title">
-                        {field.name.toLocaleUpperCase("tr-TR")}
-                      </h3>
+                      <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                       <div className="category-filter-section-inputs">
                         <Select
                           value={selectValue}
@@ -1991,9 +3117,7 @@ function CategoryFilterSidebarView({
                         className="category-filter-section"
                         key={`common-${field.definitionId}`}
                       >
-                        <h3 className="category-filter-section-title">
-                          {field.name.toLocaleUpperCase("tr-TR")}
-                        </h3>
+                        <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                         <PriceRangeSliderFilter
                           value={getCommonRangeSliderValue(field.definitionId)}
                           onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
@@ -2008,9 +3132,7 @@ function CategoryFilterSidebarView({
                       className="category-filter-section"
                       key={`common-${field.definitionId}`}
                     >
-                      <h3 className="category-filter-section-title">
-                        {field.name.toLocaleUpperCase("tr-TR")}
-                      </h3>
+                      <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                       <div className="category-filter-price-inputs">
                         <Input
                           type="number"
@@ -2045,9 +3167,7 @@ function CategoryFilterSidebarView({
                         className="category-filter-section"
                         key={`common-${field.definitionId}`}
                       >
-                        <h3 className="category-filter-section-title">
-                          {field.name.toLocaleUpperCase("tr-TR")}
-                        </h3>
+                        <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                         <PriceRangeSliderFilter
                           value={getCommonRangeSliderValue(field.definitionId)}
                           onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
@@ -2071,9 +3191,7 @@ function CategoryFilterSidebarView({
                       className="category-filter-section"
                       key={`common-${field.definitionId}`}
                     >
-                      <h3 className="category-filter-section-title">
-                        {field.name.toLocaleUpperCase("tr-TR")}
-                      </h3>
+                      <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
                       <div className={checkboxListClassName(sortedChoices.length)}>
                         {visibleChoices.map((c) => {
                           const key = String(c.id);
@@ -2118,6 +3236,130 @@ function CategoryFilterSidebarView({
               })
                 : null}
 
+              {isPatiliDostlarCategory && patiliBaslicaFields.length > 0 ? (
+                <>
+                  <div className="category-filter-section">
+                    <CategoryFilterSectionTitle title="BAŞLICA ÖZELLİKLER" />
+                  </div>
+                  {patiliBaslicaFields.map((field) => {
+                    if (field.kind === "single_select") {
+                      const selectedValue = selectedCommonSingle[field.definitionId] ?? "";
+                      const selectValue = selectedValue ? String(selectedValue) : CLEAR_SINGLE_SELECT_VALUE;
+                      return (
+                        <div
+                          className="category-filter-section"
+                          key={`patili-baslica-${field.definitionId}`}
+                        >
+                          <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                          <div className="category-filter-section-inputs">
+                            <Select
+                              value={selectValue}
+                              onValueChange={(value) =>
+                                setSelectedCommonSingle((prev) => ({
+                                  ...prev,
+                                  [field.definitionId]:
+                                    value === CLEAR_SINGLE_SELECT_VALUE ? "" : value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="category-filter-select">
+                                <SelectValue placeholder={field.placeholder} />
+                              </SelectTrigger>
+                              <SelectContent
+                                className="select-content home-location-dropdown"
+                                side="bottom"
+                                avoidCollisions={false}
+                              >
+                                <SelectItem value={CLEAR_SINGLE_SELECT_VALUE} className="select-item">
+                                  Tümü
+                                </SelectItem>
+                                {field.choices.map((c) => (
+                                  <SelectItem key={c.id} value={String(c.id)} className="select-item">
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (field.kind !== "multi_select") return null;
+
+                    if (isInstitutionPriceRangeFieldName(field.name)) {
+                      const sliderValue = patiliPriceSliderRange[field.definitionId] ?? null;
+                      return (
+                        <div
+                          className="category-filter-section"
+                          key={`patili-baslica-${field.definitionId}`}
+                        >
+                          <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                          <PriceRangeSliderFilter
+                            value={sliderValue}
+                            onChange={(nextRange) =>
+                              setPatiliPriceRange(field.definitionId, field.choices, nextRange)
+                            }
+                            className="category-filter-price-slider"
+                          />
+                        </div>
+                      );
+                    }
+
+                    const selectedSet = selectedCommonMulti[field.definitionId] ?? new Set<string>();
+                    const isExpanded = expandedCommonMultiIds.has(field.definitionId);
+                    const sortedChoices = sortCheckboxOptionsByLabel(field.choices, (c) => c.name);
+                    const visibleChoices = isExpanded
+                      ? sortedChoices
+                      : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
+                    const hasMore = sortedChoices.length > FEATURE_OPTIONS_VISIBLE_LIMIT;
+
+                    return (
+                      <div
+                        className="category-filter-section"
+                        key={`patili-baslica-${field.definitionId}`}
+                      >
+                        <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                        <div className={checkboxListClassName(sortedChoices.length)}>
+                          {visibleChoices.map((c) => {
+                            const key = String(c.id);
+                            const isChecked = selectedSet.has(key);
+                            return (
+                              <label
+                                key={c.id}
+                                className={`category-filter-checkbox-option${
+                                  isChecked ? " category-filter-checkbox-option--selected" : ""
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleCommonMulti(field.definitionId, c.id)}
+                                  className="category-filter-checkbox-input"
+                                />
+                                <span className="category-filter-checkbox-label">{c.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {hasMore ? (
+                          <button
+                            type="button"
+                            className="category-filter-show-more"
+                            onClick={() => toggleCommonMultiExpanded(field.definitionId)}
+                            aria-expanded={isExpanded}
+                          >
+                            {isExpanded
+                              ? "Daha Az Göster"
+                              : `Daha Fazla Göster (+${sortedChoices.length - FEATURE_OPTIONS_VISIBLE_LIMIT})`}
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : null}
+
               {hasDynamicFeatureMode ? (
                 featureGroupsLoading ? (
                 <div className="category-filter-section">
@@ -2139,9 +3381,7 @@ function CategoryFilterSidebarView({
 
                   return (
                     <div className="category-filter-section" key={`feature-group-${group.id}`}>
-                      <h3 className="category-filter-section-title">
-                        {group.name.toLocaleUpperCase("tr-TR")}
-                      </h3>
+                      <CategoryFilterSectionTitle title={group.name.toLocaleUpperCase("tr-TR")} />
                       <div className={checkboxListClassName(sortedOptions.length)}>
                         {optionsToShow.map((option) => {
                           const isChecked = selectedKeys.has(option.key);
@@ -2209,7 +3449,7 @@ function CategoryFilterSidebarView({
               </div>
 
               <div className="category-filter-section">
-                <h3 className="category-filter-section-title">AYLIK ORTALAMA FİYAT ARALIĞI</h3>
+                <CategoryFilterSectionTitle title="AYLIK ORTALAMA FİYAT ARALIĞI" />
                 <PriceRangeSliderFilter
                   value={priceRange}
                   onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}

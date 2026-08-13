@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Building2, Heart } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import type { FeaturedInstitution } from "./featuredInstitutions";
+import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
 
 export function FeaturedInstitutionCardLink({
   institution,
@@ -74,6 +75,17 @@ export function FeaturedInstitutionCardLink({
             />
           </motion.div>
         </motion.button>
+        {!isDuplicate && institution.slug ? (
+          <InstitutionCompareToggleButton
+            className="institution-compare-toggle--overlay"
+            item={{
+              id: institution.id,
+              name: institution.name,
+              slug: institution.slug,
+              imageUrl: institution.imageUrl,
+            }}
+          />
+        ) : null}
       </div>
       <div className="featured-institution-content">
         {institution.bodyMainCategory ? (

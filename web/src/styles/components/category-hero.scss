@@ -4,32 +4,8 @@
 
 .category-hero {
   position: relative;
-  background: linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.98) 50%, rgba(255, 255, 255, 1) 100%);
-  padding: 0 0 30px;
-  overflow-x: hidden;
-  overflow-y: visible;
-
-  @media (max-width: 768px) {
-    padding: 0 0 40px;
-  }
-
-  @media (max-width: 480px) {
-    padding: 0 0 28px;
-  }
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(ellipse at 75% 30%, rgba(109, 93, 252, 0.12) 0%, rgba(147, 84, 255, 0.06) 40%, transparent 70%),
-                radial-gradient(ellipse at 20% 50%, rgba(255, 106, 167, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 80%, rgba(109, 93, 252, 0.05) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
+  padding: 0;
+  background: transparent;
 }
 
 .category-hero-container {
@@ -38,7 +14,6 @@
   padding: 0 30px;
   text-align: center;
   position: relative;
-  z-index: 1;
   min-width: 0;
 
   @media (max-width: 640px) {
@@ -52,15 +27,14 @@
 
 .category-hero-search-wrapper {
   position: relative;
-  z-index: 25;
 }
 
 .category-hero-breadcrumb-wrapper {
-  padding: 16px 0 24px;
+  padding: 16px 0 8px;
   text-align: left;
 
   @media (max-width: 640px) {
-    padding: 12px 0 16px;
+    padding: 12px 0 6px;
   }
 }
 
@@ -124,186 +98,3 @@
     font-size: 22px;
   }
 }
-
-.category-hero-popular {
-  margin-top: 18px;
-  padding: 18px;
-  border-radius: 24px;
-  text-align: left;
-  background:
-    radial-gradient(circle at top right, rgba($purple-main, 0.18), transparent 34%),
-    linear-gradient(135deg, #111827 0%, #0f172a 100%);
-}
-
-.category-hero-popular-header {
-  margin-bottom: 18px;
-}
-
-.category-hero-popular-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: $font-bold;
-  line-height: 1.1;
-  color: $bg-white;
-  letter-spacing: -0.02em;
-}
-
-.category-hero-popular-scroller {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  overflow-y: visible;
-  padding-top: 4px;
-  margin-top: -4px;
-  padding-bottom: 6px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-
-  &::-webkit-scrollbar {
-    height: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-  }
-}
-
-.category-hero-popular-card {
-  position: relative;
-  display: flex;
-  flex: 0 0 232px;
-  min-width: 232px;
-  height: 96px;
-  padding: 14px;
-  border: 1px solid rgba($purple-main, 0.34);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  text-decoration: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    border-color: rgba($purple-main, 0.52);
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 14px 24px rgba(15, 23, 42, 0.18);
-  }
-}
-
-.category-hero-popular-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: #f59e0b;
-  color: #fffaf0;
-  font-size: 10px;
-  font-weight: $font-bold;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.category-hero-popular-card-body {
-  display: flex;
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 4px;
-}
-
-.category-hero-popular-card-title-wrap {
-  width: calc(100% - 70px);
-  max-width: calc(100% - 70px);
-  min-width: 0;
-  min-height: 2.3em;
-}
-
-.category-hero-popular-card-name {
-  margin: 0;
-  width: 100%;
-  max-width: 100%;
-  font-size: 16px;
-  font-weight: $font-semibold;
-  line-height: 1.15;
-  color: $bg-white;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  white-space: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.category-hero-popular-card-meta {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.3;
-  color: rgba(255, 255, 255, 0.72);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.category-hero-popular-card-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  min-height: 30px;
-  margin-top: auto;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
-  font-size: 12px;
-  font-weight: $font-semibold;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.category-hero-popular-empty {
-  margin: 0;
-  padding: 12px 0 4px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.76);
-}
-
-@media (max-width: 640px) {
-  .category-hero-popular {
-    margin-top: 16px;
-    padding: 16px;
-    border-radius: 20px;
-  }
-
-  .category-hero-popular-title {
-    font-size: 20px;
-  }
-
-  .category-hero-popular-card {
-    flex-basis: min(220px, calc(100vw - 72px));
-    min-width: min(220px, calc(100vw - 72px));
-  }
-}
-
-

@@ -70,6 +70,7 @@ interface HeaderWithSearchClientProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  searchTypewriterPlaceholders?: readonly string[];
   searchButtonText?: string;
   showSearchButton?: boolean;
 }
@@ -85,6 +86,7 @@ export function HeaderWithSearchClient({
   searchValue = "",
   onSearchChange,
   searchPlaceholder,
+  searchTypewriterPlaceholders,
   searchButtonText,
   showSearchButton = true,
 }: HeaderWithSearchClientProps) {
@@ -107,7 +109,7 @@ export function HeaderWithSearchClient({
   };
 
   const shouldShowCTA = !!user;
-  const institutionDetailHref = institutionSlug ? `/institutions/${institutionSlug}` : "/panel";
+  const institutionDetailHref = institutionSlug ? `/kurumlar/${institutionSlug}` : "/panel";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
@@ -293,6 +295,7 @@ export function HeaderWithSearchClient({
                 value={searchValue}
                 onChange={onSearchChange}
                 placeholder={searchPlaceholder || "Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum"}
+                typewriterPlaceholders={searchTypewriterPlaceholders}
                 buttonText={searchButtonText || "ARA"}
                 showButton={showSearchButton}
               />
@@ -335,18 +338,19 @@ export function HeaderWithSearchClient({
             )}
             {user ? (
             <div className={`header-actions-desktop-menu ${desktopMenuOpen ? "is-open" : ""}`} ref={menuRefDesktop}>
-              <button
-                type="button"
-                className="header-hamburger-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDesktopMenuOpen((prev) => !prev);
-                }}
-                aria-expanded={desktopMenuOpen}
-                aria-label="Menü"
-              >
-                <User className="header-hamburger-btn-icon" aria-hidden />
-              </button>
+                <Button
+                  type="button"
+                  className="header-actions-account-btn button-primary btn-gradient-primary"
+                  variant="default"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDesktopMenuOpen((prev) => !prev);
+                  }}
+                  aria-expanded={desktopMenuOpen}
+                  aria-label="Hesabım"
+                >
+                  Hesabım
+                </Button>
               {desktopMenuOpen && (
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
                   {user &&
@@ -486,6 +490,7 @@ interface HeaderWithSearchProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  searchTypewriterPlaceholders?: readonly string[];
   searchButtonText?: string;
   showSearchButton?: boolean;
 }
@@ -494,6 +499,7 @@ export function HeaderWithSearch({
   searchValue = "",
   onSearchChange,
   searchPlaceholder,
+  searchTypewriterPlaceholders,
   searchButtonText,
   showSearchButton,
 }: HeaderWithSearchProps) {
@@ -657,6 +663,7 @@ export function HeaderWithSearch({
       searchValue={searchValue}
       onSearchChange={onSearchChange}
       searchPlaceholder={searchPlaceholder}
+      searchTypewriterPlaceholders={searchTypewriterPlaceholders}
       searchButtonText={searchButtonText}
       showSearchButton={showSearchButton}
     />

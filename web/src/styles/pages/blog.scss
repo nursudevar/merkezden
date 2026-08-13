@@ -311,13 +311,10 @@
   }
 }
 
-.blog-posts-section-header {
+.blog-posts-section-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 32px;
-  flex-wrap: wrap;
-  gap: 16px;
 
   @media (max-width: 768px) {
     margin-bottom: 28px;
@@ -325,16 +322,7 @@
 
   @media (max-width: 640px) {
     margin-bottom: 24px;
-    flex-direction: column;
-    align-items: flex-start;
   }
-}
-
-.blog-posts-section-title {
-  font-size: $text-2xl;
-  font-weight: $font-bold;
-  color: $text-zinc-900;
-  margin: 0;
 }
 
 .blog-view-toggle {

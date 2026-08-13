@@ -48,7 +48,6 @@ export type InstructorFeatureDefinitionRow = {
   placeholder: string | null;
   unit: string | null;
   display_order: number | null;
-  show_on_filter?: boolean | null;
 };
 
 export type InstructorFeatureChoiceRow = {
@@ -143,13 +142,16 @@ export function getDisplayInstructorFeatureName(name: string): string {
 
 /**
  * Eğitmen tarafında asla gösterilmeyecek tesis/imkan grupları (ad veya slug).
- * Kategori slug allowlist kullanılmaz — DB’deki diğer gruplar kategori eşleşince görünür.
+ * Yalnızca global/legacy gruplar (category_slug boş) için geçerlidir.
+ * Category-specific Fiziki İmkanlar (ör. patili-dostlar) exclude edilmez.
  */
 const INSTRUCTOR_EXCLUDED_FACILITY_GROUP_KEYS = new Set([
   "fiziki_imkanlar",
   "fiziksel_imkanlar",
   "okul_imkanlari",
 ]);
+
+const INSTRUCTOR_BASLICA_GROUP_NAME_KEY = "başlıca özellikler";
 
 function normalizeInstructorGroupKey(value: string): string {
   return value
@@ -165,9 +167,31 @@ function normalizeInstructorGroupKey(value: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+function normalizeInstructorGroupNameKey(name: string | null | undefined): string {
+  return String(name ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR");
+}
+
+function normalizeInstructorGroupCategorySlug(slug: string | null | undefined): string {
+  return String(slug ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i");
+}
+
+export function isInstructorBaslicaFeatureGroupName(name: string | null | undefined): boolean {
+  return normalizeInstructorGroupNameKey(name) === INSTRUCTOR_BASLICA_GROUP_NAME_KEY;
+}
+
 export function isInstructorExcludedFacilityGroup(
-  group: Pick<InstructorFeatureGroupRow, "name" | "slug">,
+  group: Pick<InstructorFeatureGroupRow, "name" | "slug" | "category_slug">,
 ): boolean {
+  // Category-specific gruplar legacy tesis exclude'una girmez.
+  if (normalizeInstructorGroupCategorySlug(group.category_slug).length > 0) {
+    return false;
+  }
+
   const keys = [
     normalizeInstructorGroupKey(String(group.name ?? "")),
     normalizeInstructorGroupKey(String(group.slug ?? "")),
@@ -203,14 +227,75 @@ export function isInstructorFeatureGroupVisibleForCategory(
 ): boolean {
   if (isInstructorExcludedFacilityGroup(group)) return false;
 
-  const groupCategorySlug = (group.category_slug ?? "").trim();
+  const groupCategorySlug = normalizeInstructorGroupCategorySlug(group.category_slug);
   // Genel gruplar (category_slug boş) — hariç tutulanlar dışında herkese
   if (!groupCategorySlug) return true;
 
   if (instructorCategorySlug == null) return false;
   return (
-    groupCategorySlug.toLocaleLowerCase("tr-TR") ===
-    instructorCategorySlug.trim().toLocaleLowerCase("tr-TR")
+    groupCategorySlug ===
+    normalizeInstructorGroupCategorySlug(instructorCategorySlug)
+  );
+}
+
+/**
+ * Panel / public görünür grupları: visibility + category-specific aynı isimli grup varsa global fallback gizlenir.
+ * Örn. Patili Başlıca varken global Başlıca dahil edilmez; category-specific yoksa global kalır.
+ */
+export function resolveInstructorFeatureGroupsForActiveCategory(
+  groups: InstructorFeatureGroupRow[],
+  instructorCategorySlug: string | null,
+): InstructorFeatureGroupRow[] {
+  const visible = groups.filter((group) =>
+    isInstructorFeatureGroupVisibleForCategory(group, instructorCategorySlug),
+  );
+
+  const activeSlug = normalizeInstructorGroupCategorySlug(instructorCategorySlug);
+  if (!activeSlug) return visible;
+
+  const categorySpecificNameKeys = new Set(
+    visible
+      .filter(
+        (group) => normalizeInstructorGroupCategorySlug(group.category_slug) === activeSlug,
+      )
+      .map((group) => normalizeInstructorGroupNameKey(group.name))
+      .filter(Boolean),
+  );
+
+  if (categorySpecificNameKeys.size === 0) return visible;
+
+  return visible.filter((group) => {
+    const groupSlug = normalizeInstructorGroupCategorySlug(group.category_slug);
+    if (groupSlug) return true;
+    const nameKey = normalizeInstructorGroupNameKey(group.name);
+    return !categorySpecificNameKeys.has(nameKey);
+  });
+}
+
+/**
+ * Public profil Başlıca: aktif kategoriye özel Başlıca varsa onu, yoksa global (category_slug boş) Başlıca.
+ */
+export function resolveInstructorBaslicaFeatureGroupForCategory(
+  groups: InstructorFeatureGroupRow[],
+  instructorCategorySlug: string | null,
+): InstructorFeatureGroupRow | undefined {
+  const categorySlug = normalizeInstructorGroupCategorySlug(instructorCategorySlug);
+
+  const categorySpecificBaslica =
+    categorySlug.length > 0
+      ? groups.find(
+          (group) =>
+            isInstructorBaslicaFeatureGroupName(group.name) &&
+            normalizeInstructorGroupCategorySlug(group.category_slug) === categorySlug,
+        )
+      : undefined;
+
+  if (categorySpecificBaslica) return categorySpecificBaslica;
+
+  return groups.find(
+    (group) =>
+      isInstructorBaslicaFeatureGroupName(group.name) &&
+      normalizeInstructorGroupCategorySlug(group.category_slug).length === 0,
   );
 }
 
@@ -219,7 +304,8 @@ export function filterInstructorFeatureGroupsForListingFilter(
   selectedCategorySlug: string | null | undefined,
 ): InstructorFeatureGroupRow[] {
   const normalizedSlug = String(selectedCategorySlug ?? "").trim() || null;
-  return groups.filter((group) => isInstructorFeatureGroupVisibleForCategory(group, normalizedSlug));
+  // Listing: visibility + category-specific aynı isimli grup varken global fallback gizlenir.
+  return resolveInstructorFeatureGroupsForActiveCategory(groups, normalizedSlug);
 }
 
 export function buildInstructorFilterFieldsForListingCategory(
@@ -290,12 +376,24 @@ export function isInstructorPanelHiddenFeature(
   return isInstructorMinPriceFeature(feature) || isInstructorMaxPriceFeature(feature);
 }
 
+/**
+ * Fiyat aralığı definition tanıma (overlap):
+ * - fiyat_araligi / …fiyat_araligi…
+ * - Aylık Ortalama Fiyat Aralığı
+ * - patili-dostlar-fiyat-araligi
+ * Ücret Tipi gibi alanları yakalamaz.
+ */
 export function isInstructorPriceRangeFeature(
   feature: Pick<InstructorFeatureDefinitionRow, "name" | "slug">,
 ): boolean {
-  return featureNormalizedKeys(feature).some(
-    (key) => key === "fiyat_araligi" || key.includes("fiyat_araligi"),
-  );
+  return featureNormalizedKeys(feature).some((key) => {
+    if (key.includes("ucret_tipi") || key === "ucret_tipi") return false;
+    if (key.includes("fiyat_araligi")) return true;
+    if (key.includes("aylik_ortalama_fiyat")) return true;
+    if (key.includes("ortalama_fiyat_araligi")) return true;
+    if (key.includes("patili_dostlar_fiyat")) return true;
+    return false;
+  });
 }
 
 export const INSTRUCTOR_PRICE_RANGE_FEATURE_SLUG = "fiyat_araligi";
@@ -312,45 +410,62 @@ export function formatInstructorPriceRangeDisplay(labels: string | string[]): st
 }
 
 let cachedInstructorPriceRangeDefinitionId: number | null | undefined;
+let cachedInstructorPriceRangeDefinitionIds: number[] | undefined;
 
 export async function fetchInstructorPriceRangeDefinitionIdClient(
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<number | null> {
-  if (cachedInstructorPriceRangeDefinitionId !== undefined) {
-    return cachedInstructorPriceRangeDefinitionId;
+  const ids = await fetchInstructorPriceRangeDefinitionIdsClient(supabaseArg);
+  return ids[0] ?? null;
+}
+
+/** Tüm fiyat-aralığı definition id'leri (global + category-specific). */
+export async function fetchInstructorPriceRangeDefinitionIdsClient(
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<number[]> {
+  if (cachedInstructorPriceRangeDefinitionIds !== undefined) {
+    return cachedInstructorPriceRangeDefinitionIds;
   }
 
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("instructor_feature_definitions")
-    .select("id, slug, name")
-    .eq("slug", INSTRUCTOR_PRICE_RANGE_FEATURE_SLUG)
-    .maybeSingle();
-
-  if (!error && data) {
-    const id = Number(data.id);
-    if (Number.isFinite(id) && id > 0) {
-      cachedInstructorPriceRangeDefinitionId = id;
-      return id;
-    }
-  }
-
   const { data: allDefs, error: allErr } = await supabase
     .from("instructor_feature_definitions")
     .select("id, slug, name");
 
   if (allErr) {
     cachedInstructorPriceRangeDefinitionId = null;
-    return null;
+    cachedInstructorPriceRangeDefinitionIds = [];
+    return [];
   }
 
-  const match = (allDefs ?? []).find((row) =>
+  const matches = (allDefs ?? []).filter((row) =>
     isInstructorPriceRangeFeature(row as InstructorFeatureDefinitionRow),
   );
-  const id = Number(match?.id);
-  cachedInstructorPriceRangeDefinitionId =
-    Number.isFinite(id) && id > 0 ? id : null;
-  return cachedInstructorPriceRangeDefinitionId;
+
+  const ids: number[] = [];
+  const seen = new Set<number>();
+  // Önce klasik slug, sonra diğer eşleşmeler (Patili vb.).
+  const preferred = matches.find(
+    (row) =>
+      normalizeInstructorFeatureText(String(row.slug ?? "")) === INSTRUCTOR_PRICE_RANGE_FEATURE_SLUG,
+  );
+  if (preferred) {
+    const id = Number(preferred.id);
+    if (Number.isFinite(id) && id > 0) {
+      ids.push(id);
+      seen.add(id);
+    }
+  }
+  for (const row of matches) {
+    const id = Number(row.id);
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
+    ids.push(id);
+    seen.add(id);
+  }
+
+  cachedInstructorPriceRangeDefinitionIds = ids;
+  cachedInstructorPriceRangeDefinitionId = ids[0] ?? null;
+  return ids;
 }
 
 export async function fetchInstructorPriceRangeLabelsByInstructorIdsClient(
@@ -364,13 +479,13 @@ export async function fetchInstructorPriceRangeLabelsByInstructorIdsClient(
   if (uniqueIds.length === 0) return result;
 
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const definitionId = await fetchInstructorPriceRangeDefinitionIdClient(supabase);
-  if (!definitionId) return result;
+  const definitionIds = await fetchInstructorPriceRangeDefinitionIdsClient(supabase);
+  if (definitionIds.length === 0) return result;
 
   const { data: entriesRaw, error: entriesError } = await supabase
     .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
     .select("id, instructor_id")
-    .eq("feature_definition_id", definitionId)
+    .in("feature_definition_id", definitionIds)
     .in("instructor_id", uniqueIds);
 
   if (entriesError || !entriesRaw?.length) return result;
@@ -948,10 +1063,9 @@ export async function fetchInstructorFeatureFilterSchemaDataClient(
     supabase
       .from("instructor_feature_definitions")
       .select(
-        "id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order, is_active, show_on_filter",
+        "id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order, is_active",
       )
       .eq("is_active", true)
-      .eq("show_on_filter", true)
       .order("display_order", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true }),
     supabase
@@ -1020,7 +1134,6 @@ export function buildInstructorFilterFieldsFromSchema(
 
   const definitionsByGroup = new Map<number, InstructorFeatureDefinitionRow[]>();
   for (const definition of definitions) {
-    if (definition.show_on_filter === false) continue;
     const groupId = Number(definition.group_id);
     if (!Number.isFinite(groupId)) continue;
     const name = String(definition.name ?? "").trim();
@@ -1365,6 +1478,103 @@ export function buildInstructorFeatureFormStateFromEntries(
   };
 }
 
+export type InstructorFeatureDefinitionRef = Pick<
+  InstructorFeatureDefinitionRow,
+  "id" | "input_type" | "name" | "slug"
+>;
+
+export function createEmptyInstructorFeatureFormState(): InstructorFeatureFormState {
+  return {
+    booleanValues: {},
+    textValues: {},
+    numberValues: {},
+    dateValues: {},
+    singleSelectValues: {},
+    multiSelectValues: {},
+  };
+}
+
+/** Panelde görünür gruplardan geçerli definition id set'i. */
+export function collectDefinitionIdsFromInstructorFeatureGroups(
+  groups: Array<{ features: Array<{ id: number }> }>,
+): Set<number> {
+  const ids = new Set<number>();
+  for (const group of groups) {
+    for (const feature of group.features) {
+      ids.add(feature.id);
+    }
+  }
+  return ids;
+}
+
+/**
+ * Form state'te bu feature için kayıt tutulmalı mı?
+ * boolean: yalnız true dolu sayılır (mevcut save mantığıyla aynı).
+ */
+export function isInstructorFeatureFilledInFormState(
+  feature: InstructorFeatureDefinitionRef,
+  form: InstructorFeatureFormState,
+): boolean {
+  const inputType = String(feature.input_type ?? "").trim().toLowerCase();
+
+  if (inputType === "boolean") {
+    return form.booleanValues[feature.id] === true;
+  }
+  if (inputType === "text") {
+    return String(form.textValues[feature.id] ?? "").trim().length > 0;
+  }
+  if (inputType === "date") {
+    return String(form.dateValues[feature.id] ?? "").trim().length > 0;
+  }
+  if (inputType === "number") {
+    return String(form.numberValues[feature.id] ?? "").trim().length > 0;
+  }
+  if (inputType === "single_select") {
+    return String(form.singleSelectValues[feature.id] ?? "").trim().length > 0;
+  }
+  if (inputType === "multi_select") {
+    if (isLegacyStudentAgeMultiSelectFeature(feature)) return false;
+    const selectedIds = form.multiSelectValues[feature.id] ?? [];
+    return selectedIds.some((choiceId) => String(choiceId ?? "").trim().length > 0);
+  }
+
+  return false;
+}
+
+/**
+ * Kaydet reconciliation:
+ * A) currentValidDefinitionIds dışındaki entry'ler stale
+ * B) valid scope içinde form boş olan entry'ler stale
+ */
+export function collectStaleInstructorFeatureEntryIds(args: {
+  dbEntries: Array<{ id: number; feature_definition_id: number }>;
+  currentValidDefinitionIds: ReadonlySet<number>;
+  definitionsById: ReadonlyMap<number, InstructorFeatureDefinitionRef>;
+  form: InstructorFeatureFormState;
+}): number[] {
+  const staleEntryIds: number[] = [];
+
+  for (const entry of args.dbEntries) {
+    const defId = entry.feature_definition_id;
+    if (!args.currentValidDefinitionIds.has(defId)) {
+      staleEntryIds.push(entry.id);
+      continue;
+    }
+
+    const definition = args.definitionsById.get(defId);
+    if (!definition) {
+      staleEntryIds.push(entry.id);
+      continue;
+    }
+
+    if (!isInstructorFeatureFilledInFormState(definition, args.form)) {
+      staleEntryIds.push(entry.id);
+    }
+  }
+
+  return staleEntryIds;
+}
+
 export type SaveInstructorFeaturesParams = {
   authUid: string;
   instructorId: number;
@@ -1387,14 +1597,13 @@ export async function saveInstructorFeaturesClient(
     instructorId,
     definitions,
     choices,
-    entries,
     form,
     featureIdsToSave,
     categoryIdToSave,
   } = params;
 
-  const saveSet = new Set(featureIdsToSave);
-  const shouldPersist = (featureId: number) => saveSet.has(featureId);
+  const currentValidDefinitionIds = new Set(featureIdsToSave);
+  const shouldPersist = (featureId: number) => currentValidDefinitionIds.has(featureId);
 
   const categoryPatch: DirectInstructorFeaturePatch = {};
   if (
@@ -1406,20 +1615,66 @@ export async function saveInstructorFeaturesClient(
   }
 
   if (Object.keys(categoryPatch).length > 0) {
-  const { error: categoryError } = await supabase
-    .from(INSTRUCTORS_TABLE)
+    const { error: categoryError } = await supabase
+      .from(INSTRUCTORS_TABLE)
       .update(categoryPatch)
-    .eq("id", instructorId)
-    .eq("owner_auth_id", authUid);
+      .eq("id", instructorId)
+      .eq("owner_auth_id", authUid);
 
-  if (categoryError) {
-    logInstructorFeaturesSupabaseError("category save", categoryError);
+    if (categoryError) {
+      logInstructorFeaturesSupabaseError("category save", categoryError);
+      return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+    }
+  }
+
+  const freshEntriesResult = await fetchInstructorFeatureEntriesClient(
+    authUid,
+    instructorId,
+    supabase,
+  );
+  if (freshEntriesResult.error) {
     return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
   }
+
+  let workingEntries = freshEntriesResult.entries;
+
+  const definitionsById = new Map<number, InstructorFeatureDefinitionRef>(
+    definitions.map((definition) => [definition.id, definition]),
+  );
+
+  const staleEntryIds = collectStaleInstructorFeatureEntryIds({
+    dbEntries: workingEntries,
+    currentValidDefinitionIds,
+    definitionsById,
+    form,
+  });
+
+  if (staleEntryIds.length > 0) {
+    const { error: deleteChoicesError } = await supabase
+      .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
+      .delete()
+      .in("instructor_feature_entry_id", staleEntryIds);
+    if (deleteChoicesError) {
+      logInstructorFeaturesSupabaseError("stale choices delete", deleteChoicesError);
+      return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+    }
+
+    const { error: deleteEntriesError } = await supabase
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+      .delete()
+      .in("id", staleEntryIds)
+      .eq("instructor_id", instructorId);
+    if (deleteEntriesError) {
+      logInstructorFeaturesSupabaseError("stale entries delete", deleteEntriesError);
+      return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
+    }
+
+    const staleEntryIdSet = new Set(staleEntryIds);
+    workingEntries = workingEntries.filter((entry) => !staleEntryIdSet.has(entry.id));
   }
 
   const findEntry = (featureId: number) =>
-    entries.find((e) => e.feature_definition_id === featureId);
+    workingEntries.find((e) => e.feature_definition_id === featureId);
 
   const persistableDefinitions = definitions.filter((feature) => shouldPersist(feature.id));
 
@@ -1439,6 +1694,7 @@ export async function saveInstructorFeaturesClient(
       .eq("id", entryId)
       .eq("instructor_id", instructorId);
     if (error) throw error;
+    workingEntries = workingEntries.filter((entry) => entry.id !== entryId);
   };
 
   for (const feature of persistableDefinitions.filter((f) => f.input_type === "boolean")) {

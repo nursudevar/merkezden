@@ -76,7 +76,6 @@ export function ChangePasswordCard({ className = "" }: ChangePasswordCardProps) 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log("[ChangePasswordCard] submit started");
     setSubmitError(null);
     setSubmitSuccess(null);
 
@@ -103,7 +102,6 @@ export function ChangePasswordCard({ className = "" }: ChangePasswordCardProps) 
         setSubmitError(PASSWORD_SESSION_ERROR_MESSAGE);
         return;
       }
-      console.log("[ChangePasswordCard] user email:", email);
 
       const { error: verifyError } = await supabase.auth.signInWithPassword({
         email,
@@ -111,19 +109,16 @@ export function ChangePasswordCard({ className = "" }: ChangePasswordCardProps) 
       });
 
       if (verifyError) {
-        console.log("[ChangePasswordCard] current password verification failed");
         setSubmitError(PASSWORD_VERIFY_ERROR_MESSAGE);
         setSubmitSuccess(null);
         return;
       }
-      console.log("[ChangePasswordCard] current password verified");
 
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (updateError) {
-        console.log("[ChangePasswordCard] password update failed", updateError);
         console.error("[change-password] update error:", updateError);
         setSubmitError(PASSWORD_UPDATE_ERROR_MESSAGE);
         return;
@@ -131,13 +126,11 @@ export function ChangePasswordCard({ className = "" }: ChangePasswordCardProps) 
 
       resetForm();
       setSubmitSuccess(PASSWORD_UPDATE_SUCCESS_MESSAGE);
-      console.log("[ChangePasswordCard] password update success");
     } catch (error) {
       console.error("[change-password] unexpected error:", error);
       setSubmitError(PASSWORD_UNEXPECTED_ERROR_MESSAGE);
     } finally {
       setIsSubmitting(false);
-      console.log("[ChangePasswordCard] submit finished");
     }
   };
 

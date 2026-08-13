@@ -881,6 +881,174 @@ $signup-layout-tight: 1020px;
   }
 }
 
+/* Bireysel kayıt — sabit +90 öneki, signup-input görünümü */
+.signup-phone-control {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: $text-base;
+  color: $text-zinc-900;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  @include rounded-xl;
+  box-sizing: border-box;
+  @include transition;
+  transition-property: border-color, box-shadow;
+
+  &:focus-within {
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+
+  @media (max-width: 640px) {
+    padding: 10px 14px;
+    font-size: $text-sm;
+  }
+}
+
+.signup-phone-prefix {
+  flex: 0 0 auto;
+  margin-right: 6px;
+  color: $text-zinc-900;
+  user-select: none;
+}
+
+.signup-phone-national-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+}
+
+/* Kayıt — kategori seçici (Radix Select, signup-input ile uyumlu) */
+.signup-category-select-trigger {
+  width: 100% !important;
+  max-width: 100%;
+  height: auto !important;
+  min-height: 48px;
+  padding: 12px 16px !important;
+  font-size: $text-base !important;
+  font-weight: $font-normal !important;
+  color: $text-zinc-900 !important;
+  background-color: $bg-white !important;
+  border: 1px solid $border-light !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+  gap: 12px;
+  justify-content: space-between;
+  @include transition;
+  transition-property: border-color, box-shadow, background-color;
+
+  &:hover:not(:disabled) {
+    border-color: rgba($purple-main, 0.45) !important;
+    box-shadow: 0 0 0 1px rgba(109, 93, 252, 0.08) !important;
+  }
+
+  &:focus-visible {
+    outline: none !important;
+    border-color: $purple-main !important;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1) !important;
+  }
+
+  &[data-state="open"] {
+    border-color: $purple-main !important;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1) !important;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  [data-placeholder] {
+    color: $text-placeholder;
+    font-weight: $font-normal;
+  }
+
+  .select-trigger-icon {
+    width: 18px !important;
+    height: 18px !important;
+    opacity: 1 !important;
+    color: rgba($purple-main, 0.85) !important;
+  }
+
+  @media (max-width: 640px) {
+    min-height: 44px;
+    padding: 10px 14px !important;
+    font-size: $text-sm !important;
+  }
+}
+
+.signup-category-select-trigger--error {
+  border-color: #fca5a5 !important;
+
+  &:focus-visible,
+  &[data-state="open"] {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+  }
+}
+
+.signup-category-select-content.select-content-popper,
+.signup-category-select-content {
+  z-index: 10050 !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba($purple-main, 0.14) !important;
+  background: $bg-white !important;
+  padding: 6px !important;
+  box-shadow:
+    0 14px 32px rgba(31, 39, 51, 0.12),
+    0 0 0 1px rgba(109, 93, 252, 0.06) !important;
+  min-width: var(--radix-select-trigger-width) !important;
+  max-width: min(92vw, 420px);
+}
+
+.signup-category-select-content .select-scroll-button {
+  display: none !important;
+}
+
+.signup-category-select-content .select-viewport {
+  max-height: min(280px, var(--radix-select-content-available-height, 280px));
+  padding: 2px 0;
+}
+
+.signup-category-select-content .select-item,
+.signup-category-select-content .signup-category-select-item.select-item {
+  border-radius: 8px !important;
+  font-size: $text-sm !important;
+  font-weight: $font-medium !important;
+  padding: 10px 36px 10px 12px !important;
+  color: $text-zinc-800 !important;
+  outline: none !important;
+}
+
+.signup-category-select-content .select-item[data-highlighted] {
+  background: rgba($purple-main, 0.1) !important;
+  color: $purple-primary !important;
+}
+
+.signup-category-select-content .select-item[data-state="checked"] {
+  background: rgba($purple-main, 0.14) !important;
+  color: $purple-dark !important;
+  font-weight: $font-semibold !important;
+}
+
+.signup-category-select-content .select-item-check-icon {
+  color: $purple-main !important;
+}
+
 /* Kayıt — özel doğum tarihi seçici (mor / turuncu, yumuşak köşeler) */
 .signup-date-picker {
   position: relative;

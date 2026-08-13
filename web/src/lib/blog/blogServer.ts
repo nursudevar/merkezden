@@ -12,7 +12,8 @@ export async function fetchPublishedBlogPostsServer(
     .from("blog_posts")
     .select(PUBLISHED_BLOG_POST_SELECT)
     .eq("is_published", true)
-    .order("published_at", { ascending: false });
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
 
   if (limit != null) {
     query = query.limit(limit);

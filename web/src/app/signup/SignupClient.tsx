@@ -5,27 +5,16 @@ import { HeaderBrandLogo } from "@/components/layout/header.client";
 import { Button } from "@/components/ui";
 import AuthModal from "@/components/AuthModal";
 import {
-  BarChart3,
-  FileText,
-  ImagePlus,
-  ListFilter,
-  MapPinned,
-  Megaphone,
-  Search,
-  Sparkles,
-  Star,
-  Table2,
-  Tags,
-  TrendingUp,
-  UserRound,
-  Users,
-  Wallet,
-} from "lucide-react";
+  CORPORATE_SIGNUP_FEATURES,
+  INDIVIDUAL_SIGNUP_FEATURES,
+  INSTRUCTOR_SIGNUP_FEATURES,
+  type SignupFeatureItem,
+} from "@/lib/signupFeatureCards";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { ComponentType } from "react";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
+import { SignupCategorySelect } from "@/components/signup/SignupCategorySelect";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -33,6 +22,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 const APPROVAL_SIGNUP_SUCCESS_MESSAGE =
   "Kayıt başvurunuz alınmıştır. E-posta doğrulamasından sonra hesabınız oluşturulacak, admin onayı sonrası platformda görünür hale gelecektir.";
+const INDIVIDUAL_PHONE_PLACEHOLDER = "Üyelik Doğrulama Kodu için gereklidir";
 
 type SignupCategoryOption = {
   id: number;
@@ -45,6 +35,7 @@ type InstructorFormData = {
   email: string;
   birthDate: string;
   password: string;
+  /** TC (11) veya Vergi Kimlik (10) — DB: instructors.identity_or_tax_number */
   nationalId: string;
   reference: string;
   categoryId: string;
@@ -58,123 +49,70 @@ type IndividualSignupFormData = {
   lastName: string;
   birthDate: string;
   email: string;
+  /** Görüntü: `+90 555 123 45 67` — DB: `normalizeTurkishMobilePhone` */
+  phone: string;
   password: string;
+  reference: string;
   acceptTerms: boolean;
 };
 
 type InstitutionSignupFormData = {
   companyName: string;
   categoryId: string;
+  taxNumber: string;
   reference: string;
   email: string;
   password: string;
   acceptTerms: boolean;
 };
 
-type SignupFeatureItem = {
-  title: string;
-  description: string;
-  icon: ComponentType<{ className?: string }>;
-};
+/** Paste/yazım girdilerinden TR ulusal 10 haneyi çıkarır (ülke kodu / baştaki 0 temizlenir). */
+function extractTurkishMobileNationalDigits(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("90") && digits.length > 10) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return digits.slice(0, 10);
+}
 
-const INDIVIDUAL_FEATURES: SignupFeatureItem[] = [
-  {
-    title: "Haritada Arama",
-    description: "Konumunuza yakın kurumları harita üzerinde bulun",
-    icon: MapPinned,
-  },
-  {
-    title: "Filtreli Listeleme",
-    description: "Kriterlerinize uygun kurumlara hızlıca ulaşın.",
-    icon: ListFilter,
-  },
-  {
-    title: "Akıllı Asistan",
-    description: "AI destekli önerileri alın",
-    icon: Sparkles,
-  },
-  {
-    title: "Karşılaştırma Tablosu",
-    description: "Kurumları karşılaştırın, size en uygun seçimi yapın.",
-    icon: Table2,
-  },
-  {
-    title: "Detaylı İnceleme",
-    description: "Kapsamlı bilgileri inceleyip değerlendirin",
-    icon: Search,
-  },
-  {
-    title: "Size Özel Avantajlar",
-    description: "İndirim ve kampanyalardan yararlanın.",
-    icon: Tags,
-  },
-];
+/** Yazarken gösterim: `+90 555 123 45 67` */
+function formatTurkishMobileDisplay(raw: string): string {
+  const national = extractTurkishMobileNationalDigits(raw);
+  if (!national) return "+90";
+  const parts = [
+    national.slice(0, 3),
+    national.slice(3, 6),
+    national.slice(6, 8),
+    national.slice(8, 10),
+  ].filter((part) => part.length > 0);
+  return `+90 ${parts.join(" ")}`;
+}
 
-const CORPORATE_FEATURES: SignupFeatureItem[] = [
-  {
-    title: "Detaylı Profil Sayfası",
-    description: "Kurumunuzu detaylı tanıtın",
-    icon: FileText,
-  },
-  {
-    title: "Fotoğraf/Video Ekleme",
-    description: "Kurumunuza ait fotoğraf ve videoları ekleyin",
-    icon: ImagePlus,
-  },
-  {
-    title: "Duyuru/Etkinlik Paylaşma",
-    description: "Duyuru ve Etkinliklerinizi Yayınlayın",
-    icon: Megaphone,
-  },
-  {
-    title: "SEO Avantajları",
-    description: "Merkezden.com sayesinde Google'da Görünürlüğünüzü Artırın",
-    icon: Search,
-  },
-  {
-    title: "Potansiyel Öğrenci Analizi",
-    description: "Ziyaretçi verilerinizi analiz edin, stratejinizi güçlendirin.",
-    icon: BarChart3,
-  },
-  {
-    title: "Öne Çıkanlar Sayfası",
-    description: "Daha fazla öğrenciye ulaşın.",
-    icon: Star,
-  },
-];
+/** DB değeri: `+905551234567` — eksik/geçersizse null */
+function normalizeTurkishMobilePhone(raw: string): string | null {
+  const national = extractTurkishMobileNationalDigits(raw);
+  if (national.length !== 10 || !national.startsWith("5")) return null;
+  return `+90${national}`;
+}
 
-const INSTRUCTOR_FEATURES: SignupFeatureItem[] = [
-  {
-    title: "Profesyonel Profil Sayfası",
-    description: "Branşlarınızı, deneyimlerinizi ve eğitim bilgilerinizi detaylı tanıtın.",
-    icon: UserRound,
-  },
-  {
-    title: "Uygun Fiyat Politikası",
-    description: "Düşük üyelik maliyetleriyle eğitim kalitenize odaklanın.",
-    icon: Wallet,
-  },
-  {
-    title: "Seo Avantajları",
-    description: "Merkezden.com sayesinde Google’da görünürlüğünüzü arttırın.",
-    icon: TrendingUp,
-  },
-  {
-    title: "Geniş Eğitim Kitlesi",
-    description: "Türkiye’nin en kapsamlı eğitim platformunda yer alın.",
-    icon: Users,
-  },
-  {
-    title: "Öne Çıkanlar Sayfası",
-    description: "Öne çıkın, daha fazla öğrenciye ulaşın.",
-    icon: Star,
-  },
-  {
-    title: "Öğrenci Talep Analizi",
-    description: "Profil ziyaretlerinizi ve öğrenci ilgisini takip edin.",
-    icon: BarChart3,
-  },
-];
+function isValidTurkishMobilePhone(raw: string): boolean {
+  return normalizeTurkishMobilePhone(raw) !== null;
+}
+
+function digitsOnlyMax(value: string, maxLen: number): string {
+  return value.replace(/\D/g, "").slice(0, maxLen);
+}
+
+function isValidInstitutionTaxNumber(value: string): boolean {
+  return /^\d{10}$/.test(value.trim());
+}
+
+function isValidInstructorIdentityOrTaxNumber(value: string): boolean {
+  return /^\d{10}$/.test(value.trim()) || /^\d{11}$/.test(value.trim());
+}
 
 function SignupFeatureCard({
   item,
@@ -229,12 +167,12 @@ export default function SignupClient() {
   const [activeTab, setActiveTab] = useState<SignupTab>("individual");
   const activeFeatures =
     activeTab === "individual"
-      ? INDIVIDUAL_FEATURES
+      ? INDIVIDUAL_SIGNUP_FEATURES
       : activeTab === "instructor"
-        ? INSTRUCTOR_FEATURES
-        : CORPORATE_FEATURES;
+        ? INSTRUCTOR_SIGNUP_FEATURES
+        : CORPORATE_SIGNUP_FEATURES;
   const activeFeatureAccent: "purple" | "orange" | "navy" =
-    activeTab === "individual" ? "purple" : activeTab === "instructor" ? "navy" : "orange";
+    activeTab === "individual" ? "navy" : activeTab === "instructor" ? "purple" : "orange";
   const isIndividualTab = activeTab === "individual";
   const [showPassword, setShowPassword] = useState(false);
   const [individualFormData, setIndividualFormData] = useState<IndividualSignupFormData>({
@@ -242,12 +180,15 @@ export default function SignupClient() {
     lastName: "",
     birthDate: "",
     email: "",
+    phone: "+90",
     password: "",
+    reference: "",
     acceptTerms: false,
   });
   const [institutionFormData, setInstitutionFormData] = useState<InstitutionSignupFormData>({
     companyName: "",
     categoryId: "",
+    taxNumber: "",
     reference: "",
     email: "",
     password: "",
@@ -404,15 +345,42 @@ export default function SignupClient() {
       return;
     }
 
+    const normalizedIndividualPhone =
+      selectedTab === "individual"
+        ? normalizeTurkishMobilePhone(individualFormData.phone)
+        : null;
+
+    if (selectedTab === "individual" && !normalizedIndividualPhone) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Eksik bilgi",
+        message: "Geçerli bir cep telefonu numarası girmeden devam edemezsiniz.",
+      });
+      return;
+    }
+
     if (selectedTab === "institution") {
       const parsedCategoryId = Number(institutionFormData.categoryId.trim());
+      const taxNumber = institutionFormData.taxNumber.trim();
+      const nextInstitutionErrors: Partial<Record<keyof InstitutionSignupFormData, string>> = {};
+
       if (!Number.isFinite(parsedCategoryId) || parsedCategoryId <= 0) {
-        setInstitutionErrors({ categoryId: "Lütfen bir kategori seçin." });
+        nextInstitutionErrors.categoryId = "Lütfen bir kategori seçin.";
+      }
+      if (!isValidInstitutionTaxNumber(taxNumber)) {
+        nextInstitutionErrors.taxNumber = "Vergi kimlik numarası 10 haneli olmalıdır.";
+      }
+
+      if (Object.keys(nextInstitutionErrors).length > 0) {
+        setInstitutionErrors(nextInstitutionErrors);
         setModalState({
           isOpen: true,
           type: "error",
           title: "Eksik bilgi",
-          message: "Devam etmek için bir kategori seçmelisiniz.",
+          message: nextInstitutionErrors.taxNumber
+            ? nextInstitutionErrors.taxNumber
+            : "Devam etmek için bir kategori seçmelisiniz.",
         });
         return;
       }
@@ -427,7 +395,11 @@ export default function SignupClient() {
     const companyName =
       selectedTab === "institution" ? institutionFormData.companyName : "";
     const reference =
-      selectedTab === "institution" ? institutionFormData.reference : "";
+      selectedTab === "individual"
+        ? individualFormData.reference.trim()
+        : selectedTab === "institution"
+          ? institutionFormData.reference.trim()
+          : "";
 
     try {
       const { data: emailExists, error: emailCheckError } = await supabase.rpc(
@@ -461,15 +433,17 @@ export default function SignupClient() {
         metadata.last_name = individualFormData.lastName;
         metadata.full_name = `${individualFormData.firstName} ${individualFormData.lastName}`.trim();
         metadata.birth_date = individualFormData.birthDate;
+        metadata.phone = normalizedIndividualPhone;
       } else {
         metadata.full_name = companyName;
         metadata.category_id = Number(institutionFormData.categoryId.trim());
+        metadata.tax_number = institutionFormData.taxNumber.trim();
         metadata.is_approved = null;
         metadata.approved_by = null;
         metadata.approved_at = null;
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -486,6 +460,47 @@ export default function SignupClient() {
         });
         setLoading(false);
         return;
+      }
+
+      // Bireysel: trigger/metadata + varsa doğrudan individual_profiles.phone / reference
+      if (selectedTab === "individual" && normalizedIndividualPhone && signUpData.user?.id) {
+        const { data: userRow } = await supabase
+          .from("users")
+          .select("id")
+          .eq("auth_user_id", signUpData.user.id)
+          .maybeSingle();
+
+        if (userRow?.id) {
+          const { error: phoneUpdateError } = await supabase
+            .from("individual_profiles")
+            .update({
+              phone: normalizedIndividualPhone,
+              reference: individualFormData.reference.trim() || null,
+            })
+            .eq("user_id", userRow.id);
+
+          if (phoneUpdateError) {
+            console.warn(
+              "[SignupClient] individual_profiles.phone update",
+              phoneUpdateError,
+            );
+          }
+        }
+      }
+
+      // Kurum: metadata (trigger) + varsa doğrudan institutions.tax_number / reference
+      if (selectedTab === "institution" && signUpData.user?.id) {
+        const { error: taxUpdateError } = await supabase
+          .from("institutions")
+          .update({
+            tax_number: institutionFormData.taxNumber.trim(),
+            reference: institutionFormData.reference.trim() || null,
+          })
+          .eq("owner_auth_id", signUpData.user.id);
+
+        if (taxUpdateError) {
+          console.warn("[SignupClient] institutions.tax_number update", taxUpdateError);
+        }
       }
 
       setModalState({
@@ -510,7 +525,7 @@ export default function SignupClient() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     const nextValue = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
 
@@ -527,15 +542,56 @@ export default function SignupClient() {
         ...prev,
         [name]: nextValue,
       }));
-      if (name === "categoryId") {
-        setInstitutionErrors((prev) => {
-          if (!prev.categoryId) return prev;
-          const next = { ...prev };
-          delete next.categoryId;
-          return next;
-        });
-      }
     }
+  };
+
+  const handleIndividualPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIndividualFormData((prev) => ({
+      ...prev,
+      phone: formatTurkishMobileDisplay(e.target.value),
+    }));
+  };
+
+  const handleIndividualPhonePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text");
+    setIndividualFormData((prev) => ({
+      ...prev,
+      phone: formatTurkishMobileDisplay(pasted),
+    }));
+  };
+
+  const handleInstitutionCategoryChange = (categoryId: string) => {
+    setInstitutionFormData((prev) => ({ ...prev, categoryId }));
+    setInstitutionErrors((prev) => {
+      if (!prev.categoryId) return prev;
+      const next = { ...prev };
+      delete next.categoryId;
+      return next;
+    });
+  };
+
+  const handleInstitutionTaxNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = digitsOnlyMax(e.target.value, 10);
+    setInstitutionFormData((prev) => ({ ...prev, taxNumber: digits }));
+    setInstitutionErrors((prev) => {
+      if (!prev.taxNumber) return prev;
+      const next = { ...prev };
+      delete next.taxNumber;
+      return next;
+    });
+  };
+
+  const handleInstitutionTaxNumberPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const digits = digitsOnlyMax(e.clipboardData.getData("text"), 10);
+    setInstitutionFormData((prev) => ({ ...prev, taxNumber: digits }));
+    setInstitutionErrors((prev) => {
+      if (!prev.taxNumber) return prev;
+      const next = { ...prev };
+      delete next.taxNumber;
+      return next;
+    });
   };
 
   const clearInstructorError = (field: keyof InstructorFormData) => {
@@ -547,7 +603,7 @@ export default function SignupClient() {
     });
   };
 
-  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     setInstructorFormData((prev) => ({
       ...prev,
@@ -556,8 +612,23 @@ export default function SignupClient() {
     clearInstructorError(name as keyof InstructorFormData);
   };
 
+  const handleInstructorCategoryChange = (categoryId: string) => {
+    setInstructorFormData((prev) => ({ ...prev, categoryId }));
+    clearInstructorError("categoryId");
+  };
+
   const handleInstructorNationalIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+    const digits = digitsOnlyMax(e.target.value, 11);
+    setInstructorFormData((prev) => ({
+      ...prev,
+      nationalId: digits,
+    }));
+    clearInstructorError("nationalId");
+  };
+
+  const handleInstructorNationalIdPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const digits = digitsOnlyMax(e.clipboardData.getData("text"), 11);
     setInstructorFormData((prev) => ({
       ...prev,
       nationalId: digits,
@@ -593,11 +664,9 @@ export default function SignupClient() {
     }
 
     if (!nationalId) {
-      errors.nationalId = "TC kimlik numarası zorunludur.";
-    } else if (nationalId.length !== 11) {
-      errors.nationalId = "TC kimlik numarası 11 haneli olmalıdır.";
-    } else if (nationalId.startsWith("0")) {
-      errors.nationalId = "TC kimlik numarası 0 ile başlayamaz.";
+      errors.nationalId = "TC kimlik / vergi kimlik numarası zorunludur.";
+    } else if (!isValidInstructorIdentityOrTaxNumber(nationalId)) {
+      errors.nationalId = "TC kimlik numarası 11, vergi kimlik numarası 10 haneli olmalıdır.";
     }
 
     const parsedCategoryId = Number(instructorFormData.categoryId.trim());
@@ -660,13 +729,16 @@ export default function SignupClient() {
         return;
       }
 
+      const identityOrTaxNumber = instructorFormData.nationalId.trim();
       const metadata = {
         user_type: "instructor",
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`.trim(),
         birth_date: instructorFormData.birthDate,
-        tc_identity_no: instructorFormData.nationalId,
+        identity_or_tax_number: identityOrTaxNumber,
+        // Mevcut trigger uyumu: yalnızca 11 haneli TC için tc_identity_no doldur
+        tc_identity_no: identityOrTaxNumber.length === 11 ? identityOrTaxNumber : null,
         reference: instructorFormData.reference.trim() || null,
         category_id: Number(instructorFormData.categoryId.trim()),
         is_approved: null,
@@ -674,7 +746,7 @@ export default function SignupClient() {
         approved_at: null,
       };
 
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -691,6 +763,24 @@ export default function SignupClient() {
         });
         setIsInstructorSubmitting(false);
         return;
+      }
+
+      // Eğitmen: metadata (trigger) + varsa doğrudan instructors.identity_or_tax_number / reference
+      if (signUpData.user?.id) {
+        const { error: identityUpdateError } = await supabase
+          .from("instructors")
+          .update({
+            identity_or_tax_number: identityOrTaxNumber,
+            reference: instructorFormData.reference.trim() || null,
+          })
+          .eq("owner_auth_id", signUpData.user.id);
+
+        if (identityUpdateError) {
+          console.warn(
+            "[SignupClient] instructors.identity_or_tax_number update",
+            identityUpdateError,
+          );
+        }
       }
 
       setModalState({
@@ -891,16 +981,17 @@ export default function SignupClient() {
 
               <div className="signup-field">
                 <label htmlFor="signup-instructor-national-id" className="signup-label">
-                  TC Kimlik No
+                  TC Kimlik / Vergi Kimlik Numarası
                 </label>
                 <input
                   type="text"
                   id="signup-instructor-national-id"
                   name="nationalId"
                   className={`signup-input${instructorErrors.nationalId ? " signup-input--error" : ""}`}
-                  placeholder="TC kimlik numaranızı girin"
+                  placeholder="10 veya 11 haneli numara"
                   value={instructorFormData.nationalId}
                   onChange={handleInstructorNationalIdChange}
+                  onPaste={handleInstructorNationalIdPaste}
                   inputMode="numeric"
                   maxLength={11}
                   autoComplete="off"
@@ -916,23 +1007,17 @@ export default function SignupClient() {
                 <label htmlFor="signup-instructor-category" className="signup-label">
                   Kategori
                 </label>
-                <select
+                <SignupCategorySelect
                   id="signup-instructor-category"
-                  name="categoryId"
-                  className={`signup-input${instructorErrors.categoryId ? " signup-input--error" : ""}`}
                   value={instructorFormData.categoryId}
-                  onChange={handleInstructorChange}
+                  onChange={handleInstructorCategoryChange}
+                  options={instructorCategories}
+                  placeholder={
+                    instructorCategoriesLoading ? "Kategoriler yükleniyor…" : "Kategori seçin"
+                  }
                   disabled={instructorCategoriesLoading}
-                >
-                  <option value="">
-                    {instructorCategoriesLoading ? "Kategoriler yükleniyor…" : "Kategori seçin"}
-                  </option>
-                  {instructorCategories.map((category) => (
-                    <option key={category.id} value={String(category.id)}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  hasError={Boolean(instructorErrors.categoryId)}
+                />
                 {instructorCategoriesError ? (
                   <p className="signup-field-error" role="alert">
                     {instructorCategoriesError}
@@ -947,7 +1032,7 @@ export default function SignupClient() {
 
               <div className="signup-field">
                 <label htmlFor="signup-instructor-reference" className="signup-label">
-                  Referansınız
+                  Referans
                 </label>
                 <input
                   type="text"
@@ -1038,6 +1123,38 @@ export default function SignupClient() {
                 </div>
 
                 <div className="signup-field">
+                  <label htmlFor="signup-phone" className="signup-label">
+                    Telefon
+                  </label>
+                  <div className="signup-phone-control">
+                    <span className="signup-phone-prefix" aria-hidden="true">
+                      +90
+                    </span>
+                    <input
+                      type="tel"
+                      id="signup-phone"
+                      name="phone"
+                      className="signup-phone-national-input"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      placeholder={INDIVIDUAL_PHONE_PLACEHOLDER}
+                      value={
+                        extractTurkishMobileNationalDigits(individualFormData.phone).length > 0
+                          ? individualFormData.phone.replace(/^\+90\s?/, "")
+                          : ""
+                      }
+                      onChange={handleIndividualPhoneChange}
+                      onPaste={handleIndividualPhonePaste}
+                      required
+                      aria-invalid={
+                        individualFormData.phone !== "+90" &&
+                        !isValidTurkishMobilePhone(individualFormData.phone)
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="signup-field">
                   <label htmlFor="signup-birthdate" className="signup-label">
                     Doğum Tarihi
                   </label>
@@ -1075,6 +1192,21 @@ export default function SignupClient() {
                     />
                   </div>
                 </div>
+
+                <div className="signup-field">
+                  <label htmlFor="signup-individual-reference" className="signup-label">
+                    Referans
+                  </label>
+                  <input
+                    type="text"
+                    id="signup-individual-reference"
+                    name="reference"
+                    className="signup-input"
+                    placeholder="Referans kişi veya kurumu yazın"
+                    value={individualFormData.reference}
+                    onChange={handleChange}
+                  />
+                </div>
                 </>
               ) : (
                 <>
@@ -1098,23 +1230,17 @@ export default function SignupClient() {
                   <label htmlFor="signup-institution-category" className="signup-label">
                     Kategori
                   </label>
-                  <select
+                  <SignupCategorySelect
                     id="signup-institution-category"
-                    name="categoryId"
-                    className={`signup-input${institutionErrors.categoryId ? " signup-input--error" : ""}`}
                     value={institutionFormData.categoryId}
-                    onChange={handleChange}
+                    onChange={handleInstitutionCategoryChange}
+                    options={institutionCategories}
+                    placeholder={
+                      institutionCategoriesLoading ? "Kategoriler yükleniyor…" : "Kategori seçin"
+                    }
                     disabled={institutionCategoriesLoading}
-                  >
-                    <option value="">
-                      {institutionCategoriesLoading ? "Kategoriler yükleniyor…" : "Kategori seçin"}
-                    </option>
-                    {institutionCategories.map((category) => (
-                      <option key={category.id} value={String(category.id)}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    hasError={Boolean(institutionErrors.categoryId)}
+                  />
                   {institutionCategoriesError ? (
                     <p className="signup-field-error" role="alert">
                       {institutionCategoriesError}
@@ -1123,6 +1249,31 @@ export default function SignupClient() {
                   {institutionErrors.categoryId ? (
                     <p className="signup-field-error" role="alert">
                       {institutionErrors.categoryId}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="signup-field">
+                  <label htmlFor="signup-tax-number" className="signup-label">
+                    Vergi Kimlik Numarası
+                  </label>
+                  <input
+                    type="text"
+                    id="signup-tax-number"
+                    name="taxNumber"
+                    className={`signup-input${institutionErrors.taxNumber ? " signup-input--error" : ""}`}
+                    placeholder="10 haneli vergi kimlik numarası"
+                    value={institutionFormData.taxNumber}
+                    onChange={handleInstitutionTaxNumberChange}
+                    onPaste={handleInstitutionTaxNumberPaste}
+                    inputMode="numeric"
+                    maxLength={10}
+                    autoComplete="off"
+                    required
+                  />
+                  {institutionErrors.taxNumber ? (
+                    <p className="signup-field-error" role="alert">
+                      {institutionErrors.taxNumber}
                     </p>
                   ) : null}
                 </div>
@@ -1168,7 +1319,7 @@ export default function SignupClient() {
 
                 <div className="signup-field">
                   <label htmlFor="signup-reference" className="signup-label">
-                    Referansınız
+                    Referans
                   </label>
                   <input
                     type="text"

@@ -1,26 +1,7 @@
 @import '../colors';
 @import '../mixins';
 @import '../typography';
-
-.hero-search {
-  max-width: 1000px;
-  margin: 15px auto 0px;
-  @include rounded-48;
-  padding: 0;
-  text-align: center;
-  box-sizing: border-box;
-  overflow: hidden;
-
-  @media (max-width: 1023px) {
-    margin-left: 20px;
-    margin-right: 20px;
-  }
-
-  @media (max-width: 640px) {
-    margin-left: 16px;
-    margin-right: 16px;
-  }
-}
+@import '../components/home-hero-search-banner';
 
 .main-content .hero-search {
   max-width: 100%;
@@ -31,99 +12,35 @@
   margin-top: 15px;
 }
 
-.hero-search-container {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  position: relative;
-  height: 160px;
-  overflow: hidden;
-}
-
-.hero-search-banner {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  filter: blur(1px);
-  transform: scale(1.05);
-}
-
-.hero-search-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(1px);
-  z-index: 1;
-}
-
-.hero-search-content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 0 40px;
-  z-index: 2;
-  box-sizing: border-box;
-
-  @media (max-width: 640px) {
-    padding: 0 24px;
-  }
-}
-
-.hero-search-title {
-  font-size: 28px;
-  font-weight: $font-bold;
-  line-height: 1.2;
-  margin: 0 0 8px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-
-  @media (min-width: 640px) {
-    font-size: 32px;
-  }
-
-  @media (min-width: 1024px) {
-    font-size: 36px;
-  }
-}
-
-.hero-search-title-white {
-  color: $bg-white;
-}
-
-.hero-search-title-purple {
-  @include gradient-text;
-}
-
-.hero-search-subtitle {
-  margin: 0;
-  font-size: 14px;
-  color: $bg-white;
-  font-weight: $font-medium;
-
-  @media (min-width: 640px) {
-    font-size: 16px;
-  }
-}
-
 .search-bar-wrapper {
   @include flex-center;
   width: 100%;
   gap: 12px;
 }
 
+.search-bar-input-shell {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  object-fit: contain;
+  z-index: 1;
+}
+
 .search-bar-input {
   flex: 1;
+  width: 100%;
   height: 48px;
   @include rounded-full;
   border: 1px solid $border-light;
@@ -134,6 +51,51 @@
 
   &::placeholder {
     color: $text-placeholder;
+  }
+}
+
+.search-bar-input--with-icon {
+  padding-left: 42px;
+}
+
+.search-bar-animated-placeholder {
+  position: absolute;
+  left: 42px;
+  right: 20px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  color: $text-placeholder;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.search-bar-animated-placeholder-char {
+  display: inline-block;
+  overflow: hidden;
+  height: 1.2em;
+  line-height: 1.2;
+  vertical-align: bottom;
+}
+
+.search-bar-animated-placeholder-char-inner {
+  display: inline-block;
+  animation: search-bar-placeholder-slide-up 480ms cubic-bezier(0.625, 0.05, 0, 1) both;
+  will-change: transform;
+}
+
+@keyframes search-bar-placeholder-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
   }
 }
 
@@ -155,17 +117,46 @@
   }
 }
 
+@keyframes search-bar-icon-float {
+  0%,
+  100% {
+    transform: translateY(calc(-50% - 2px));
+  }
+
+  50% {
+    transform: translateY(calc(-50% + 2px));
+  }
+}
+
 .header-search {
   .search-bar-wrapper {
     max-width: 100%;
   }
 
   .search-bar-input {
-    height: 36px;
-    min-height: 36px;
+    height: 46px;
+    min-height: 46px;
     font-size: 14px;
     padding: 0 16px;
     box-sizing: border-box;
+  }
+
+  .search-bar-input--with-icon {
+    padding-left: 50px;
+  }
+
+  .search-bar-animated-placeholder {
+    left: 50px;
+    right: 16px;
+    font-size: 14px;
+  }
+
+  .search-bar-input-icon {
+    left: 10px;
+    width: 46px;
+    height: 46px;
+    animation: search-bar-icon-float 2.8s ease-in-out infinite;
+    will-change: transform;
   }
 
   .search-bar-button {
@@ -1040,6 +1031,16 @@
   font-weight: $font-semibold;
   color: $default-text-color;
 
+  img {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    flex-shrink: 0;
+    display: block;
+    object-fit: contain;
+  }
+
   span:first-child {
     font-size: $text-lg;
   }
@@ -1389,7 +1390,7 @@
   min-width: var(--radix-select-trigger-width);
 }
 
-/* Ana sayfa Lokasyon filtreleri (Şehir/İlçe/Mahalle): aşağı doğru açılsın ve her zaman üstte kalsın */
+/* Ana sayfa Konum filtreleri (Şehir/İlçe/Mahalle): aşağı doğru açılsın ve her zaman üstte kalsın */
 .home-location-dropdown,
 .select-content-popper.home-location-dropdown {
   z-index: 10100 !important;
@@ -1901,7 +1902,7 @@
   border-radius: 10px;
   background-color: $bg-white;
   border: 1px solid $border-light;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: $font-medium;
   color: $text-zinc-900;
   cursor: pointer;
@@ -2240,7 +2241,7 @@ a.service-card {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   width: 100%;
-  padding: 2px 0 8px;
+  padding: 10px 0 14px;
   overflow: hidden;
   --home-card-height: 200px;
   --home-card-min-height: 168px;
@@ -2274,6 +2275,27 @@ a.service-card {
   box-sizing: border-box;
   overflow: hidden;
   text-align: center;
+  box-shadow:
+    0 4px 16px rgba($purple-main, 0.1),
+    0 2px 8px rgba($orange-primary, 0.08);
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      0 18px 36px rgba($purple-main, 0.18),
+      0 10px 24px rgba($orange-primary, 0.16),
+      0 4px 12px rgba($purple-light, 0.12);
+  }
+
+  &:active {
+    transform: translateY(-3px);
+    box-shadow:
+      0 12px 24px rgba($purple-main, 0.14),
+      0 6px 16px rgba($orange-primary, 0.12);
+  }
 
   &::before {
     content: "";
@@ -2337,6 +2359,15 @@ a.service-card {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-main-category-card {
+    transition: box-shadow 0.2s ease;
+
+    &:hover,
+    &:active {
+      transform: none;
+    }
+  }
+
   .home-main-category-card::before {
     inset: 0;
     animation: none;
@@ -2452,16 +2483,33 @@ a.service-card {
   margin-top: auto;
   border: none;
   background: transparent;
-  color: #5f2fd1;
+  color: $purple-primary;
   font-size: 13px;
   font-weight: 600;
   padding: 0;
   cursor: pointer;
   align-self: center;
   text-decoration: none;
+  @include transition-colors;
 
   &:hover {
+    background-image: linear-gradient(
+      90deg,
+      $orange-primary 0%,
+      #ffb347 38%,
+      $purple-light 72%,
+      $purple-main 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
     text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($purple-main, 0.45);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -3358,9 +3406,9 @@ a.search-result-card {
   margin-bottom: 10px;
   min-height: var(--duyurular-card-height, 220px);
   --duyurular-card-gap: 10px;
-  /* Referans ölçü (15" / masaüstü): 250 × 220 — tablet/mobilde de aynı hissedilecek şekilde korunur */
-  --duyurular-card-width: 250px;
-  --duyurular-card-height: 220px;
+  /* Referans ölçü (15" / masaüstü): 350 × 253 — genişlik 288→350 oranı tüm kırılımlara */
+  --duyurular-card-width: 350px;
+  --duyurular-card-height: 253px;
 
   &--loading {
     display: flex;
@@ -3369,13 +3417,13 @@ a.search-result-card {
   }
 
   @media (max-width: 1023px) {
-    --duyurular-card-width: 240px;
-    --duyurular-card-height: 211px;
+    --duyurular-card-width: 335px;
+    --duyurular-card-height: 243px;
   }
 
   @media (max-width: 640px) {
-    --duyurular-card-width: 230px;
-    --duyurular-card-height: 202px;
+    --duyurular-card-width: 322px;
+    --duyurular-card-height: 232px;
     --duyurular-card-gap: 12px;
   }
 }
@@ -3849,16 +3897,11 @@ a.search-result-card {
 
 .blog-section-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
@@ -4222,6 +4265,25 @@ a.search-result-card {
   &:hover {
     transform: translateY(-2px);
     @include shadow-lg;
+  }
+}
+
+.blog-card-new--compact {
+  .blog-card-image-wrapper {
+    padding-top: 52%;
+  }
+
+  .blog-card-content-new {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+
+  .blog-card-title-new {
+    font-size: 14px;
+  }
+
+  .blog-card-excerpt {
+    font-size: 12px;
   }
 }
 
@@ -4751,6 +4813,16 @@ a.home-individual-instructor-item {
   }
 }
 
+@keyframes home-driving-schools-title-color-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
 .home-driving-schools-section {
   position: relative;
   display: flex;
@@ -4759,7 +4831,7 @@ a.home-individual-instructor-item {
   justify-content: center;
   gap: 0;
   border-radius: 24px;
-  min-height: 220px;
+  min-height: 240px;
   height: auto;
   background-image: url("/images/surucu-kursu-lg-bg.png");
   background-repeat: no-repeat;
@@ -4814,18 +4886,36 @@ a.home-individual-instructor-item {
 
 .home-driving-schools-title,
 .driver-courses-title {
-  font-size: 28px;
+  font-size: 34px;
   font-weight: $font-bold;
-  color: $bg-white;
   margin: 0 0 8px;
   line-height: 1.2;
   text-align: center;
-  text-shadow: 0 1px 8px rgba(20, 12, 48, 0.35);
+  background-image: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    #ffffff 35%,
+    #ff6eb4 40%,
+    #38bdf8 45%,
+    #fde047 50%,
+    #c084fc 55%,
+    #2dd4bf 60%,
+    #ffffff 65%,
+    #ffffff 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: home-driving-schools-title-color-flow 4.5s linear infinite;
+  filter: drop-shadow(0 2px 12px rgba(8, 4, 28, 0.55));
+  will-change: background-position;
 }
 
 .driver-courses-subtitle {
   margin: 0 0 12px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: $font-medium;
   line-height: 1.45;
   color: rgba(255, 255, 255, 0.92);
@@ -4839,7 +4929,7 @@ a.home-individual-instructor-item {
   align-items: center;
   justify-content: center;
   @include rounded-xl;
-  padding: 6px 24px;
+  padding: 10px 24px;
   font-size: $text-base;
   font-weight: $font-semibold;
   line-height: $leading-normal;
@@ -5549,10 +5639,30 @@ a.home-individual-instructor-item {
 }
 
 .patili-dostlar-title {
-  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
   font-weight: $font-bold;
   color: $text-zinc-900;
   letter-spacing: -0.2px;
+  margin: 0;
+  line-height: 1.2;
+
+  @media (max-width: 1023px) {
+    font-size: 22px;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 20px;
+  }
+}
+
+.patili-dostlar-title-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: inherit;
 }
 
 .patili-dostlar-view-all {

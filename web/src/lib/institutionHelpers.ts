@@ -10,9 +10,9 @@ export function getInstitutionDetailHref({
   const slugValue = String(slug ?? "").trim();
   const identifier = slugValue;
 
-  if (!identifier) return "/institutions";
+  if (!identifier) return "/";
 
-  return `/institutions/${identifier}`;
+  return `/kurumlar/${identifier}`;
 }
 
 export function isMebInstitution(source?: string | null): boolean {

@@ -1,15 +1,22 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { Separator } from "@/components/ui";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 import "@/styles/components/institution-locations-map.scss";
 
 const InstitutionLocationsMap = dynamic(
   () => import("@/components/map/InstitutionLocationsMap"),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="institution-locations-map-wrapper">
+        <div className="institution-locations-map-state">Harita yükleniyor...</div>
+      </div>
+    ),
+  },
 );
 
 export type InstitutionMapSearchSectionProps = {

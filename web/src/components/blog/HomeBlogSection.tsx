@@ -12,7 +12,7 @@ import {
 } from "@/lib/blog/blogClient";
 import { allBlogPosts } from "@/lib/data/blog";
 
-const HOMEPAGE_BLOG_LIMIT = 5;
+const HOMEPAGE_BLOG_LIMIT = 6;
 
 const mockDisplayPosts = allBlogPosts.map(mapMockPostToDisplay);
 
@@ -82,12 +82,13 @@ export function HomeBlogSection() {
             excerpt={post.excerpt}
             imageUrl={post.imageUrl}
             slug={post.slug}
+            compact
           />
         ))}
       </div>
 
       <div className="blog-section-button-wrapper">
-        <Link href="/blog">
+        <Link href="/blog-yazilari">
           <button type="button" className="blog-section-button">
             Daha fazlasını gör
           </button>

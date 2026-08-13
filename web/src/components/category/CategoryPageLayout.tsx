@@ -9,7 +9,9 @@ import CategoryFilterSidebar, {
   InstructorCategoryFilterPanelProvider,
   type FilterState,
 } from "./CategoryFilterSidebar";
+import CategoryHero from "./CategoryHero";
 import CategoryResultsList from "./CategoryResultsList";
+import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "./instructorCategoryFilterTypes";
@@ -26,6 +28,7 @@ function hasMeaningfulSelectionChange(
 ): boolean {
   if (prev == null) return false;
   if (prev.institutionTypeId !== next.institutionTypeId) return true;
+  if (prev.highSchoolType !== next.highSchoolType) return true;
   if (JSON.stringify(prev.commonSingle) !== JSON.stringify(next.commonSingle)) return true;
   if (JSON.stringify(prev.commonMulti) !== JSON.stringify(next.commonMulti)) return true;
   if (JSON.stringify(prev.groupSelections) !== JSON.stringify(next.groupSelections)) return true;
@@ -48,6 +51,10 @@ interface CategoryPageLayoutProps {
    * gerçek feature_groups verilerini DB'den çekip render eder.
    */
   categorySlug?: string;
+  /**
+   * Okul/kategori sayfalarında hero arama çubuğu için ilçe listesi.
+   */
+  districts?: string[];
   /**
    * Yalnızca Okul sayfasında doldurulur: sol panel filtre state'i tek bir
    * Provider üzerinden paylaşılır ve seçimler `onSchoolFilterPayloadChange`
@@ -80,6 +87,7 @@ export default function CategoryPageLayout({
   resultsTitle,
   onFilterChange,
   categorySlug,
+  districts,
   schoolModeProps,
   instructorModeProps,
 }: CategoryPageLayoutProps) {
@@ -148,7 +156,7 @@ export default function CategoryPageLayout({
     [closeDrawerAndScrollToResults],
   );
 
-  const content = (
+  const layoutContent = (
     <div className="category-page-layout">
       <div className="category-page-layout-container">
         <aside className="category-page-layout-sidebar">
@@ -161,6 +169,8 @@ export default function CategoryPageLayout({
         </aside>
 
         <div className="category-page-layout-results">
+          <HomeHeroSearchBanner />
+
           <button
             className="category-page-layout-filter-toggle"
             onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -205,40 +215,64 @@ export default function CategoryPageLayout({
     </div>
   );
 
+  const heroSection =
+    schoolModeProps && categorySlug ? (
+      <CategoryHero
+        searchValue={schoolModeProps.linkedSearch}
+        onSearchChange={handleLinkedSearchChange}
+        selectedDistrict={schoolModeProps.linkedDistrict}
+        onDistrictChange={handleLinkedDistrictChange}
+        districts={districts}
+      />
+    ) : null;
+
+  const pageBody = (
+    <>
+      {heroSection}
+      {layoutContent}
+    </>
+  );
+
   if (schoolModeProps && categorySlug) {
     return (
-      <SchoolCategoryFilterPanelProvider
-        categorySlug={categorySlug}
-        linkedSearch={schoolModeProps.linkedSearch}
-        onLinkedSearchChange={handleLinkedSearchChange}
-        linkedDistrict={schoolModeProps.linkedDistrict}
-        onLinkedDistrictChange={handleLinkedDistrictChange}
-        onSchoolFilterPayloadChange={handleSchoolFilterPayloadChange}
-      >
-        {content}
-      </SchoolCategoryFilterPanelProvider>
+      <div className="category-page">
+        <SchoolCategoryFilterPanelProvider
+          categorySlug={categorySlug}
+          linkedSearch={schoolModeProps.linkedSearch}
+          onLinkedSearchChange={handleLinkedSearchChange}
+          linkedDistrict={schoolModeProps.linkedDistrict}
+          onLinkedDistrictChange={handleLinkedDistrictChange}
+          onSchoolFilterPayloadChange={handleSchoolFilterPayloadChange}
+        >
+          {pageBody}
+        </SchoolCategoryFilterPanelProvider>
+      </div>
     );
   }
 
   if (instructorModeProps && onFilterChange) {
     return (
-      <InstructorCategoryFilterPanelProvider
-        config={filterConfig}
-        onFilterChange={onFilterChange}
-        onInstructorFilterPayloadChange={instructorModeProps.onInstructorFilterPayloadChange}
-      >
-        {content}
-      </InstructorCategoryFilterPanelProvider>
+      <div className="category-page">
+        <InstructorCategoryFilterPanelProvider
+          config={filterConfig}
+          onFilterChange={onFilterChange}
+          onInstructorFilterPayloadChange={instructorModeProps.onInstructorFilterPayloadChange}
+        >
+          {pageBody}
+        </InstructorCategoryFilterPanelProvider>
+      </div>
     );
   }
 
   if (onFilterChange) {
     return (
-      <CategoryFilterPanelProvider config={filterConfig} onFilterChange={onFilterChange}>
-        {content}
-      </CategoryFilterPanelProvider>
+      <div className="category-page">
+        <CategoryFilterPanelProvider config={filterConfig} onFilterChange={onFilterChange}>
+          {pageBody}
+        </CategoryFilterPanelProvider>
+      </div>
     );
   }
 
-  return content;
+  return <div className="category-page">{pageBody}</div>;
 }

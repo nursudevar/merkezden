@@ -1,0 +1,89 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import CategoryPageLayout from "@/components/category/CategoryPageLayout";
+import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+import {
+  EMPTY_SCHOOL_CATEGORY_FILTERS,
+  type SchoolCategoryFilterPayload,
+} from "@/components/category/schoolCategoryFilterTypes";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { normalizeCategoryKey } from "@/lib/categoryHelpers";
+
+const CATEGORY_NAME = "Özel Eğitim";
+const FALLBACK_CATEGORY_SLUG = "special-education";
+
+export default function SpecialEducationPageClient() {
+  const [searchText, setSearchText] = useState("");
+  const [district, setDistrict] = useState("");
+  const [categorySlug, setCategorySlug] = useState<string>(FALLBACK_CATEGORY_SLUG);
+  const [categoryFilters, setCategoryFilters] = useState<SchoolCategoryFilterPayload>(
+    EMPTY_SCHOOL_CATEGORY_FILTERS,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("institution_categories")
+        .select("slug, name")
+        .eq("is_active", true);
+
+      if (cancelled) return;
+
+      if (error || !data?.length) {
+        setCategorySlug(FALLBACK_CATEGORY_SLUG);
+        return;
+      }
+
+      const rows = data as Array<{ slug: string | null; name: string | null }>;
+      const targetName = CATEGORY_NAME.trim();
+      const byExactName = rows.find((r) => String(r.name ?? "").trim() === targetName);
+      const byKey = rows.find((r) => {
+        const nk = normalizeCategoryKey(`${r.name ?? ""} ${r.slug ?? ""}`);
+        return nk.includes("ozel egitim") || nk.includes("ozel-egitim");
+      });
+
+      const resolved = String((byExactName ?? byKey)?.slug ?? "").trim();
+      setCategorySlug(resolved || FALLBACK_CATEGORY_SLUG);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleCategoryFilterPayloadChange = useCallback(
+    (payload: SchoolCategoryFilterPayload) => {
+      setCategoryFilters(payload);
+    },
+    [],
+  );
+
+  const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
+    search: searchText,
+    district,
+    categorySlug,
+    schoolFilters: categoryFilters,
+  });
+
+  return (
+      <CategoryPageLayout
+        districts={districts}
+        categoryName={CATEGORY_NAME}
+        categorySlug={categorySlug}
+        subtitle="Özel eğitim ihtiyaçları için uzman eğitim kurumları. Her çocuğun ihtiyacına özel eğitim çözümleri."
+        results={results}
+        isLoading={isLoading}
+        errorMessage={error}
+        schoolModeProps={{
+          linkedSearch: searchText,
+          onLinkedSearchChange: setSearchText,
+          linkedDistrict: district,
+          onLinkedDistrictChange: setDistrict,
+          onSchoolFilterPayloadChange: handleCategoryFilterPayloadChange,
+        }}
+      />
+  );
+}

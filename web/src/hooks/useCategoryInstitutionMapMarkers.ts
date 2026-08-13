@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CategoryResultItem } from "@/components/category/useCategoryInstitutions";
 import {
-  fetchInstitutionMapMarkersForSources,
+  fetchInstitutionMapMarkersForListSources,
   type InstitutionMapMarker,
-  type InstitutionMapMarkerSource,
+  type InstitutionMapMarkerListSource,
 } from "@/lib/institutionMapMarkers";
 
-function toMapSources(results: CategoryResultItem[]): InstitutionMapMarkerSource[] {
-  const sources: InstitutionMapMarkerSource[] = [];
+function toMapListSources(results: CategoryResultItem[]): InstitutionMapMarkerListSource[] {
+  const sources: InstitutionMapMarkerListSource[] = [];
 
   for (const item of results) {
     if (item.resultType === "instructor") continue;
 
-    const id = Number(item.id);
+    const id = Number(item.institutionId ?? item.id);
     const slug = String(item.slug ?? "").trim();
     const name = String(item.name ?? "").trim();
     if (!Number.isFinite(id) || !slug || !name) continue;
@@ -23,14 +23,25 @@ function toMapSources(results: CategoryResultItem[]): InstitutionMapMarkerSource
       id,
       slug,
       name,
-      address: String(item.description ?? item.location ?? "").trim() || undefined,
+      address:
+        String(item.mapAddress ?? item.description ?? item.location ?? "").trim() ||
+        undefined,
+      official_phone: item.officialPhone,
+      official_email: item.officialEmail,
+      logoUrl: item.imageUrl,
+      institutionTypeName: item.institutionTypeName,
+      categoryName: item.mapCategoryName,
+      categorySlug: item.mapCategorySlug,
+      categoryId: item.mapCategoryId ?? null,
+      city: item.mapCity,
+      district: item.mapDistrict,
     });
   }
 
   return sources;
 }
 
-function buildSourcesKey(sources: InstitutionMapMarkerSource[]): string {
+function buildSourcesKey(sources: InstitutionMapMarkerListSource[]): string {
   if (sources.length === 0) return "";
   return sources
     .map((source) => source.id)
@@ -46,7 +57,7 @@ export function useCategoryInstitutionMapMarkers(
   const [loading, setLoading] = useState(true);
   const hasLoadedOnceRef = useRef(false);
 
-  const sources = useMemo(() => toMapSources(results ?? []), [results]);
+  const sources = useMemo(() => toMapListSources(results ?? []), [results]);
   const sourcesKey = useMemo(() => buildSourcesKey(sources), [sources]);
 
   useEffect(() => {
@@ -65,7 +76,7 @@ export function useCategoryInstitutionMapMarkers(
 
     (async () => {
       try {
-        const next = await fetchInstitutionMapMarkersForSources(sources);
+        const next = await fetchInstitutionMapMarkersForListSources(sources);
         if (cancelled) return;
         setMarkers(next);
         hasLoadedOnceRef.current = true;

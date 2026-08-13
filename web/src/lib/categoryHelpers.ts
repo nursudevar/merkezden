@@ -34,9 +34,9 @@ export const normalizeCategoryKey = (value: string) =>
 export const HOME_MAIN_CATEGORY_ORDER = [
   "OKUL",
   "KURS & SINAVA HAZIRLIK",
-  "SPOR",
-  "SANAT",
   "YABANCI DİL",
+  "SANAT",
+  "SPOR",
   "KİŞİSEL GELİŞİM",
   "MESLEKİ EĞİTİM",
   "ÖZEL EĞİTİM",
@@ -63,14 +63,14 @@ export function sortByHomeMainCategoryOrder<T extends { name: string }>(items: T
 export function getCategoryHref(name: string, slug: string): string | null {
   const key = normalizeCategoryKey(`${name} ${slug}`);
   if (key.includes("surucu kursu")) return "/surucu-kursu";
-  if (key.includes("okul")) return "/school";
-  if (key.includes("kurs") || key.includes("sinav")) return "/courses";
-  if (key.includes("spor")) return "/sports";
-  if (key.includes("sanat")) return "/arts";
-  if (key.includes("yabanci dil") || key.includes("dil")) return "/languages";
-  if (key.includes("kisisel gelisim")) return "/personal-development";
-  if (key.includes("mesleki egitim")) return "/vocational-training";
-  if (key.includes("ozel egitim")) return "/special-education";
+  if (key.includes("okul")) return "/okul";
+  if (key.includes("kurs") || key.includes("sinav")) return "/kurs-ve-sinava-hazirlik";
+  if (key.includes("spor")) return "/spor";
+  if (key.includes("sanat")) return "/sanat";
+  if (key.includes("yabanci dil") || key.includes("dil")) return "/yabanci-dil";
+  if (key.includes("kisisel gelisim")) return "/kisisel-gelisim";
+  if (key.includes("mesleki egitim")) return "/mesleki-egitim";
+  if (key.includes("ozel egitim")) return "/ozel-egitim";
 
   const normalizedSlug = String(slug ?? "").trim();
   if (normalizedSlug) {

@@ -54,9 +54,32 @@ import {
   isAverageClassSizeInstitutionFeature,
   resolveInstitutionLogoPublicUrl,
 } from "@/lib/institutionHelpers";
+import {
+  buildInstitutionMainFeatureSelectionGroups,
+  collectDefinitionIdsFromFeatureGroups,
+  collectStaleMainFeatureEntryIds,
+  type InstitutionMainFeatureFormState,
+} from "@/lib/institutionMainFeatureSave";
+import {
+  MAX_INSTITUTION_EXTRA_BRANCHES,
+  fetchExtraBranchBooleanDefinitionsForSlugClient,
+  isSupportedExtraBranchSlug,
+  loadInstitutionExtraCategoryRelationsClient,
+} from "@/lib/institutionExtraBranches";
+import {
+  HIGH_SCHOOL_TYPE_OPTIONS,
+  isAllowedHighSchoolTypeSlug,
+  LISE_INSTITUTION_TYPE_ID,
+  OKUL_CATEGORY_SLUG,
+} from "@/lib/schoolInstitutionTypes";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
+import {
+  InstitutionExtraBranchesSection,
+  type InstitutionExtraBranchesSectionHandle,
+} from "./InstitutionExtraBranchesSection";
+import { InstitutionExtraBranchesSidebarCard } from "./InstitutionExtraBranchesSidebarCard";
 import { InstitutionFeatureSelectionGroupList } from "./InstitutionFeatureSelectionGroupList";
 import { WorkingHoursTimePicker } from "./WorkingHoursTimePicker";
 import {
@@ -86,6 +109,8 @@ type OverviewMissingFieldId =
   | "email"
   | "logo"
   | "category"
+  | "school_subcategory"
+  | "high_school_type"
   | "address"
   | "about";
 
@@ -373,6 +398,9 @@ function PanelContent() {
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [logoValidationModalMessage, setLogoValidationModalMessage] = useState<string | null>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const extraBranchesSectionRef = useRef<InstitutionExtraBranchesSectionHandle>(null);
+  const pendingExtraBranchesNavigationRef = useRef(false);
+  const [extraBranchSlotCount, setExtraBranchSlotCount] = useState(0);
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
   const [isSavingInstitutionProfile, setIsSavingInstitutionProfile] = useState(false);
   const [institutionProfileMessage, setInstitutionProfileMessage] = useState<string | null>(null);
@@ -382,8 +410,10 @@ function PanelContent() {
   const [showInstitutionProfileSuccessPopup, setShowInstitutionProfileSuccessPopup] = useState(false);
   const [institutionIsApproved, setInstitutionIsApproved] = useState<boolean>(false);
   const [institutionTypeId, setInstitutionTypeId] = useState<string>("");
+  const [highSchoolType, setHighSchoolType] = useState<string>("");
+  const [schoolAltCategoryError, setSchoolAltCategoryError] = useState<string | null>(null);
+  const [highSchoolTypeError, setHighSchoolTypeError] = useState<string | null>(null);
   const [institutionCategoryId, setInstitutionCategoryId] = useState<string>("");
-  const [canEditInstitutionCategory, setCanEditInstitutionCategory] = useState(false);
   const [institutionCategories, setInstitutionCategories] = useState<
     Array<{ id: number; name: string; display_order: number | null; slug: string | null }>
   >([]);
@@ -545,6 +575,30 @@ interface InstitutionFeatureEntryChoiceRow {
   choice_id: number;
 }
 
+const PATILI_DOSTLAR_CATEGORY_SLUG = "patili-dostlar";
+
+async function collectExtraBranchProtectedDefinitionIds(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  institutionId: number,
+  categories: Array<{ id: number; slug: string | null }>,
+): Promise<Set<number>> {
+  const relations = await loadInstitutionExtraCategoryRelationsClient(supabase, institutionId);
+  const protectedIds = new Set<number>();
+
+  for (const relation of relations) {
+    const category = categories.find((row) => row.id === relation.categoryId);
+    const slug = (category?.slug ?? "").trim();
+    if (!slug || !isSupportedExtraBranchSlug(slug)) continue;
+
+    const { definitions } = await fetchExtraBranchBooleanDefinitionsForSlugClient(supabase, slug);
+    for (const definition of definitions) {
+      protectedIds.add(definition.id);
+    }
+  }
+
+  return protectedIds;
+}
+
 type InstitutionMediaRow = {
   id: string | number;
   institution_id: number;
@@ -596,6 +650,8 @@ interface InstitutionDetailPreparedData {
   const [institutionFeaturesSaveToastNonce, setInstitutionFeaturesSaveToastNonce] = useState(0);
   const [openInstitutionSelectId, setOpenInstitutionSelectId] = useState<number | null>(null);
   const [openInstitutionCategoryPicker, setOpenInstitutionCategoryPicker] = useState(false);
+  const [openInstitutionSchoolLevelPicker, setOpenInstitutionSchoolLevelPicker] = useState(false);
+  const [openInstitutionHighSchoolTypePicker, setOpenInstitutionHighSchoolTypePicker] = useState(false);
 
   const [mediaItems, setMediaItems] = useState<InstitutionMediaRow[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
@@ -1002,10 +1058,10 @@ interface InstitutionDetailPreparedData {
         setInstitutionTypeId(
           typeof row.institution_type_id === "number" ? String(row.institution_type_id) : ""
         );
+        setHighSchoolType(String(row.high_school_type ?? "").trim());
         setInstitutionCategoryId(
           typeof row.category_id === "number" ? String(row.category_id) : ""
         );
-        setCanEditInstitutionCategory(row.can_edit_category === true);
 
         const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
 
@@ -1153,6 +1209,39 @@ interface InstitutionDetailPreparedData {
     if (!selectedType) return;
     setInstitutionCategoryId(String(selectedType.category_id));
   }, [activeTab, institutionTypeId, institutionCategoryId, institutionTypes]);
+
+  const isOkulInstitutionCategory = useMemo(() => {
+    const selected = institutionCategories.find((c) => String(c.id) === (institutionCategoryId ?? ""));
+    return String(selected?.slug ?? "").trim() === OKUL_CATEGORY_SLUG;
+  }, [institutionCategories, institutionCategoryId]);
+
+  const okulInstitutionTypes = useMemo(() => {
+    const okulCategory = institutionCategories.find((c) => c.slug === OKUL_CATEGORY_SLUG);
+    if (!okulCategory) return [];
+    return institutionTypes
+      .filter((type) => type.category_id === okulCategory.id)
+      .sort(
+        (a, b) =>
+          (a.display_order ?? 0) - (b.display_order ?? 0) ||
+          a.name.localeCompare(b.name, "tr", { sensitivity: "base" }),
+      );
+  }, [institutionCategories, institutionTypes]);
+
+  const isLiseInstitutionTypeSelected =
+    institutionTypeId === String(LISE_INSTITUTION_TYPE_ID);
+
+  const prevInstitutionTypeIdRef = useRef(institutionTypeId);
+  useEffect(() => {
+    const previousTypeId = prevInstitutionTypeIdRef.current;
+    prevInstitutionTypeIdRef.current = institutionTypeId;
+
+    const previousWasLise = previousTypeId === String(LISE_INSTITUTION_TYPE_ID);
+    const nextIsLise = institutionTypeId === String(LISE_INSTITUTION_TYPE_ID);
+    if (previousWasLise && !nextIsLise) {
+      setHighSchoolType("");
+      setHighSchoolTypeError(null);
+    }
+  }, [institutionTypeId]);
 
   useEffect(() => {
     if (activeTab !== "institutions") return;
@@ -1397,6 +1486,18 @@ interface InstitutionDetailPreparedData {
     if (overviewCanEvaluateCategory && !overviewHasCategory) {
       items.push({ id: "category", label: "Kategori", tab: "institutions" });
     }
+    if (isOkulInstitutionCategory && overviewHasCategory) {
+      const hasSchoolSubcategory =
+        Number.isFinite(overviewTypeIdNum) && overviewTypeIdNum > 0;
+      if (!hasSchoolSubcategory) {
+        items.push({ id: "school_subcategory", label: "Alt Kategori", tab: "institutions" });
+      } else if (
+        overviewTypeIdNum === LISE_INSTITUTION_TYPE_ID &&
+        !isAllowedHighSchoolTypeSlug(highSchoolType)
+      ) {
+        items.push({ id: "high_school_type", label: "Lise Türü", tab: "institutions" });
+      }
+    }
     if (!(institutionFormData.address ?? "").trim()) {
       items.push({ id: "address", label: "Adres", tab: "institution-profile" });
     }
@@ -1414,6 +1515,8 @@ interface InstitutionDetailPreparedData {
     institutionTypeId,
     institutionCategoryId,
     institutionTypes,
+    isOkulInstitutionCategory,
+    highSchoolType,
   ]);
 
   useEffect(() => {
@@ -1431,6 +1534,136 @@ interface InstitutionDetailPreparedData {
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [institutionFeaturesSaveMessage, institutionFeaturesSaveToastNonce]);
+
+  const institutionGroupsWithFeatures = useMemo(
+    () =>
+      institutionFeatureGroups
+        .map((group) => {
+          const features = institutionFeatureDefinitions
+            .filter((feature) => feature.group_id === group.id)
+            .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+          return { group, features };
+        })
+        .filter((item) => item.features.length > 0),
+    [institutionFeatureGroups, institutionFeatureDefinitions],
+  );
+
+  const selectedInstitutionCategorySlug = useMemo(() => {
+    const id = (institutionCategoryId ?? "").trim();
+    if (!id) return null;
+    const cat = institutionCategories.find((c) => String(c.id) === id);
+    const slug = (cat?.slug ?? "").trim();
+    return slug.length > 0 ? slug : null;
+  }, [institutionCategoryId, institutionCategories]);
+
+  const selectionGroups = useMemo(
+    () =>
+      institutionGroupsWithFeatures
+        .map(({ group, features }) => ({
+          group,
+          features: features
+            .filter(
+              (feature) =>
+                feature.input_type === "text" ||
+                feature.input_type === "number" ||
+                feature.input_type === "boolean" ||
+                feature.input_type === "multi_select" ||
+                feature.input_type === "single_select",
+            )
+            .filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature))
+            .map((feature) => ({
+              id: feature.id,
+              name: feature.name,
+              slug: feature.slug ?? null,
+              input_type: feature.input_type,
+              help_text: feature.help_text ?? null,
+              placeholder: feature.placeholder ?? null,
+              unit: feature.unit ?? null,
+            })),
+        }))
+        .filter((item) => item.features.length > 0),
+    [institutionGroupsWithFeatures],
+  );
+
+  const { upperGroups: institutionSelectionUpperGroups, lowerGroups: institutionSelectionLowerGroups } =
+    useMemo(
+      () => buildInstitutionMainFeatureSelectionGroups(selectionGroups, selectedInstitutionCategorySlug),
+      [selectionGroups, selectedInstitutionCategorySlug],
+    );
+
+  const isPatiliDostlarCategory = selectedInstitutionCategorySlug === PATILI_DOSTLAR_CATEGORY_SLUG;
+
+  const resetMainInstitutionFeatureFormState = useCallback(() => {
+    setInstitutionBooleanFeatureValues({});
+    setInstitutionTextFeatureValues({});
+    setInstitutionNumberFeatureValues({});
+    setInstitutionSingleSelectValues({});
+    setInstitutionMultiSelectValues({});
+    setStudentAgeRangeError(null);
+  }, []);
+
+  const performExtraBranchesNavigation = useCallback(() => {
+    requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        const section = extraBranchesSectionRef.current;
+        if (!section) return;
+        if (section.canAddBranch()) {
+          section.addBranch();
+        }
+        section.scrollIntoView();
+      }, 80);
+    });
+  }, []);
+
+  const handleSidebarExtraBranchClick = useCallback(() => {
+    const canShowSection =
+      Boolean(institutionId) &&
+      !institutionRecordMissing &&
+      !institutionFeaturesLoading &&
+      !institutionFeaturesError &&
+      institutionGroupsWithFeatures.length > 0;
+
+    if (activeTab !== "institutions" || !canShowSection) {
+      pendingExtraBranchesNavigationRef.current = true;
+      setActiveTab("institutions");
+      return;
+    }
+
+    performExtraBranchesNavigation();
+  }, [
+    activeTab,
+    institutionId,
+    institutionRecordMissing,
+    institutionFeaturesLoading,
+    institutionFeaturesError,
+    institutionGroupsWithFeatures.length,
+    performExtraBranchesNavigation,
+  ]);
+
+  useEffect(() => {
+    if (!pendingExtraBranchesNavigationRef.current) return;
+    if (activeTab !== "institutions") return;
+    if (institutionFeaturesLoading || !institutionId) return;
+    if (institutionRecordMissing || institutionFeaturesError) {
+      pendingExtraBranchesNavigationRef.current = false;
+      return;
+    }
+    if (institutionGroupsWithFeatures.length === 0) {
+      pendingExtraBranchesNavigationRef.current = false;
+      return;
+    }
+
+    pendingExtraBranchesNavigationRef.current = false;
+    performExtraBranchesNavigation();
+  }, [
+    activeTab,
+    institutionId,
+    institutionFeaturesLoading,
+    institutionRecordMissing,
+    institutionFeaturesError,
+    institutionGroupsWithFeatures.length,
+    performExtraBranchesNavigation,
+  ]);
 
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
@@ -1759,31 +1992,179 @@ interface InstitutionDetailPreparedData {
         setStudentAgeRangeError(null);
       }
 
-      if (canEditInstitutionCategory) {
-        const parsedCategoryId = Number(String(institutionCategoryId ?? "").trim());
-        if (Number.isFinite(parsedCategoryId) && parsedCategoryId > 0) {
-          const { error: categoryUpdateError } = await supabase
-            .from("institutions")
-            .update({ category_id: parsedCategoryId })
-            .eq("id", Number(institutionId));
-          if (categoryUpdateError) throw categoryUpdateError;
+      const selectedCategoryRow = institutionCategories.find(
+        (category) => String(category.id) === String(institutionCategoryId ?? "").trim(),
+      );
+      const isOkulCategory =
+        String(selectedCategoryRow?.slug ?? "").trim() === OKUL_CATEGORY_SLUG;
+
+      let institutionTypeIdToSave: number | null = null;
+      let highSchoolTypeToSave: string | null = null;
+
+      if (isOkulCategory) {
+        const parsedTypeId = Number(String(institutionTypeId ?? "").trim());
+        if (!Number.isFinite(parsedTypeId) || parsedTypeId <= 0) {
+          setSchoolAltCategoryError("Alt kategori seçin.");
+          flashInstitutionFeaturesSaveMessage("Alt kategori seçin.");
+          setInstitutionFeaturesSaving(false);
+          return;
         }
+        setSchoolAltCategoryError(null);
+        institutionTypeIdToSave = parsedTypeId;
+
+        const okulCategory = institutionCategories.find((category) => category.slug === OKUL_CATEGORY_SLUG);
+        const selectedOkulType = institutionTypes.find((type) => type.id === parsedTypeId);
+        if (
+          okulCategory &&
+          selectedOkulType &&
+          selectedOkulType.category_id !== okulCategory.id
+        ) {
+          setSchoolAltCategoryError("Geçerli bir alt kategori seçin.");
+          flashInstitutionFeaturesSaveMessage("Seçilen alt kategori Okul kategorisine ait değil.");
+          setInstitutionFeaturesSaving(false);
+          return;
+        }
+
+        if (parsedTypeId === LISE_INSTITUTION_TYPE_ID) {
+          const nextHighSchoolType = highSchoolType.trim();
+          if (!isAllowedHighSchoolTypeSlug(nextHighSchoolType)) {
+            setHighSchoolTypeError("Lise türü seçin.");
+            flashInstitutionFeaturesSaveMessage("Lise türü seçin.");
+            setInstitutionFeaturesSaving(false);
+            return;
+          }
+          setHighSchoolTypeError(null);
+          highSchoolTypeToSave = nextHighSchoolType;
+        } else {
+          setHighSchoolTypeError(null);
+        }
+      } else {
+        setSchoolAltCategoryError(null);
+        setHighSchoolTypeError(null);
       }
 
+      const normalizedInstitutionId = Number(institutionId);
+      const nextCategoryId = (() => {
+        const parsedCategoryId = Number(String(institutionCategoryId ?? "").trim());
+        return Number.isFinite(parsedCategoryId) && parsedCategoryId > 0 ? parsedCategoryId : null;
+      })();
+
+      const currentValidDefinitionIds = collectDefinitionIdsFromFeatureGroups([
+        ...institutionSelectionUpperGroups,
+        ...institutionSelectionLowerGroups,
+      ]);
+      const reconcileDefinitionIds: Set<number> =
+        saveOnlyFeatureIds ?? currentValidDefinitionIds;
+
+      const mainFeatureFormState: InstitutionMainFeatureFormState = {
+        booleanValues: institutionBooleanFeatureValues,
+        textValues: institutionTextFeatureValues,
+        numberValues: institutionNumberFeatureValues,
+        singleSelectValues: institutionSingleSelectValues,
+        multiSelectValues: institutionMultiSelectValues,
+      };
+
+      const definitionsById = new Map(
+        institutionFeatureDefinitions.map((definition) => [definition.id, definition]),
+      );
+
+      const institutionRowUpdate: {
+        institution_type_id: number | null;
+        high_school_type: string | null;
+        category_id: number | null;
+      } = {
+        institution_type_id: institutionTypeIdToSave,
+        high_school_type: highSchoolTypeToSave,
+        category_id: nextCategoryId,
+      };
+
+      const { error: institutionRowUpdateError } = await supabase
+        .from("institutions")
+        .update(institutionRowUpdate)
+        .eq("id", normalizedInstitutionId);
+      if (institutionRowUpdateError) throw institutionRowUpdateError;
+
+      const extraBranchProtectedDefinitionIds = await collectExtraBranchProtectedDefinitionIds(
+        supabase,
+        normalizedInstitutionId,
+        institutionCategories,
+      );
+
+      const { data: currentEntriesData, error: currentEntriesError } = await supabase
+        .from("institution_feature_entries")
+        .select("id, feature_definition_id, boolean_answer, text_answer, number_answer, selected_choice_id")
+        .eq("institution_id", normalizedInstitutionId);
+      if (currentEntriesError) throw currentEntriesError;
+
+      let workingEntries = ((currentEntriesData ?? []) as InstitutionFeatureEntryRow[]) ?? [];
+
+      const staleEntryIds = collectStaleMainFeatureEntryIds({
+        dbEntries: workingEntries,
+        currentValidDefinitionIds,
+        reconcileDefinitionIds,
+        protectedDefinitionIds: extraBranchProtectedDefinitionIds,
+        definitionsById,
+        formState: mainFeatureFormState,
+      });
+
+      if (staleEntryIds.length > 0) {
+        const staleEntryIdSet = new Set(staleEntryIds);
+        const staleDefinitionIdSet = new Set(
+          workingEntries
+            .filter((entry) => staleEntryIdSet.has(entry.id))
+            .map((entry) => entry.feature_definition_id),
+        );
+
+        const { error: deleteChoicesError } = await supabase
+          .from("institution_feature_entry_choices")
+          .delete()
+          .in("institution_feature_entry_id", staleEntryIds);
+        if (deleteChoicesError) throw deleteChoicesError;
+
+        const { error: deleteEntriesError } = await supabase
+          .from("institution_feature_entries")
+          .delete()
+          .in("id", staleEntryIds);
+        if (deleteEntriesError) throw deleteEntriesError;
+
+        workingEntries = workingEntries.filter((entry) => !staleEntryIdSet.has(entry.id));
+        setInstitutionFeatureEntries((prev) =>
+          prev.filter((entry) => !staleDefinitionIdSet.has(entry.feature_definition_id)),
+        );
+        setInstitutionFeatureEntryChoices((prev) =>
+          prev.filter((row) => !staleEntryIdSet.has(row.institution_feature_entry_id)),
+        );
+      }
+
+      const isInMainFeaturePersistScope = (featureId: number) =>
+        currentValidDefinitionIds.has(featureId) && shouldPersistFeature(featureId);
+
       const booleanFeatures = institutionFeatureDefinitions.filter(
-        (feature) => feature.input_type === "boolean" && shouldPersistFeature(feature.id)
+        (feature) => feature.input_type === "boolean" && isInMainFeaturePersistScope(feature.id),
       );
 
       for (const feature of booleanFeatures) {
         const value = Boolean(institutionBooleanFeatureValues[feature.id]);
-        const existingEntry = institutionFeatureEntries.find(
-          (entry) => entry.feature_definition_id === feature.id
+        const existingEntry = workingEntries.find(
+          (entry) => entry.feature_definition_id === feature.id,
         );
+
+        if (!value) {
+          if (existingEntry) {
+            const { error } = await supabase
+              .from("institution_feature_entries")
+              .delete()
+              .eq("id", existingEntry.id);
+            if (error) throw error;
+            workingEntries = workingEntries.filter((entry) => entry.id !== existingEntry.id);
+          }
+          continue;
+        }
 
         if (existingEntry) {
           const { error } = await supabase
             .from("institution_feature_entries")
-            .update({ boolean_answer: value })
+            .update({ boolean_answer: true })
             .eq("id", existingEntry.id);
           if (error) throw error;
         } else {
@@ -1792,20 +2173,20 @@ interface InstitutionDetailPreparedData {
             .insert({
               institution_id: Number(institutionId),
               feature_definition_id: feature.id,
-              boolean_answer: value,
+              boolean_answer: true,
             });
           if (error) throw error;
         }
       }
 
       const textFeatures = institutionFeatureDefinitions.filter(
-        (feature) => feature.input_type === "text" && shouldPersistFeature(feature.id)
+        (feature) => feature.input_type === "text" && isInMainFeaturePersistScope(feature.id),
       );
 
       for (const feature of textFeatures) {
         const rawValue = institutionTextFeatureValues[feature.id] ?? "";
         const value = rawValue.trim();
-        const existingEntry = institutionFeatureEntries.find(
+        const existingEntry = workingEntries.find(
           (entry) => entry.feature_definition_id === feature.id
         );
 
@@ -1816,6 +2197,7 @@ interface InstitutionDetailPreparedData {
               .delete()
               .eq("id", existingEntry.id);
             if (error) throw error;
+            workingEntries = workingEntries.filter((entry) => entry.id !== existingEntry.id);
           }
           continue;
         }
@@ -1839,12 +2221,12 @@ interface InstitutionDetailPreparedData {
       }
 
       const numberFeatures = institutionFeatureDefinitions.filter(
-        (feature) => feature.input_type === "number" && shouldPersistFeature(feature.id)
+        (feature) => feature.input_type === "number" && isInMainFeaturePersistScope(feature.id),
       );
 
       for (const feature of numberFeatures) {
         const rawValue = (institutionNumberFeatureValues[feature.id] ?? "").trim();
-        const existingEntry = institutionFeatureEntries.find(
+        const existingEntry = workingEntries.find(
           (entry) => entry.feature_definition_id === feature.id
         );
 
@@ -1855,6 +2237,7 @@ interface InstitutionDetailPreparedData {
               .delete()
               .eq("id", existingEntry.id);
             if (error) throw error;
+            workingEntries = workingEntries.filter((entry) => entry.id !== existingEntry.id);
           }
           continue;
         }
@@ -1896,7 +2279,7 @@ interface InstitutionDetailPreparedData {
         (feature) =>
           (feature.input_type === "single_select" || feature.input_type === "multi_select") &&
           !isLegacyStudentAgeMultiSelectFeature(feature) &&
-          shouldPersistFeature(feature.id)
+          isInMainFeaturePersistScope(feature.id),
       );
 
       for (const feature of choiceBasedFeatures) {
@@ -1911,7 +2294,7 @@ interface InstitutionDetailPreparedData {
               .filter((choiceId) => Number.isFinite(choiceId))
           )
         );
-        const existingEntry = institutionFeatureEntries.find(
+        const existingEntry = workingEntries.find(
           (entry) => entry.feature_definition_id === feature.id
         );
 
@@ -1928,6 +2311,7 @@ interface InstitutionDetailPreparedData {
               .delete()
               .eq("id", existingEntry.id);
             if (deleteEntryError) throw deleteEntryError;
+            workingEntries = workingEntries.filter((entry) => entry.id !== existingEntry.id);
           }
           continue;
         }
@@ -1968,14 +2352,7 @@ interface InstitutionDetailPreparedData {
 
       flashInstitutionFeaturesSaveMessage("Kurum özellikleri güncellendi.");
 
-      const persistedFeatureDefinitionIdList = Array.from(
-        new Set<number>([
-          ...booleanFeatures.map((f) => f.id),
-          ...textFeatures.map((f) => f.id),
-          ...numberFeatures.map((f) => f.id),
-          ...choiceBasedFeatures.map((f) => f.id),
-        ])
-      );
+      const persistedFeatureDefinitionIdList = Array.from(reconcileDefinitionIds);
 
       if (activeTab === "institutions") {
         const refreshId = Number(institutionId);
@@ -2050,14 +2427,7 @@ interface InstitutionDetailPreparedData {
       setInstitutionFeaturesSaving(false);
     }
   };
-  const institutionGroupsWithFeatures = institutionFeatureGroups
-    .map((group) => {
-      const features = institutionFeatureDefinitions
-        .filter((feature) => feature.group_id === group.id)
-        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-      return { group, features };
-    })
-    .filter((item) => item.features.length > 0);
+
   const getDisplayFeatureName = (name: string) => {
     const trimmed = (name ?? "").trim();
     const key = trimmed
@@ -2083,60 +2453,6 @@ interface InstitutionDetailPreparedData {
     return trimmed;
   };
 
-  const selectionGroups = institutionGroupsWithFeatures
-    .map(({ group, features }) => ({
-      group,
-      features: features
-        .filter(
-          (feature) =>
-            feature.input_type === "text" ||
-            feature.input_type === "number" ||
-            feature.input_type === "boolean" ||
-            feature.input_type === "multi_select" ||
-            feature.input_type === "single_select",
-        )
-        .filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature))
-        .map((feature) => ({
-          id: feature.id,
-          name: feature.name,
-          slug: feature.slug ?? null,
-          input_type: feature.input_type,
-          help_text: feature.help_text,
-          placeholder: feature.placeholder,
-          unit: feature.unit,
-        })),
-    }))
-    .filter((item) => item.features.length > 0);
-  /** Üst kartta yalnızca Kategori (ayrı section) + Başlıca Özellikler grubu; diğer tüm gruplar alt alanda (category_slug). */
-  const baslicaOzelliklerGroup = selectionGroups.find(
-    ({ group }) => group.name.trim().toLocaleLowerCase("tr-TR") === "başlıca özellikler"
-  );
-  const okulImkanlariIndex = selectionGroups.findIndex(
-    ({ group }) => group.name.trim().toLocaleLowerCase("tr-TR") === "okul imkanları"
-  );
-  const institutionSelectionUpperGroups = baslicaOzelliklerGroup
-    ? [baslicaOzelliklerGroup]
-    : okulImkanlariIndex !== -1
-      ? selectionGroups.slice(0, okulImkanlariIndex)
-      : selectionGroups;
-  const institutionSelectionLowerGroupsRaw = baslicaOzelliklerGroup
-    ? selectionGroups.filter((item) => item.group.id !== baslicaOzelliklerGroup.group.id)
-    : okulImkanlariIndex !== -1
-      ? selectionGroups.slice(okulImkanlariIndex)
-      : [];
-  const selectedInstitutionCategorySlug = (() => {
-    const id = (institutionCategoryId ?? "").trim();
-    if (!id) return null;
-    const cat = institutionCategories.find((c) => String(c.id) === id);
-    const slug = (cat?.slug ?? "").trim();
-    return slug.length > 0 ? slug : null;
-  })();
-  const institutionSelectionLowerGroups =
-    selectedInstitutionCategorySlug === null
-      ? []
-      : institutionSelectionLowerGroupsRaw.filter(
-          ({ group }) => (group.category_slug ?? "").trim() === selectedInstitutionCategorySlug
-        );
   const institutionDetailPreparedData: InstitutionDetailPreparedData = (() => {
     const choiceNameById = new Map<string, string>();
     institutionFeatureChoices.forEach((choice) => {
@@ -2577,23 +2893,14 @@ interface InstitutionDetailPreparedData {
               </button>
             </div>
           </div>
-
-          {activeTab === "institutions" ? (
-            <div className="panel-sidebar-below-menu">
-              <div className="panel-institutions-verification-badge" role="note" aria-label="Kurumsal Doğrulama">
-                <div className="panel-institutions-verification-text">
-                  <div className="panel-institutions-verification-head">
-                    <div className="panel-institutions-verification-icon" aria-hidden>
-                      <CheckCircle size={20} />
-                    </div>
-                    <h4 className="panel-institutions-verification-title">Kurumsal Doğrulama</h4>
-                  </div>
-                  <p className="panel-institutions-verification-desc">
-                    Bu özellikler sayfasında yapacağınız her değişiklik, kurum profilinizde anında yayınlanır ve
-                    &quot;Doğrulanmış&quot; etiketiyle gösterilir.
-                  </p>
-                </div>
-              </div>
+          {isInstitutionsTab ? (
+            <div className="panel-sidebar-extra-box">
+              <InstitutionExtraBranchesSidebarCard
+                onAddClick={() => handleSidebarExtraBranchClick()}
+                disabled={
+                  !institutionId || extraBranchSlotCount >= MAX_INSTITUTION_EXTRA_BRANCHES
+                }
+              />
             </div>
           ) : null}
         </aside>
@@ -3355,77 +3662,230 @@ interface InstitutionDetailPreparedData {
                       ) : institutionTypeError ? (
                         <p className="panel-institutions-empty-text">{institutionTypeError}</p>
                       ) : (
-                        <div
-                          className={`panel-institutions-type-picker-row${
-                            canEditInstitutionCategory ? "" : " panel-institutions-type-picker-disabled"
-                          }`}
-                        >
-                          <div className="panel-institutions-feature-input-wrap">
-                            <p className="panel-institutions-feature-name">Kategori</p>
-                            <div className="panel-institutions-single-select-dropdown">
-                              <button
-                                type="button"
-                                className={`panel-institutions-feature-select panel-institutions-feature-select--button${
-                                  openInstitutionCategoryPicker
-                                    ? " panel-institutions-feature-select--open"
-                                    : ""
-                                }`}
-                                disabled={!canEditInstitutionCategory}
-                                aria-disabled={!canEditInstitutionCategory}
-                                onClick={() => {
-                                  if (!canEditInstitutionCategory) return;
-                                  setOpenInstitutionCategoryPicker((prev) => !prev);
-                                  setOpenInstitutionSelectId(null);
-                                }}
-                                aria-haspopup={canEditInstitutionCategory ? "listbox" : undefined}
-                                aria-expanded={
-                                  canEditInstitutionCategory ? openInstitutionCategoryPicker : undefined
-                                }
-                              >
-                                <span
-                                  className="panel-institutions-feature-select-label"
-                                  title={
-                                    institutionCategories.find(
-                                      (c) => String(c.id) === (institutionCategoryId ?? "")
-                                    )?.name || "Kategori seçilmemiş"
-                                  }
+                        <>
+                          <div className="panel-institutions-type-picker-row">
+                            <div className="panel-institutions-feature-input-wrap">
+                              <p className="panel-institutions-feature-name">Kategori</p>
+                              <div className="panel-institutions-single-select-dropdown">
+                                <button
+                                  type="button"
+                                  className={`panel-institutions-feature-select panel-institutions-feature-select--button${
+                                    openInstitutionCategoryPicker
+                                      ? " panel-institutions-feature-select--open"
+                                      : ""
+                                  }`}
+                                  onClick={() => {
+                                    setOpenInstitutionCategoryPicker((prev) => !prev);
+                                    setOpenInstitutionSchoolLevelPicker(false);
+                                    setOpenInstitutionHighSchoolTypePicker(false);
+                                    setOpenInstitutionSelectId(null);
+                                  }}
+                                  aria-haspopup="listbox"
+                                  aria-expanded={openInstitutionCategoryPicker}
                                 >
-                                  {institutionCategories.find(
-                                    (c) => String(c.id) === (institutionCategoryId ?? "")
-                                  )?.name || "Kategori seçilmemiş"}
-                                </span>
-                              </button>
-                              {canEditInstitutionCategory && openInstitutionCategoryPicker ? (
-                                <div className="panel-institutions-feature-select-menu" role="listbox">
-                                  {institutionCategories.map((category) => (
-                                    <button
-                                      key={category.id}
-                                      type="button"
-                                      role="option"
-                                      aria-selected={String(category.id) === (institutionCategoryId ?? "")}
-                                      className={`panel-institutions-feature-select-option ${
-                                        String(category.id) === (institutionCategoryId ?? "")
-                                          ? "panel-institutions-feature-select-option--selected"
-                                          : ""
-                                      }`}
-                                      onClick={() => {
-                                        setInstitutionCategoryId(String(category.id));
-                                        setOpenInstitutionCategoryPicker(false);
-                                      }}
-                                    >
-                                      {category.name}
-                                    </button>
-                                  ))}
-                                </div>
-                              ) : null}
+                                  <span
+                                    className="panel-institutions-feature-select-label"
+                                    title={
+                                      institutionCategories.find(
+                                        (c) => String(c.id) === (institutionCategoryId ?? "")
+                                      )?.name || "Kategori seçilmemiş"
+                                    }
+                                  >
+                                    {institutionCategories.find(
+                                      (c) => String(c.id) === (institutionCategoryId ?? "")
+                                    )?.name || "Kategori seçilmemiş"}
+                                  </span>
+                                </button>
+                                {openInstitutionCategoryPicker ? (
+                                  <div className="panel-institutions-feature-select-menu" role="listbox">
+                                    {institutionCategories.map((category) => (
+                                      <button
+                                        key={category.id}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={String(category.id) === (institutionCategoryId ?? "")}
+                                        className={`panel-institutions-feature-select-option ${
+                                          String(category.id) === (institutionCategoryId ?? "")
+                                            ? "panel-institutions-feature-select-option--selected"
+                                            : ""
+                                        }`}
+                                        onClick={() => {
+                                          const nextId = String(category.id);
+                                          const prevId = (institutionCategoryId ?? "").trim();
+                                          if (nextId !== prevId) {
+                                            extraBranchesSectionRef.current?.resetUiState();
+                                            resetMainInstitutionFeatureFormState();
+                                          }
+                                          const nextSlug = String(category.slug ?? "").trim();
+                                          setInstitutionCategoryId(nextId);
+                                          if (nextSlug !== OKUL_CATEGORY_SLUG) {
+                                            setInstitutionTypeId("");
+                                            setHighSchoolType("");
+                                            setSchoolAltCategoryError(null);
+                                            setHighSchoolTypeError(null);
+                                          } else {
+                                            const currentTypeId = Number(
+                                              String(institutionTypeId ?? "").trim(),
+                                            );
+                                            const isValidOkulType =
+                                              Number.isFinite(currentTypeId) &&
+                                              currentTypeId > 0 &&
+                                              okulInstitutionTypes.some(
+                                                (type) => type.id === currentTypeId,
+                                              );
+                                            if (!isValidOkulType) {
+                                              setInstitutionTypeId("");
+                                              setHighSchoolType("");
+                                              setSchoolAltCategoryError(null);
+                                              setHighSchoolTypeError(null);
+                                            }
+                                          }
+                                          setOpenInstitutionCategoryPicker(false);
+                                        }}
+                                      >
+                                        {category.name}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
                             </div>
-                            <p className="panel-institutions-category-note">
-                              {canEditInstitutionCategory
-                                ? "Bu hesap için kategori değişikliği geçici olarak açılmıştır."
-                                : "Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez."}
-                            </p>
+
+                            {isOkulInstitutionCategory ? (
+                              <div className="panel-institutions-feature-input-wrap">
+                                <p className="panel-institutions-feature-name">Alt Kategori</p>
+                                <div className="panel-institutions-single-select-dropdown">
+                                  <button
+                                    type="button"
+                                    className={`panel-institutions-feature-select panel-institutions-feature-select--button${
+                                      openInstitutionSchoolLevelPicker
+                                        ? " panel-institutions-feature-select--open"
+                                        : ""
+                                    }`}
+                                    onClick={() => {
+                                      setOpenInstitutionSchoolLevelPicker((prev) => !prev);
+                                      setOpenInstitutionCategoryPicker(false);
+                                      setOpenInstitutionHighSchoolTypePicker(false);
+                                      setOpenInstitutionSelectId(null);
+                                    }}
+                                    aria-haspopup="listbox"
+                                    aria-expanded={openInstitutionSchoolLevelPicker}
+                                  >
+                                    <span
+                                      className="panel-institutions-feature-select-label"
+                                      title={
+                                        okulInstitutionTypes.find(
+                                          (type) => String(type.id) === (institutionTypeId ?? "")
+                                        )?.name || "Alt kategori seçilmemiş"
+                                      }
+                                    >
+                                      {okulInstitutionTypes.find(
+                                        (type) => String(type.id) === (institutionTypeId ?? "")
+                                      )?.name || "Alt kategori seçilmemiş"}
+                                    </span>
+                                  </button>
+                                  {openInstitutionSchoolLevelPicker ? (
+                                    <div className="panel-institutions-feature-select-menu" role="listbox">
+                                      {okulInstitutionTypes.map((type) => (
+                                        <button
+                                          key={type.id}
+                                          type="button"
+                                          role="option"
+                                          aria-selected={String(type.id) === (institutionTypeId ?? "")}
+                                          className={`panel-institutions-feature-select-option ${
+                                            String(type.id) === (institutionTypeId ?? "")
+                                              ? "panel-institutions-feature-select-option--selected"
+                                              : ""
+                                          }`}
+                                          onClick={() => {
+                                            setInstitutionTypeId(String(type.id));
+                                            setSchoolAltCategoryError(null);
+                                            setOpenInstitutionSchoolLevelPicker(false);
+                                          }}
+                                        >
+                                          {type.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                {schoolAltCategoryError ? (
+                                  <p className="panel-institution-form-error" role="alert">
+                                    {schoolAltCategoryError}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
-                        </div>
+
+                          {isOkulInstitutionCategory && isLiseInstitutionTypeSelected ? (
+                            <div className="panel-institutions-type-picker-row">
+                              <div className="panel-institutions-feature-input-wrap">
+                                <p className="panel-institutions-feature-name">Lise Türü</p>
+                                <div className="panel-institutions-single-select-dropdown">
+                                  <button
+                                    type="button"
+                                    className={`panel-institutions-feature-select panel-institutions-feature-select--button${
+                                      openInstitutionHighSchoolTypePicker
+                                        ? " panel-institutions-feature-select--open"
+                                        : ""
+                                    }`}
+                                    onClick={() => {
+                                      setOpenInstitutionHighSchoolTypePicker((prev) => !prev);
+                                      setOpenInstitutionCategoryPicker(false);
+                                      setOpenInstitutionSchoolLevelPicker(false);
+                                      setOpenInstitutionSelectId(null);
+                                    }}
+                                    aria-haspopup="listbox"
+                                    aria-expanded={openInstitutionHighSchoolTypePicker}
+                                  >
+                                    <span
+                                      className="panel-institutions-feature-select-label"
+                                      title={
+                                        HIGH_SCHOOL_TYPE_OPTIONS.find(
+                                          (option) => option.slug === highSchoolType
+                                        )?.label || "Lise türü seçilmemiş"
+                                      }
+                                    >
+                                      {HIGH_SCHOOL_TYPE_OPTIONS.find(
+                                        (option) => option.slug === highSchoolType
+                                      )?.label || "Lise türü seçilmemiş"}
+                                    </span>
+                                  </button>
+                                  {openInstitutionHighSchoolTypePicker ? (
+                                    <div className="panel-institutions-feature-select-menu" role="listbox">
+                                      {HIGH_SCHOOL_TYPE_OPTIONS.map((option) => (
+                                        <button
+                                          key={option.slug}
+                                          type="button"
+                                          role="option"
+                                          aria-selected={option.slug === highSchoolType}
+                                          className={`panel-institutions-feature-select-option ${
+                                            option.slug === highSchoolType
+                                              ? "panel-institutions-feature-select-option--selected"
+                                              : ""
+                                          }`}
+                                          onClick={() => {
+                                            setHighSchoolType(option.slug);
+                                            setHighSchoolTypeError(null);
+                                            setOpenInstitutionHighSchoolTypePicker(false);
+                                          }}
+                                        >
+                                          {option.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                {highSchoolTypeError ? (
+                                  <p className="panel-institution-form-error" role="alert">
+                                    {highSchoolTypeError}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : null}
+                        </>
                       )}
                     </section>
 
@@ -3524,6 +3984,21 @@ interface InstitutionDetailPreparedData {
                 </div>
               </div>
             </section>
+          </div>
+        ) : null}
+        {isInstitutionsTab &&
+        !institutionRecordMissing &&
+        !institutionFeaturesLoading &&
+        !institutionFeaturesError &&
+        institutionGroupsWithFeatures.length > 0 &&
+        institutionId ? (
+          <div className="panel-institutions-feature-wide">
+            <InstitutionExtraBranchesSection
+              ref={extraBranchesSectionRef}
+              institutionId={institutionId}
+              mainCategoryId={institutionCategoryId}
+              onSlotCountChange={setExtraBranchSlotCount}
+            />
           </div>
         ) : null}
       </div>

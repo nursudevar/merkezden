@@ -7,6 +7,7 @@ import L from "leaflet";
 import "leaflet.markercluster";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import type { DistrictBoundaryGeoJson } from "@/lib/districtMapView";
 
 /** Inline SVG building — avoids broken Leaflet default PNG paths in Next.js bundler */
 const BUILDING_MARKER_SVG = `
@@ -47,6 +48,7 @@ type LeafletMarkerClusterGroup = L.Layer & {
 function createLeafletMarkerClusterGroup(
   options: {
     chunkedLoading?: boolean;
+    showCoverageOnHover?: boolean;
     iconCreateFunction?: (cluster: { getChildCount: () => number }) => L.DivIcon;
   },
 ): LeafletMarkerClusterGroup {
@@ -54,6 +56,7 @@ function createLeafletMarkerClusterGroup(
     L as typeof L & {
       MarkerClusterGroup: new (opts?: {
         chunkedLoading?: boolean;
+        showCoverageOnHover?: boolean;
         iconCreateFunction?: (cluster: { getChildCount: () => number }) => L.DivIcon;
       }) => LeafletMarkerClusterGroup;
     }
@@ -149,6 +152,15 @@ function MapInvalidateSize() {
   return null;
 }
 
+/** Leaflet varsayılan "Leaflet" önek metnini kaldırır; tile katmanı atıfı korunur. */
+function MapAttributionPrefix() {
+  const map = useMap();
+  useEffect(() => {
+    map.attributionControl.setPrefix("");
+  }, [map]);
+  return null;
+}
+
 function InstitutionMarkerClusterLayer({
   markers,
   markerSignature,
@@ -171,6 +183,7 @@ function InstitutionMarkerClusterLayer({
 
     const cluster = createLeafletMarkerClusterGroup({
       chunkedLoading: true,
+      showCoverageOnHover: false,
       iconCreateFunction: createClusterIcon,
     });
 
@@ -250,6 +263,53 @@ function MapBoundsReporter({
   return null;
 }
 
+function MapDistrictBoundary({
+  geoJson,
+}: {
+  geoJson?: InstitutionMapFocusTarget["boundaryGeoJson"];
+}) {
+  const map = useMap();
+  const layerRef = useRef<L.GeoJSON | null>(null);
+
+  useEffect(() => {
+    if (layerRef.current) {
+      try {
+        map.removeLayer(layerRef.current);
+      } catch {
+        /* map teardown */
+      }
+      layerRef.current = null;
+    }
+
+    if (!geoJson) return;
+
+    const layer = L.geoJSON(geoJson as GeoJSON.GeoJsonObject, {
+      style: {
+        color: "#6d5dfc",
+        weight: 2,
+        opacity: 0.85,
+        fillColor: "#6d5dfc",
+        fillOpacity: 0.1,
+      },
+      interactive: false,
+    });
+    layer.addTo(map);
+    layerRef.current = layer;
+
+    return () => {
+      if (!layerRef.current) return;
+      try {
+        map.removeLayer(layerRef.current);
+      } catch {
+        /* map teardown */
+      }
+      layerRef.current = null;
+    };
+  }, [map, geoJson]);
+
+  return null;
+}
+
 function MapFocusController({
   focusTarget,
 }: {
@@ -260,16 +320,38 @@ function MapFocusController({
   useEffect(() => {
     if (!focusTarget) return;
 
-    const lat = Number(focusTarget.lat);
-    const lng = Number(focusTarget.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const zoom = Number.isFinite(Number(focusTarget.zoom)) ? Number(focusTarget.zoom) : 13;
-
     let cancelled = false;
+
     const applyFocus = () => {
       if (cancelled || !isMapContainerLive(map)) return;
       try {
         stopMapAnimations(map);
+
+        if (focusTarget.bounds) {
+          const [[south, west], [north, east]] = focusTarget.bounds;
+          if (
+            Number.isFinite(south) &&
+            Number.isFinite(west) &&
+            Number.isFinite(north) &&
+            Number.isFinite(east) &&
+            south < north &&
+            west < east
+          ) {
+            map.fitBounds(
+              [
+                [south, west],
+                [north, east],
+              ],
+              { padding: [28, 28], maxZoom: 14, animate: true },
+            );
+            return;
+          }
+        }
+
+        const lat = Number(focusTarget.lat);
+        const lng = Number(focusTarget.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const zoom = Number.isFinite(Number(focusTarget.zoom)) ? Number(focusTarget.zoom) : 13;
         map.setView([lat, lng], zoom, { animate: false });
       } catch {
         /* map teardown */
@@ -283,15 +365,24 @@ function MapFocusController({
       window.cancelAnimationFrame(raf);
       stopMapAnimations(map);
     };
-  }, [map, focusTarget?.token, focusTarget?.lat, focusTarget?.lng, focusTarget?.zoom]);
+  }, [
+    map,
+    focusTarget?.token,
+    focusTarget?.lat,
+    focusTarget?.lng,
+    focusTarget?.zoom,
+    focusTarget?.bounds,
+  ]);
 
   return null;
 }
 
 export type InstitutionMapFocusTarget = {
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   zoom?: number;
+  bounds?: [[number, number], [number, number]];
+  boundaryGeoJson?: DistrictBoundaryGeoJson | null;
   /** Aynı konuma tekrar odaklanmayı tetiklemek için */
   token: number;
 };
@@ -357,8 +448,10 @@ export default function InstitutionLocationsMap({
           className={mapClass}
         >
           <MapInvalidateSize />
+          <MapAttributionPrefix />
           <MapBoundsReporter onBoundsChange={onBoundsChange} />
           <MapFocusController focusTarget={focusTarget} />
+          <MapDistrictBoundary geoJson={focusTarget?.boundaryGeoJson} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

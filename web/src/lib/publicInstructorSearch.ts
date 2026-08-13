@@ -163,17 +163,22 @@ async function resolveInstructorIdsForUserPriceRange(
   userRange: { min: number; max: number },
 ): Promise<Set<number>> {
   const { definitions } = await fetchInstructorRealFeatureDefinitionsClient(supabase);
-  const priceDefinition = definitions.find((row) =>
+  const priceDefinitions = definitions.filter((row) =>
     isInstructorPriceRangeFeature({ name: row.name ?? "", slug: row.slug }),
   );
-  if (!priceDefinition) return new Set<number>();
+  if (priceDefinitions.length === 0) return new Set<number>();
 
-  return resolveInstructorIdsForPriceRangeDefinition(
-    supabase,
-    Number(priceDefinition.id),
-    String(priceDefinition.input_type ?? "multi_select"),
-    userRange,
-  );
+  const union = new Set<number>();
+  for (const priceDefinition of priceDefinitions) {
+    const set = await resolveInstructorIdsForPriceRangeDefinition(
+      supabase,
+      Number(priceDefinition.id),
+      String(priceDefinition.input_type ?? "multi_select"),
+      userRange,
+    );
+    set.forEach((id) => union.add(id));
+  }
+  return union;
 }
 
 export async function fetchPublicInstructorsForListing(
@@ -475,6 +480,7 @@ function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undef
   if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
   if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
     return true;
+  if (payload.highSchoolType != null && String(payload.highSchoolType).trim()) return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
     return true;
   if (Object.keys(payload.commonMulti).some((k) => (payload.commonMulti[Number(k)] ?? []).length > 0))

@@ -173,7 +173,7 @@ export function HomeAnnouncementsMarquee() {
 
         {showCarousel ? (
           <div className="duyurular-view-all">
-            <Link href="/announcements">Tüm Duyuruları Görüntüle →</Link>
+            <Link href="/duyurular">Tüm Duyuruları Görüntüle →</Link>
           </div>
         ) : null}
       </section>

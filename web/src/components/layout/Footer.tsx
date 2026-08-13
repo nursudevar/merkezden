@@ -66,7 +66,7 @@ export default function Footer() {
     ...footerCategories.map((category) => ({
       id: String(category.id),
       name: category.name,
-      href: getCategoryHref(category.name, category.slug) ?? "/okullar",
+      href: getCategoryHref(category.name, category.slug) ?? `/kategori/${category.slug}`,
     })),
     PATILI_DOSTLAR_FOOTER_LINK,
   ];
@@ -113,13 +113,13 @@ export default function Footer() {
             >
               <ul className="footer-section-list">
                 <li className="footer-section-item">
-                  <Link href="/about">Hakkımızda</Link>
+                  <Link href="/hakkimizda">Hakkımızda</Link>
                 </li>
                 <li className="footer-section-item">
-                  <Link href="/contact">İletişim</Link>
+                  <Link href="/iletisim">İletişim</Link>
                 </li>
                 <li className="footer-section-item">
-                  <Link href="/faq">Sıkça Sorulan Sorular</Link>
+                  <Link href="/sikca-sorulan-sorular">Sıkça Sorulan Sorular</Link>
                 </li>
               </ul>
             </div>

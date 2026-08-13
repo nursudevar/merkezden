@@ -48,18 +48,9 @@ export function isInstitutionPriceRangeDefinition(row: {
   slug?: string | null;
 }): boolean {
   if (Number(row.id) === INSTITUTION_PRICE_RANGE_DEFINITION_ID) return true;
-  const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
   return (
-    t.includes("fiyat araligi") ||
-    t.includes("aylik ortalama fiyat") ||
-    t.includes("ortalama fiyat") ||
-    t.includes("price range") ||
-    t.includes("monthly price") ||
-    t === "fiyat" ||
-    t.startsWith("fiyat ") ||
-    t.endsWith(" fiyat") ||
-    t.includes(" fiyat ") ||
-    t.includes("ucret")
+    isInstitutionPriceRangeFieldName(row.name ?? "") ||
+    isInstitutionPriceRangeFieldName(row.slug ?? "")
   );
 }
 
@@ -220,6 +211,25 @@ export function orderPriceRangeChoicesFromCanonical<T extends { id: number; name
   return [...ordered, ...rest];
 }
 
+const QUERY_PAGE_SIZE = 1000;
+const MAX_QUERY_PAGES = 50;
+
+async function fetchAllPagedRows<T>(
+  runPage: (from: number, to: number) => Promise<{ data: T[] | null; error: { message?: string } | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
+    const from = page * QUERY_PAGE_SIZE;
+    const to = from + QUERY_PAGE_SIZE - 1;
+    const { data, error } = await runPage(from, to);
+    if (error) throw error;
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < QUERY_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 export async function resolveInstitutionIdsByPriceRange(
   supabase: SupabaseBrowser,
   range: { min: number; max: number },
@@ -229,57 +239,67 @@ export async function resolveInstitutionIdsByPriceRange(
     max: Math.max(range.min, range.max),
   };
 
-  const { data: defsRaw, error: defErr } = await supabase
-    .from("institution_feature_definitions")
-    .select("id, name, slug, input_type, unit")
-    .eq("is_active", true);
-  if (defErr) throw defErr;
-
-  const defs = ((defsRaw ?? []) as Array<{
+  const defsRaw = await fetchAllPagedRows<{
     id: number;
     name?: string | null;
     slug?: string | null;
     input_type?: string | null;
     unit?: string | null;
-  }>).filter((d) => Number.isFinite(d.id) && isInstitutionPriceRangeDefinition(d));
+  }>(async (from, to) =>
+    supabase
+      .from("institution_feature_definitions")
+      .select("id, name, slug, input_type, unit")
+      .eq("is_active", true)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+
+  const defs = defsRaw.filter((d) => Number.isFinite(d.id) && isInstitutionPriceRangeDefinition(d));
   if (defs.length === 0) return [];
 
   const defIds = defs.map((d) => d.id);
   const inputTypeByDefId = new Map<number, string>();
-  for (const d of defs) inputTypeByDefId.set(d.id, String(d.input_type ?? ""));
+  for (const d of defs) {
+    inputTypeByDefId.set(d.id, String(d.input_type ?? "").trim().toLowerCase());
+  }
+
+  const choicesRaw = await fetchAllPagedRows<{ id: number; name?: string | null }>(async (from, to) =>
+    supabase
+      .from("institution_feature_choices")
+      .select("id, feature_definition_id, name")
+      .in("feature_definition_id", defIds)
+      .eq("is_active", true)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const choiceRangeById = new Map<number, { min: number; max: number }>();
-  const { data: choicesRaw, error: chErr } = await supabase
-    .from("institution_feature_choices")
-    .select("id, feature_definition_id, name")
-    .in("feature_definition_id", defIds)
-    .eq("is_active", true);
-  if (chErr) throw chErr;
-  for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
+  for (const c of choicesRaw) {
     const cid = Number(c.id);
     if (!Number.isFinite(cid)) continue;
-    const r = parsePriceRangeFromText(String(c.name ?? ""));
+    const r = parseInstructorPriceRangeBound(String(c.name ?? ""));
     if (r) choiceRangeById.set(cid, r);
   }
 
   const idSet = new Set<number>();
 
-  const { data: entriesRaw, error: entErr } = await supabase
-    .from("institution_feature_entries")
-    .select("id, institution_id, feature_definition_id, number_answer, text_answer")
-    .in("feature_definition_id", defIds);
-  if (entErr) throw entErr;
-
-  const entries = (entriesRaw ?? []) as Array<{
+  const entriesRaw = await fetchAllPagedRows<{
     id: number;
     institution_id: number;
     feature_definition_id: number;
     number_answer: number | null;
     text_answer: string | null;
-  }>;
+  }>(async (from, to) =>
+    supabase
+      .from("institution_feature_entries")
+      .select("id, institution_id, feature_definition_id, number_answer, text_answer")
+      .in("feature_definition_id", defIds)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const choiceEntryIdToInstitution = new Map<number, number>();
-  for (const e of entries) {
+  for (const e of entriesRaw) {
     const iid = Number(e.institution_id);
     if (!Number.isFinite(iid)) continue;
     const inputType = inputTypeByDefId.get(Number(e.feature_definition_id)) ?? "";
@@ -291,7 +311,7 @@ export async function resolveInstitutionIdsByPriceRange(
       if (!Number.isFinite(n)) continue;
       if (rangesOverlap({ min: n, max: n }, userRange)) idSet.add(iid);
     } else if (inputType === "text") {
-      const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
+      const r = parseInstructorPriceRangeBound(String(e.text_answer ?? ""));
       if (r && rangesOverlap(r, userRange)) idSet.add(iid);
     }
   }
@@ -301,13 +321,17 @@ export async function resolveInstitutionIdsByPriceRange(
       .filter(([, r]) => rangesOverlap(r, userRange))
       .map(([cid]) => cid);
     if (matchingChoiceIds.length > 0) {
-      const { data: links, error: linkErr } = await supabase
-        .from("institution_feature_entry_choices")
-        .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", Array.from(choiceEntryIdToInstitution.keys()))
-        .in("choice_id", matchingChoiceIds);
-      if (linkErr) throw linkErr;
-      for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number }>) {
+      const links = await fetchAllPagedRows<{ institution_feature_entry_id: number }>(
+        async (from, to) =>
+          supabase
+            .from("institution_feature_entry_choices")
+            .select("institution_feature_entry_id, choice_id")
+            .in("choice_id", matchingChoiceIds)
+            .order("institution_feature_entry_id", { ascending: true })
+            .order("choice_id", { ascending: true })
+            .range(from, to),
+      );
+      for (const row of links) {
         const iid = choiceEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
         if (Number.isFinite(iid)) idSet.add(iid!);
       }

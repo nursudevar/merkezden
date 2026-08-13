@@ -187,7 +187,8 @@ export async function fetchPublishedBlogPosts(limit?: number): Promise<Published
     .from("blog_posts")
     .select(PUBLISHED_BLOG_POST_SELECT)
     .eq("is_published", true)
-    .order("published_at", { ascending: false });
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
 
   if (limit != null) {
     query = query.limit(limit);
@@ -258,6 +259,7 @@ export async function createBlogPost(payload: CreateBlogPostPayload): Promise<My
       cover_image_url: payload.cover_image_url,
       cover_image_path: payload.cover_image_path,
       is_published: true,
+      published_at: new Date().toISOString(),
     })
     .select(
       "id, title, slug, content, cover_image_url, cover_image_path, is_published, published_at, created_at, category_id, category:institution_categories(name)"

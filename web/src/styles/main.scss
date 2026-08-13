@@ -21,16 +21,17 @@
 @import 'components/category-page-layout';
 @import 'components/login-modal';
 @import 'components/app-notice-bar';
+@import 'components/institution-compare-bar';
 @import 'components/expandable-chat';
 @import 'components/clamped-text-tooltip';
 @import 'components/change-password-card';
 
 // Pages
 @import 'pages/profile';
-@import 'pages/okullar';
 @import 'pages/institution-detail';
 @import 'pages/instructor-detail';
 @import 'pages/instructors-list';
+@import 'pages/institution-compare';
 
 
 

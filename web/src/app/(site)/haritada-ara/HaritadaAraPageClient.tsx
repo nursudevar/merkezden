@@ -15,6 +15,7 @@ import {
 } from "@/lib/favorites/favoritesClient";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 import { haversineDistanceKm, isValidLatLng } from "@/lib/geoDistance";
+import { resolveDistrictMapView } from "@/lib/districtMapView";
 import {
   beginUserGeolocationRequest,
   diagnoseGeolocationPreflight,
@@ -91,6 +92,7 @@ export function HaritadaAraPageClient() {
   const [mapFocus, setMapFocus] = useState<InstitutionMapFocusTarget | null>(null);
   const nearbyRequestIdRef = useRef(0);
   const nearbyInFlightRef = useRef(false);
+  const districtFocusRequestIdRef = useRef(0);
   const activeGeoCancelRef = useRef<(() => void) | null>(null);
 
   const cities = useMemo(
@@ -336,9 +338,17 @@ export function HaritadaAraPageClient() {
 
   const handleCityChange = useCallback(
     (city: string) => {
+      districtFocusRequestIdRef.current += 1;
       setSelectedCity(city);
       setSelectedDistrict("");
       clearNearbyMode();
+      setMapFocus({
+        lat: DEFAULT_MAP_CENTER.lat,
+        lng: DEFAULT_MAP_CENTER.lng,
+        zoom: DEFAULT_MAP_ZOOM,
+        boundaryGeoJson: null,
+        token: Date.now(),
+      });
       closeDrawerAndScrollToResults();
     },
     [clearNearbyMode, closeDrawerAndScrollToResults],
@@ -346,11 +356,39 @@ export function HaritadaAraPageClient() {
 
   const handleDistrictChange = useCallback(
     (district: string) => {
+      districtFocusRequestIdRef.current += 1;
+      const requestId = districtFocusRequestIdRef.current;
       setSelectedDistrict(district);
       clearNearbyMode();
       closeDrawerAndScrollToResults();
+
+      if (!district.trim()) {
+        setMapFocus({
+          lat: DEFAULT_MAP_CENTER.lat,
+          lng: DEFAULT_MAP_CENTER.lng,
+          zoom: DEFAULT_MAP_ZOOM,
+          boundaryGeoJson: null,
+          token: Date.now(),
+        });
+        return;
+      }
+
+      void (async () => {
+        const districtMarkers = markers.filter(
+          (marker) =>
+            markerMatchesCity(marker, selectedCity) && markerMatchesDistrict(marker, district),
+        );
+        const view = await resolveDistrictMapView(selectedCity, district, districtMarkers);
+        if (requestId !== districtFocusRequestIdRef.current || !view) return;
+
+        setMapFocus({
+          bounds: view.bounds,
+          boundaryGeoJson: view.boundaryGeoJson,
+          token: Date.now(),
+        });
+      })();
     },
-    [clearNearbyMode, closeDrawerAndScrollToResults],
+    [clearNearbyMode, closeDrawerAndScrollToResults, markers, selectedCity],
   );
 
   useEffect(() => {
@@ -417,6 +455,7 @@ export function HaritadaAraPageClient() {
         lat,
         lng,
         zoom: NEARBY_MAP_ZOOM,
+        boundaryGeoJson: null,
         token: Date.now(),
       });
       closeDrawerAndScrollToResults();
@@ -453,6 +492,7 @@ export function HaritadaAraPageClient() {
       lat: DEFAULT_MAP_CENTER.lat,
       lng: DEFAULT_MAP_CENTER.lng,
       zoom: DEFAULT_MAP_ZOOM,
+      boundaryGeoJson: null,
       token: Date.now(),
     });
     closeDrawerAndScrollToResults();

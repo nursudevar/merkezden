@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import CategoryHero from "@/components/category/CategoryHero";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
 import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
 import {
@@ -71,15 +70,8 @@ export default function PatiliDostlarPage() {
   });
 
   return (
-    <>
-      <CategoryHero
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        selectedDistrict={district}
-        onDistrictChange={setDistrict}
-        districts={districts}
-      />
       <CategoryPageLayout
+        districts={districts}
         categoryName={CATEGORY_NAME}
         categorySlug={categorySlug}
         subtitle="Evcil dostlarınız için hizmetleri keşfedin."
@@ -95,6 +87,5 @@ export default function PatiliDostlarPage() {
           onSchoolFilterPayloadChange: handleCategoryFilterPayloadChange,
         }}
       />
-    </>
   );
 }

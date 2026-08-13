@@ -145,9 +145,7 @@ export default function MebInstitutionDetailPage() {
               Ana Sayfa
             </Link>
             <span className="institution-breadcrumb-separator"> &gt; </span>
-            <Link href="/okullar" className="institution-breadcrumb-link">
-              Kurumlar
-            </Link>
+            <span className="institution-breadcrumb-link">Kurumlar</span>
             <span className="institution-breadcrumb-separator"> &gt; </span>
             <span className="institution-breadcrumb-current">
               {institution.institution_name ?? "Kurum"}

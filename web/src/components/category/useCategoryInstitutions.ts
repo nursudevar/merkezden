@@ -33,6 +33,7 @@ import {
   resolveStudentAgeFilterFromPayload,
 } from "@/lib/institutionStudentAgeFilter";
 import { isLegacyStudentAgeMultiSelectFeature } from "@/lib/studentAgeRangeFeature";
+import { getHighSchoolTypeLabel } from "@/lib/schoolInstitutionTypes";
 
 export type CategoryResultItem = {
   id: string;
@@ -55,11 +56,35 @@ export type CategoryResultItem = {
   instructorTitle?: string;
   instructorBranch?: string;
   priceRange?: string;
+  /** Gerçek `institutions.id`; presentation `id` alanından bağımsız. */
+  institutionId?: number;
+  /** Harita marker birleştirmesi için liste satırından taşınan alanlar */
+  mapAddress?: string;
+  mapCity?: string;
+  mapDistrict?: string;
+  officialPhone?: string;
+  officialEmail?: string;
+  institutionTypeName?: string;
+  mapCategoryName?: string;
+  mapCategorySlug?: string;
+  mapCategoryId?: number | null;
 };
 
 type InstitutionTypeJoinRow =
-  | { name: string | null }
-  | Array<{ name: string | null }>
+  | {
+      name: string | null;
+      category?:
+        | { id?: number | null; name?: string | null; slug?: string | null }
+        | Array<{ id?: number | null; name?: string | null; slug?: string | null }>
+        | null;
+    }
+  | Array<{
+      name: string | null;
+      category?:
+        | { id?: number | null; name?: string | null; slug?: string | null }
+        | Array<{ id?: number | null; name?: string | null; slug?: string | null }>
+        | null;
+    }>
   | null;
 
 type InstitutionRow = {
@@ -80,6 +105,7 @@ type InstitutionRow = {
   linkedin_url?: string | null;
   logo: string | null;
   source: string | null;
+  high_school_type?: string | null;
   institution_type?: InstitutionTypeJoinRow;
 };
 
@@ -89,6 +115,11 @@ const IN_CHUNK = 120;
 /** PostgREST varsayılan max_rows (1000) */
 const QUERY_PAGE_SIZE = 1000;
 const MAX_QUERY_PAGES = 50;
+/** CategoryResultsList INITIAL_VISIBLE_COUNT ile eşleşmeli */
+const INITIAL_CATEGORY_VISIBLE = 20;
+/** Kart + harita meta; about/sosyal alanlar hariç */
+const LIGHT_INSTITUTION_SELECT =
+  "id, slug, institution_name, subheading, address, district, city, official_phone, official_email, logo, source, high_school_type, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
@@ -108,19 +139,30 @@ function applyInstitutionCategoryScope<
   return query.ilike("institution_type.category.name", targetName);
 }
 
-async function resolveInstitutionCategoryIdForListing(
+async function resolveInstitutionCategoryForListing(
   supabase: SupabaseBrowser,
   categoryName: string,
   categorySlug?: string,
-): Promise<number | null> {
-  const categoryId = await resolveInstitutionCategoryIdByName(supabase, categoryName);
-  if (categoryId != null) return categoryId;
-
+): Promise<{ id: number | null; name: string }> {
+  const targetName = String(categoryName ?? "").trim();
   const slug = String(categorySlug ?? "").trim();
-  if (!slug) return null;
 
-  const category = await fetchInstitutionCategoryBySlug(slug);
-  return category?.id ?? null;
+  if (targetName) {
+    const categoryId = await resolveInstitutionCategoryIdByName(supabase, targetName);
+    if (categoryId != null) return { id: categoryId, name: targetName };
+  }
+
+  if (slug) {
+    const category = await fetchInstitutionCategoryBySlug(slug);
+    if (category) {
+      return {
+        id: category.id ?? null,
+        name: String(category.name ?? "").trim() || targetName || slug,
+      };
+    }
+  }
+
+  return { id: null, name: targetName || slug };
 }
 
 function applyInstitutionSearchFilter<
@@ -217,6 +259,7 @@ async function fetchAllCategoryInstitutionIds(
   district: string,
   searchTerm: string,
   institutionTypeId?: number | null,
+  highSchoolType?: string | null,
 ): Promise<number[]> {
   const ids: number[] = [];
   const relatedSearch = searchTerm
@@ -250,6 +293,10 @@ async function fetchAllCategoryInstitutionIds(
       institutionTypeId > 0
     ) {
       query = query.eq("institution_type_id", institutionTypeId);
+    }
+    const trimmedHighSchoolType = String(highSchoolType ?? "").trim();
+    if (trimmedHighSchoolType) {
+      query = query.eq("high_school_type", trimmedHighSchoolType);
     }
 
     const { data, error } = await query.order("id", { ascending: true }).range(from, to);
@@ -423,6 +470,7 @@ function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undef
   if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
   if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
     return true;
+  if (payload.highSchoolType != null && String(payload.highSchoolType).trim()) return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
     return true;
   if (Object.keys(payload.commonMulti).some((k) => (payload.commonMulti[Number(k)] ?? []).length > 0))
@@ -749,13 +797,6 @@ async function fetchCategoryInstructorResults(
   });
 
   if (instructorCategoryId == null || !Number.isFinite(instructorCategoryId)) {
-    if (institutionCategoryId != null) {
-      console.info("[category][instructors] instructor kategorisi bulunamadı:", {
-        categoryName,
-        categorySlug: categorySlug || null,
-        institutionCategoryId,
-      });
-    }
     return [];
   }
 
@@ -833,6 +874,50 @@ function finalizeCategoryResults(
   );
 }
 
+function sortInstitutionRowsByName(rows: InstitutionRow[]): InstitutionRow[] {
+  return [...rows].sort((a, b) =>
+    String(a.institution_name ?? "").localeCompare(String(b.institution_name ?? ""), "tr", {
+      sensitivity: "base",
+    }),
+  );
+}
+
+function computePriorityInstitutionIdsForFirstPaint(
+  institutionStubs: CategoryResultItem[],
+  instructorResults: CategoryResultItem[],
+  featuredOrderMap: FeaturedOrderMap,
+  visibleCount: number = INITIAL_CATEGORY_VISIBLE,
+): number[] {
+  const ordered = finalizeCategoryResults(
+    institutionStubs,
+    instructorResults,
+    featuredOrderMap,
+  );
+  const priorityIds = new Set<number>();
+  for (const item of ordered.slice(0, visibleCount)) {
+    if (item.resultType === "instructor") continue;
+    const id = Number(item.institutionId ?? item.id);
+    if (Number.isFinite(id) && id > 0) priorityIds.add(id);
+  }
+  return Array.from(priorityIds);
+}
+
+function mergeInstitutionItemsWithFullRows(
+  supabase: SupabaseBrowser,
+  institutionStubs: CategoryResultItem[],
+  fullRows: InstitutionRow[],
+): CategoryResultItem[] {
+  const fullById = new Map<number, InstitutionRow>();
+  for (const row of fullRows) {
+    if (Number.isInteger(row.id) && row.id > 0) fullById.set(row.id, row);
+  }
+  return institutionStubs.map((stub) => {
+    const id = Number(stub.institutionId ?? stub.id);
+    const full = Number.isFinite(id) ? fullById.get(id) : undefined;
+    return full ? mapRow(supabase, full) : stub;
+  });
+}
+
 export function useCategoryInstitutions(
   categoryName: string,
   options?: {
@@ -848,6 +933,7 @@ export function useCategoryInstitutions(
   isLoading: boolean;
   error: string | null;
   districts: string[];
+  categoryLabel: string;
 } {
   const rawSearch = options?.search ?? "";
   const district = (options?.district ?? "").trim();
@@ -857,6 +943,7 @@ export function useCategoryInstitutions(
   const [results, setResults] = useState<CategoryResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categoryLabel, setCategoryLabel] = useState("");
   const districts = ANKARA_DISTRICTS;
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -871,10 +958,13 @@ export function useCategoryInstitutions(
 
   useEffect(() => {
     const targetName = String(categoryName ?? "").trim();
-    if (!targetName) {
+    const slug = categorySlug;
+
+    if (!targetName && !slug) {
       setResults([]);
       setIsLoading(false);
       setError(null);
+      setCategoryLabel("");
       return;
     }
 
@@ -887,68 +977,123 @@ export function useCategoryInstitutions(
       const featuredOrderPromise = fetchActiveFeaturedInstitutionOrderMap(supabase);
 
       const fullSelect =
-        "id, slug, institution_name, subheading, about, address, district, city, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, source, category_id, institution_type:institution_types(id, name, category:institution_categories(id, name))";
+        "id, slug, institution_name, subheading, about, address, district, city, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, source, high_school_type, category_id, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
 
         const useSchoolPipeline = hasAnySchoolPayloadFilters(schoolFilters ?? undefined);
 
       try {
         const searchTerm = debouncedSearch.trim();
-        const categoryId = await resolveInstitutionCategoryIdForListing(
+        const resolvedCategory = await resolveInstitutionCategoryForListing(
           supabase,
           targetName,
-          categorySlug,
+          slug,
         );
         if (cancelled) return;
 
+        const listingName = resolvedCategory.name;
+        const categoryId = resolvedCategory.id;
+        setCategoryLabel(listingName);
+
+        if (categoryId == null && slug && !targetName) {
+          setResults([]);
+          setError("CATEGORY_NOT_FOUND");
+          setIsLoading(false);
+          return;
+        }
+
         if (categoryId == null) {
           console.warn("[category][institutions] kategori bulunamadı:", {
-            categoryName: targetName,
-            categorySlug: categorySlug || null,
-          });
-        } else {
-          console.info("[category][institutions] kategori çözüldü:", {
-            categoryName: targetName,
-            categorySlug: categorySlug || null,
-            categoryId,
+            categoryName: listingName,
+            categorySlug: slug || null,
           });
         }
 
         if (!useSchoolPipeline) {
-          const [rows, instructorResults, featuredOrderResult] = await Promise.all([
-            fetchAllCategoryInstitutionRows(
-              supabase,
-              fullSelect,
-              targetName,
-              categoryId,
-              district,
-              searchTerm,
-            ),
+          const institutionIds = await fetchAllCategoryInstitutionIds(
+            supabase,
+            categoryId,
+            listingName,
+            district,
+            searchTerm,
+          );
+          if (cancelled) return;
+
+          const [lightRows, instructorResults, featuredOrderResult] = await Promise.all([
+            fetchRowsByIdsChunked(supabase, institutionIds, LIGHT_INSTITUTION_SELECT),
             fetchCategoryInstructorResults(supabase, {
               institutionCategoryId: categoryId,
-              categoryName: targetName,
-              categorySlug,
+              categoryName: listingName,
+              categorySlug: slug,
               district,
               searchTerm,
               schoolFilters,
             }),
             featuredOrderPromise,
           ]);
-
           if (cancelled) return;
 
-          console.info("[category][institutions] liste sonucu:", {
-            categoryName: targetName,
-            categorySlug: categorySlug || null,
-            categoryId,
-            institutionCount: rows.length,
-            instructorCount: instructorResults.length,
-          });
+          const sortedLightRows = sortInstitutionRowsByName(lightRows);
+          const institutionStubs = sortedLightRows.map((row) => mapRow(supabase, row));
+          const featuredOrderMap = featuredOrderResult.orderMap;
 
-          const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
+          if (institutionIds.length === 0) {
+            setResults(finalizeCategoryResults([], instructorResults, featuredOrderMap));
+            setIsLoading(false);
+            return;
+          }
+
+          const priorityIds = computePriorityInstitutionIdsForFirstPaint(
+            institutionStubs,
+            instructorResults,
+            featuredOrderMap,
+          );
+          const priorityIdSet = new Set(priorityIds);
+          const priorityFullRows =
+            priorityIds.length > 0
+              ? await fetchRowsByIdsChunked(supabase, priorityIds, fullSelect)
+              : [];
+          if (cancelled) return;
+
+          const firstPaintInstitutions = mergeInstitutionItemsWithFullRows(
+            supabase,
+            institutionStubs,
+            priorityFullRows,
+          );
+
           setResults(
-            finalizeCategoryResults(mapped, instructorResults, featuredOrderResult.orderMap),
+            finalizeCategoryResults(firstPaintInstitutions, instructorResults, featuredOrderMap),
           );
           setIsLoading(false);
+
+          const remainingIds = institutionIds.filter((id) => !priorityIdSet.has(id));
+          if (remainingIds.length === 0) return;
+
+          void (async () => {
+            try {
+              const remainingFullRows = await fetchRowsByIdsChunked(
+                supabase,
+                remainingIds,
+                fullSelect,
+              );
+              if (cancelled) return;
+
+              const hydratedInstitutions = mergeInstitutionItemsWithFullRows(
+                supabase,
+                institutionStubs,
+                [...priorityFullRows, ...remainingFullRows],
+              );
+
+              setResults(
+                finalizeCategoryResults(hydratedInstitutions, instructorResults, featuredOrderMap),
+              );
+            } catch (backgroundErr) {
+              console.error(
+                "[category][institutions][background-hydrate-error]",
+                describeSupabaseError(backgroundErr),
+              );
+            }
+          })();
+
           return;
         }
 
@@ -956,10 +1101,11 @@ export function useCategoryInstitutions(
         const baseIds = await fetchAllCategoryInstitutionIds(
           supabase,
           categoryId,
-          targetName,
+          listingName,
           district,
           searchTerm,
           payload.institutionTypeId,
+          payload.highSchoolType,
         );
         if (cancelled) return;
 
@@ -968,8 +1114,8 @@ export function useCategoryInstitutions(
         if (current.size === 0) {
           const instructorOnly = await fetchCategoryInstructorResults(supabase, {
             institutionCategoryId: categoryId,
-            categoryName: targetName,
-            categorySlug,
+            categoryName: listingName,
+            categorySlug: slug,
             district,
             searchTerm,
             schoolFilters: payload,
@@ -1107,21 +1253,14 @@ export function useCategoryInstitutions(
         const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
         const instructorResults = await fetchCategoryInstructorResults(supabase, {
           institutionCategoryId: categoryId,
-          categoryName: targetName,
-          categorySlug,
+          categoryName: listingName,
+          categorySlug: slug,
           district,
           searchTerm,
           schoolFilters: payload,
         });
         const featuredOrderResult = await featuredOrderPromise;
         if (cancelled) return;
-        console.info("[category][institutions] filtreli liste sonucu:", {
-          categoryName: targetName,
-          categorySlug: categorySlug || null,
-          categoryId,
-          institutionCount: mapped.length,
-          instructorCount: instructorResults.length,
-        });
         setResults(
           finalizeCategoryResults(mapped, instructorResults, featuredOrderResult.orderMap),
         );
@@ -1146,7 +1285,7 @@ export function useCategoryInstitutions(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryName, categorySlug, debouncedSearch, district, schoolFiltersKey]);
 
-  return { results, isLoading, error, districts };
+  return { results, isLoading, error, districts, categoryLabel };
 }
 
 function mapRow(
@@ -1161,10 +1300,21 @@ function mapRow(
   const slug = String(row.slug ?? "").trim();
   const typeJoin = row.institution_type;
   const typeRow = Array.isArray(typeJoin) ? typeJoin[0] ?? null : typeJoin ?? null;
-  const categoryJoin = (typeRow as { category?: { name?: string | null } | { name?: string | null }[] | null } | null)
-    ?.category;
+  const typeName = String(typeRow?.name ?? "").trim();
+  const categoryJoin = typeRow?.category;
   const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] ?? null : categoryJoin ?? null;
-  const categoryName = String(categoryRow?.name ?? "").trim();
+  const highSchoolLabel = getHighSchoolTypeLabel(row.high_school_type);
+  const subcategoryParts = [typeName, highSchoolLabel].filter(Boolean);
+  const subcategoryName = subcategoryParts.length > 0 ? subcategoryParts.join(" · ") : undefined;
+  const mapAddress = String(row.address ?? "").trim();
+  const mapCity = String(row.city ?? "").trim();
+  const mapDistrict = String(row.district ?? "").trim();
+  const officialPhone = String(row.official_phone ?? "").trim();
+  const officialEmail = String(row.official_email ?? "").trim();
+  const mapCategoryName = String(categoryRow?.name ?? "").trim();
+  const mapCategorySlug = String(categoryRow?.slug ?? "").trim();
+  const mapCategoryIdRaw = Number(categoryRow?.id);
+  const mapCategoryId = Number.isFinite(mapCategoryIdRaw) ? mapCategoryIdRaw : null;
 
   return {
     id: String(row.id),
@@ -1181,6 +1331,16 @@ function mapRow(
     imageUrl,
     slug: slug || undefined,
     source: row.source ?? null,
-    subcategoryName: categoryName || undefined,
+    subcategoryName,
+    institutionId: Number.isInteger(row.id) && row.id > 0 ? row.id : undefined,
+    mapAddress: mapAddress || undefined,
+    mapCity: mapCity || undefined,
+    mapDistrict: mapDistrict || undefined,
+    officialPhone: officialPhone || undefined,
+    officialEmail: officialEmail || undefined,
+    institutionTypeName: typeName || undefined,
+    mapCategoryName: mapCategoryName || undefined,
+    mapCategorySlug: mapCategorySlug || undefined,
+    mapCategoryId,
   };
 }

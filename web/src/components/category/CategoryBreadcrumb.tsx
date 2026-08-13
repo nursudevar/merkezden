@@ -4,14 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const categoryMap: Record<string, string> = {
-  school: "OKUL",
-  courses: "KURS & SINAVA HAZIRLIK",
-  sports: "SPOR",
-  arts: "SANAT",
-  languages: "YABANCI DİL",
-  "personal-development": "KİŞİSEL GELİŞİM",
-  "vocational-training": "MESLEKİ EĞİTİM",
-  "special-education": "ÖZEL EĞİTİM",
+  okul: "OKUL",
+  "kurs-ve-sinava-hazirlik": "KURS & SINAVA HAZIRLIK",
+  "surucu-kursu": "SÜRÜCÜ KURSU",
+  spor: "SPOR",
+  sanat: "SANAT",
+  "yabanci-dil": "YABANCI DİL",
+  "kisisel-gelisim": "KİŞİSEL GELİŞİM",
+  "mesleki-egitim": "MESLEKİ EĞİTİM",
+  "ozel-egitim": "ÖZEL EĞİTİM",
   "patili-dostlar": "PATİLİ DOSTLAR",
 };
 

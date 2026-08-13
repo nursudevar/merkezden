@@ -1,26 +1,20 @@
 import type { Metadata } from "next";
 import {
-  BarChart3,
   CheckCircle2,
   Eye,
-  ImagePlus,
   Landmark,
-  ListFilter,
-  MapPinned,
-  Megaphone,
   Search,
-  Sparkles,
-  Star,
-  Table2,
-  Tags,
   TrendingUp,
   UserPlus,
   UserRound,
-  Users,
-  Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import type { ComponentType } from "react";
+import {
+  CORPORATE_SIGNUP_FEATURES,
+  INDIVIDUAL_SIGNUP_FEATURES,
+  INSTRUCTOR_SIGNUP_FEATURES,
+  type SignupFeatureItem,
+} from "@/lib/signupFeatureCards";
 import "@/styles/pages/nasil-calisir.scss";
 
 export const metadata: Metadata = {
@@ -29,110 +23,7 @@ export const metadata: Metadata = {
     "Merkezden.com platformunda bireysel kullanıcılar, kurumlar ve eğitmenler için temel akışı 30 saniyede keşfedin.",
 };
 
-type FeatureCardItem = {
-  title: string;
-  description: string;
-  icon: ComponentType<{ className?: string }>;
-};
-
-const INDIVIDUAL_FEATURES: FeatureCardItem[] = [
-  {
-    title: "Haritada Arama",
-    description: "Konumunuza yakın kurumları harita üzerinde bulun",
-    icon: MapPinned,
-  },
-  {
-    title: "Filtreli Listeleme",
-    description: "Kriterlerinize uygun kurumlara hızlıca ulaşın.",
-    icon: ListFilter,
-  },
-  {
-    title: "Akıllı Asistan",
-    description: "AI destekli önerileri alın",
-    icon: Sparkles,
-  },
-  {
-    title: "Karşılaştırma Tablosu",
-    description: "Kurumları karşılaştırın, size en uygun seçimi yapın.",
-    icon: Table2,
-  },
-  {
-    title: "Detaylı İnceleme",
-    description: "Kapsamlı bilgileri inceleyip değerlendirin",
-    icon: Search,
-  },
-  {
-    title: "Size Özel Avantajlar",
-    description: "İndirim ve kampanyalardan yararlanın.",
-    icon: Tags,
-  },
-];
-
-const INSTITUTION_FEATURES: FeatureCardItem[] = [
-  {
-    title: "Detaylı Profil Sayfası",
-    description: "Kurumunuzu detaylı tanıtın",
-    icon: UserPlus,
-  },
-  {
-    title: "Fotoğraf/Video Ekleme",
-    description: "Kurumunuza ait fotoğraf ve videoları ekleyin",
-    icon: ImagePlus,
-  },
-  {
-    title: "Duyuru/Etkinlik Paylaşma",
-    description: "Duyuru ve Etkinliklerinizi Yayınlayın",
-    icon: Megaphone,
-  },
-  {
-    title: "SEO Avantajları",
-    description: "Merkezden.com sayesinde Google'da Görünürlüğünüzü Artırın",
-    icon: Search,
-  },
-  {
-    title: "Potansiyel Öğrenci Analizi",
-    description: "Ziyaretçi verilerinizi analiz edin, stratejinizi güçlendirin.",
-    icon: BarChart3,
-  },
-  {
-    title: "Öne Çıkanlar Sayfası",
-    description: "Daha fazla öğrenciye ulaşın.",
-    icon: Star,
-  },
-];
-
-const INSTRUCTOR_FEATURES: FeatureCardItem[] = [
-  {
-    title: "Profesyonel Profil Sayfası",
-    description: "Branşlarınızı, deneyimlerinizi ve eğitim bilgilerinizi detaylı tanıtın.",
-    icon: UserRound,
-  },
-  {
-    title: "Uygun Fiyat Politikası",
-    description: "Düşük üyelik maliyetleriyle eğitim kalitenize odaklanın.",
-    icon: Wallet,
-  },
-  {
-    title: "Seo Avantajları",
-    description: "Merkezden.com sayesinde Google’da görünürlüğünüzü arttırın.",
-    icon: TrendingUp,
-  },
-  {
-    title: "Geniş Eğitim Kitlesi",
-    description: "Türkiye’nin en kapsamlı eğitim platformunda yer alın.",
-    icon: Users,
-  },
-  {
-    title: "Öne Çıkanlar Sayfası",
-    description: "Öne çıkın, daha fazla öğrenciye ulaşın.",
-    icon: Star,
-  },
-  {
-    title: "Öğrenci Talep Analizi",
-    description: "Profil ziyaretlerinizi ve öğrenci ilgisini takip edin.",
-    icon: BarChart3,
-  },
-];
+type FeatureCardItem = SignupFeatureItem;
 
 function FeatureItemCard({
   item,
@@ -201,8 +92,8 @@ export default function NasilCalisirPage() {
 
           <section className="nasil-calisir-section nasil-calisir-features">
             <div className="nasil-calisir-feature-grid">
-              {INDIVIDUAL_FEATURES.map((item) => (
-                <FeatureItemCard key={item.title} item={item} accent="purple" />
+              {INDIVIDUAL_SIGNUP_FEATURES.map((item) => (
+                <FeatureItemCard key={item.title} item={item} accent="navy" />
               ))}
             </div>
           </section>
@@ -241,7 +132,7 @@ export default function NasilCalisirPage() {
 
           <section className="nasil-calisir-section nasil-calisir-features">
             <div className="nasil-calisir-feature-grid">
-              {INSTITUTION_FEATURES.map((item) => (
+              {CORPORATE_SIGNUP_FEATURES.map((item) => (
                 <FeatureItemCard key={item.title} item={item} accent="orange" />
               ))}
             </div>
@@ -281,8 +172,8 @@ export default function NasilCalisirPage() {
 
           <section className="nasil-calisir-section nasil-calisir-features">
             <div className="nasil-calisir-feature-grid">
-              {INSTRUCTOR_FEATURES.map((item) => (
-                <FeatureItemCard key={item.title} item={item} accent="navy" />
+              {INSTRUCTOR_SIGNUP_FEATURES.map((item) => (
+                <FeatureItemCard key={item.title} item={item} accent="purple" />
               ))}
             </div>
           </section>

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import Footer from "@/components/layout/Footer";
 import { ClampedTextTooltipGlobal } from "@/components/ClampedTextTooltipGlobal";
+import { InstitutionCompareProvider } from "@/components/compare/InstitutionCompareProvider";
+import { InstitutionCompareBar } from "@/components/compare/InstitutionCompareBar";
+import { resolveSiteUrl } from "@/lib/seo/siteUrl";
 import "@/styles/main.scss";
 import "@/styles/components/app-modal.scss";
 import "leaflet/dist/leaflet.css";
@@ -15,7 +18,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const siteUrl = resolveSiteUrl();
+
 export const metadata: Metadata = {
+  ...(siteUrl ? { metadataBase: siteUrl } : {}),
   title: "MERKEZDEN - Hayatın Merkezi",
   description: "Ankara'da eğitim kurumları, kurslar ve hizmetleri bulun. AI destekli arama ile ihtiyacınız olan hizmeti kolayca keşfedin.",
   icons: {
@@ -30,13 +36,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body
         className={`${plusJakartaSans.variable}`}
       >
-        {children}
-        <ClampedTextTooltipGlobal />
-        <Footer />
+        <InstitutionCompareProvider>
+          {children}
+          <InstitutionCompareBar />
+          <ClampedTextTooltipGlobal />
+          <Footer />
+        </InstitutionCompareProvider>
       </body>
     </html>
   );

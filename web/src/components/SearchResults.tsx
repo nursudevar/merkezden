@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Building2, Heart, UserRound } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   resolveInstitutionIdsByPriceRange,
@@ -47,6 +48,8 @@ interface SearchResult {
   slug: string;
   source?: string | null;
   detailUrl: string;
+  /** Gerçek `institutions.id`; presentation `id` alanından bağımsız. */
+  institutionId?: number;
   badge: {
     icon: string;
     label: string;
@@ -509,6 +512,7 @@ export default function SearchResults({
                 slug,
                 source,
                 detailUrl: getInstitutionDetailHref({ id, slug, source }),
+                institutionId: id,
                 badge: {
                   icon: "",
                   label: "Kurum",
@@ -765,6 +769,21 @@ export default function SearchResults({
                       }
                     />
                   </button>
+                ) : null}
+                {!isInstructor &&
+                typeof result.institutionId === "number" &&
+                Number.isInteger(result.institutionId) &&
+                result.institutionId > 0 &&
+                result.slug ? (
+                  <InstitutionCompareToggleButton
+                    className="institution-compare-toggle--overlay"
+                    item={{
+                      id: result.institutionId,
+                      name: result.name,
+                      slug: result.slug,
+                      imageUrl: result.imageUrl,
+                    }}
+                  />
                 ) : null}
               </div>
               <div className="search-result-content">

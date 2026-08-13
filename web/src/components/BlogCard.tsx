@@ -9,19 +9,20 @@ type BlogCardProps = {
   excerpt: string;
   imageUrl: string;
   slug: string;
+  compact?: boolean;
 };
 
-export default function BlogCard({ title, excerpt, imageUrl, slug }: BlogCardProps) {
+export default function BlogCard({ title, excerpt, imageUrl, slug, compact = false }: BlogCardProps) {
   return (
-    <Link href={`/blog/${slug}`} className="blog-card-link">
-      <article className="blog-card-new">
+    <Link href={`/blog-yazilari/${slug}`} className="blog-card-link">
+      <article className={`blog-card-new${compact ? " blog-card-new--compact" : ""}`}>
         <div className="blog-card-image-wrapper">
           <Image
             src={imageUrl}
             alt={title}
             fill
             className="blog-card-image"
-            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             unoptimized
           />
         </div>

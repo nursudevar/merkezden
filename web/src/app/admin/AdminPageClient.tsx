@@ -14,6 +14,7 @@ import {
   User,
   Users,
   BookOpenText,
+  ImageIcon,
   PencilLine,
   Trash2,
   Star,
@@ -23,6 +24,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { AdminHomepageBannersTab } from "./AdminHomepageBannersTab";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
@@ -61,6 +63,7 @@ type AdminTabId =
   | "approval-requests"
   | "announcements"
   | "blog-posts"
+  | "homepage-banners"
   | "settings";
 
 type AdminMetricCard = {
@@ -2272,6 +2275,8 @@ export default function AdminPageClient() {
         ? "Duyurular"
         : activeTab === "blog-posts"
           ? "Blog Yazıları"
+          : activeTab === "homepage-banners"
+            ? "Banner Yönetimi"
           : activeTab === "settings"
             ? "Ayarlar"
             : "";
@@ -2353,6 +2358,14 @@ export default function AdminPageClient() {
               >
                 <BookOpenText className="admin-sidebar-nav-icon" />
                 <span>Blog Yazıları</span>
+              </button>
+              <button
+                type="button"
+                className={`admin-sidebar-nav-item ${activeTab === "homepage-banners" ? "admin-sidebar-nav-item--active" : ""}`}
+                onClick={() => setActiveTab("homepage-banners")}
+              >
+                <ImageIcon className="admin-sidebar-nav-icon" />
+                <span>Banner Yönetimi</span>
               </button>
               <button
                 type="button"
@@ -4205,6 +4218,8 @@ export default function AdminPageClient() {
             </div>
           ) : null}
 
+          {activeTab === "homepage-banners" ? <AdminHomepageBannersTab /> : null}
+
           {activeTab === "settings" ? <ChangePasswordCard /> : null}
 
           {activeTab !== "overview" &&
@@ -4215,6 +4230,7 @@ export default function AdminPageClient() {
           activeTab !== "approval-requests" &&
           activeTab !== "announcements" &&
           activeTab !== "blog-posts" &&
+          activeTab !== "homepage-banners" &&
           activeTab !== "settings" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content">

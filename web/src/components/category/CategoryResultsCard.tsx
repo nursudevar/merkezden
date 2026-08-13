@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, GraduationCap, UserRound } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
 
 interface CategoryResultsCardProps {
   id: string;
@@ -26,6 +27,7 @@ interface CategoryResultsCardProps {
   instructorTitle?: string;
   instructorBranch?: string;
   priceRange?: string;
+  institutionId?: number;
 }
 
 export default function CategoryResultsCard({
@@ -45,6 +47,7 @@ export default function CategoryResultsCard({
   instructorTitle,
   instructorBranch,
   priceRange,
+  institutionId,
 }: CategoryResultsCardProps) {
   const isInstructor = resultType === "instructor";
   const institutionSlug = String(slug ?? "").trim();
@@ -53,6 +56,12 @@ export default function CategoryResultsCard({
   const instructorTitleText = String(instructorTitle ?? "").trim();
   const instructorBranchText = String(instructorBranch ?? "").trim();
   const instructorPriceText = String(priceRange ?? "").trim();
+  const numericInstitutionId =
+    typeof institutionId === "number" && Number.isInteger(institutionId) && institutionId > 0
+      ? institutionId
+      : null;
+  const canCompare =
+    !isInstructor && numericInstitutionId != null && institutionSlug.length > 0;
   const href = isInstructor
     ? String(detailUrl ?? "").trim()
     : institutionSlug
@@ -129,6 +138,17 @@ export default function CategoryResultsCard({
         </div>
         {isInstructor && instructorPriceText ? (
           <p className="category-results-card-price">{instructorPriceText}</p>
+        ) : null}
+        {canCompare ? (
+          <InstitutionCompareToggleButton
+            className="institution-compare-toggle--category"
+            item={{
+              id: numericInstitutionId,
+              name,
+              slug: institutionSlug,
+              imageUrl,
+            }}
+          />
         ) : null}
       </div>
     </>

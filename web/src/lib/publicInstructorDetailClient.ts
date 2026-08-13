@@ -6,8 +6,11 @@ import {
   INSTRUCTOR_FEATURE_ENTRIES_TABLE,
   INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
   getDisplayInstructorFeatureName,
-  isInstructorFeatureGroupVisibleForCategory,
+  isInstructorBaslicaFeatureGroupName,
   parseValidTimeHHMM,
+  resolveInstructorBaslicaFeatureGroupForCategory,
+  resolveInstructorFeatureGroupsForActiveCategory,
+  type InstructorFeatureGroupRow,
 } from "@/lib/instructorFeaturesClient";
 import {
   STUDENT_AGE_RANGE_LABEL,
@@ -302,28 +305,29 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     }
   }
 
-  const groups = ((groupsData ?? []) as Array<{
+  const rawGroups: InstructorFeatureGroupRow[] = ((groupsData ?? []) as Array<{
     id: number;
     name: string;
     slug?: string | null;
     display_order?: number | null;
     category_slug?: string | null;
-  }>)
-    .filter((g) =>
-      isInstructorFeatureGroupVisibleForCategory(
-        {
-          name: g.name,
-          slug: g.slug ?? null,
-          category_slug: g.category_slug ?? null,
-        },
-        instructorCategorySlug,
-      ),
-    )
-    .sort(
-      (a, b) =>
-        (Number.isFinite(Number(a.display_order)) ? Number(a.display_order) : Number.MAX_SAFE_INTEGER) -
-        (Number.isFinite(Number(b.display_order)) ? Number(b.display_order) : Number.MAX_SAFE_INTEGER),
-    );
+  }>).map((g) => ({
+    id: g.id,
+    name: g.name,
+    slug: g.slug ?? null,
+    display_order: g.display_order ?? null,
+    category_slug: g.category_slug ?? null,
+  }));
+
+  // Aktif kategori (instructors.category_id → slug): visibility + aynı isimli global fallback gizleme.
+  const groups = resolveInstructorFeatureGroupsForActiveCategory(
+    rawGroups,
+    instructorCategorySlug,
+  ).sort(
+    (a, b) =>
+      (Number.isFinite(Number(a.display_order)) ? Number(a.display_order) : Number.MAX_SAFE_INTEGER) -
+      (Number.isFinite(Number(b.display_order)) ? Number(b.display_order) : Number.MAX_SAFE_INTEGER),
+  );
 
   const definitions = (definitionsData ?? []) as DetailFeatureDefinition[];
   const choices = (choicesData ?? []) as Array<{
@@ -524,15 +528,23 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     return Array.from(new Set(badges));
   };
 
-  const generalGroups = groups.filter((g) => !(g.category_slug ?? "").trim());
-  const categoryGroups = groups.filter((g) => Boolean((g.category_slug ?? "").trim()));
+  const baslicaGroup = resolveInstructorBaslicaFeatureGroupForCategory(
+    groups,
+    instructorCategorySlug,
+  );
 
-  const academicLines: PublicInstructorFeatureLine[] = [];
-  for (const group of generalGroups) {
-    academicLines.push(...buildLinesForGroup(group.id));
-  }
+  const academicLines: PublicInstructorFeatureLine[] = baslicaGroup
+    ? buildLinesForGroup(baslicaGroup.id)
+    : [];
 
-  const sections: PublicInstructorFeatureSection[] = categoryGroups
+  // Başlıca yalnız structured listede; badge section'da tekrarlanmaz.
+  // Fiziki İmkanlar / Ödeme Seçenekleri gibi diğer görünür gruplar ayrı section.
+  const sections: PublicInstructorFeatureSection[] = groups
+    .filter((group) => {
+      if (baslicaGroup && group.id === baslicaGroup.id) return false;
+      if (isInstructorBaslicaFeatureGroupName(group.name)) return false;
+      return true;
+    })
     .map((group) => ({
       id: group.id,
       name: group.name,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GraduationCap, ChevronDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { CategoryFilterResetButton } from "./CategoryFilterSidebar";
@@ -41,10 +41,16 @@ export default function CategoryResultsList({
   const [viewMode, setViewMode] = useState<ViewMode>("two");
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
 
+  /** Arama/filtre değişiminde sıfırla; background hydrate aynı id setinde kalır. */
+  const resultsIdentityKey = useMemo(
+    () => results.map((result) => result.id).join(","),
+    [results],
+  );
+
   /** Sonuç listesi değiştiğinde (arama, filtre veya kategori değişimi) görünür sayıyı 20'ye sıfırla. */
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
-  }, [results]);
+  }, [resultsIdentityKey]);
 
   const cardsClassName =
     viewMode === "two"

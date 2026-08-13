@@ -12,10 +12,11 @@ import {
   fetchInstructorFeatureDefinitionsBundleClient,
   fetchInstructorFeatureEntriesClient,
   getDisplayInstructorFeatureName,
-  isInstructorFeatureGroupVisibleForCategory,
+  isInstructorBaslicaFeatureGroupName,
   isInstructorPanelHiddenFeature,
   resolveInstructorCategoryDisplayName,
   resolveInstructorCategorySlug,
+  resolveInstructorFeatureGroupsForActiveCategory,
   saveInstructorFeaturesClient,
   validateInstructorFeatureForm,
   type InstructorFeatureCategoryRow,
@@ -193,8 +194,7 @@ export function InstructorFeaturesTab({
   }, [categories, categoryId, instructorRow.category_id]);
 
   const groupsWithFeatures = useMemo((): InstructorFeatureSelectionGroup[] => {
-    return featureGroups
-      .filter((group) => isInstructorFeatureGroupVisibleForCategory(group, instructorCategorySlug))
+    return resolveInstructorFeatureGroupsForActiveCategory(featureGroups, instructorCategorySlug)
       .map((group) => {
         const features: InstructorFeatureDefinitionForSelection[] = featureDefinitions
           .filter((f) => f.group_id === group.id)
@@ -229,12 +229,18 @@ export function InstructorFeaturesTab({
       );
   }, [featureDefinitions, featureGroups, instructorCategorySlug]);
 
-  const upperGroups = groupsWithFeatures.filter(
-    ({ group }) => !(group.category_slug ?? "").trim(),
-  );
-  const lowerGroups = groupsWithFeatures.filter(({ group }) =>
-    Boolean((group.category_slug ?? "").trim()),
-  );
+  // Üst alan: global gruplar + category-specific Başlıca (Patili Başlıca kategori seçiminin hemen altında).
+  // Alt alan: diğer category-specific gruplar (Fiziki İmkanlar, Ödeme Seçenekleri, …).
+  const upperGroups = groupsWithFeatures.filter(({ group }) => {
+    const hasCategorySlug = Boolean((group.category_slug ?? "").trim());
+    if (!hasCategorySlug) return true;
+    return isInstructorBaslicaFeatureGroupName(group.name);
+  });
+  const lowerGroups = groupsWithFeatures.filter(({ group }) => {
+    const hasCategorySlug = Boolean((group.category_slug ?? "").trim());
+    if (!hasCategorySlug) return false;
+    return !isInstructorBaslicaFeatureGroupName(group.name);
+  });
 
   const featureIdsToSave = useMemo(() => {
     const ids = new Set<number>();
@@ -458,8 +464,13 @@ export function InstructorFeaturesTab({
                       : ""
                   }`}
                   onClick={() => {
-                    setCategoryId(String(category.id));
+                    const nextCategoryId = String(category.id);
                     setOpenInstructorCategoryPicker(false);
+                    if (nextCategoryId === categoryId) return;
+                    setCategoryId(nextCategoryId);
+                    setForm(EMPTY_FORM);
+                    setOpenInstructorSelectId(null);
+                    setStudentAgeRangeError(null);
                   }}
                 >
                   {category.name}

@@ -1,0 +1,225 @@
+@import '../colors';
+@import '../mixins';
+@import '../typography';
+
+.institution-compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #71717a;
+  cursor: pointer;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+  @include transition;
+  transition-property: background, color, opacity, transform;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: $bg-white;
+    transform: scale(1.03);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.institution-compare-toggle--selected {
+  color: $orange-primary;
+  background-color: rgba(255, 255, 255, 0.92);
+
+  &:hover:not(:disabled) {
+    background-color: $bg-white;
+  }
+}
+
+.institution-compare-toggle--overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  margin-top: 0;
+}
+
+.institution-compare-toggle--category {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  margin-top: 0;
+}
+
+.institution-compare-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  padding: 10px 16px;
+  padding-right: 88px;
+  background: $bg-white;
+  border-top: 1px solid $border-light;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.institution-compare-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.institution-compare-bar-copy {
+  flex-shrink: 0;
+}
+
+.institution-compare-bar-title {
+  margin: 0;
+  font-size: $text-sm;
+  font-weight: $font-bold;
+  color: $default-text-color;
+}
+
+.institution-compare-bar-count {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: $text-zinc-600;
+}
+
+.institution-compare-bar-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.institution-compare-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: 220px;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid $border-light;
+  border-radius: 999px;
+  background: $bg-zinc-50;
+}
+
+.institution-compare-bar-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.institution-compare-bar-logo--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($purple-main, 0.12);
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-bold;
+}
+
+.institution-compare-bar-name {
+  font-size: 13px;
+  font-weight: $font-semibold;
+  color: $default-text-color;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.institution-compare-bar-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: $text-zinc-600;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: $default-text-color;
+  }
+}
+
+.institution-compare-bar-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: $orange-primary;
+  color: $bg-white;
+  font-size: $text-sm;
+  font-weight: $font-bold;
+  text-decoration: none;
+  cursor: pointer;
+  @include transition;
+  transition-property: opacity, background;
+
+  &:hover {
+    text-decoration: none;
+    color: $bg-white;
+    background: darken($orange-primary, 6%);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .institution-compare-bar {
+    padding: 10px 12px;
+    padding-right: 76px;
+  }
+
+  .institution-compare-bar-inner {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .institution-compare-bar-list {
+    order: 3;
+    width: 100%;
+  }
+
+  .institution-compare-bar-cta {
+    margin-left: auto;
+  }
+}
