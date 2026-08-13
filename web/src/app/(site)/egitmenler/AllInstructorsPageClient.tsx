@@ -480,24 +480,37 @@ export function AllInstructorsPageClient() {
   }, [filteredItems, featuredInstructorOrderMap]);
 
   const results = useMemo<CategoryResultItem[]>(() => {
-    return sortedFilteredItems.map((item) => ({
-      id: `instructor-${item.id}`,
-      resultType: "instructor",
-      name: item.displayName,
-      description: item.schoolLabel || item.branchLabel,
-      location: item.locationLabel || "Konum bilgisi yok",
-      price: item.priceLabel,
-      ageRange: "-",
-      rating: 0,
-      reviewCount: 0,
-      badges: [],
-      logoInitial: item.displayName.charAt(0).toLocaleUpperCase("tr-TR") || "E",
-      imageUrl: item.imageUrl || undefined,
-      detailUrl: item.href,
-      instructorBranch: item.branchLabel,
-      instructorTitle: item.schoolLabel,
-      priceRange: item.priceLabel,
-    }));
+    return sortedFilteredItems.map((item) => {
+      const numericId = Number(item.id);
+      const slugFromHref = String(item.href ?? "")
+        .replace(/^\/egitmenler\//, "")
+        .trim();
+      const slug =
+        decodeURIComponent(slugFromHref) ||
+        (Number.isFinite(numericId) && numericId > 0 ? String(numericId) : "");
+
+      return {
+        id: `instructor-${item.id}`,
+        resultType: "instructor",
+        name: item.displayName,
+        description: item.schoolLabel || item.branchLabel,
+        location: item.locationLabel || "Konum bilgisi yok",
+        price: item.priceLabel,
+        ageRange: "-",
+        rating: 0,
+        reviewCount: 0,
+        badges: [],
+        logoInitial: item.displayName.charAt(0).toLocaleUpperCase("tr-TR") || "E",
+        imageUrl: item.imageUrl || undefined,
+        slug: slug || undefined,
+        detailUrl: item.href,
+        instructorBranch: item.branchLabel,
+        instructorTitle: item.schoolLabel,
+        priceRange: item.priceLabel,
+        instructorId:
+          Number.isInteger(numericId) && numericId > 0 ? numericId : undefined,
+      };
+    });
   }, [sortedFilteredItems]);
 
   return (

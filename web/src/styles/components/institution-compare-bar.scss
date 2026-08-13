@@ -10,14 +10,14 @@
   height: 36px;
   padding: 0;
   border-radius: 999px;
-  border: none;
+  border: 1.5px solid transparent;
   background-color: rgba(255, 255, 255, 0.8);
   color: #71717a;
   cursor: pointer;
   z-index: 2;
   backdrop-filter: blur(4px);
   @include transition;
-  transition-property: background, color, opacity, transform;
+  transition-property: background, color, opacity, transform, border-color, box-shadow;
 
   svg {
     width: 16px;
@@ -30,6 +30,11 @@
     transform: scale(1.03);
   }
 
+  &:focus-visible {
+    outline: 2px solid rgba($orange-primary, 0.55);
+    outline-offset: 2px;
+  }
+
   &:disabled {
     opacity: 0.45;
     cursor: not-allowed;
@@ -38,7 +43,9 @@
 
 .institution-compare-toggle--selected {
   color: $orange-primary;
-  background-color: rgba(255, 255, 255, 0.92);
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: rgba($orange-primary, 0.55);
+  box-shadow: 0 0 0 1px rgba($orange-primary, 0.12);
 
   &:hover:not(:disabled) {
     background-color: $bg-white;
@@ -201,6 +208,70 @@
     cursor: not-allowed;
     pointer-events: none;
   }
+}
+
+.instructor-compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #71717a;
+  cursor: pointer;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+  @include transition;
+  transition-property: background, color, opacity, transform, border-color, box-shadow;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: $bg-white;
+    transform: scale(1.03);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($orange-primary, 0.55);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.instructor-compare-toggle--selected {
+  color: $orange-primary;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: rgba($orange-primary, 0.55);
+  box-shadow: 0 0 0 1px rgba($orange-primary, 0.12);
+
+  &:hover:not(:disabled) {
+    background-color: $bg-white;
+  }
+}
+
+.instructor-compare-toggle--overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  margin-top: 0;
+}
+
+.instructor-compare-toggle--category {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  margin-top: 0;
 }
 
 @media (max-width: 640px) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { GraduationCap, Heart } from "lucide-react";
 import type { FeaturedInstructorItem } from "@/lib/publicInstructorSearch";
+import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
 
 export function FeaturedInstructorCardLink({
   instructor,
@@ -26,6 +27,12 @@ export function FeaturedInstructorCardLink({
   onToggleFavorite?: (instructorId: number, e: React.MouseEvent) => void;
   onImageError: () => void;
 }) {
+  const canCompare =
+    !isDuplicate &&
+    Number.isInteger(instructor.id) &&
+    instructor.id > 0 &&
+    Boolean(String(instructor.slug ?? "").trim());
+
   return (
     <Link
       href={instructor.href}
@@ -70,6 +77,17 @@ export function FeaturedInstructorCardLink({
               />
             </motion.div>
           </motion.button>
+        ) : null}
+        {canCompare ? (
+          <InstructorCompareToggleButton
+            className="instructor-compare-toggle--overlay"
+            item={{
+              id: instructor.id,
+              name: instructor.name,
+              slug: instructor.slug,
+              imageUrl: instructor.imageUrl || undefined,
+            }}
+          />
         ) : null}
       </div>
       <div className="featured-institution-content">

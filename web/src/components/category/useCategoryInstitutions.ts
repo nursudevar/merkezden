@@ -58,6 +58,8 @@ export type CategoryResultItem = {
   priceRange?: string;
   /** Gerçek `institutions.id`; presentation `id` alanından bağımsız. */
   institutionId?: number;
+  /** Gerçek `instructors.id`; presentation `id` alanından bağımsız. */
+  instructorId?: number;
   /** Harita marker birleştirmesi için liste satırından taşınan alanlar */
   mapAddress?: string;
   mapCity?: string;

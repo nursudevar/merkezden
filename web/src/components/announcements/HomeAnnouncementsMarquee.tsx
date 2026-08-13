@@ -11,6 +11,7 @@ import {
   fetchHomeAnnouncements,
   type HomeAnnouncementItem,
 } from "@/lib/homeAnnouncementsClient";
+import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 
 function HomeAnnouncementCard({
   announcement,
@@ -27,6 +28,8 @@ function HomeAnnouncementCard({
   const contentText = String(announcement.content ?? "").trim().replace(/\s+/g, " ");
   const ownerName = (announcement.ownerName ?? "").trim();
   const titleText = String(announcement.title ?? "").trim();
+  const tagText = String(announcement.announcementTag ?? "").trim();
+  const tagClassName = getAnnouncementTagBadgeClassName(tagText);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -58,6 +61,7 @@ function HomeAnnouncementCard({
           </div>
 
           <div className="home-announcement-card-info">
+            {tagText && tagClassName ? <span className={tagClassName}>{tagText}</span> : null}
             <h3 className="home-announcement-card-title">{titleText}</h3>
             {ownerName ? (
               <div className="home-announcement-card-owner">{ownerName}</div>
@@ -66,6 +70,7 @@ function HomeAnnouncementCard({
         </div>
       ) : (
         <div className="home-announcement-card-content home-announcement-card-content--without-image">
+          {tagText && tagClassName ? <span className={tagClassName}>{tagText}</span> : null}
           <h3 className="home-announcement-card-title">{titleText}</h3>
           {contentText ? (
             <p className="home-announcement-card-summary">{contentText}</p>

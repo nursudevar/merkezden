@@ -72,6 +72,11 @@ import {
   LISE_INSTITUTION_TYPE_ID,
   OKUL_CATEGORY_SLUG,
 } from "@/lib/schoolInstitutionTypes";
+import {
+  ANNOUNCEMENT_TAG_OPTIONS,
+  ANNOUNCEMENT_TAG_REQUIRED_ERROR,
+  normalizeAnnouncementTag,
+} from "@/lib/announcementTags";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
@@ -468,6 +473,7 @@ function PanelContent() {
     isActive: boolean;
     imageUrl: string | null;
     linkUrl: string | null;
+    announcementTag: string | null;
   }
 
   const [announcementsList, setAnnouncementsList] = useState<AnnouncementRow[]>([]);
@@ -480,11 +486,13 @@ function PanelContent() {
     title: "",
     content: "",
     linkUrl: "",
+    announcementTag: "",
     isActive: true,
   });
   const [announcementFormErrors, setAnnouncementFormErrors] = useState<{
     title?: string;
     content?: string;
+    announcementTag?: string;
   }>({});
   const [announcementSaving, setAnnouncementSaving] = useState(false);
   const [announcementDeleteConfirmRow, setAnnouncementDeleteConfirmRow] = useState<AnnouncementRow | null>(
@@ -729,6 +737,7 @@ interface InstitutionDetailPreparedData {
     content: string | null;
     announcement_image_url: string | null;
     link_url: string | null;
+    announcement_tag: string | null;
     created_at: string | null;
     is_active: boolean | null;
   }): AnnouncementRow => {
@@ -744,6 +753,7 @@ interface InstitutionDetailPreparedData {
       isActive: row.is_active === true,
       imageUrl: row.announcement_image_url,
       linkUrl: linkTrimmed || null,
+      announcementTag: normalizeAnnouncementTag(row.announcement_tag),
     };
   };
 
@@ -764,7 +774,9 @@ interface InstitutionDetailPreparedData {
       try {
         const { data, error } = await supabase
           .from("announcements")
-          .select("id, title, content, announcement_image_url, link_url, created_at, is_active")
+          .select(
+            "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, is_active",
+          )
           .eq("institution_id", instId)
           .order("created_at", { ascending: false });
         if (error) {
@@ -779,6 +791,7 @@ interface InstitutionDetailPreparedData {
           content: string | null;
           announcement_image_url: string | null;
           link_url: string | null;
+          announcement_tag: string | null;
           created_at: string | null;
           is_active: boolean | null;
         }>;
@@ -2535,7 +2548,7 @@ interface InstitutionDetailPreparedData {
 
   const openNewAnnouncementModal = () => {
     setEditingAnnouncementId(null);
-    setAnnouncementForm({ title: "", content: "", linkUrl: "", isActive: true });
+    setAnnouncementForm({ title: "", content: "", linkUrl: "", announcementTag: "", isActive: true });
     setAnnouncementFormErrors({});
     setAnnouncementImageFile(null);
     setAnnouncementImageRemovePending(false);
@@ -2549,6 +2562,7 @@ interface InstitutionDetailPreparedData {
       title: item.title,
       content: item.content,
       linkUrl: item.linkUrl ?? "",
+      announcementTag: item.announcementTag ?? "",
       isActive: item.isActive,
     });
     setAnnouncementFormErrors({});
@@ -2618,9 +2632,11 @@ interface InstitutionDetailPreparedData {
     const title = announcementForm.title.trim();
     const content = announcementForm.content.trim();
     const link_url = announcementForm.linkUrl.trim() || null;
-    const errors: { title?: string; content?: string } = {};
+    const announcement_tag = normalizeAnnouncementTag(announcementForm.announcementTag);
+    const errors: { title?: string; content?: string; announcementTag?: string } = {};
     if (!title) errors.title = "Başlık zorunludur.";
     if (!content) errors.content = "İçerik zorunludur.";
+    if (!announcement_tag) errors.announcementTag = ANNOUNCEMENT_TAG_REQUIRED_ERROR;
     if (Object.keys(errors).length > 0) {
       setAnnouncementFormErrors(errors);
       return;
@@ -2634,7 +2650,7 @@ interface InstitutionDetailPreparedData {
       setAnnouncementsError("Kurum bilgisi bulunamadı.");
       return;
     }
-    if (announcementSaving) return;
+    if (announcementSaving || !announcement_tag) return;
 
     const supabase = createSupabaseBrowserClient();
     setAnnouncementSaving(true);
@@ -2663,6 +2679,7 @@ interface InstitutionDetailPreparedData {
               title,
               content,
               link_url,
+              announcement_tag,
               is_active,
               announcement_image_url: newUrl,
             })
@@ -2693,6 +2710,7 @@ interface InstitutionDetailPreparedData {
               title,
               content,
               link_url,
+              announcement_tag,
               is_active,
               announcement_image_url: null,
             })
@@ -2719,6 +2737,7 @@ interface InstitutionDetailPreparedData {
               title,
               content,
               link_url,
+              announcement_tag,
               is_active,
             })
             .eq("id", editingAnnouncementId)
@@ -2746,6 +2765,7 @@ interface InstitutionDetailPreparedData {
           title,
           content,
           link_url,
+          announcement_tag,
           is_active,
           announcement_image_url: imageUrl,
         });
@@ -4142,6 +4162,41 @@ interface InstitutionDetailPreparedData {
                   />
                   {announcementFormErrors.title && (
                     <span className="panel-announcement-modal-error">{announcementFormErrors.title}</span>
+                  )}
+                </div>
+                <div className="panel-institution-form-field">
+                  <label className="panel-institution-form-label" htmlFor="announcement-tag-select">
+                    Duyuru Etiketi
+                  </label>
+                  <Select
+                    value={announcementForm.announcementTag || undefined}
+                    onValueChange={(v) => handleAnnouncementFormChange("announcementTag", v)}
+                    disabled={announcementSaving}
+                  >
+                    <SelectTrigger
+                      id="announcement-tag-select"
+                      className="panel-announcement-status-select"
+                      aria-label="Duyuru Etiketi"
+                    >
+                      <SelectValue placeholder="Etiket seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      align="start"
+                      sideOffset={4}
+                      className="select-content panel-announcement-status-dropdown panel-announcement-tag-dropdown"
+                    >
+                      {ANNOUNCEMENT_TAG_OPTIONS.map((tag) => (
+                        <SelectItem key={tag} value={tag} className="select-item">
+                          {tag}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {announcementFormErrors.announcementTag && (
+                    <span className="panel-announcement-modal-error">
+                      {announcementFormErrors.announcementTag}
+                    </span>
                   )}
                 </div>
                 <div className="panel-institution-form-field">

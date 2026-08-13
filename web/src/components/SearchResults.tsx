@@ -7,6 +7,7 @@ import { Building2, Heart, UserRound } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
+import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   resolveInstitutionIdsByPriceRange,
@@ -50,6 +51,8 @@ interface SearchResult {
   detailUrl: string;
   /** Gerçek `institutions.id`; presentation `id` alanından bağımsız. */
   institutionId?: number;
+  /** Gerçek `instructors.id`; presentation `id` alanından bağımsız. */
+  instructorId?: number;
   badge: {
     icon: string;
     label: string;
@@ -550,9 +553,10 @@ export default function SearchResults({
                 rating: 0,
                 reviewCount: 0,
                 imageUrl,
-                slug: String(row.slug ?? "").trim(),
+                slug: String(row.slug ?? "").trim() || String(numericId),
                 source: null,
                 detailUrl: getPublicInstructorDetailHref(row.slug, numericId),
+                instructorId: numericId,
                 badge: {
                   icon: "",
                   label: "Bireysel Eğitmen",
@@ -779,6 +783,21 @@ export default function SearchResults({
                     className="institution-compare-toggle--overlay"
                     item={{
                       id: result.institutionId,
+                      name: result.name,
+                      slug: result.slug,
+                      imageUrl: result.imageUrl,
+                    }}
+                  />
+                ) : null}
+                {isInstructor &&
+                typeof result.instructorId === "number" &&
+                Number.isInteger(result.instructorId) &&
+                result.instructorId > 0 &&
+                result.slug ? (
+                  <InstructorCompareToggleButton
+                    className="instructor-compare-toggle--overlay"
+                    item={{
+                      id: result.instructorId,
                       name: result.name,
                       slug: result.slug,
                       imageUrl: result.imageUrl,

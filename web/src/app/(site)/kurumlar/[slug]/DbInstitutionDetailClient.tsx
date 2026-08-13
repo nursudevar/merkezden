@@ -28,6 +28,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isMebInstitution, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionHelpers";
+import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 import {
   loadInstitutionExtraBranchesClient,
   mapLoadedExtraBranchesForPublicProfile,
@@ -243,7 +244,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("announcements")
         .select(
-          "id, title, content, announcement_image_url, link_url, created_at, institution:institutions(institution_name)"
+          "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, institution:institutions(institution_name)"
         )
         .eq("institution_id", row.id)
         .eq("is_active", true)
@@ -266,6 +267,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         content: string | null;
         announcement_image_url: string | null;
         link_url: string | null;
+        announcement_tag: string | null;
         created_at: string | null;
         institution:
           | { institution_name: string | null }
@@ -290,6 +292,9 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             createdAt: r.created_at ? String(r.created_at) : null,
             institutionName: String(inst?.institution_name ?? "").trim(),
             linkUrl: r.link_url ? String(r.link_url).trim() || null : null,
+            announcementTag: r.announcement_tag
+              ? String(r.announcement_tag).trim() || null
+              : null,
           } as AnnouncementDetailItem;
         })
         .filter((item): item is AnnouncementDetailItem => item !== null);
@@ -1238,6 +1243,12 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                                 {name.toLocaleUpperCase("tr-TR")}
                               </div>
                             ) : null}
+                            {(() => {
+                              const tag = String(item.announcementTag ?? "").trim();
+                              const tagClass = getAnnouncementTagBadgeClassName(tag);
+                              if (!tag || !tagClass) return null;
+                              return <span className={tagClass}>{tag}</span>;
+                            })()}
                             <h3 className="institution-announcement-title">
                               {item.title}
                             </h3>

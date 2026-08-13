@@ -10,7 +10,7 @@ import {
 export const INSTRUCTOR_ANNOUNCEMENTS_TABLE = "instructor_announcements" as const;
 
 const INSTRUCTOR_ANNOUNCEMENT_ROW_SELECT =
-  "id, instructor_id, owner_auth_id, title, content, image_url, image_path, link_url, is_active, created_at, updated_at";
+  "id, instructor_id, owner_auth_id, title, content, image_url, image_path, link_url, announcement_tag, is_active, created_at, updated_at";
 
 export type InstructorAnnouncementRow = {
   id: number;
@@ -21,6 +21,7 @@ export type InstructorAnnouncementRow = {
   image_url: string | null;
   image_path: string | null;
   link_url: string | null;
+  announcement_tag: string | null;
   is_active: boolean;
   created_at: string | null;
   updated_at: string | null;
@@ -112,6 +113,7 @@ export type CreateInstructorAnnouncementInput = {
   title: string;
   content: string;
   link_url: string | null;
+  announcement_tag: string;
   is_active: boolean;
   imageFile: File | null;
 };
@@ -149,6 +151,7 @@ export async function createInstructorAnnouncementClient(
       image_url,
       image_path,
       link_url: input.link_url,
+      announcement_tag: input.announcement_tag,
       is_active: input.is_active,
     })
     .select(INSTRUCTOR_ANNOUNCEMENT_ROW_SELECT)
@@ -169,6 +172,7 @@ export type UpdateInstructorAnnouncementInput = {
   title: string;
   content: string;
   link_url: string | null;
+  announcement_tag: string;
   is_active: boolean;
   imageFile: File | null;
   removeImage: boolean;
@@ -217,6 +221,7 @@ export async function updateInstructorAnnouncementClient(
       title: input.title,
       content: input.content,
       link_url: input.link_url,
+      announcement_tag: input.announcement_tag,
       is_active: input.is_active,
       image_url,
       image_path,

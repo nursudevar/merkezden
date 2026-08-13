@@ -4,6 +4,9 @@ import Footer from "@/components/layout/Footer";
 import { ClampedTextTooltipGlobal } from "@/components/ClampedTextTooltipGlobal";
 import { InstitutionCompareProvider } from "@/components/compare/InstitutionCompareProvider";
 import { InstitutionCompareBar } from "@/components/compare/InstitutionCompareBar";
+import { InstructorCompareProvider } from "@/components/compare/InstructorCompareProvider";
+import { InstructorCompareBar } from "@/components/compare/InstructorCompareBar";
+import { CompareConflictNoticeProvider } from "@/components/compare/CompareConflictNotice";
 import { resolveSiteUrl } from "@/lib/seo/siteUrl";
 import "@/styles/main.scss";
 import "@/styles/components/app-modal.scss";
@@ -41,10 +44,15 @@ export default function RootLayout({
         className={`${plusJakartaSans.variable}`}
       >
         <InstitutionCompareProvider>
-          {children}
-          <InstitutionCompareBar />
-          <ClampedTextTooltipGlobal />
-          <Footer />
+          <InstructorCompareProvider>
+            <CompareConflictNoticeProvider>
+              {children}
+              <InstitutionCompareBar />
+              <InstructorCompareBar />
+              <ClampedTextTooltipGlobal />
+              <Footer />
+            </CompareConflictNoticeProvider>
+          </InstructorCompareProvider>
         </InstitutionCompareProvider>
       </body>
     </html>

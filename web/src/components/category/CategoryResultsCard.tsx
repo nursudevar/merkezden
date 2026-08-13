@@ -5,6 +5,7 @@ import Image from "next/image";
 import { MapPin, GraduationCap, UserRound } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
+import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
 
 interface CategoryResultsCardProps {
   id: string;
@@ -28,6 +29,7 @@ interface CategoryResultsCardProps {
   instructorBranch?: string;
   priceRange?: string;
   institutionId?: number;
+  instructorId?: number;
 }
 
 export default function CategoryResultsCard({
@@ -48,6 +50,7 @@ export default function CategoryResultsCard({
   instructorBranch,
   priceRange,
   institutionId,
+  instructorId,
 }: CategoryResultsCardProps) {
   const isInstructor = resultType === "instructor";
   const institutionSlug = String(slug ?? "").trim();
@@ -60,8 +63,16 @@ export default function CategoryResultsCard({
     typeof institutionId === "number" && Number.isInteger(institutionId) && institutionId > 0
       ? institutionId
       : null;
-  const canCompare =
+  const numericInstructorId =
+    typeof instructorId === "number" && Number.isInteger(instructorId) && instructorId > 0
+      ? instructorId
+      : null;
+  const instructorSlug =
+    institutionSlug || (numericInstructorId != null ? String(numericInstructorId) : "");
+  const canCompareInstitution =
     !isInstructor && numericInstitutionId != null && institutionSlug.length > 0;
+  const canCompareInstructor =
+    isInstructor && numericInstructorId != null && instructorSlug.length > 0;
   const href = isInstructor
     ? String(detailUrl ?? "").trim()
     : institutionSlug
@@ -139,13 +150,24 @@ export default function CategoryResultsCard({
         {isInstructor && instructorPriceText ? (
           <p className="category-results-card-price">{instructorPriceText}</p>
         ) : null}
-        {canCompare ? (
+        {canCompareInstitution ? (
           <InstitutionCompareToggleButton
             className="institution-compare-toggle--category"
             item={{
               id: numericInstitutionId,
               name,
               slug: institutionSlug,
+              imageUrl,
+            }}
+          />
+        ) : null}
+        {canCompareInstructor ? (
+          <InstructorCompareToggleButton
+            className="instructor-compare-toggle--category"
+            item={{
+              id: numericInstructorId,
+              name,
+              slug: instructorSlug,
               imageUrl,
             }}
           />

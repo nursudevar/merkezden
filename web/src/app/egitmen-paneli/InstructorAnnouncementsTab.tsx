@@ -30,7 +30,13 @@ import {
   updateInstructorAnnouncementClient,
   type InstructorAnnouncementRow,
 } from "@/lib/instructorAnnouncementsClient";
+import {
+  ANNOUNCEMENT_TAG_OPTIONS,
+  ANNOUNCEMENT_TAG_REQUIRED_ERROR,
+  normalizeAnnouncementTag,
+} from "@/lib/announcementTags";
 import { Button, Input } from "@/components/ui";
+import { EgitmenFormSelect } from "./EgitmenFormSelect";
 
 type Props = {
   authUserId: string;
@@ -41,6 +47,7 @@ type AnnouncementFormState = {
   title: string;
   content: string;
   linkUrl: string;
+  announcementTag: string;
   isActive: boolean;
 };
 
@@ -48,6 +55,7 @@ const EMPTY_FORM: AnnouncementFormState = {
   title: "",
   content: "",
   linkUrl: "",
+  announcementTag: "",
   isActive: true,
 };
 
@@ -87,9 +95,12 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<AnnouncementFormState>(EMPTY_FORM);
-  const [formErrors, setFormErrors] = useState<{ title?: string; content?: string; linkUrl?: string }>(
-    {},
-  );
+  const [formErrors, setFormErrors] = useState<{
+    title?: string;
+    content?: string;
+    linkUrl?: string;
+    announcementTag?: string;
+  }>({});
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<InstructorAnnouncementRow | null>(null);
@@ -179,6 +190,7 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
       title: row.title,
       content: row.content,
       linkUrl: String(row.link_url ?? ""),
+      announcementTag: normalizeAnnouncementTag(row.announcement_tag) ?? "",
       isActive: Boolean(row.is_active),
     });
     setFormErrors({});
@@ -256,10 +268,17 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
     const title = form.title.trim();
     const content = form.content.trim();
     const linkRaw = form.linkUrl.trim();
-    const errors: { title?: string; content?: string; linkUrl?: string } = {};
+    const announcementTag = normalizeAnnouncementTag(form.announcementTag);
+    const errors: {
+      title?: string;
+      content?: string;
+      linkUrl?: string;
+      announcementTag?: string;
+    } = {};
 
     if (!title) errors.title = "Başlık zorunludur.";
     if (!content) errors.content = "İçerik zorunludur.";
+    if (!announcementTag) errors.announcementTag = ANNOUNCEMENT_TAG_REQUIRED_ERROR;
     if (linkRaw && !isValidOptionalAnnouncementLinkUrl(linkRaw)) {
       errors.linkUrl = INSTRUCTOR_ANNOUNCEMENT_LINK_URL_ERROR;
     }
@@ -273,7 +292,7 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
       return;
     }
 
-    if (saving) return;
+    if (saving || !announcementTag) return;
 
     setSaving(true);
     setError(null);
@@ -293,6 +312,7 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
             title,
             content,
             link_url,
+            announcement_tag: announcementTag,
             is_active: form.isActive,
             imageFile,
             removeImage: imageRemovePending,
@@ -315,6 +335,7 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
             title,
             content,
             link_url,
+            announcement_tag: announcementTag,
             is_active: form.isActive,
             imageFile,
           },
@@ -575,6 +596,25 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
                   />
                   {formErrors.title ? (
                     <span className="egitmen-panel-announcement-modal-error">{formErrors.title}</span>
+                  ) : null}
+                </div>
+                <div className="egitmen-panel-form-field">
+                  <label className="egitmen-panel-form-label" htmlFor="egitmen-announcement-tag">
+                    Duyuru Etiketi
+                  </label>
+                  <EgitmenFormSelect
+                    id="egitmen-announcement-tag"
+                    value={form.announcementTag}
+                    onChange={(next) => handleFormChange("announcementTag", next)}
+                    options={ANNOUNCEMENT_TAG_OPTIONS}
+                    placeholder="Etiket seçiniz"
+                    ariaLabel="Duyuru Etiketi"
+                    disabled={saving}
+                  />
+                  {formErrors.announcementTag ? (
+                    <span className="egitmen-panel-announcement-modal-error">
+                      {formErrors.announcementTag}
+                    </span>
                   ) : null}
                 </div>
                 <div className="egitmen-panel-form-field">

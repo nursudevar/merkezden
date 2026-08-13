@@ -85,6 +85,7 @@ export type PublicInstructorListRow = {
 export type FeaturedInstructorItem = {
   id: number;
   name: string;
+  slug: string;
   imageUrl: string;
   href: string;
   bodyMainCategory: string;
@@ -295,6 +296,8 @@ export type MappedPublicInstructorListItem = {
   instructorTitle?: string;
   instructorBranch?: string;
   priceRange?: string;
+  /** Gerçek `instructors.id`; presentation `id` alanından bağımsız. */
+  instructorId?: number;
 };
 
 export function mapPublicInstructorToListItem(
@@ -316,6 +319,8 @@ export function mapPublicInstructorToListItem(
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) ||
     undefined;
 
+  const slug = String(row.slug ?? "").trim() || String(numericId);
+
   return {
     id: `instructor-${numericId}`,
     resultType: "instructor",
@@ -329,11 +334,12 @@ export function mapPublicInstructorToListItem(
     badges: [],
     logoInitial: pickInitial(name),
     imageUrl,
-    slug: String(row.slug ?? "").trim() || undefined,
+    slug,
     detailUrl: getPublicInstructorDetailHref(row.slug, numericId),
     instructorTitle: title || undefined,
     instructorBranch: branch || undefined,
     priceRange: priceRange || undefined,
+    instructorId: numericId,
   };
 }
 
@@ -1037,6 +1043,7 @@ export function mapPublicInstructorToFeaturedItem(
   return {
     id: numericId,
     name,
+    slug: String(row.slug ?? "").trim() || String(numericId),
     imageUrl,
     href: getPublicInstructorDetailHref(row.slug, numericId),
     bodyMainCategory: branch || title || "Bireysel Eğitmen",

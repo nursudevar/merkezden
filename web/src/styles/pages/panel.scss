@@ -3075,6 +3075,10 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     opacity: 0.55;
     cursor: not-allowed;
   }
+
+  [data-placeholder] {
+    color: $text-zinc-500;
+  }
 }
 
 /* Panel’de home.scss yok; shadcn Select için taban stiller (ana sayfa / kategori ile uyumlu) */
@@ -3258,6 +3262,16 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   .select-item-check-icon {
     color: $purple-main;
   }
+}
+
+/* Duyuru etiketi: daha uzun liste, kaydırılabilir menü */
+.select-content-popper.panel-announcement-tag-dropdown {
+  overflow-y: auto;
+}
+
+.select-content-popper.panel-announcement-tag-dropdown .select-viewport {
+  max-height: min(280px, var(--radix-select-content-available-height));
+  overflow-y: auto;
 }
 
 .panel-announcement-modal-footer {

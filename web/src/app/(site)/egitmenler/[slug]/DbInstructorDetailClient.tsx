@@ -45,6 +45,7 @@ import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
 } from "@/components/AnnouncementDetailModal";
 import InstructorShareButton from "./InstructorShareButton";
+import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 
 type InstructorDetailTab = "about" | "features" | "announcements" | "gallery";
 
@@ -596,6 +597,12 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                               <div className="instructor-announcement-kicker">
                                 {displayName.toLocaleUpperCase("tr-TR")}
                               </div>
+                              {(() => {
+                                const tag = String(item.announcementTag ?? "").trim();
+                                const tagClass = getAnnouncementTagBadgeClassName(tag);
+                                if (!tag || !tagClass) return null;
+                                return <span className={tagClass}>{tag}</span>;
+                              })()}
                               <h3 className="instructor-announcement-title">{item.title}</h3>
                               {item.content ? (
                                 <p className="instructor-announcement-desc">

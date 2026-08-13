@@ -5,20 +5,13 @@ import { INSTRUCTOR_MEDIA_BUCKET } from "@/lib/instructorMediaClient";
 import {
   INSTRUCTOR_FEATURE_ENTRIES_TABLE,
   INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
-  getDisplayInstructorFeatureName,
-  isInstructorBaslicaFeatureGroupName,
-  parseValidTimeHHMM,
-  resolveInstructorBaslicaFeatureGroupForCategory,
-  resolveInstructorFeatureGroupsForActiveCategory,
   type InstructorFeatureGroupRow,
 } from "@/lib/instructorFeaturesClient";
 import {
-  STUDENT_AGE_RANGE_LABEL,
-  findStudentAgeRangeDefinitions,
-  formatStudentAgeDisplay,
-  isLegacyStudentAgeMultiSelectFeature,
-  isStudentAgeRangeNumberFeature,
-} from "@/lib/studentAgeRangeFeature";
+  mapPublicInstructorFeatures,
+  type PublicInstructorFeatureLine,
+  type PublicInstructorFeatureSection,
+} from "@/lib/instructorPublicFeatures";
 import {
   fetchPublicInstructorByParamClient,
   publicInstructorDisplayName,
@@ -26,18 +19,7 @@ import {
 } from "@/lib/publicInstructorClient";
 
 export { fetchPublicInstructorByParamClient, publicInstructorDisplayName };
-
-export type PublicInstructorFeatureLine = {
-  label: string;
-  value: string | string[];
-  isBadgeList?: boolean;
-};
-
-export type PublicInstructorFeatureSection = {
-  id: number;
-  name: string;
-  badges: string[];
-};
+export type { PublicInstructorFeatureLine, PublicInstructorFeatureSection };
 
 export type PublicInstructorGalleryItem = {
   id: string;
@@ -51,6 +33,7 @@ export type PublicInstructorAnnouncementItem = {
   imageUrl: string | null;
   linkUrl: string | null;
   createdAt: string | null;
+  announcementTag: string | null;
 };
 
 export function resolvePublicInstructorProfilePictureUrl(
@@ -155,7 +138,7 @@ export async function fetchPublicInstructorAnnouncementsClient(
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("instructor_announcements")
-    .select("id, title, content, image_url, link_url, created_at")
+    .select("id, title, content, image_url, link_url, announcement_tag, created_at")
     .eq("instructor_id", instructorId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -171,6 +154,7 @@ export async function fetchPublicInstructorAnnouncementsClient(
     content: string | null;
     image_url: string | null;
     link_url: string | null;
+    announcement_tag: string | null;
     created_at: string | null;
   }>)
     .map((row) => {
@@ -183,31 +167,13 @@ export async function fetchPublicInstructorAnnouncementsClient(
         imageUrl: row.image_url ? String(row.image_url).trim() || null : null,
         linkUrl: row.link_url ? String(row.link_url).trim() || null : null,
         createdAt: row.created_at ? String(row.created_at) : null,
+        announcementTag: row.announcement_tag ? String(row.announcement_tag).trim() || null : null,
       };
     })
     .filter((item): item is PublicInstructorAnnouncementItem => item !== null);
 
   return { items, error: null };
 }
-
-type DetailFeatureDefinition = {
-  id: number;
-  group_id: number;
-  name: string;
-  slug: string | null;
-  input_type: string;
-  unit: string | null;
-  display_order: number | null;
-};
-
-type DetailFeatureEntry = {
-  id: number;
-  feature_definition_id: number;
-  text_answer: string | null;
-  number_answer: number | null;
-  boolean_answer: boolean | null;
-  selected_choice_id: number | null;
-};
 
 export async function fetchPublicInstructorFeatureDisplayClient(
   instructorId: number,
@@ -290,7 +256,14 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     return empty;
   }
 
-  const entries = (entriesData ?? []) as DetailFeatureEntry[];
+  const entries = (entriesData ?? []) as Array<{
+    id: number;
+    feature_definition_id: number;
+    text_answer: string | null;
+    number_answer: number | null;
+    boolean_answer: boolean | null;
+    selected_choice_id: number | null;
+  }>;
   const entryIds = entries.map((e) => e.id);
   let entryChoices: Array<{ instructor_feature_entry_id: number; choice_id: number }> = [];
   if (entryIds.length > 0) {
@@ -319,238 +292,31 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     category_slug: g.category_slug ?? null,
   }));
 
-  // Aktif kategori (instructors.category_id → slug): visibility + aynı isimli global fallback gizleme.
-  const groups = resolveInstructorFeatureGroupsForActiveCategory(
-    rawGroups,
-    instructorCategorySlug,
-  ).sort(
-    (a, b) =>
-      (Number.isFinite(Number(a.display_order)) ? Number(a.display_order) : Number.MAX_SAFE_INTEGER) -
-      (Number.isFinite(Number(b.display_order)) ? Number(b.display_order) : Number.MAX_SAFE_INTEGER),
-  );
-
-  const definitions = (definitionsData ?? []) as DetailFeatureDefinition[];
-  const choices = (choicesData ?? []) as Array<{
-    id: number;
-    feature_definition_id: number;
-    name: string | null;
-    display_order?: number | null;
-  }>;
-
-  const visibleGroupIds = new Set(groups.map((g) => g.id));
-  const visibleDefinitions = definitions.filter((d) => visibleGroupIds.has(d.group_id));
-
-  const entriesByFeatureId = new Map(entries.map((e) => [e.feature_definition_id, e]));
-  const choiceNameById = new Map<number, string>();
-  const choiceOrderById = new Map<number, number>();
-  choices.forEach((c) => {
-    const label = String(c.name ?? "").trim();
-    if (label) choiceNameById.set(c.id, label);
-    choiceOrderById.set(
-      c.id,
-      Number.isFinite(Number(c.display_order)) ? Number(c.display_order) : Number.MAX_SAFE_INTEGER,
-    );
-  });
-  const choiceIdsByEntryId = new Map<number, number[]>();
-  entryChoices.forEach((row) => {
-    const current = choiceIdsByEntryId.get(row.instructor_feature_entry_id) ?? [];
-    if (!current.includes(row.choice_id)) current.push(row.choice_id);
-    choiceIdsByEntryId.set(row.instructor_feature_entry_id, current);
+  const mapped = mapPublicInstructorFeatures({
+    groups: rawGroups,
+    definitions: (definitionsData ?? []) as Array<{
+      id: number;
+      group_id: number;
+      name: string;
+      slug: string | null;
+      input_type: string;
+      unit: string | null;
+      display_order: number | null;
+    }>,
+    choices: (choicesData ?? []) as Array<{
+      id: number;
+      feature_definition_id: number;
+      name: string | null;
+      display_order?: number | null;
+    }>,
+    entries,
+    entryChoices,
+    categorySlug: instructorCategorySlug,
   });
 
-  const orderedChoiceLabels = (choiceIds: number[]): string[] => {
-    return [...choiceIds]
-      .sort(
-        (a, b) =>
-          (choiceOrderById.get(a) ?? Number.MAX_SAFE_INTEGER) -
-          (choiceOrderById.get(b) ?? Number.MAX_SAFE_INTEGER),
-      )
-      .map((id) => choiceNameById.get(id) ?? "")
-      .filter(Boolean);
+  return {
+    academicLines: mapped.academicLines,
+    sections: mapped.sections,
+    universityLabel: null,
   };
-
-  const extractValue = (feature: DetailFeatureDefinition): string | string[] | null => {
-    const entry = entriesByFeatureId.get(feature.id);
-    if (!entry) return null;
-
-    if (feature.input_type === "boolean") {
-      return entry.boolean_answer === true ? "Evet" : null;
-    }
-
-    if (feature.input_type === "single_select") {
-      if (entry.selected_choice_id != null) {
-        const label = choiceNameById.get(Number(entry.selected_choice_id));
-        return label ?? null;
-      }
-      const labels = orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []);
-      return labels[0] ?? null;
-    }
-
-    if (feature.input_type === "multi_select") {
-      const labels = orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []);
-      return labels.length > 0 ? labels : null;
-    }
-
-    if (feature.input_type === "number") {
-      if (typeof entry.number_answer !== "number" || !Number.isFinite(entry.number_answer)) return null;
-      const unit = String(feature.unit ?? "").trim();
-      return `${entry.number_answer}${unit ? ` ${unit}` : ""}`.trim();
-    }
-
-    if (feature.input_type === "date") {
-      const d = entry.text_answer ? String(entry.text_answer).slice(0, 10) : "";
-      return d || null;
-    }
-
-    const text = String(entry.text_answer ?? "").trim();
-    if (!text) return null;
-    const validTime = parseValidTimeHHMM(text);
-    if (validTime) return validTime;
-    return text;
-  };
-
-  const buildLinesForGroup = (groupId: number): PublicInstructorFeatureLine[] => {
-    const lines: PublicInstructorFeatureLine[] = [];
-    const features = visibleDefinitions
-      .filter((f) => f.group_id === groupId)
-      .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
-
-    const usedIds = new Set<number>();
-    const ageDefs = findStudentAgeRangeDefinitions(visibleDefinitions);
-    const ageInThisGroup =
-      ageDefs.min &&
-      ageDefs.max &&
-      (ageDefs.min.group_id === groupId || ageDefs.max.group_id === groupId);
-    if (ageInThisGroup && ageDefs.min && ageDefs.max) {
-      const minEntry = entriesByFeatureId.get(ageDefs.min.id);
-      const maxEntry = entriesByFeatureId.get(ageDefs.max.id);
-      const minVal =
-        typeof minEntry?.number_answer === "number" && Number.isFinite(minEntry.number_answer)
-          ? minEntry.number_answer
-          : null;
-      const maxVal =
-        typeof maxEntry?.number_answer === "number" && Number.isFinite(maxEntry.number_answer)
-          ? maxEntry.number_answer
-          : null;
-      if (minVal != null && maxVal != null) {
-        usedIds.add(ageDefs.min.id);
-        usedIds.add(ageDefs.max.id);
-        // Yalnızca min'in grubunda bir kez göster
-        if (ageDefs.min.group_id === groupId) {
-          lines.push({
-            label: STUDENT_AGE_RANGE_LABEL,
-            value: formatStudentAgeDisplay(minVal, maxVal),
-          });
-        }
-      }
-    }
-
-    for (const feature of features) {
-      if (usedIds.has(feature.id)) continue;
-      if (isStudentAgeRangeNumberFeature(feature)) continue;
-      if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
-      const value = extractValue(feature);
-      if (!value || (Array.isArray(value) && value.length === 0)) continue;
-      const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
-      if (!label) continue;
-      lines.push({
-        label,
-        value,
-        ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
-      });
-    }
-    return lines;
-  };
-
-  const buildBadgesForGroup = (groupId: number): string[] => {
-    const badges: string[] = [];
-    const features = visibleDefinitions
-      .filter((f) => f.group_id === groupId)
-      .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999));
-
-    const ageDefs = findStudentAgeRangeDefinitions(features);
-    if (ageDefs.min && ageDefs.max) {
-      const minEntry = entriesByFeatureId.get(ageDefs.min.id);
-      const maxEntry = entriesByFeatureId.get(ageDefs.max.id);
-      const minVal =
-        typeof minEntry?.number_answer === "number" && Number.isFinite(minEntry.number_answer)
-          ? minEntry.number_answer
-          : null;
-      const maxVal =
-        typeof maxEntry?.number_answer === "number" && Number.isFinite(maxEntry.number_answer)
-          ? maxEntry.number_answer
-          : null;
-      if (minVal != null && maxVal != null) {
-        badges.push(`${STUDENT_AGE_RANGE_LABEL}: ${formatStudentAgeDisplay(minVal, maxVal)}`);
-      }
-    }
-
-    for (const feature of features) {
-      if (isStudentAgeRangeNumberFeature(feature)) continue;
-      if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
-      const entry = entriesByFeatureId.get(feature.id);
-      if (!entry) continue;
-      const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
-
-      if (feature.input_type === "boolean") {
-        if (entry.boolean_answer === true) badges.push(label);
-        continue;
-      }
-
-      if (feature.input_type === "single_select") {
-        if (entry.selected_choice_id != null) {
-          const choiceLabel = choiceNameById.get(Number(entry.selected_choice_id));
-          if (choiceLabel) badges.push(choiceLabel);
-        } else {
-          orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceLabel) => {
-            badges.push(choiceLabel);
-          });
-        }
-        continue;
-      }
-
-      if (feature.input_type === "multi_select") {
-        orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceLabel) => {
-          badges.push(choiceLabel);
-        });
-        continue;
-      }
-
-      const value = extractValue(feature);
-      if (!value) continue;
-      if (Array.isArray(value)) {
-        value.forEach((v) => badges.push(v));
-      } else if (feature.input_type === "text" || feature.input_type === "number" || feature.input_type === "date") {
-        badges.push(`${label}: ${value}`);
-      }
-    }
-
-    return Array.from(new Set(badges));
-  };
-
-  const baslicaGroup = resolveInstructorBaslicaFeatureGroupForCategory(
-    groups,
-    instructorCategorySlug,
-  );
-
-  const academicLines: PublicInstructorFeatureLine[] = baslicaGroup
-    ? buildLinesForGroup(baslicaGroup.id)
-    : [];
-
-  // Başlıca yalnız structured listede; badge section'da tekrarlanmaz.
-  // Fiziki İmkanlar / Ödeme Seçenekleri gibi diğer görünür gruplar ayrı section.
-  const sections: PublicInstructorFeatureSection[] = groups
-    .filter((group) => {
-      if (baslicaGroup && group.id === baslicaGroup.id) return false;
-      if (isInstructorBaslicaFeatureGroupName(group.name)) return false;
-      return true;
-    })
-    .map((group) => ({
-      id: group.id,
-      name: group.name,
-      badges: buildBadgesForGroup(group.id),
-    }))
-    .filter((s) => s.badges.length > 0);
-
-  return { academicLines, sections, universityLabel: null };
 }

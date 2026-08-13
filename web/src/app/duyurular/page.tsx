@@ -11,6 +11,7 @@ import {
   fetchAnnouncementsPageItems,
   type AnnouncementsPageItem,
 } from "@/lib/homeAnnouncementsClient";
+import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 import {
   buildCategoryTabNames,
   fetchActiveInstitutionCategories,
@@ -246,6 +247,12 @@ export default function AnnouncementsPage() {
                     <span className="announcement-badge">Yeni</span>
                     <div className="announcement-featured-overlay" />
                     <div className="announcement-featured-body">
+                      {(() => {
+                        const tag = String(featured.announcementTag ?? "").trim();
+                        const tagClass = getAnnouncementTagBadgeClassName(tag);
+                        if (!tag || !tagClass) return null;
+                        return <span className={tagClass}>{tag}</span>;
+                      })()}
                       <h2 className="announcement-featured-title">{featured.title}</h2>
                       {featured.content ? (
                         <p className="announcement-featured-desc">
@@ -305,6 +312,12 @@ export default function AnnouncementsPage() {
                               {item.ownerName.toLocaleUpperCase("tr-TR")}
                             </div>
                           ) : null}
+                          {(() => {
+                            const tag = String(item.announcementTag ?? "").trim();
+                            const tagClass = getAnnouncementTagBadgeClassName(tag);
+                            if (!tag || !tagClass) return null;
+                            return <span className={tagClass}>{tag}</span>;
+                          })()}
                           <h3 className="announcement-small-title">{item.title}</h3>
                           {item.content ? (
                             <p className="announcement-small-desc">
@@ -356,6 +369,12 @@ export default function AnnouncementsPage() {
                             {item.ownerName.toLocaleUpperCase("tr-TR")}
                           </div>
                         ) : null}
+                        {(() => {
+                          const tag = String(item.announcementTag ?? "").trim();
+                          const tagClass = getAnnouncementTagBadgeClassName(tag);
+                          if (!tag || !tagClass) return null;
+                          return <span className={tagClass}>{tag}</span>;
+                        })()}
                         <h3 className="announcement-small-title">{item.title}</h3>
                         {item.content ? (
                           <p className="announcement-small-desc">

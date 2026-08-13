@@ -5,6 +5,7 @@ import {
 } from "@/lib/instructorMediaClient";
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import { publicInstructorDisplayName } from "@/lib/publicInstructorClient";
+import { normalizeAnnouncementTag } from "@/lib/announcementTags";
 
 export type HomeAnnouncementSourceType = "institution" | "instructor";
 
@@ -17,6 +18,7 @@ export type HomeAnnouncementItem = {
   imageUrl: string | null;
   createdAt: string | null;
   ownerName: string;
+  announcementTag: string | null;
 };
 
 export type AnnouncementsPageItem = {
@@ -30,6 +32,7 @@ export type AnnouncementsPageItem = {
   ownerCity: string;
   categoryName: string;
   linkUrl: string | null;
+  announcementTag: string | null;
 };
 
 export const HOME_ANNOUNCEMENTS_CAROUSEL_COUNT = 10;
@@ -54,6 +57,7 @@ type InstructorAnnouncementRow = {
   image_url: string | null;
   image_path: string | null;
   link_url: string | null;
+  announcement_tag: string | null;
   created_at: string | null;
 };
 
@@ -63,6 +67,7 @@ type InstitutionAnnouncementRow = {
   content: string | null;
   announcement_image_url: string | null;
   link_url: string | null;
+  announcement_tag: string | null;
   created_at: string | null;
   institution:
     | {
@@ -175,7 +180,7 @@ async function fetchPublicInstructorAnnouncementRows(
 ): Promise<{ rows: InstructorAnnouncementRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("instructor_announcements")
-    .select("id, instructor_id, title, content, image_url, image_path, link_url, created_at")
+    .select("id, instructor_id, title, content, image_url, image_path, link_url, announcement_tag, created_at")
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(rowLimit);
@@ -218,6 +223,7 @@ async function fetchPublicInstructorAnnouncementItems(
         imageUrl: resolveInstructorAnnouncementImageUrl(supabase, row.image_url, row.image_path),
         createdAt: row.created_at ? String(row.created_at) : null,
         ownerName: resolveInstructorOwnerName(instructor),
+        announcementTag: normalizeAnnouncementTag(row.announcement_tag),
       };
     })
     .filter((item): item is HomeAnnouncementItem => item !== null)
@@ -238,7 +244,7 @@ async function fetchPublicInstitutionAnnouncementRows(
   const { data, error } = await supabase
     .from("announcements")
     .select(
-      `id, title, content, announcement_image_url, link_url, created_at, institution:institutions(${institutionSelect})`,
+      `id, title, content, announcement_image_url, link_url, announcement_tag, created_at, institution:institutions(${institutionSelect})`,
     )
     .eq("is_active", true)
     .order("created_at", { ascending: false })
@@ -265,6 +271,7 @@ function mapInstitutionRowToHomeItem(row: InstitutionAnnouncementRow): HomeAnnou
     imageUrl: normalizeOptionalUrl(row.announcement_image_url),
     createdAt: row.created_at ? String(row.created_at) : null,
     ownerName: String(institution?.institution_name ?? "").trim(),
+    announcementTag: normalizeAnnouncementTag(row.announcement_tag),
   };
 }
 
@@ -375,6 +382,7 @@ export async function fetchAnnouncementsPageItems(
         ownerCity: resolveInstructorOwnerCity(instructor),
         categoryName: INSTRUCTOR_PUBLIC_CATEGORY_NAME,
         linkUrl: normalizeOptionalUrl(row.link_url),
+        announcementTag: normalizeAnnouncementTag(row.announcement_tag),
       };
     })
     .filter((item): item is AnnouncementsPageItem => item !== null);

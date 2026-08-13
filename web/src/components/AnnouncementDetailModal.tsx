@@ -12,6 +12,7 @@ export type AnnouncementDetailItem = {
   createdAt: string | null;
   institutionName: string;
   linkUrl: string | null;
+  announcementTag?: string | null;
 };
 
 interface AnnouncementDetailModalProps {
