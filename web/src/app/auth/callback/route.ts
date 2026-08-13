@@ -45,6 +45,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL('/login?error=auth_callback_error', requestUrl.origin));
+  return NextResponse.redirect(new URL('/giris?error=auth_callback_error', requestUrl.origin));
 }
 

@@ -85,7 +85,7 @@ export default function NasilCalisirPage() {
               />
             </div>
 
-            <Link href="/login" className="nasil-calisir-big-card-cta">
+            <Link href="/giris" className="nasil-calisir-big-card-cta">
               Hemen Keşfedin
             </Link>
           </article>
@@ -125,7 +125,7 @@ export default function NasilCalisirPage() {
               />
             </div>
 
-            <Link href="/signup" className="nasil-calisir-big-card-cta">
+            <Link href="/kayit-ol" className="nasil-calisir-big-card-cta">
               Ücretsiz Kayıt Olun
             </Link>
           </article>
@@ -165,7 +165,7 @@ export default function NasilCalisirPage() {
               />
             </div>
 
-            <Link href="/signup" className="nasil-calisir-big-card-cta">
+            <Link href="/kayit-ol" className="nasil-calisir-big-card-cta">
               Ücretsiz Kayıt Olun
             </Link>
           </article>

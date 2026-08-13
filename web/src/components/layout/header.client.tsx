@@ -105,7 +105,7 @@ export function HeaderWithSearchClient({
   const getCTAHref = () => {
     if (userType === "institution") return "/panel";
     if (userType === "instructor") return "/egitmen-paneli";
-    return "/profile";
+    return "/profil";
   };
 
   const shouldShowCTA = !!user;
@@ -271,12 +271,12 @@ export function HeaderWithSearchClient({
                     </>
                   ) : (
                     <>
-                      <Link href="/login" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
+                      <Link href="/giris" className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                         <LogIn className="header-hamburger-icon" aria-hidden />
                         <span>Giriş Yap</span>
                       </Link>
                       <Link
-                        href="/signup"
+                        href="/kayit-ol"
                         className="header-hamburger-link header-hamburger-link--auth-register"
                         onClick={() => setMenuOpen(false)}
                       >
@@ -319,12 +319,12 @@ export function HeaderWithSearchClient({
               </>
             ) : (
               <div className="header-actions-auth">
-                <Link href="/login">
+                <Link href="/giris">
                   <Button className="button-primary btn-gradient-primary" variant="default">
                     GİRİŞ YAP
                   </Button>
                 </Link>
-                <Link href="/signup">
+                <Link href="/kayit-ol">
                   <Button className="button-primary btn-gradient-signup" variant="default">
                     KAYIT OL
                   </Button>

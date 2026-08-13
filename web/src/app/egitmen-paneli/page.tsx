@@ -290,7 +290,7 @@ export default function InstructorPanelPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
       if (session?.user) setUser({ id: session.user.id, email: session.user.email });
-      else router.replace("/login");
+      else router.replace("/giris");
     });
     return () => {
       cancelled = true;

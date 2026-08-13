@@ -13,6 +13,7 @@ import {
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getAuthErrorMessageTr } from "@/lib/auth/authBrowserClient";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { SignupCategorySelect } from "@/components/signup/SignupCategorySelect";
 
@@ -456,7 +457,10 @@ export default function SignupClient() {
           isOpen: true,
           type: "error",
           title: "Kayıt başarısız",
-          message: error.message || "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+          message: getAuthErrorMessageTr(
+            error,
+            "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+          ),
         });
         setLoading(false);
         return;
@@ -812,7 +816,7 @@ export default function SignupClient() {
               <HeaderBrandLogo />
             </div>
             <div className="header-actions signup-header-actions">
-              <Link href="/login">
+              <Link href="/giris">
                 <Button className="button-primary btn-gradient-primary" variant="default">
                   GİRİŞ YAP
                 </Button>
@@ -1395,7 +1399,7 @@ export default function SignupClient() {
 
           <p className="signup-bottom-text">
             Zaten bir hesabınız var mı?{" "}
-            <Link href="/login" className="signup-link">
+            <Link href="/giris" className="signup-link">
               Giriş Yapın
             </Link>
           </p>

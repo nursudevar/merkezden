@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getAuthErrorMessageTr } from "@/lib/auth/authBrowserClient";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
 
 function getPasswordResetRedirectUrl() {
   const envBase = String(process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
   const base = envBase || window.location.origin;
-  return `${base.replace(/\/+$/, "")}/auth/update-password`;
+  return `${base.replace(/\/+$/, "")}/sifre-guncelle`;
 }
 
 export default function ForgotPasswordClient() {
@@ -30,7 +31,12 @@ export default function ForgotPasswordClient() {
       });
 
       if (resetError) {
-        setError(resetError.message || "Sıfırlama e-postası gönderilemedi. Lütfen tekrar deneyin.");
+        setError(
+          getAuthErrorMessageTr(
+            resetError,
+            "Sıfırlama e-postası gönderilemedi. Lütfen tekrar deneyin.",
+          ),
+        );
         return;
       }
 
@@ -85,7 +91,7 @@ export default function ForgotPasswordClient() {
         )}
 
         <p className="auth-bottom-text">
-          <Link href="/login" className="auth-link">
+          <Link href="/giris" className="auth-link">
             Giriş sayfasına dön
           </Link>
         </p>

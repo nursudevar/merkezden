@@ -11,7 +11,7 @@ export default async function InstitutionLayout({
   const { user, userType } = await getCurrentUserRole();
 
   if (!user) {
-    redirect('/login');
+    redirect('/giris');
   }
 
   if (userType !== 'institution') {

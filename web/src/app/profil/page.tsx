@@ -727,7 +727,7 @@ export default function ProfilePage() {
       if (session?.user) {
         setUser(session.user);
       } else {
-        router.replace('/login');
+        router.replace('/giris');
       }
     });
 

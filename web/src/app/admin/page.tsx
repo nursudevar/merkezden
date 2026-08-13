@@ -49,7 +49,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAuthReady) return;
     if (!authUserId) {
-      router.replace("/login?next=/admin");
+      router.replace("/giris?next=/admin");
       return;
     }
 

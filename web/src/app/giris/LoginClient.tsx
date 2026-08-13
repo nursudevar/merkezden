@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { getAuthErrorMessageTr } from '@/lib/auth/authBrowserClient';
 import MekoChromaVideo from '@/components/MekoChromaVideo';
 import '@/styles/main.scss';
 import '@/styles/pages/auth.scss';
@@ -30,7 +31,9 @@ function LoginPageContent() {
       });
 
       if (signInError) {
-        setError(signInError.message || 'Giriş yapılırken bir hata oluştu.');
+        setError(
+          getAuthErrorMessageTr(signInError, 'Giriş yapılırken bir hata oluştu.'),
+        );
         return;
       }
 
@@ -137,7 +140,7 @@ function LoginPageContent() {
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <Link href="/forgot-password" className="auth-link-small">
+                    <Link href="/sifremi-unuttum" className="auth-link-small">
                       Şifremi unuttum
                     </Link>
                   </div>
@@ -153,7 +156,7 @@ function LoginPageContent() {
 
                 <p className="auth-bottom-text">
                   Hesabınız yok mu?{' '}
-                  <Link href="/signup" className="auth-link">
+                  <Link href="/kayit-ol" className="auth-link">
                     Kayıt olun
                   </Link>
                 </p>

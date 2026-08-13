@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getAuthErrorMessageTr } from "@/lib/auth/authBrowserClient";
 import "@/styles/main.scss";
 import "@/styles/pages/auth.scss";
 
@@ -68,12 +69,14 @@ export default function UpdatePasswordClient() {
       const supabase = createSupabaseBrowserClient();
       const { error: updateError } = await supabase.auth.updateUser({ password: trimmedPassword });
       if (updateError) {
-        setError(updateError.message || "Şifre güncellenemedi. Lütfen tekrar deneyin.");
+        setError(
+          getAuthErrorMessageTr(updateError, "Şifre güncellenemedi. Lütfen tekrar deneyin."),
+        );
         return;
       }
       setSuccess(true);
       setTimeout(() => {
-        router.push("/login?reset=success");
+        router.push("/giris?reset=success");
       }, 1200);
     } catch (_err) {
       setError("Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.");
@@ -149,7 +152,7 @@ export default function UpdatePasswordClient() {
         )}
 
         <p className="auth-bottom-text">
-          <Link href="/forgot-password" className="auth-link">
+          <Link href="/sifremi-unuttum" className="auth-link">
             Şifre sıfırlama ekranına dön
           </Link>
         </p>

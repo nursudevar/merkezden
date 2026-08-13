@@ -102,7 +102,7 @@ export const INSTRUCTOR_SIGNUP_FEATURES: SignupFeatureItem[] = [
     icon: Wallet,
   },
   {
-    title: "Seo Avantajları",
+    title: "SEO Avantajları",
     description: "Merkezden.com sayesinde Google’da görünürlüğünüzü arttırın.",
     icon: TrendingUp,
   },

@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login?next=/dashboard');
+    redirect('/giris?next=/dashboard');
   }
 
   return (

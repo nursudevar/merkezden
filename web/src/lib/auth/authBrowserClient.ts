@@ -260,3 +260,82 @@ export async function resolveIsAdminFromUserRolesClient(authUid: string): Promis
     return false;
   }
 }
+
+/**
+ * Supabase Auth İngilizce hata mesajlarını kullanıcıya gösterilecek Türkçeye çevirir.
+ * Bilinmeyen mesajlarda fallback kullanılır (ham İngilizce gösterilmez).
+ */
+export function getAuthErrorMessageTr(
+  error: { message?: string | null; code?: string | null } | string | null | undefined,
+  fallback: string,
+): string {
+  const raw =
+    typeof error === "string"
+      ? error
+      : String(error?.message ?? "").trim();
+  if (!raw) return fallback;
+
+  const normalized = raw.toLowerCase();
+  const code = typeof error === "object" && error ? String(error.code ?? "").toLowerCase() : "";
+
+  if (
+    normalized.includes("invalid login credentials") ||
+    normalized.includes("invalid credentials") ||
+    code === "invalid_credentials"
+  ) {
+    return "E-posta veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.";
+  }
+  if (normalized.includes("email not confirmed") || code === "email_not_confirmed") {
+    return "E-posta adresiniz henüz doğrulanmamış. Lütfen e-postanızdaki bağlantıyı kontrol edin.";
+  }
+  if (
+    normalized.includes("user already registered") ||
+    normalized.includes("already been registered") ||
+    normalized.includes("already registered") ||
+    code === "user_already_exists"
+  ) {
+    return "Bu e-posta adresi ile zaten bir hesap bulunuyor.";
+  }
+  if (normalized.includes("password should be at least") || normalized.includes("password is known to be weak")) {
+    return "Şifreniz güvenlik gereksinimlerini karşılamıyor. Lütfen daha güçlü bir şifre seçin.";
+  }
+  if (
+    normalized.includes("unable to validate email") ||
+    normalized.includes("invalid email") ||
+    (normalized.includes("email address") && normalized.includes("invalid"))
+  ) {
+    return "Geçerli bir e-posta adresi girin.";
+  }
+  if (normalized.includes("signup requires a valid password")) {
+    return "Lütfen geçerli bir şifre girin.";
+  }
+  if (normalized.includes("email rate limit") || normalized.includes("over_email_send_rate_limit")) {
+    return "Çok fazla deneme yapıldı. Lütfen kısa bir süre sonra tekrar deneyin.";
+  }
+  if (
+    normalized.includes("for security purposes") ||
+    normalized.includes("only request this after") ||
+    normalized.includes("security_cooldown")
+  ) {
+    return "Güvenlik nedeniyle lütfen kısa bir süre bekleyip tekrar deneyin.";
+  }
+  if (normalized.includes("new password should be different")) {
+    return "Yeni şifre mevcut şifre ile aynı olamaz.";
+  }
+  if (normalized.includes("auth session missing") || normalized.includes("session missing")) {
+    return "Oturum bilgisi alınamadı. Lütfen tekrar giriş yapın.";
+  }
+  if (normalized.includes("user not found")) {
+    return "Bu e-posta adresi ile kayıtlı bir hesap bulunamadı.";
+  }
+  if (normalized.includes("same password")) {
+    return "Yeni şifre mevcut şifre ile aynı olamaz.";
+  }
+
+  // Ham İngilizce teknik mesajı kullanıcıya gösterme.
+  if (/[a-z]/.test(normalized) && !/[çğıöşü]/.test(normalized)) {
+    return fallback;
+  }
+
+  return raw;
+}
