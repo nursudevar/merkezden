@@ -19,6 +19,14 @@ interface CategoryResultsListProps {
   errorMessage?: string | null;
   emptyResultsMessage?: string;
   title?: string;
+  favoriteIds?: Set<number>;
+  favoriteInstructorIds?: Set<number>;
+  favoritesEnabled?: boolean;
+  favoriteActionLoadingIds?: Set<number>;
+  favoriteInstructorActionLoadingIds?: Set<number>;
+  isAuthenticated?: boolean;
+  onToggleInstitutionFavorite?: (institutionId: number, e: React.MouseEvent) => void;
+  onToggleInstructorFavorite?: (instructorId: number, e: React.MouseEvent) => void;
 }
 
 type ViewMode = "single" | "two";
@@ -34,6 +42,14 @@ export default function CategoryResultsList({
   errorMessage = null,
   emptyResultsMessage = "Bu kategoriye ait kurum veya eğitmen bulunmuyor.",
   title = "Listelenen Kurumlar",
+  favoriteIds,
+  favoriteInstructorIds,
+  favoritesEnabled = false,
+  favoriteActionLoadingIds,
+  favoriteInstructorActionLoadingIds,
+  isAuthenticated = false,
+  onToggleInstitutionFavorite,
+  onToggleInstructorFavorite,
 }: CategoryResultsListProps) {
   void categoryName;
   void subtitle;
@@ -103,7 +119,43 @@ export default function CategoryResultsList({
         ) : totalCount === 0 ? (
           <p className="category-results-empty">{emptyResultsMessage}</p>
         ) : (
-          visibleResults.map((result) => <CategoryResultsCard key={result.id} {...result} />)
+          visibleResults.map((result) => {
+            const isInstructor = result.resultType === "instructor";
+            const targetId = isInstructor ? result.instructorId : result.institutionId;
+            const canFavorite =
+              typeof targetId === "number" && Number.isInteger(targetId) && targetId > 0;
+            const isFavorite = canFavorite
+              ? Boolean(
+                  isInstructor ? favoriteInstructorIds?.has(targetId) : favoriteIds?.has(targetId),
+                )
+              : false;
+            const isFavoriteActionLoading = canFavorite
+              ? Boolean(
+                  isInstructor
+                    ? favoriteInstructorActionLoadingIds?.has(targetId)
+                    : favoriteActionLoadingIds?.has(targetId),
+                )
+              : false;
+
+            return (
+              <CategoryResultsCard
+                key={result.id}
+                {...result}
+                isFavorite={isFavorite}
+                isFavoriteActionLoading={isFavoriteActionLoading}
+                favoritesEnabled={favoritesEnabled}
+                isAuthenticated={isAuthenticated}
+                onToggleFavorite={
+                  canFavorite
+                    ? (e) => {
+                        if (isInstructor) onToggleInstructorFavorite?.(targetId, e);
+                        else onToggleInstitutionFavorite?.(targetId, e);
+                      }
+                    : undefined
+                }
+              />
+            );
+          })
         )}
       </div>
 

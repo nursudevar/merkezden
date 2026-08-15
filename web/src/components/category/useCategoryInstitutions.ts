@@ -392,6 +392,7 @@ function isFiyatAraligiDefinition(row: { name?: string | null; slug?: string | n
   return (
     t.includes("fiyat araligi") ||
     t.includes("aylik ortalama fiyat") ||
+    t.includes("aylik fiyat araligi") ||
     t.includes("ortalama fiyat") ||
     t.includes("price range") ||
     t.includes("monthly price") ||

@@ -619,7 +619,11 @@ export const InstitutionExtraBranchesSection = forwardRef<
                               </p>
                             ) : (
                               <div className="panel-institutions-features-grid panel-institutions-features-grid--selection panel-institutions-features-grid--extra-branches">
-                                {slot.definitions.map((definition) => (
+                                {[...slot.definitions]
+                                  .sort((a, b) =>
+                                    a.name.localeCompare(b.name, "tr", { sensitivity: "base" }),
+                                  )
+                                  .map((definition) => (
                                   <div
                                     key={definition.id}
                                     className="panel-institutions-selection-item"

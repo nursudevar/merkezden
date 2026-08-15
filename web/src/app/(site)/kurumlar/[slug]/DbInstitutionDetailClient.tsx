@@ -6,7 +6,6 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui";
 import {
   MapPin,
-  GraduationCap,
   CheckCircle2,
   Image as ImageIcon,
   BookOpen,
@@ -26,7 +25,7 @@ import {
   Layers,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { isMebInstitution, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionHelpers";
 import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 import {
@@ -78,7 +77,6 @@ type DbInstitutionRow = {
   about: string | null;
   logo: string | null;
   is_approved: boolean | null;
-  source: string | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
 };
@@ -93,8 +91,6 @@ type InstitutionMediaImageRow = {
   sort_order?: number | null;
   created_at?: string | null;
 };
-
-type DetailBranch = "meb" | "auto" | "default";
 
 function serializeSupabaseError(err: unknown) {
   if (!err || typeof err !== "object") return null;
@@ -137,7 +133,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
   const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
-  const [detailBranch, setDetailBranch] = useState<DetailBranch>("default");
   const [activeTab, setActiveTab] = useState<
     "overview" | "gallery" | "features" | "extra-branches" | "announcements"
   >("overview");
@@ -164,7 +159,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, source, working_hours_start, working_hours_end, category:institution_categories(name, slug), institution_type:institution_types(name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, category:institution_categories(name, slug), institution_type:institution_types(name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
         .eq("is_approved", true)
@@ -187,12 +182,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         setLoading(false);
         return;
       }
-      const nextBranch: DetailBranch = isMebInstitution(r.source)
-        ? "meb"
-        : r.source === "auto"
-          ? "auto"
-          : "default";
-      setDetailBranch(nextBranch);
 
       setRow(r);
       setLoading(false);
@@ -231,7 +220,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== "announcements") return;
     if (!row?.id) return;
     if (announcementsLoaded) return;
 
@@ -307,7 +295,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, row?.id, announcementsLoaded]);
+  }, [row?.id, announcementsLoaded]);
 
   const formatAnnouncementDateTr = useCallback((iso: string | null): string => {
     if (!iso) return "";
@@ -337,7 +325,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   }, [row?.logo]);
 
   const name = (row?.institution_name ?? "Kurum").trim();
-  const location = [row?.city, row?.district].filter(Boolean).join(", ") || "—";
+  const hasLocation = Boolean(row?.city || row?.district);
+  const location = [row?.city, row?.district].filter(Boolean).join(", ");
   const institutionTypeRow = Array.isArray(row?.institution_type)
     ? row?.institution_type[0] ?? null
     : row?.institution_type ?? null;
@@ -349,9 +338,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const schoolLevelLabel = (institutionTypeRow?.name ?? "").trim();
   const highSchoolLabel = getHighSchoolTypeLabel(row?.high_school_type);
   const institutionTypeBadgeText =
-    [schoolLevelLabel, highSchoolLabel].filter(Boolean).join(" · ") ||
-    categoryName ||
-    "Okul";
+    [schoolLevelLabel, highSchoolLabel].filter(Boolean).join(" · ") || categoryName;
   const subheading = (row?.subheading ?? "").trim();
   const about = (row?.about ?? "").trim();
   const address = (row?.address ?? "").trim();
@@ -364,8 +351,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     { label: "Linkedin", value: String(row?.linkedin_url ?? "").trim() },
   ].filter((item) => item.value);
   const emptyText = "Henüz içerik girilmedi.";
-  const workingHoursText =
-    formatWorkingHoursRange(row?.working_hours_start, row?.working_hours_end) ?? emptyText;
+  const workingHoursText = formatWorkingHoursRange(row?.working_hours_start, row?.working_hours_end);
   const hasLogo = Boolean((row?.logo ?? "").trim()) && Boolean(logoUrl) && !logoLoadFailed;
   const photoMediaItems = useMemo(
     () => mediaItems.filter((item) => item.mediaType === "photo"),
@@ -387,6 +373,13 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const activeViewerItem = isViewerMode ? filteredModalItems[activeViewerIndex] : null;
   const [academicLines, setAcademicLines] = useState<AcademicFeatureLine[]>([]);
   const hasPublicExtraBranches = publicExtraBranches.length > 0;
+  const hasGallery = mediaItems.length > 0;
+  const hasFeatures = publicFeatureSections.length > 0 || academicLines.length > 0;
+  const hasSidebar = Boolean(
+    hasLogo || address || phone || website || socialLinks.length > 0 || workingHoursText,
+  );
+  const hasAnnouncementsTab =
+    Boolean(announcementsError) || institutionAnnouncements.length > 0;
 
   useEffect(() => {
     if (!row?.id) {
@@ -643,107 +636,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     );
   }
 
-  if (detailBranch === "meb") {
-    const categoryBadgeText =
-      (institutionTypeRow?.name ?? "").trim() ||
-      categoryName ||
-      "";
-
-    return (
-      <div className="institution-detail-page institution-detail-page--meb">
-        <div className="institution-detail-container">
-          <nav className="institution-breadcrumb" aria-label="Breadcrumb">
-            <div className="institution-breadcrumb-container">
-              <Link href="/" className="institution-breadcrumb-link">
-                Ana Sayfa
-              </Link>
-              <span className="institution-breadcrumb-separator"> &gt; </span>
-              <span className="institution-breadcrumb-link">Kurumlar</span>
-              <span className="institution-breadcrumb-separator"> &gt; </span>
-              <span className="institution-breadcrumb-current">{name}</span>
-            </div>
-          </nav>
-
-          <Card className="institution-hero">
-            <CardContent className="institution-hero-content">
-              <div className="institution-hero-main">
-                <div className="institution-logo-section">
-                  <div className="institution-logo-wrapper">
-                    {hasLogo ? (
-                      <Image
-                        src={logoUrl}
-                        alt={name}
-                        width={160}
-                        height={160}
-                        className="institution-logo"
-                        unoptimized
-                        onError={() => setLogoLoadFailed(true)}
-                      />
-                    ) : (
-                      <div className="institution-logo institution-logo--meb-fallback">
-                        <GraduationCap size={56} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="institution-info">
-                  <div className="institution-title-row">
-                    <h1 className="institution-name">{name}</h1>
-                  </div>
-
-                  {categoryBadgeText ? (
-                    <div className="institution-meb-badges">
-                      <div className="institution-meb-type-badge institution-meb-type-badge--category">
-                        {categoryBadgeText}
-                      </div>
-                      <div className="institution-meb-approval-badge">
-                        <CheckCircle2 size={16} aria-hidden />
-                        Meb Onaylı
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {row.city || row.district ? (
-                    <div className="institution-meta">
-                      <div className="institution-meta-item">
-                        <MapPin size={18} />
-                        <span>{[row.city, row.district].filter(Boolean).join(" / ")}</span>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {row.official_phone ? (
-                    <div className="institution-meta">
-                      <div className="institution-meta-item">
-                        <Phone size={18} />
-                        <a
-                          href={`tel:${row.official_phone}`}
-                          className="institution-contact-value institution-contact-link"
-                        >
-                          {row.official_phone}
-                        </a>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {row.address ? (
-                    <div className="institution-meta">
-                      <div className="institution-meta-item">
-                        <MapPin size={18} />
-                        <span>{row.address}</span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="institution-detail-page">
       <div className="institution-detail-container">
@@ -764,9 +656,9 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         <Card className="institution-hero">
           <CardContent className="institution-hero-content">
             <div className="institution-hero-main">
-              <div className="institution-logo-section">
-                <div className="institution-logo-wrapper">
-                  {hasLogo ? (
+              {hasLogo ? (
+                <div className="institution-logo-section">
+                  <div className="institution-logo-wrapper">
                     <Image
                       src={logoUrl}
                       alt={name}
@@ -776,28 +668,28 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                       unoptimized
                       onError={() => setLogoLoadFailed(true)}
                     />
-                  ) : (
-                    <div className="institution-logo institution-logo-empty">
-                      <p>{emptyText}</p>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              ) : null}
               <div className="institution-info">
                 <div className="institution-title-row">
                   <h1 className="institution-name">{name}</h1>
                 </div>
                 {subheading ? <p className="institution-description">{subheading}</p> : null}
                 <div className="institution-meta">
-                  <div className="institution-meta-item">
-                    <MapPin size={18} />
-                    <span>{location}</span>
-                  </div>
-                  <div className="institution-meta-item">
-                    <span className="institution-meta-badge institution-meta-badge--category">
-                      {institutionTypeBadgeText}
-                    </span>
-                  </div>
+                  {hasLocation ? (
+                    <div className="institution-meta-item">
+                      <MapPin size={18} />
+                      <span>{location}</span>
+                    </div>
+                  ) : null}
+                  {institutionTypeBadgeText ? (
+                    <div className="institution-meta-item">
+                      <span className="institution-meta-badge institution-meta-badge--category">
+                        {institutionTypeBadgeText}
+                      </span>
+                    </div>
+                  ) : null}
                   {row.is_approved === true ? (
                     <div className="institution-meta-item institution-meta-verified institution-meta-badge institution-meta-badge--verified">
                       <CheckCircle2 size={18} />
@@ -832,22 +724,26 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
               <BookOpen size={20} />
               <span>Genel Bakış</span>
             </a>
-            <a
-              href="#gallery"
-              className={`institution-tab-item${activeTab === "gallery" ? " institution-tab-active" : ""}`}
-              onClick={(event) => handleAnchorTabClick(event, "gallery", "gallery")}
-            >
-              <ImageIcon size={20} />
-              <span>Galeri</span>
-            </a>
-            <a
-              href="#features"
-              className={`institution-tab-item${activeTab === "features" ? " institution-tab-active" : ""}`}
-              onClick={(event) => handleAnchorTabClick(event, "features", "features")}
-            >
-              <Sparkles size={20} />
-              <span>Kurum Özellikleri</span>
-            </a>
+            {hasGallery ? (
+              <a
+                href="#gallery"
+                className={`institution-tab-item${activeTab === "gallery" ? " institution-tab-active" : ""}`}
+                onClick={(event) => handleAnchorTabClick(event, "gallery", "gallery")}
+              >
+                <ImageIcon size={20} />
+                <span>Galeri</span>
+              </a>
+            ) : null}
+            {hasFeatures ? (
+              <a
+                href="#features"
+                className={`institution-tab-item${activeTab === "features" ? " institution-tab-active" : ""}`}
+                onClick={(event) => handleAnchorTabClick(event, "features", "features")}
+              >
+                <Sparkles size={20} />
+                <span>Kurum Özellikleri</span>
+              </a>
+            ) : null}
             {hasPublicExtraBranches ? (
               <a
                 href="#extra-branches"
@@ -860,35 +756,42 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                 <span>Ek Branşlar</span>
               </a>
             ) : null}
-            <button
-              type="button"
-              className={`institution-tab-item institution-tab-item--button${activeTab === "announcements" ? " institution-tab-active" : ""}`}
-              onClick={handleAnnouncementsTabClick}
-              aria-controls="announcements-tab"
-            >
-              <Megaphone size={20} />
-              <span>Duyurular</span>
-            </button>
+            {hasAnnouncementsTab ? (
+              <button
+                type="button"
+                className={`institution-tab-item institution-tab-item--button${activeTab === "announcements" ? " institution-tab-active" : ""}`}
+                onClick={handleAnnouncementsTabClick}
+                aria-controls="announcements-tab"
+              >
+                <Megaphone size={20} />
+                <span>Duyurular</span>
+              </button>
+            ) : null}
           </div>
         </div>
 
         {activeTab !== "announcements" ? (
         <>
+        {about || hasGallery || hasSidebar ? (
         <div className="institution-content-grid">
+          {about || hasGallery ? (
           <div className="institution-main-content">
+            {about ? (
             <section id="overview" className="institution-section">
               <h2 className="institution-section-title">Hakkımızda</h2>
               <Card className="institution-section-card">
                 <CardContent>
                   <div className="institution-about-text">
-                    {(about || emptyText).split("\n\n").map((paragraph, idx) => (
+                    {about.split("\n\n").map((paragraph, idx) => (
                       <p key={idx}>{paragraph}</p>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             </section>
+            ) : null}
 
+            {hasGallery ? (
             <section id="gallery" className="institution-section">
               <div className="institution-section-header">
                 <h2 className="institution-section-title">Kurum Galerisi</h2>
@@ -900,6 +803,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   tümünü gör
                 </button>
               </div>
+              {galleryImages.length > 0 ? (
               <div className="institution-gallery-grid">
                 <div
                   className="institution-gallery-item institution-gallery-main"
@@ -917,132 +821,111 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                       sizes="(max-width: 768px) 100vw, 66vw"
                       unoptimized
                     />
-                  ) : (
-                    <div className="institution-gallery-fallback">
-                      <div className="institution-gallery-fallback-icon">
-                        <GraduationCap size={34} />
-                      </div>
-                      <p className="institution-gallery-fallback-text">{emptyText}</p>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
+                {galleryImages[1] ? (
                 <div
                   className="institution-gallery-item"
                   onClick={() => {
-                    if (!galleryImages[1]) return;
                     setIsGalleryModalOpen(true);
                   }}
                 >
-                  {galleryImages[1] ? (
-                    <Image
-                      src={galleryImages[1]}
-                      alt={`${name} galeri görseli`}
-                      fill
-                      className="institution-gallery-image"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="institution-gallery-fallback">
-                      <div className="institution-gallery-fallback-icon">
-                        <GraduationCap size={30} />
-                      </div>
-                      <p className="institution-gallery-fallback-text">{emptyText}</p>
-                    </div>
-                  )}
+                  <Image
+                    src={galleryImages[1]}
+                    alt={`${name} galeri görseli`}
+                    fill
+                    className="institution-gallery-image"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    unoptimized
+                  />
                 </div>
+                ) : null}
+                {galleryImages[2] ? (
                 <div
                   className="institution-gallery-item"
                   onClick={() => {
-                    if (!galleryImages[2]) return;
                     setIsGalleryModalOpen(true);
                   }}
                 >
-                  {galleryImages[2] ? (
-                    <Image
-                      src={galleryImages[2]}
-                      alt={`${name} galeri görseli`}
-                      fill
-                      className="institution-gallery-image"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="institution-gallery-fallback">
-                      <div className="institution-gallery-fallback-icon">
-                        <GraduationCap size={30} />
-                      </div>
-                      <p className="institution-gallery-fallback-text">{emptyText}</p>
-                    </div>
-                  )}
+                  <Image
+                    src={galleryImages[2]}
+                    alt={`${name} galeri görseli`}
+                    fill
+                    className="institution-gallery-image"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    unoptimized
+                  />
                 </div>
+                ) : null}
               </div>
+              ) : null}
             </section>
+            ) : null}
 
           </div>
+          ) : null}
 
+          {hasSidebar ? (
           <aside className="institution-sidebar">
             <div className="institution-sidebar-header">
               <Phone size={20} />
               <span>İletişim Bilgileri</span>
             </div>
             <div className="institution-sidebar-body">
+              {hasLogo ? (
               <div className="institution-map-preview">
-                {hasLogo ? (
-                  <Image
-                    src={logoUrl}
-                    alt={name}
-                    fill
-                    className="institution-map-image"
-                    sizes="(max-width: 1024px) 100vw, 33vw"
-                    unoptimized
-                    onError={() => setLogoLoadFailed(true)}
-                  />
-                ) : (
-                  <div className="institution-map-preview-empty">
-                    <p>{emptyText}</p>
-                  </div>
-                )}
+                <Image
+                  src={logoUrl}
+                  alt={name}
+                  fill
+                  className="institution-map-image"
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  unoptimized
+                  onError={() => setLogoLoadFailed(true)}
+                />
               </div>
+              ) : null}
               <div className="institution-contact-list">
+                {address ? (
                 <div className="institution-contact-item">
                   <div className="institution-contact-icon">
                     <MapPin size={18} />
                   </div>
                   <div>
                     <div className="institution-contact-label">ADRES</div>
-                    <div className="institution-contact-value">{address || emptyText}</div>
+                    <div className="institution-contact-value">{address}</div>
                   </div>
                 </div>
+                ) : null}
+                {phone ? (
                 <div className="institution-contact-item">
                   <div className="institution-contact-icon">
                     <Phone size={18} />
                   </div>
                   <div>
                     <div className="institution-contact-label">TELEFON</div>
-                    <div className="institution-contact-value">{phone || emptyText}</div>
+                    <div className="institution-contact-value">{phone}</div>
                   </div>
                 </div>
+                ) : null}
+                {website ? (
                 <div className="institution-contact-item">
                   <div className="institution-contact-icon">
                     <Globe size={18} />
                   </div>
                   <div>
                     <div className="institution-contact-label">WEB SİTESİ</div>
-                    {website ? (
-                      <a
-                        href={website.startsWith("http") ? website : `https://${website}`}
-                        className="institution-contact-value institution-contact-link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {website}
-                      </a>
-                    ) : (
-                      <div className="institution-contact-value">{emptyText}</div>
-                    )}
+                    <a
+                      href={website.startsWith("http") ? website : `https://${website}`}
+                      className="institution-contact-value institution-contact-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {website}
+                    </a>
                   </div>
                 </div>
+                ) : null}
                 {socialLinks.length > 0 ? (
                   <div className="institution-contact-item">
                     <div className="institution-contact-icon">
@@ -1068,6 +951,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     </div>
                   </div>
                 ) : null}
+                {workingHoursText ? (
                 <div className="institution-contact-item">
                   <div className="institution-contact-icon">
                     <Clock size={18} />
@@ -1077,19 +961,22 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     <div className="institution-contact-value">{workingHoursText}</div>
                   </div>
                 </div>
+                ) : null}
               </div>
             </div>
           </aside>
+          ) : null}
         </div>
+        ) : null}
 
+        {hasFeatures ? (
         <section id="features" className="institution-section">
           <Card className="institution-section-card institution-features-card">
             <CardContent>
               <div className="institution-features-head">
                 <h2 className="institution-section-title">Kurum Özellikleri</h2>
               </div>
-              {publicFeatureSections.length > 0 || academicLines.length > 0 ? (
-                <div className="institution-features-groups">
+              <div className="institution-features-groups">
                   {academicLines.length > 0 ? (
                     <div className="institution-features-group">
                       <h3 className="institution-features-group-title">Başlıca Özellikler</h3>
@@ -1122,13 +1009,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="institution-features-empty">{emptyText}</div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </section>
+        ) : null}
 
         {hasPublicExtraBranches ? (
           <section id="extra-branches" className="institution-section">
@@ -1181,11 +1066,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   <div className="institution-features-empty">
                     {announcementsError}
                   </div>
-                ) : institutionAnnouncements.length === 0 ? (
-                  <div className="institution-features-empty">
-                    Bu kuruma ait henüz duyuru bulunmuyor.
-                  </div>
-                ) : (
+                ) : institutionAnnouncements.length === 0 ? null : (
                   <div className="institution-announcements-list">
                     {institutionAnnouncements.map((item) => {
                       const trimmedLink = (item.linkUrl ?? "").trim();

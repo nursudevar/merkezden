@@ -1212,57 +1212,6 @@
   }
 }
 
-.institution-logo--meb-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(109, 93, 252, 0.12);
-  color: $purple-main;
-  border: 1px solid rgba(109, 93, 252, 0.18);
-}
-
-.institution-meb-type-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  padding: 4.8px 12px;
-  border-radius: 999px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $purple-main;
-  background: rgba(109, 93, 252, 0.1);
-  border: 1px solid rgba(109, 93, 252, 0.2);
-}
-
-.institution-meb-type-badge--category {
-  background: rgba(100, 116, 139, 0.06);
-  border-color: rgba(100, 116, 139, 0.28);
-  color: #475569;
-}
-
-.institution-meb-badges {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.institution-meb-approval-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  padding: 4.8px 12px;
-  border-radius: 999px;
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $green-main;
-  background: $green-bg;
-  border: 1px solid rgba(34, 197, 94, 0.22);
-}
-
-
-
 .institution-loading-skeleton {
   display: flex;
   flex-direction: column;

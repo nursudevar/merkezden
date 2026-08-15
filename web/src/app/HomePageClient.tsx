@@ -1223,7 +1223,13 @@ export default function HomePageClient() {
 
           <HomeDrivingSchoolsSection />
 
-          <HomeIndividualInstructorsSection />
+          <HomeIndividualInstructorsSection
+            onToggleFavorite={handleInstructorFavoriteToggle}
+            favoriteInstructorIds={favoriteInstructorIds}
+            favoritesEnabled={favoritesEnabled && !favoritesLoading}
+            favoriteInstructorActionLoadingIds={favoriteInstructorActionLoadingIds}
+            isAuthenticated={Boolean(user)}
+          />
 
           <HomeFeaturedInstitutionsList
             onToggleFavorite={handleFavoriteToggle}

@@ -375,6 +375,91 @@ function SubscriptionPricingTable({ plans }: { plans: SubscriptionPlan[] }) {
   );
 }
 
+/** PostgREST varsayılan max_rows (1000); tek sorguda kesilmesin diye sayfalama. */
+const INSTITUTION_FEATURE_DEFINITIONS_PAGE_SIZE = 1000;
+const INSTITUTION_FEATURE_DEFINITIONS_MAX_PAGES = 50;
+
+async function fetchAllActiveInstitutionFeatureDefinitionsClient(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+) {
+  const pageSize = INSTITUTION_FEATURE_DEFINITIONS_PAGE_SIZE;
+  const rows: Array<{
+    id: number;
+    group_id: number;
+    name: string;
+    slug: string | null;
+    input_type: string;
+    help_text: string | null;
+    display_order: number | null;
+    is_active: boolean;
+  }> = [];
+
+  for (let page = 0; page < INSTITUTION_FEATURE_DEFINITIONS_MAX_PAGES; page += 1) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from("institution_feature_definitions")
+      .select("id, group_id, name, slug, input_type, help_text, display_order, is_active")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+    if (error) throw error;
+
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  rows.sort((a, b) => {
+    const orderA = a.display_order ?? 0;
+    const orderB = b.display_order ?? 0;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.id - b.id;
+  });
+
+  return rows;
+}
+
+async function fetchAllActiveInstitutionFeatureChoicesClient(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+) {
+  const pageSize = INSTITUTION_FEATURE_DEFINITIONS_PAGE_SIZE;
+  const rows: Array<{
+    id: number;
+    feature_definition_id: number;
+    name: string | null;
+    display_order: number | null;
+    is_active: boolean;
+  }> = [];
+
+  for (let page = 0; page < INSTITUTION_FEATURE_DEFINITIONS_MAX_PAGES; page += 1) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from("institution_feature_choices")
+      .select("id, feature_definition_id, name, display_order, is_active")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to);
+    if (error) throw error;
+
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  rows.sort((a, b) => {
+    const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
+    const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.id - b.id;
+  });
+
+  return rows;
+}
+
 function isValidStrictHttpUrl(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return true;
@@ -1283,21 +1368,10 @@ interface InstitutionDetailPreparedData {
         if (groupsError) throw groupsError;
         if (cancelled) return;
 
-        const { data: definitionsData, error: definitionsError } = await supabase
-          .from("institution_feature_definitions")
-          .select("id, group_id, name, slug, input_type, help_text, display_order, is_active")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true });
-        if (definitionsError) throw definitionsError;
+        const definitionsData = await fetchAllActiveInstitutionFeatureDefinitionsClient(supabase);
         if (cancelled) return;
 
-        const { data: choicesData, error: choicesError } = await supabase
-          .from("institution_feature_choices")
-          .select("id, feature_definition_id, name, display_order, is_active")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true, nullsFirst: false })
-          .order("id", { ascending: true });
-        if (choicesError) throw choicesError;
+        const choicesData = await fetchAllActiveInstitutionFeatureChoicesClient(supabase);
         if (cancelled) return;
 
         const { data: entriesData, error: entriesError } = await supabase
@@ -1322,12 +1396,12 @@ interface InstitutionDetailPreparedData {
         }
 
         setInstitutionFeatureGroups((groupsData as InstitutionFeatureGroupRow[] | null) ?? []);
-        setInstitutionFeatureDefinitions((definitionsData as InstitutionFeatureDefinitionRow[] | null) ?? []);
-        setInstitutionFeatureChoices((choicesData as InstitutionFeatureChoiceRow[] | null) ?? []);
+        setInstitutionFeatureDefinitions(definitionsData as InstitutionFeatureDefinitionRow[]);
+        setInstitutionFeatureChoices(choicesData as InstitutionFeatureChoiceRow[]);
         setInstitutionFeatureEntries(entries);
         setInstitutionFeatureEntryChoices(entryChoices);
 
-        const definitions = (definitionsData as InstitutionFeatureDefinitionRow[] | null) ?? [];
+        const definitions = definitionsData as InstitutionFeatureDefinitionRow[];
         const entriesByFeatureId = new Map<number, InstitutionFeatureEntryRow>();
         entries.forEach((entry) => {
           entriesByFeatureId.set(entry.feature_definition_id, entry);
@@ -2266,7 +2340,7 @@ interface InstitutionDetailPreparedData {
         }
 
         if (isAverageClassSizeInstitutionFeature(feature.name) && parsedNumber < 0) {
-          flashInstitutionFeaturesSaveMessage("Ortalama sınıf mevcudu negatif bir değer olamaz.");
+          flashInstitutionFeaturesSaveMessage("Sınıf mevcudu negatif bir değer olamaz.");
           return;
         }
 
@@ -2454,14 +2528,17 @@ interface InstitutionDetailPreparedData {
     if (key === "engelliye uygun".toLocaleLowerCase("tr-TR")) {
       return "Engellilere Uygun";
     }
-    if (key === "fiyat araligi") {
-      return "Aylık Ortalama Fiyat Aralığı";
+    if (key === "fiyat araligi" || key === "aylik ortalama fiyat araligi" || key === "aylik fiyat araligi") {
+      return "Aylık Fiyat Aralığı";
     }
     if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") {
       return "Kurum Türü";
     }
-    if (key === "okul saatleri" || key === "kurum saatleri") {
-      return "Kurum Saatleri";
+    if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+      return "Eğitim Saatleri";
+    }
+    if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") {
+      return "Sınıf Mevcudu";
     }
     return trimmed;
   };

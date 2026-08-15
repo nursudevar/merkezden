@@ -16,6 +16,10 @@ import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "./instructorCategoryFilterTypes";
 import { useCategoryInstitutionMapMarkers } from "@/hooks/useCategoryInstitutionMapMarkers";
+import { useListingFavorites } from "@/hooks/useListingFavorites";
+import LoginModal from "@/components/LoginModal";
+import { AppNoticeBar } from "@/components/AppNoticeBar";
+import { NOT_INDIVIDUAL_FAVORITES_MESSAGE } from "@/lib/favorites/favoritesClient";
 
 /**
  * Drawer (mobil/tablet filtre modalı) açıkken yeni gelen payload'da gerçek bir
@@ -93,6 +97,20 @@ export default function CategoryPageLayout({
 }: CategoryPageLayoutProps) {
   const { markers: categoryMapMarkers, loading: categoryMapLoading } =
     useCategoryInstitutionMapMarkers(results, isLoading);
+  const {
+    user,
+    showLoginModal,
+    setShowLoginModal,
+    favoriteIds,
+    favoriteInstructorIds,
+    favoritesEnabled,
+    favoritesError,
+    setFavoritesError,
+    favoriteActionLoadingIds,
+    favoriteInstructorActionLoadingIds,
+    handleFavoriteToggle,
+    handleInstructorFavoriteToggle,
+  } = useListingFavorites();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isFilterOpenRef = useRef(false);
   isFilterOpenRef.current = isFilterOpen;
@@ -208,6 +226,14 @@ export default function CategoryPageLayout({
               isLoading={isLoading}
               errorMessage={errorMessage}
               emptyResultsMessage={emptyResultsMessage}
+              favoriteIds={favoriteIds}
+              favoriteInstructorIds={favoriteInstructorIds}
+              favoritesEnabled={favoritesEnabled}
+              favoriteActionLoadingIds={favoriteActionLoadingIds}
+              favoriteInstructorActionLoadingIds={favoriteInstructorActionLoadingIds}
+              isAuthenticated={Boolean(user)}
+              onToggleInstitutionFavorite={handleFavoriteToggle}
+              onToggleInstructorFavorite={handleInstructorFavoriteToggle}
             />
           </div>
         </div>
@@ -230,6 +256,12 @@ export default function CategoryPageLayout({
     <>
       {heroSection}
       {layoutContent}
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <AppNoticeBar
+        message={favoritesError}
+        onDismiss={() => setFavoritesError(null)}
+        variant={favoritesError === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+      />
     </>
   );
 

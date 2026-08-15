@@ -2845,14 +2845,33 @@ a.service-card {
     }
   }
 
+  .featured-institution-favorite,
+  .institution-compare-toggle--overlay,
+  .instructor-compare-toggle--overlay {
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0;
+  }
+
   .featured-institution-favorite {
     top: 8px;
     right: 8px;
-    width: 28px;
-    height: 28px;
 
     .heart-favorite-icon,
     .search-result-heart-icon {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .institution-compare-toggle--overlay,
+  .instructor-compare-toggle--overlay {
+    svg {
       width: 16px;
       height: 16px;
     }
@@ -4617,22 +4636,66 @@ a.home-individual-instructor-item {
   );
 }
 
-.home-individual-instructor-icon {
+.home-individual-instructor-avatar-actions {
   position: absolute;
+  left: 2px;
   right: 2px;
   bottom: 4px;
   z-index: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.home-individual-instructor-favorite {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: $bg-white;
+  border: 1px solid rgba($purple-main, 0.18);
+  color: $purple-main;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.1);
+  cursor: pointer;
+  box-sizing: border-box;
+  pointer-events: auto;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .home-individual-instructor-favorite-icon {
+    display: block;
+    color: $purple-main;
+  }
+
+  .home-individual-instructor-favorite-icon--active {
+    color: $orange-primary;
+    fill: $orange-primary;
+  }
+}
+
+.home-individual-instructor-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
   border-radius: 10px;
   background: $bg-white;
   border: 1px solid rgba($purple-main, 0.18);
   color: $purple-main;
   box-shadow: 0 4px 12px rgba(16, 24, 40, 0.1);
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .home-individual-instructor-name {
@@ -4697,6 +4760,7 @@ a.home-individual-instructor-item {
     height: 128px;
   }
 
+  .home-individual-instructor-favorite,
   .home-individual-instructor-icon {
     width: 32px;
     height: 32px;
@@ -4765,11 +4829,16 @@ a.home-individual-instructor-item {
     font-size: 22px;
   }
 
+  .home-individual-instructor-avatar-actions {
+    left: 0;
+    right: 0;
+    bottom: 2px;
+  }
+
+  .home-individual-instructor-favorite,
   .home-individual-instructor-icon {
     width: 30px;
     height: 30px;
-    right: 0;
-    bottom: 2px;
   }
 
   .home-individual-instructor-name {
@@ -4886,7 +4955,7 @@ a.home-individual-instructor-item {
 
 .home-driving-schools-title,
 .driver-courses-title {
-  font-size: 34px;
+  font-size: 42px;
   font-weight: $font-bold;
   margin: 0 0 8px;
   line-height: 1.2;
@@ -5021,7 +5090,7 @@ a.home-individual-instructor-item {
 @media (max-width: 767px) {
   .home-driving-schools-title,
   .driver-courses-title {
-    font-size: 22px;
+    font-size: 26px;
   }
 
   .driver-courses-subtitle {

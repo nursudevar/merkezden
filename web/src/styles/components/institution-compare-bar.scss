@@ -61,9 +61,22 @@
 
 .institution-compare-toggle--category {
   position: absolute;
-  top: 16px;
+  top: 60px;
   right: 16px;
   margin-top: 0;
+  color: $blue-main;
+  background-color: rgba($blue-main, 0.04);
+  border: 1px solid rgba($blue-main, 0.16);
+
+  &:hover:not(:disabled) {
+    background-color: rgba($blue-main, 0.1);
+  }
+
+  &.institution-compare-toggle--selected {
+    color: $orange-primary;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba($orange-primary, 0.55);
+  }
 }
 
 .institution-compare-bar {
@@ -269,9 +282,22 @@
 
 .instructor-compare-toggle--category {
   position: absolute;
-  top: 16px;
+  top: 60px;
   right: 16px;
   margin-top: 0;
+  color: $blue-main;
+  background-color: rgba($blue-main, 0.06);
+  border: 1px solid rgba($blue-main, 0.18);
+
+  &:hover:not(:disabled) {
+    background-color: rgba($blue-main, 0.1);
+  }
+
+  &.instructor-compare-toggle--selected {
+    color: $orange-primary;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba($orange-primary, 0.55);
+  }
 }
 
 @media (max-width: 640px) {

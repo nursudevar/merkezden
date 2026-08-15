@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,15 +8,19 @@ import { Separator } from "@/components/ui";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 import "@/styles/components/institution-locations-map.scss";
 
+function InstitutionMapLoadingPlaceholder() {
+  return (
+    <div className="institution-locations-map-wrapper">
+      <div className="institution-locations-map-state">Harita yükleniyor...</div>
+    </div>
+  );
+}
+
 const InstitutionLocationsMap = dynamic(
   () => import("@/components/map/InstitutionLocationsMap"),
   {
     ssr: false,
-    loading: () => (
-      <div className="institution-locations-map-wrapper">
-        <div className="institution-locations-map-state">Harita yükleniyor...</div>
-      </div>
-    ),
+    loading: () => <InstitutionMapLoadingPlaceholder />,
   },
 );
 
@@ -33,6 +38,12 @@ export function InstitutionMapSearchSection({
   mapKeyPrefix = "institution-map",
   showSeparatorAfter = false,
 }: InstitutionMapSearchSectionProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       <div className="filter-section filter-section-map">
@@ -45,11 +56,15 @@ export function InstitutionMapSearchSection({
             Haritada Ara
           </Link>
         </div>
-        <InstitutionLocationsMap
-          key={`${mapKeyPrefix}-sidebar`}
-          markers={markers}
-          loading={loading}
-        />
+        {mounted ? (
+          <InstitutionLocationsMap
+            key={`${mapKeyPrefix}-sidebar`}
+            markers={markers}
+            loading={loading}
+          />
+        ) : (
+          <InstitutionMapLoadingPlaceholder />
+        )}
       </div>
       {showSeparatorAfter ? <Separator /> : null}
     </>

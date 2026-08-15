@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
 import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import { isAverageClassSizeInstitutionFeature } from "@/lib/institutionHelpers";
+import { isInstitutionPriceRangeFieldName } from "@/lib/institutionPriceRangeFilter";
 import {
   isLegacyStudentAgeMultiSelectFeature,
   isStudentAgeMaxFeature,
@@ -11,6 +12,12 @@ import {
   isStudentAgeRangeNumberFeature,
   validateStudentAgeRangeValues,
 } from "@/lib/studentAgeRangeFeature";
+
+function sortPanelOptionItemsByLabel<T>(items: T[], getLabel: (item: T) => string): T[] {
+  return [...items].sort((a, b) =>
+    getLabel(a).localeCompare(getLabel(b), "tr", { sensitivity: "base" }),
+  );
+}
 
 type InstitutionFeatureChoiceRow = {
   id: number;
@@ -36,6 +43,31 @@ export type InstitutionFeatureDefinitionForSelection = {
   placeholder: string | null;
   unit: string | null;
 };
+
+function sortInstitutionPanelFeatureChoices(
+  choices: InstitutionFeatureChoiceRow[],
+  feature: Pick<InstitutionFeatureDefinitionForSelection, "id" | "name" | "slug">,
+): InstitutionFeatureChoiceRow[] {
+  const filtered = choices.filter(
+    (choice) => choice.feature_definition_id === feature.id && choice.is_active,
+  );
+  if (
+    isInstitutionPriceRangeFieldName(feature.name) ||
+    isInstitutionPriceRangeFieldName(feature.slug ?? "")
+  ) {
+    return [...filtered].sort((a, b) => {
+      const orderA = Number.isFinite(Number(a.display_order))
+        ? Number(a.display_order)
+        : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(Number(b.display_order))
+        ? Number(b.display_order)
+        : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.id - b.id;
+    });
+  }
+  return sortPanelOptionItemsByLabel(filtered, (choice) => choice.name?.trim() || "");
+}
 
 type InstitutionFeatureSelectionGroupListProps = {
   groups: InstitutionFeatureSelectionGroup[];
@@ -80,6 +112,17 @@ export function InstitutionFeatureSelectionGroupList({
     <>
       {groups.map(({ group, features }) => {
         const visibleFeatures = features.filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature));
+        const hasSpecialNonOptionFeature = visibleFeatures.some(
+          (feature) =>
+            isStudentAgeRangeNumberFeature(feature) ||
+            feature.input_type === "number" ||
+            feature.input_type === "text",
+        );
+        const featuresToRender = hasSpecialNonOptionFeature
+          ? visibleFeatures
+          : sortPanelOptionItemsByLabel(visibleFeatures, (feature) =>
+              getDisplayFeatureName(feature.name),
+            );
         const ageMinFeature = visibleFeatures.find((f) => isStudentAgeMinFeature(f));
         const ageMaxFeature = visibleFeatures.find((f) => isStudentAgeMaxFeature(f));
         let ageRangeRendered = false;
@@ -169,7 +212,7 @@ export function InstitutionFeatureSelectionGroupList({
               {group.name}
             </h4>
             <div className="panel-institutions-features-grid panel-institutions-features-grid--selection">
-              {visibleFeatures.map((feature) => {
+              {featuresToRender.map((feature) => {
                 if (
                   isStudentAgeRangeNumberFeature(feature) &&
                   ageMinFeature &&
@@ -346,20 +389,8 @@ export function InstitutionFeatureSelectionGroupList({
                             >
                               {feature.placeholder || "Seçiniz"}
                             </button>
-                            {institutionFeatureChoices
-                              .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                              .slice()
-                              .sort((a, b) => {
-                                const orderA = Number.isFinite(Number(a.display_order))
-                                  ? Number(a.display_order)
-                                  : Number.MAX_SAFE_INTEGER;
-                                const orderB = Number.isFinite(Number(b.display_order))
-                                  ? Number(b.display_order)
-                                  : Number.MAX_SAFE_INTEGER;
-                                if (orderA !== orderB) return orderA - orderB;
-                                return a.id - b.id;
-                              })
-                              .map((choice) => (
+                            {sortInstitutionPanelFeatureChoices(institutionFeatureChoices, feature).map(
+                              (choice) => (
                                 <button
                                   key={choice.id}
                                   type="button"
@@ -392,20 +423,8 @@ export function InstitutionFeatureSelectionGroupList({
                     <div className="panel-institutions-feature-input-wrap">
                       <p className="panel-institutions-feature-name">{getDisplayFeatureName(feature.name)}</p>
                       <div className="panel-institutions-feature-multi">
-                        {institutionFeatureChoices
-                          .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                          .slice()
-                          .sort((a, b) => {
-                            const orderA = Number.isFinite(Number(a.display_order))
-                              ? Number(a.display_order)
-                              : Number.MAX_SAFE_INTEGER;
-                            const orderB = Number.isFinite(Number(b.display_order))
-                              ? Number(b.display_order)
-                              : Number.MAX_SAFE_INTEGER;
-                            if (orderA !== orderB) return orderA - orderB;
-                            return a.id - b.id;
-                          })
-                          .map((choice) => {
+                        {sortInstitutionPanelFeatureChoices(institutionFeatureChoices, feature).map(
+                          (choice) => {
                             const choiceId = String(choice.id);
                             const selectedValues = institutionMultiSelectValues[feature.id] ?? [];
                             const isSelected = selectedValues.includes(choiceId);

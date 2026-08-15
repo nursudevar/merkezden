@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, GraduationCap, UserRound } from "lucide-react";
+import { Heart, MapPin, GraduationCap, UserRound } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
 import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
 import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
@@ -30,6 +30,11 @@ interface CategoryResultsCardProps {
   priceRange?: string;
   institutionId?: number;
   instructorId?: number;
+  isFavorite?: boolean;
+  isFavoriteActionLoading?: boolean;
+  favoritesEnabled?: boolean;
+  isAuthenticated?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
 export default function CategoryResultsCard({
@@ -51,6 +56,11 @@ export default function CategoryResultsCard({
   priceRange,
   institutionId,
   instructorId,
+  isFavorite = false,
+  isFavoriteActionLoading = false,
+  favoritesEnabled = false,
+  isAuthenticated = false,
+  onToggleFavorite,
 }: CategoryResultsCardProps) {
   const isInstructor = resultType === "instructor";
   const institutionSlug = String(slug ?? "").trim();
@@ -73,6 +83,9 @@ export default function CategoryResultsCard({
     !isInstructor && numericInstitutionId != null && institutionSlug.length > 0;
   const canCompareInstructor =
     isInstructor && numericInstructorId != null && instructorSlug.length > 0;
+  const canFavorite =
+    Boolean(onToggleFavorite) &&
+    (isInstructor ? numericInstructorId != null : numericInstitutionId != null);
   const href = isInstructor
     ? String(detailUrl ?? "").trim()
     : institutionSlug
@@ -149,6 +162,25 @@ export default function CategoryResultsCard({
         </div>
         {isInstructor && instructorPriceText ? (
           <p className="category-results-card-price">{instructorPriceText}</p>
+        ) : null}
+        {canFavorite ? (
+          <button
+            type="button"
+            className="category-results-card-favorite"
+            aria-label={isFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
+            disabled={isFavoriteActionLoading || (isAuthenticated && !favoritesEnabled)}
+            onClick={(e) => {
+              onToggleFavorite?.(e);
+            }}
+          >
+            <Heart
+              className={
+                isFavorite
+                  ? "heart-favorite-icon heart-favorite-icon--active"
+                  : "heart-favorite-icon"
+              }
+            />
+          </button>
         ) : null}
         {canCompareInstitution ? (
           <InstitutionCompareToggleButton

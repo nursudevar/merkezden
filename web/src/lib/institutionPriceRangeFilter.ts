@@ -2,7 +2,7 @@ import type { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
-/** institution_feature_definitions.id — Aylık Ortalama Fiyat Aralığı */
+/** institution_feature_definitions.id — Aylık Fiyat Aralığı */
 export const INSTITUTION_PRICE_RANGE_DEFINITION_ID = 289;
 
 export type InstitutionPriceRangeOption = {
@@ -58,6 +58,7 @@ export function isInstitutionPriceRangeFieldName(name: string): boolean {
   const key = normalizeFeatureKey(name);
   return (
     key.includes("aylik ortalama fiyat") ||
+    key.includes("aylik fiyat araligi") ||
     key.includes("fiyat araligi") ||
     key.includes("ortalama fiyat araligi")
   );

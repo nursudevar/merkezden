@@ -20,6 +20,7 @@ import {
   ChevronRight,
   FileText,
   GraduationCap,
+  Heart,
   Languages,
   Laptop,
   Library,
@@ -217,7 +218,19 @@ function measureInstructorLoopPx(track: HTMLElement, itemCount: number): number 
   return measureInstructorStepPx(track) * Math.max(itemCount, 0);
 }
 
-export function HomeIndividualInstructorsSection() {
+export function HomeIndividualInstructorsSection({
+  onToggleFavorite,
+  favoriteInstructorIds,
+  favoritesEnabled = false,
+  favoriteInstructorActionLoadingIds,
+  isAuthenticated = false,
+}: {
+  onToggleFavorite: (instructorId: number, e: React.MouseEvent) => void;
+  favoriteInstructorIds: Set<number>;
+  favoritesEnabled?: boolean;
+  favoriteInstructorActionLoadingIds: Set<number>;
+  isAuthenticated?: boolean;
+}) {
   const [items, setItems] = useState<HomeInstructorCardItem[]>([]);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
   const [isMarqueeMounted, setIsMarqueeMounted] = useState(false);
@@ -441,9 +454,38 @@ export function HomeIndividualInstructorsSection() {
                       </div>
                     </div>
 
-                    <span className="home-individual-instructor-icon" aria-hidden>
-                      <ThemeIcon size={18} strokeWidth={2} />
-                    </span>
+                    <div className="home-individual-instructor-avatar-actions">
+                      <button
+                        type="button"
+                        className="home-individual-instructor-favorite"
+                        aria-label={
+                          favoriteInstructorIds.has(item.id)
+                            ? "Favorilerden kaldır"
+                            : "Favorilere ekle"
+                        }
+                        tabIndex={isDuplicate ? -1 : undefined}
+                        disabled={
+                          favoriteInstructorActionLoadingIds.has(item.id) ||
+                          (isAuthenticated && !favoritesEnabled)
+                        }
+                        onClick={(e) => {
+                          onToggleFavorite(item.id, e);
+                        }}
+                      >
+                        <Heart
+                          size={16}
+                          strokeWidth={2}
+                          className={
+                            favoriteInstructorIds.has(item.id)
+                              ? "home-individual-instructor-favorite-icon home-individual-instructor-favorite-icon--active"
+                              : "home-individual-instructor-favorite-icon"
+                          }
+                        />
+                      </button>
+                      <span className="home-individual-instructor-icon" aria-hidden>
+                        <ThemeIcon size={18} strokeWidth={2} />
+                      </span>
+                    </div>
                   </div>
 
                   <div className="home-individual-instructor-name">{item.displayName}</div>

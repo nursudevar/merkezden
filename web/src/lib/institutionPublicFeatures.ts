@@ -102,9 +102,12 @@ function normalizeFeatureDisplayNameKey(name: string): string {
 export function getDisplayFeatureName(name: string): string {
   const trimmed = (name ?? "").trim();
   const key = normalizeFeatureDisplayNameKey(trimmed);
-  if (key === "fiyat araligi") return "Aylık Ortalama Fiyat Aralığı";
+  if (key === "fiyat araligi" || key === "aylik ortalama fiyat araligi" || key === "aylik fiyat araligi") {
+    return "Aylık Fiyat Aralığı";
+  }
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
-  if (key === "okul saatleri" || key === "kurum saatleri") return "Kurum Saatleri";
+  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") return "Eğitim Saatleri";
+  if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") return "Sınıf Mevcudu";
   return trimmed;
 }
 
@@ -400,7 +403,7 @@ export function mapPublicInstitutionFeatures(args: {
     pull("Eğitim Türü", hasAny("egitim turu", "egitim_turu"));
     pull("Eğitim Dili", hasAny("egitim dili", "egitim_dili"));
     pull(
-      "Kurum Saatleri",
+      "Eğitim Saatleri",
       hasAny(
         "okul saatleri",
         "okul_saatleri",
@@ -408,6 +411,9 @@ export function mapPublicInstitutionFeatures(args: {
         "kurum saatleri",
         "kurum_saatleri",
         "kurum-saatleri",
+        "egitim saatleri",
+        "egitim_saatleri",
+        "egitim-saatleri",
         "saat",
       ),
     );
@@ -445,14 +451,18 @@ export function mapPublicInstitutionFeatures(args: {
         }
       }
     }
-    pull("Ortalama Sınıf Mevcudu", hasAny("ortalama sinif mevcudu", "sinif mevcudu", "mevcud"));
+    pull("Sınıf Mevcudu", hasAny("ortalama sinif mevcudu", "ortalama-sinif-mevcudu", "sinif mevcudu", "sinif-mevcudu", "sinif_mevcudu", "mevcud"));
     pull("Hizmet Tipi", hasAny("hizmet tipi", "hizmet_tipi", "servis tipi", "service_type", "service type"));
     pull(
-      "Aylık Ortalama Fiyat Aralığı",
+      "Aylık Fiyat Aralığı",
       hasAny(
         "fiyat araligi",
         "fiyat_araligi",
         "aylik ortalama fiyat",
+        "aylik-ortalama-fiyat",
+        "aylik fiyat araligi",
+        "aylik-fiyat-araligi",
+        "aylik_fiyat_araligi",
         "ortalama fiyat",
         "price_range",
         "monthly price",

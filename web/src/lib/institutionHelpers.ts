@@ -93,5 +93,5 @@ function normalizeInstitutionFeatureNameKey(name: string): string {
 
 export function isAverageClassSizeInstitutionFeature(name: string): boolean {
   const key = normalizeInstitutionFeatureNameKey(name);
-  return key.includes("ortalama sinif mevcudu");
+  return key.includes("sinif mevcudu");
 }

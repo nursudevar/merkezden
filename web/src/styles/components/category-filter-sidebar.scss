@@ -100,6 +100,21 @@
   gap: 12px;
 }
 
+.category-filter-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-filter-subsection-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  color: $default-text-color;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 .category-filter-section-title {
   display: flex;
   align-items: center;

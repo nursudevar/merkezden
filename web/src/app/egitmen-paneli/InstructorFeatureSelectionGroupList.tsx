@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
 import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import {
+  isInstructorPriceRangeFeature,
   isInstructorTimeTextFeature,
 } from "@/lib/instructorFeaturesClient";
 import {
@@ -13,6 +14,12 @@ import {
   isStudentAgeRangeNumberFeature,
   validateStudentAgeRangeValues,
 } from "@/lib/studentAgeRangeFeature";
+
+function sortPanelOptionItemsByLabel<T>(items: T[], getLabel: (item: T) => string): T[] {
+  return [...items].sort((a, b) =>
+    getLabel(a).localeCompare(getLabel(b), "tr", { sensitivity: "base" }),
+  );
+}
 
 type InstructorFeatureChoiceRow = {
   id: number;
@@ -41,6 +48,28 @@ export type InstructorFeatureDefinitionForSelection = {
   placeholder: string | null;
   unit: string | null;
 };
+
+function sortInstructorPanelFeatureChoices(
+  choices: InstructorFeatureChoiceRow[],
+  feature: Pick<InstructorFeatureDefinitionForSelection, "id" | "name" | "slug">,
+): InstructorFeatureChoiceRow[] {
+  const filtered = choices.filter(
+    (choice) => choice.feature_definition_id === feature.id && choice.is_active,
+  );
+  if (isInstructorPriceRangeFeature(feature)) {
+    return [...filtered].sort((a, b) => {
+      const orderA = Number.isFinite(Number(a.display_order))
+        ? Number(a.display_order)
+        : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(Number(b.display_order))
+        ? Number(b.display_order)
+        : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.id - b.id;
+    });
+  }
+  return sortPanelOptionItemsByLabel(filtered, (choice) => choice.name?.trim() || "");
+}
 
 type InstructorFeatureSelectionGroupListProps = {
   groups: InstructorFeatureSelectionGroup[];
@@ -89,6 +118,18 @@ export function InstructorFeatureSelectionGroupList({
     <>
       {groups.map(({ group, features }) => {
         const visibleFeatures = features.filter((feature) => !isLegacyStudentAgeMultiSelectFeature(feature));
+        const hasSpecialNonOptionFeature = visibleFeatures.some(
+          (feature) =>
+            isStudentAgeRangeNumberFeature(feature) ||
+            feature.input_type === "number" ||
+            feature.input_type === "text" ||
+            feature.input_type === "date",
+        );
+        const featuresToRender = hasSpecialNonOptionFeature
+          ? visibleFeatures
+          : sortPanelOptionItemsByLabel(visibleFeatures, (feature) =>
+              getDisplayFeatureName(feature.name),
+            );
         const ageMinFeature = visibleFeatures.find((f) => isStudentAgeMinFeature(f));
         const ageMaxFeature = visibleFeatures.find((f) => isStudentAgeMaxFeature(f));
         let ageRangeRendered = false;
@@ -179,7 +220,7 @@ export function InstructorFeatureSelectionGroupList({
               {group.name}
             </h4>
             <div className="egitmen-panel-features-features-grid egitmen-panel-features-features-grid--selection">
-              {visibleFeatures.map((feature) => {
+              {featuresToRender.map((feature) => {
                 if (
                   isStudentAgeRangeNumberFeature(feature) &&
                   ageMinFeature &&
@@ -369,20 +410,8 @@ export function InstructorFeatureSelectionGroupList({
                             >
                               {feature.placeholder || "Seçiniz"}
                             </button>
-                            {instructorFeatureChoices
-                              .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                              .slice()
-                              .sort((a, b) => {
-                                const orderA = Number.isFinite(Number(a.display_order))
-                                  ? Number(a.display_order)
-                                  : Number.MAX_SAFE_INTEGER;
-                                const orderB = Number.isFinite(Number(b.display_order))
-                                  ? Number(b.display_order)
-                                  : Number.MAX_SAFE_INTEGER;
-                                if (orderA !== orderB) return orderA - orderB;
-                                return a.id - b.id;
-                              })
-                              .map((choice) => (
+                            {sortInstructorPanelFeatureChoices(instructorFeatureChoices, feature).map(
+                              (choice) => (
                                 <button
                                   key={choice.id}
                                   type="button"
@@ -415,20 +444,8 @@ export function InstructorFeatureSelectionGroupList({
                     <div className="egitmen-panel-features-feature-input-wrap">
                       <p className="egitmen-panel-features-feature-name">{getDisplayFeatureName(feature.name)}</p>
                       <div className="egitmen-panel-features-feature-multi">
-                        {instructorFeatureChoices
-                          .filter((choice) => choice.feature_definition_id === feature.id && choice.is_active)
-                          .slice()
-                          .sort((a, b) => {
-                            const orderA = Number.isFinite(Number(a.display_order))
-                              ? Number(a.display_order)
-                              : Number.MAX_SAFE_INTEGER;
-                            const orderB = Number.isFinite(Number(b.display_order))
-                              ? Number(b.display_order)
-                              : Number.MAX_SAFE_INTEGER;
-                            if (orderA !== orderB) return orderA - orderB;
-                            return a.id - b.id;
-                          })
-                          .map((choice) => {
+                        {sortInstructorPanelFeatureChoices(instructorFeatureChoices, feature).map(
+                          (choice) => {
                             const choiceId = String(choice.id);
                             const selectedValues = instructorMultiSelectValues[feature.id] ?? [];
                             const isSelected = selectedValues.includes(choiceId);

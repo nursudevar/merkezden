@@ -19,6 +19,7 @@ export type HomeAnnouncementItem = {
   createdAt: string | null;
   ownerName: string;
   announcementTag: string | null;
+  ownerHref: string | null;
 };
 
 export type AnnouncementsPageItem = {
@@ -33,6 +34,7 @@ export type AnnouncementsPageItem = {
   categoryName: string;
   linkUrl: string | null;
   announcementTag: string | null;
+  ownerHref: string | null;
 };
 
 export const HOME_ANNOUNCEMENTS_CAROUSEL_COUNT = 10;
@@ -47,6 +49,7 @@ type PublicInstructorOwnerRow = {
   surname?: string | null;
   city?: string | null;
   district?: string | null;
+  slug?: string | null;
 };
 
 type InstructorAnnouncementRow = {
@@ -72,6 +75,7 @@ type InstitutionAnnouncementRow = {
   institution:
     | {
         institution_name: string | null;
+        slug?: string | null;
         city: string | null;
         institution_type?:
           | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
@@ -80,6 +84,7 @@ type InstitutionAnnouncementRow = {
       }
     | Array<{
         institution_name: string | null;
+        slug?: string | null;
         city: string | null;
         institution_type?:
           | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
@@ -159,7 +164,7 @@ async function fetchApprovedPublicInstructorMap(
 
   const { data, error } = await supabase
     .from(PUBLIC_INSTRUCTORS_TABLE)
-    .select("id, full_name, name, surname, city, district")
+    .select("id, full_name, name, surname, city, district, slug")
     .in("id", uniqueIds)
     .eq("is_active", true)
     .eq("is_approved", true);
@@ -224,6 +229,7 @@ async function fetchPublicInstructorAnnouncementItems(
         createdAt: row.created_at ? String(row.created_at) : null,
         ownerName: resolveInstructorOwnerName(instructor),
         announcementTag: normalizeAnnouncementTag(row.announcement_tag),
+        ownerHref: `/egitmenler/${encodeURIComponent(String(instructor.slug ?? "").trim() || String(instructorId))}`,
       };
     })
     .filter((item): item is HomeAnnouncementItem => item !== null)
@@ -238,8 +244,8 @@ async function fetchPublicInstitutionAnnouncementRows(
   includeCategory: boolean,
 ): Promise<{ rows: InstitutionAnnouncementRow[]; error: unknown }> {
   const institutionSelect = includeCategory
-    ? "institution_name, city, institution_type:institution_types(category:institution_categories(name))"
-    : "institution_name";
+    ? "institution_name, city, slug, institution_type:institution_types(category:institution_categories(name))"
+    : "institution_name, slug";
 
   const { data, error } = await supabase
     .from("announcements")
@@ -272,6 +278,9 @@ function mapInstitutionRowToHomeItem(row: InstitutionAnnouncementRow): HomeAnnou
     createdAt: row.created_at ? String(row.created_at) : null,
     ownerName: String(institution?.institution_name ?? "").trim(),
     announcementTag: normalizeAnnouncementTag(row.announcement_tag),
+    ownerHref: String(institution?.slug ?? "").trim()
+      ? `/kurumlar/${String(institution?.slug ?? "").trim()}`
+      : null,
   };
 }
 
@@ -383,6 +392,7 @@ export async function fetchAnnouncementsPageItems(
         categoryName: INSTRUCTOR_PUBLIC_CATEGORY_NAME,
         linkUrl: normalizeOptionalUrl(row.link_url),
         announcementTag: normalizeAnnouncementTag(row.announcement_tag),
+        ownerHref: `/egitmenler/${encodeURIComponent(String(instructor.slug ?? "").trim() || String(instructorId))}`,
       };
     })
     .filter((item): item is AnnouncementsPageItem => item !== null);

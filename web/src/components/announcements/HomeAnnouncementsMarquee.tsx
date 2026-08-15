@@ -130,6 +130,7 @@ export function HomeAnnouncementsMarquee() {
         createdAt: activeAnnouncement.createdAt,
         institutionName: activeAnnouncement.ownerName,
         linkUrl: activeAnnouncement.linkUrl,
+        ownerHref: activeAnnouncement.ownerHref,
       }
     : null;
 
