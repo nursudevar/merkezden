@@ -773,7 +773,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         {activeTab !== "announcements" ? (
         <>
         {about || hasGallery || hasSidebar ? (
-        <div className="institution-content-grid">
+        <div
+          className={`institution-content-grid${
+            about || hasGallery ? "" : " institution-content-grid--full"
+          }`}
+        >
           {about || hasGallery ? (
           <div className="institution-main-content">
             {about ? (

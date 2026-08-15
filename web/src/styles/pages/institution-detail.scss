@@ -432,6 +432,16 @@
   }
 }
 
+.institution-content-grid--full {
+  grid-template-columns: 1fr;
+
+  > * {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
 // Sections
 .institution-section {
   margin-bottom: 40px;

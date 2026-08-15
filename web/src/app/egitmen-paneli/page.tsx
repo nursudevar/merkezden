@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   User,
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  resolveIsAdminFromUserRolesClient,
   resolveUserTypeFromUsersClient,
   type AppUserType,
 } from "@/lib/auth/authBrowserClient";
@@ -38,6 +39,10 @@ import {
 } from "@/lib/instructorProfileClient";
 import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import {
+  AdminActingAsBanner,
+  isAdminActingAsTargetId,
+} from "@/components/AdminActingAsBanner";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { UserBlogPostsPanel } from "@/components/blog/UserBlogPostsPanel";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
@@ -235,11 +240,13 @@ function isValidStrictHttpUrl(value: string): boolean {
 const INSTRUCTOR_PROFILE_SUCCESS_MESSAGE = "Eğitmen profiliniz başarıyla güncellendi.";
 const INSTRUCTOR_PROFILE_ERROR_MESSAGE = "Eğitmen profili güncellenirken bir hata oluştu.";
 
-export default function InstructorPanelPage() {
+function InstructorPanelPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [userType, setUserType] = useState<AppUserType | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [instructorName, setInstructorName] = useState("Eğitmen");
   const [activeTab, setActiveTab] = useState<InstructorPanelTabId>("overview");
@@ -301,13 +308,18 @@ export default function InstructorPanelPage() {
     if (!user?.id) {
       setRoleLoaded(false);
       setUserType(null);
+      setIsAdmin(false);
       return;
     }
     let cancelled = false;
     setRoleLoaded(false);
-    resolveUserTypeFromUsersClient(user.id).then((type) => {
+    Promise.all([
+      resolveUserTypeFromUsersClient(user.id),
+      resolveIsAdminFromUserRolesClient(user.id),
+    ]).then(([type, adminFlag]) => {
       if (!cancelled) {
         setUserType(type);
+        setIsAdmin(adminFlag);
         setRoleLoaded(true);
       }
     });
@@ -563,6 +575,18 @@ export default function InstructorPanelPage() {
     () => !instructorProfileFormsEqual(profileForm, profileInitialForm),
     [profileForm, profileInitialForm],
   );
+  const targetInstructorIdParam = (searchParams.get("instructorId") ?? "").trim();
+  const isAdminActingAsInstructor =
+    isAdminActingAsTargetId(isAdmin, targetInstructorIdParam) &&
+    instructorRowId != null &&
+    instructorRowId === Number(targetInstructorIdParam);
+  const adminActingAsBanner = (
+    <AdminActingAsBanner
+      visible={isAdminActingAsInstructor}
+      kind="instructor"
+      entityName={instructorRow ? instructorName : null}
+    />
+  );
 
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
@@ -629,6 +653,7 @@ export default function InstructorPanelPage() {
         {isFeatures && instructorRow && user?.id ? (
           <InstructorFeaturesTab
             splitLayout
+            leadingSlot={adminActingAsBanner}
             header={
               <div className="egitmen-panel-main-card-header">
                 <div className="egitmen-panel-main-card-header-left">
@@ -645,6 +670,7 @@ export default function InstructorPanelPage() {
           />
         ) : (
         <div className="egitmen-panel-page-main">
+          {adminActingAsBanner}
           <section
             className={
               isOverview
@@ -1293,5 +1319,13 @@ export default function InstructorPanelPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function InstructorPanelPageRoute() {
+  return (
+    <Suspense fallback={null}>
+      <InstructorPanelPage />
+    </Suspense>
   );
 }

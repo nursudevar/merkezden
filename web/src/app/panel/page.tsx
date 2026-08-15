@@ -78,6 +78,10 @@ import {
   normalizeAnnouncementTag,
 } from "@/lib/announcementTags";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import {
+  AdminActingAsBanner,
+  isAdminActingAsTargetId,
+} from "@/components/AdminActingAsBanner";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import {
@@ -753,6 +757,10 @@ interface InstitutionDetailPreparedData {
   const [mediaUploadingVideo, setMediaUploadingVideo] = useState(false);
   const [mediaDeletingId, setMediaDeletingId] = useState<string | number | null>(null);
   const targetInstitutionIdParam = (searchParams.get("institutionId") ?? "").trim();
+  const isAdminActingAsInstitution =
+    isAdminActingAsTargetId(isAdmin, targetInstitutionIdParam) &&
+    institutionId != null &&
+    Number(institutionId) === Number(targetInstitutionIdParam);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -1922,6 +1930,9 @@ interface InstitutionDetailPreparedData {
       working_hours_end: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
       address: institutionFormData.address.trim(),
       about: institutionFormData.about.trim(),
+      ...(isAdminActingAsInstitution
+        ? { official_email: institutionFormData.email.trim() || null }
+        : {}),
     };
 
     setIsSavingInstitutionProfile(true);
@@ -2043,6 +2054,7 @@ interface InstitutionDetailPreparedData {
     const supabase = createSupabaseBrowserClient();
     setInstitutionFeaturesSaving(true);
     setInstitutionFeaturesSaveMessage(null);
+    let featureSaveStep = "start";
 
     try {
       const upperFeatureIds = new Set<number>();
@@ -2165,18 +2177,21 @@ interface InstitutionDetailPreparedData {
         category_id: nextCategoryId,
       };
 
+      featureSaveStep = "institutions category update";
       const { error: institutionRowUpdateError } = await supabase
         .from("institutions")
         .update(institutionRowUpdate)
         .eq("id", normalizedInstitutionId);
       if (institutionRowUpdateError) throw institutionRowUpdateError;
 
+      featureSaveStep = "extra branch protected definitions select";
       const extraBranchProtectedDefinitionIds = await collectExtraBranchProtectedDefinitionIds(
         supabase,
         normalizedInstitutionId,
         institutionCategories,
       );
 
+      featureSaveStep = "feature entries select";
       const { data: currentEntriesData, error: currentEntriesError } = await supabase
         .from("institution_feature_entries")
         .select("id, feature_definition_id, boolean_answer, text_answer, number_answer, selected_choice_id")
@@ -2202,12 +2217,14 @@ interface InstitutionDetailPreparedData {
             .map((entry) => entry.feature_definition_id),
         );
 
+        featureSaveStep = "feature choices delete";
         const { error: deleteChoicesError } = await supabase
           .from("institution_feature_entry_choices")
           .delete()
           .in("institution_feature_entry_id", staleEntryIds);
         if (deleteChoicesError) throw deleteChoicesError;
 
+        featureSaveStep = "feature entry delete";
         const { error: deleteEntriesError } = await supabase
           .from("institution_feature_entries")
           .delete()
@@ -2238,6 +2255,7 @@ interface InstitutionDetailPreparedData {
 
         if (!value) {
           if (existingEntry) {
+            featureSaveStep = "feature entry delete";
             const { error } = await supabase
               .from("institution_feature_entries")
               .delete()
@@ -2249,12 +2267,14 @@ interface InstitutionDetailPreparedData {
         }
 
         if (existingEntry) {
+          featureSaveStep = "feature entry update";
           const { error } = await supabase
             .from("institution_feature_entries")
             .update({ boolean_answer: true })
             .eq("id", existingEntry.id);
           if (error) throw error;
         } else {
+          featureSaveStep = "feature entry insert";
           const { error } = await supabase
             .from("institution_feature_entries")
             .insert({
@@ -2279,6 +2299,7 @@ interface InstitutionDetailPreparedData {
 
         if (!value) {
           if (existingEntry) {
+            featureSaveStep = "feature entry delete";
             const { error } = await supabase
               .from("institution_feature_entries")
               .delete()
@@ -2290,12 +2311,14 @@ interface InstitutionDetailPreparedData {
         }
 
         if (existingEntry) {
+          featureSaveStep = "feature entry update";
           const { error } = await supabase
             .from("institution_feature_entries")
             .update({ text_answer: value })
             .eq("id", existingEntry.id);
           if (error) throw error;
         } else {
+          featureSaveStep = "feature entry insert";
           const { error } = await supabase
             .from("institution_feature_entries")
             .insert({
@@ -2319,6 +2342,7 @@ interface InstitutionDetailPreparedData {
 
         if (!rawValue) {
           if (existingEntry) {
+            featureSaveStep = "feature entry delete";
             const { error } = await supabase
               .from("institution_feature_entries")
               .delete()
@@ -2345,12 +2369,14 @@ interface InstitutionDetailPreparedData {
         }
 
         if (existingEntry) {
+          featureSaveStep = "feature entry update";
           const { error } = await supabase
             .from("institution_feature_entries")
             .update({ number_answer: parsedNumber })
             .eq("id", existingEntry.id);
           if (error) throw error;
         } else {
+          featureSaveStep = "feature entry insert";
           const { error } = await supabase
             .from("institution_feature_entries")
             .insert({
@@ -2387,12 +2413,14 @@ interface InstitutionDetailPreparedData {
 
         if (selectedChoiceIds.length === 0) {
           if (existingEntry) {
+            featureSaveStep = "feature choices delete";
             const { error: clearChoicesError } = await supabase
               .from("institution_feature_entry_choices")
               .delete()
               .eq("institution_feature_entry_id", existingEntry.id);
             if (clearChoicesError) throw clearChoicesError;
 
+            featureSaveStep = "feature entry delete";
             const { error: deleteEntryError } = await supabase
               .from("institution_feature_entries")
               .delete()
@@ -2406,6 +2434,7 @@ interface InstitutionDetailPreparedData {
         let entryId = existingEntry?.id ?? null;
 
         if (!entryId) {
+          featureSaveStep = "feature entry insert";
           const { data: insertedEntry, error: insertEntryError } = await supabase
             .from("institution_feature_entries")
             .insert({
@@ -2418,6 +2447,7 @@ interface InstitutionDetailPreparedData {
           entryId = insertedEntry.id;
         }
 
+        featureSaveStep = "feature choices delete";
         const { error: clearOldChoicesError } = await supabase
           .from("institution_feature_entry_choices")
           .delete()
@@ -2430,6 +2460,7 @@ interface InstitutionDetailPreparedData {
         }));
 
         if (newChoiceRows.length > 0) {
+          featureSaveStep = "feature choices insert";
           const { error: insertChoicesError } = await supabase
             .from("institution_feature_entry_choices")
             .insert(newChoiceRows);
@@ -2508,7 +2539,16 @@ interface InstitutionDetailPreparedData {
         }
       }
     } catch (error) {
-      console.error("Institution features save error:", error);
+      const err = error as { code?: string; message?: string; details?: string; hint?: string };
+      const fallbackMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : String(error);
+      console.error(
+        `Institution features save error | step=${featureSaveStep} | code=${err?.code ?? ""} | message=${err?.message ?? ""} | details=${err?.details ?? ""} | hint=${err?.hint ?? ""} | raw=${fallbackMessage}`,
+      );
       flashInstitutionFeaturesSaveMessage("Kurum özellikleri kaydedilirken bir hata oluştu.");
     } finally {
       setInstitutionFeaturesSaving(false);
@@ -3002,6 +3042,11 @@ interface InstitutionDetailPreparedData {
           ) : null}
         </aside>
         <div className="panel-page-main">
+          <AdminActingAsBanner
+            visible={isAdminActingAsInstitution}
+            kind="institution"
+            entityName={institutionProfileLoaded ? institutionName : null}
+          />
           <section
             className={
               isOverviewTab
@@ -3264,7 +3309,7 @@ interface InstitutionDetailPreparedData {
                         type="email"
                         value={institutionFormData.email}
                         onChange={(e) => handleInstitutionFormChange("email", e.target.value)}
-                          disabled
+                        disabled={!(isAdminActingAsInstitution && isEditingInstitutionProfile)}
                         className="panel-institution-form-input"
                       />
                       </div>
@@ -3460,9 +3505,6 @@ interface InstitutionDetailPreparedData {
                     </div>
                   </div>
                 </div>
-                {institutionProfileMessage ? (
-                  <p className="panel-institutions-save-message">{institutionProfileMessage}</p>
-                ) : null}
                 {logoValidationModalMessage ? (
                   <div
                     className="panel-logo-validation-overlay"
@@ -4099,6 +4141,38 @@ interface InstitutionDetailPreparedData {
           </div>
         ) : null}
       </div>
+
+      {institutionProfileMessage ? (
+        <div
+          className="app-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="panel-institution-profile-error-modal-title"
+          onClick={() => setInstitutionProfileMessage(null)}
+        >
+          <div
+            className="app-modal-content app-modal-content--error"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="panel-institution-profile-error-modal-title" className="app-modal-title">
+              Hata
+            </h2>
+            <div className="app-modal-body">
+              <p className="app-modal-message">{institutionProfileMessage}</p>
+            </div>
+            <div className="app-modal-footer">
+              <Button
+                type="button"
+                variant="default"
+                className="app-modal-btn app-modal-btn--primary"
+                onClick={() => setInstitutionProfileMessage(null)}
+              >
+                Tamam
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showInstitutionProfileSuccessPopup ? (
         <div className="panel-profile-success-overlay" role="presentation">

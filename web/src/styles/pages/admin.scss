@@ -343,6 +343,26 @@
   gap: 6px;
 }
 
+.admin-institutions-add-btn {
+  height: 32px;
+  border: 1px solid rgba($purple-main, 0.35);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: $font-medium;
+  color: #fff;
+  background: $purple-main;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  @include transition;
+
+  &:hover {
+    opacity: 0.92;
+  }
+}
+
 .admin-institutions-header-action-btn {
   width: 30px;
   height: 30px;
@@ -951,7 +971,8 @@
   font-size: 13px;
   color: $text-zinc-700;
 
-  input {
+  input,
+  select {
     height: 38px;
     border: 1px solid $border-light;
     border-radius: 8px;
@@ -960,10 +981,120 @@
     color: $text-zinc-800;
     background: #fff;
   }
+
+  select:disabled,
+  input:disabled {
+    background: $bg-zinc-50;
+    color: $text-zinc-600;
+    cursor: not-allowed;
+  }
 }
 
 .admin-individual-users-modal-field-input--error {
   border-color: $red-error !important;
+}
+
+.admin-create-institution-select-trigger {
+  width: 100%;
+  height: 38px !important;
+  border: 1px solid $border-light;
+  border-radius: 8px !important;
+  padding: 0 10px !important;
+  font-size: 14px;
+  font-weight: $font-medium;
+  color: $text-zinc-800;
+  background: #fff !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+
+  [data-placeholder] {
+    color: $text-placeholder;
+    font-weight: $font-normal;
+  }
+
+  &:hover:not([data-disabled]) {
+    border-color: rgba($purple-main, 0.45);
+  }
+
+  &:focus-visible,
+  &[data-state="open"] {
+    outline: none;
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+
+  &[data-disabled] {
+    background: $bg-zinc-50 !important;
+    color: $text-zinc-600;
+    opacity: 1;
+    cursor: not-allowed;
+  }
+
+  .select-trigger-icon {
+    width: 16px;
+    height: 16px;
+    color: $purple-main;
+    opacity: 0.85;
+  }
+}
+
+.admin-create-institution-select-trigger.admin-individual-users-modal-field-input--error {
+  border-color: $red-error !important;
+
+  &:focus-visible,
+  &[data-state="open"] {
+    border-color: $red-error;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  }
+}
+
+.admin-create-institution-select-content.select-content-popper,
+.admin-create-institution-select-content {
+  z-index: 1300 !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba($purple-main, 0.14) !important;
+  background: $bg-white !important;
+  padding: 6px !important;
+  box-shadow:
+    0 14px 32px rgba(31, 39, 51, 0.12),
+    0 0 0 1px rgba(109, 93, 252, 0.06) !important;
+  min-width: var(--radix-select-trigger-width) !important;
+}
+
+.admin-create-institution-select-content .select-scroll-button {
+  display: none !important;
+}
+
+.admin-create-institution-select-content.select-content-popper .select-viewport,
+.admin-create-institution-select-content .select-viewport {
+  height: auto !important;
+  max-height: min(280px, var(--radix-select-content-available-height, 280px));
+  width: 100%;
+  min-width: var(--radix-select-trigger-width);
+  padding: 2px 0;
+}
+
+.admin-create-institution-select-content .select-item {
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: $font-medium;
+  padding: 10px 36px 10px 12px;
+  color: $text-zinc-800;
+}
+
+.admin-create-institution-select-content .select-item[data-highlighted] {
+  background: rgba($purple-main, 0.1);
+  color: $purple-main;
+}
+
+.admin-create-institution-select-content .select-item[data-state="checked"] {
+  background: rgba($purple-main, 0.14);
+  color: $purple-main;
+  font-weight: $font-semibold;
+}
+
+.admin-create-institution-select-content .select-item-check-icon {
+  color: $purple-main;
 }
 
 .admin-individual-users-modal-field-error {

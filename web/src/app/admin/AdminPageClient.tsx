@@ -16,6 +16,7 @@ import {
   BookOpenText,
   ImageIcon,
   PencilLine,
+  Plus,
   Trash2,
   Star,
   StarOff,
@@ -29,6 +30,13 @@ import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import {
   deactivateFeaturedAccountById,
@@ -43,6 +51,7 @@ import {
   type FeaturedAccountAdminRow,
 } from "@/lib/featuredAccountsClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
+import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   buildProfileSearchVariants,
@@ -86,6 +95,14 @@ type InstitutionListRow = {
     category?: { name?: string | null } | null;
   } | null;
 };
+
+type InstitutionCategoryOption = {
+  id: number;
+  name: string;
+};
+
+const ADMIN_CREATED_INSTITUTION_CITY = "Ankara";
+const ADMIN_CREATED_INSTITUTION_SOURCE = "admin";
 
 const INSTITUTIONS_PAGE_SIZE = 10;
 const INDIVIDUAL_USERS_PAGE_SIZE = 10;
@@ -466,6 +483,25 @@ export default function AdminPageClient() {
   const [reorderingFeaturedId, setReorderingFeaturedId] = useState<string | null>(null);
   const [removingFeaturedAccountId, setRemovingFeaturedAccountId] = useState<string | null>(null);
   const [institutionsReloadKey, setInstitutionsReloadKey] = useState(0);
+  const [createInstitutionModalOpen, setCreateInstitutionModalOpen] = useState(false);
+  const [createInstitutionName, setCreateInstitutionName] = useState("");
+  const [createInstitutionCategoryId, setCreateInstitutionCategoryId] = useState("");
+  const [createInstitutionDistrict, setCreateInstitutionDistrict] = useState("");
+  const [createInstitutionCategories, setCreateInstitutionCategories] = useState<
+    InstitutionCategoryOption[]
+  >([]);
+  const [createInstitutionCategoriesLoading, setCreateInstitutionCategoriesLoading] = useState(false);
+  const [createInstitutionCategoriesError, setCreateInstitutionCategoriesError] = useState<string | null>(
+    null,
+  );
+  const [createInstitutionFieldErrors, setCreateInstitutionFieldErrors] = useState<{
+    name?: string;
+    categoryId?: string;
+    district?: string;
+  }>({});
+  const [createInstitutionError, setCreateInstitutionError] = useState<string | null>(null);
+  const [createInstitutionSubmitting, setCreateInstitutionSubmitting] = useState(false);
+  const createInstitutionSubmitLockRef = useRef(false);
 
   const [individualUsersList, setIndividualUsersList] = useState<IndividualUserListRow[]>([]);
   const [individualUsersListLoading, setIndividualUsersListLoading] = useState(false);
@@ -1369,6 +1405,151 @@ export default function AdminPageClient() {
   const handleInstitutionSearch = () => {
     setInstitutionsPage(1);
     setInstitutionsSearchQuery(institutionsSearchInput.trim());
+  };
+
+  const resetCreateInstitutionForm = () => {
+    setCreateInstitutionName("");
+    setCreateInstitutionCategoryId("");
+    setCreateInstitutionDistrict("");
+    setCreateInstitutionFieldErrors({});
+    setCreateInstitutionError(null);
+  };
+
+  const handleOpenCreateInstitutionModal = () => {
+    if (createInstitutionSubmitting) return;
+    resetCreateInstitutionForm();
+    setCreateInstitutionModalOpen(true);
+  };
+
+  const handleCloseCreateInstitutionModal = () => {
+    if (createInstitutionSubmitting) return;
+    setCreateInstitutionModalOpen(false);
+    resetCreateInstitutionForm();
+  };
+
+  useEffect(() => {
+    if (!createInstitutionModalOpen) return;
+
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+    setCreateInstitutionCategoriesLoading(true);
+    setCreateInstitutionCategoriesError(null);
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from("institution_categories")
+        .select("id, name, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        setCreateInstitutionCategories([]);
+        setCreateInstitutionCategoriesError("Kategoriler yüklenirken bir hata oluştu.");
+        setCreateInstitutionCategoriesLoading(false);
+        return;
+      }
+
+      const rows =
+        (data as Array<{ id: number; name: string | null }> | null)?.map((row) => ({
+          id: row.id,
+          name: String(row.name ?? "").trim(),
+        })) ?? [];
+      setCreateInstitutionCategories(rows.filter((row) => row.name.length > 0));
+      setCreateInstitutionCategoriesLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createInstitutionModalOpen]);
+
+  const handleCreateInstitutionSubmit = async () => {
+    if (createInstitutionSubmitLockRef.current || createInstitutionSubmitting) return;
+
+    const name = createInstitutionName.trim();
+    const categoryId = Number(createInstitutionCategoryId.trim());
+    const district = createInstitutionDistrict.trim();
+    const nextFieldErrors: { name?: string; categoryId?: string; district?: string } = {};
+
+    if (!name) nextFieldErrors.name = "Kurum adı zorunludur.";
+    if (!Number.isFinite(categoryId) || categoryId <= 0) {
+      nextFieldErrors.categoryId = "Lütfen bir kategori seçin.";
+    }
+    if (!district) nextFieldErrors.district = "Lütfen bir ilçe seçin.";
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setCreateInstitutionFieldErrors(nextFieldErrors);
+      setCreateInstitutionError("Lütfen zorunlu alanları doldurun.");
+      return;
+    }
+
+    createInstitutionSubmitLockRef.current = true;
+    setCreateInstitutionSubmitting(true);
+    setCreateInstitutionFieldErrors({});
+    setCreateInstitutionError(null);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("institutions")
+        .insert({
+          institution_name: name,
+          category_id: categoryId,
+          city: ADMIN_CREATED_INSTITUTION_CITY,
+          district,
+          owner_auth_id: null,
+          source: ADMIN_CREATED_INSTITUTION_SOURCE,
+          is_approved: true,
+        })
+        .select("id, slug")
+        .maybeSingle();
+
+      if (error) {
+        console.error(
+          "Admin institution create error:",
+          describeSupabaseAdminError(error),
+        );
+        const message = String(error.message ?? "").trim();
+        const isPermissionError =
+          String(error.code ?? "") === "42501" ||
+          message.toLowerCase().includes("row-level security") ||
+          message.toLowerCase().includes("permission denied");
+        setCreateInstitutionError(
+          isPermissionError
+            ? "Kurum oluşturulamadı: mevcut yetki (RLS) insert işlemine izin vermiyor."
+            : message || "Kurum oluşturulurken bir hata oluştu.",
+        );
+        return;
+      }
+
+      const createdId = Number((data as { id?: number } | null)?.id);
+      const createdSlug = String((data as { slug?: string | null } | null)?.slug ?? "").trim();
+
+      if (!Number.isFinite(createdId) || createdId <= 0) {
+        setCreateInstitutionError("Kurum oluşturuldu ancak kayıt kimliği alınamadı.");
+        return;
+      }
+
+      if (!createdSlug) {
+        setCreateInstitutionError(
+          "Kurum kaydı oluşturuldu ancak slug üretilemedi. Canlı DB slug kuralının ayrıca netleştirilmesi gerekiyor.",
+        );
+        return;
+      }
+
+      setCreateInstitutionModalOpen(false);
+      resetCreateInstitutionForm();
+      router.push(`/panel?institutionId=${createdId}`);
+    } catch (error) {
+      console.error("Admin institution create error:", error);
+      setCreateInstitutionError("Kurum oluşturulurken beklenmeyen bir hata oluştu.");
+    } finally {
+      createInstitutionSubmitLockRef.current = false;
+      setCreateInstitutionSubmitting(false);
+    }
   };
 
   const handleGoToIndividualUsersPage = () => {
@@ -2439,6 +2620,14 @@ export default function AdminPageClient() {
                     </span>
                   </div>
                   <div className="admin-institutions-header-actions">
+                    <button
+                      type="button"
+                      className="admin-institutions-add-btn"
+                      onClick={handleOpenCreateInstitutionModal}
+                    >
+                      <Plus size={16} aria-hidden />
+                      Kurum Ekle
+                    </button>
                     <div className="admin-institutions-header-search">
                       <input
                         type="text"
@@ -3497,6 +3686,195 @@ export default function AdminPageClient() {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          ) : null}
+
+          {createInstitutionModalOpen ? (
+            <div
+              className="admin-individual-users-modal-overlay"
+              role="presentation"
+              onPointerDown={onBackdropPointerDown}
+              onClick={getBackdropClickHandler(handleCloseCreateInstitutionModal)}
+            >
+              <div
+                className="admin-individual-users-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-create-institution-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="admin-individual-users-modal-header">
+                  <h2
+                    id="admin-create-institution-modal-title"
+                    className="admin-individual-users-modal-title"
+                  >
+                    Kurum Ekle
+                  </h2>
+                  <button
+                    type="button"
+                    className="admin-individual-users-modal-close-btn"
+                    onClick={handleCloseCreateInstitutionModal}
+                    disabled={createInstitutionSubmitting}
+                    aria-label="Kapat"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <form
+                  className="admin-individual-users-modal-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleCreateInstitutionSubmit();
+                  }}
+                >
+                  <label className="admin-individual-users-modal-field">
+                    <span>Kurum Adı</span>
+                    <input
+                      type="text"
+                      value={createInstitutionName}
+                      onChange={(event) => {
+                        setCreateInstitutionName(event.target.value);
+                        setCreateInstitutionFieldErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      disabled={createInstitutionSubmitting}
+                      aria-invalid={createInstitutionFieldErrors.name ? true : undefined}
+                      className={
+                        createInstitutionFieldErrors.name
+                          ? "admin-individual-users-modal-field-input--error"
+                          : undefined
+                      }
+                    />
+                    {createInstitutionFieldErrors.name ? (
+                      <p className="admin-individual-users-modal-field-error">
+                        {createInstitutionFieldErrors.name}
+                      </p>
+                    ) : null}
+                  </label>
+                  <div className="admin-individual-users-modal-field">
+                    <span>Kategori</span>
+                    <Select
+                      value={createInstitutionCategoryId || undefined}
+                      onValueChange={(next) => {
+                        setCreateInstitutionCategoryId(next);
+                        setCreateInstitutionFieldErrors((prev) => ({
+                          ...prev,
+                          categoryId: undefined,
+                        }));
+                      }}
+                      disabled={createInstitutionSubmitting || createInstitutionCategoriesLoading}
+                    >
+                      <SelectTrigger
+                        className={`admin-create-institution-select-trigger${
+                          createInstitutionFieldErrors.categoryId
+                            ? " admin-individual-users-modal-field-input--error"
+                            : ""
+                        }`}
+                        aria-invalid={createInstitutionFieldErrors.categoryId ? true : undefined}
+                        aria-label="Kategori seçin"
+                      >
+                        <SelectValue
+                          placeholder={
+                            createInstitutionCategoriesLoading
+                              ? "Kategoriler yükleniyor..."
+                              : "Kategori seçin"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent
+                        className="admin-create-institution-select-content"
+                        position="popper"
+                        side="bottom"
+                        sideOffset={6}
+                        align="start"
+                      >
+                        {createInstitutionCategories.map((category) => (
+                          <SelectItem key={category.id} value={String(category.id)}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {createInstitutionFieldErrors.categoryId ? (
+                      <p className="admin-individual-users-modal-field-error">
+                        {createInstitutionFieldErrors.categoryId}
+                      </p>
+                    ) : null}
+                    {createInstitutionCategoriesError ? (
+                      <p className="admin-individual-users-modal-field-error">
+                        {createInstitutionCategoriesError}
+                      </p>
+                    ) : null}
+                  </div>
+                  <label className="admin-individual-users-modal-field">
+                    <span>İl</span>
+                    <input type="text" value={ADMIN_CREATED_INSTITUTION_CITY} disabled />
+                  </label>
+                  <div className="admin-individual-users-modal-field">
+                    <span>İlçe</span>
+                    <Select
+                      value={createInstitutionDistrict || undefined}
+                      onValueChange={(next) => {
+                        setCreateInstitutionDistrict(next);
+                        setCreateInstitutionFieldErrors((prev) => ({
+                          ...prev,
+                          district: undefined,
+                        }));
+                      }}
+                      disabled={createInstitutionSubmitting}
+                    >
+                      <SelectTrigger
+                        className={`admin-create-institution-select-trigger${
+                          createInstitutionFieldErrors.district
+                            ? " admin-individual-users-modal-field-input--error"
+                            : ""
+                        }`}
+                        aria-invalid={createInstitutionFieldErrors.district ? true : undefined}
+                        aria-label="İlçe seçin"
+                      >
+                        <SelectValue placeholder="İlçe seçin" />
+                      </SelectTrigger>
+                      <SelectContent
+                        className="admin-create-institution-select-content"
+                        position="popper"
+                        side="bottom"
+                        sideOffset={6}
+                        align="start"
+                      >
+                        {ANKARA_DISTRICTS.map((district) => (
+                          <SelectItem key={district} value={district}>
+                            {district}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {createInstitutionFieldErrors.district ? (
+                      <p className="admin-individual-users-modal-field-error">
+                        {createInstitutionFieldErrors.district}
+                      </p>
+                    ) : null}
+                  </div>
+                  {createInstitutionError ? (
+                    <p className="admin-individual-users-modal-error">{createInstitutionError}</p>
+                  ) : null}
+                  <div className="admin-individual-users-modal-actions">
+                    <button
+                      type="button"
+                      className="admin-individual-users-modal-cancel-btn"
+                      onClick={handleCloseCreateInstitutionModal}
+                      disabled={createInstitutionSubmitting}
+                    >
+                      Vazgeç
+                    </button>
+                    <button
+                      type="submit"
+                      className="admin-individual-users-modal-save-btn"
+                      disabled={createInstitutionSubmitting}
+                    >
+                      {createInstitutionSubmitting ? "Oluşturuluyor..." : "Oluştur"}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           ) : null}

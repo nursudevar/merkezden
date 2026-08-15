@@ -46,6 +46,7 @@ type Props = {
   onInstructorRowChange: (row: InstructorProfileRow) => void;
   splitLayout?: boolean;
   header?: ReactNode;
+  leadingSlot?: ReactNode;
 };
 
 const EMPTY_FORM: InstructorFeatureFormState = {
@@ -72,6 +73,7 @@ export function InstructorFeaturesTab({
   onInstructorRowChange,
   splitLayout = false,
   header = null,
+  leadingSlot = null,
 }: Props) {
   const instructorId = Number(instructorRow.id);
   const hasValidInstructorId = Number.isFinite(instructorId) && instructorId > 0;
@@ -556,6 +558,7 @@ export function InstructorFeaturesTab({
     return (
       <>
         <div className="egitmen-panel-page-main">
+          {leadingSlot}
           <section className="egitmen-panel-main-card" aria-labelledby="instructor-card-title">
             {header}
             {upperContent}
