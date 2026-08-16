@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { SlidersHorizontal } from "lucide-react";
@@ -35,6 +35,12 @@ import {
   resolveCategoryLocationFromSearch,
   writeCategoryLocationToSearch,
 } from "@/components/category/categoryLocationFilter";
+import {
+  readKurumTuruSlugsFromSearch,
+  resolveInstitutionIdsByKurumTuruSlugs,
+  writeKurumTuruSlugsToParams,
+  type KurumTuruSlug,
+} from "@/lib/institutionSchoolStatusFilter";
 
 function searchQueryEqual(a: string, b: string): boolean {
   const left = new URLSearchParams(a.startsWith("?") ? a.slice(1) : a);
@@ -47,11 +53,6 @@ function searchQueryEqual(a: string, b: string): boolean {
   return serialize(left) === serialize(right);
 }
 
-const DESKTOP_MIN_WIDTH = 1024;
-/** Header altında kalacak minimum üst boşluk */
-const FILTER_PIN_TOP = 100;
-
-/** Yakınımdaki arama: harita zoom (mevcut flyTo davranışı; yarıçap kuralı yok — viewport listesi). */
 const NEARBY_MAP_ZOOM = 13;
 
 /** Harita ilk açılış merkezi / zoom (InstitutionLocationsMap ile aynı). */
@@ -85,10 +86,6 @@ function markerMatchesLocationIds(
   return true;
 }
 
-function isDesktopViewport(): boolean {
-  return typeof window !== "undefined" && window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`).matches;
-}
-
 export function HaritadaAraPageClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -108,13 +105,13 @@ export function HaritadaAraPageClient() {
   const isFilterOpenRef = useRef(false);
   isFilterOpenRef.current = isFilterOpen;
   const resultsScrollRef = useRef<HTMLDivElement>(null);
-  const sidebarSlotRef = useRef<HTMLDivElement>(null);
-  const fixedFilterRef = useRef<HTMLDivElement>(null);
 
   const [selectedIlId, setSelectedIlId] = useState("");
   const [defaultIlId, setDefaultIlId] = useState("");
   const [selectedIlceId, setSelectedIlceId] = useState("");
   const [selectedMahalleId, setSelectedMahalleId] = useState("");
+  const [selectedKurumTuru, setSelectedKurumTuru] = useState<KurumTuruSlug[]>([]);
+  const [kurumTuruAllowedIds, setKurumTuruAllowedIds] = useState<Set<number> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearchQuery, setAppliedSearchQuery] = useState("");
   const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
@@ -149,6 +146,9 @@ export function HaritadaAraPageClient() {
     const searchKey = normalizeLocationKey(appliedSearchQuery);
     const filtered = markers.filter((marker) => {
       if (!markerMatchesLocationIds(marker, selectedIlIdNum, selectedIlceIdNum, selectedMahalleIdNum)) {
+        return false;
+      }
+      if (kurumTuruAllowedIds && !kurumTuruAllowedIds.has(marker.id)) {
         return false;
       }
       if (!searchKey) return true;
@@ -188,76 +188,11 @@ export function HaritadaAraPageClient() {
     selectedIlIdNum,
     selectedIlceIdNum,
     selectedMahalleIdNum,
+    kurumTuruAllowedIds,
     appliedSearchQuery,
     nearbyActive,
     userLocation,
   ]);
-
-  const syncFixedFilterPosition = useCallback(() => {
-    const slot = sidebarSlotRef.current;
-    const panel = fixedFilterRef.current;
-    if (!slot || !panel) return;
-
-    if (!isDesktopViewport()) {
-      panel.style.removeProperty("position");
-      panel.style.removeProperty("top");
-      panel.style.removeProperty("left");
-      panel.style.removeProperty("width");
-      panel.style.removeProperty("max-height");
-      panel.style.removeProperty("overflow");
-      panel.classList.remove("haritada-ara-filter-fixed--active");
-      return;
-    }
-
-    const slotRect = slot.getBoundingClientRect();
-    const container = slot.closest(".category-page-layout-container");
-    const containerRect = container?.getBoundingClientRect();
-    const resultsEl = resultsScrollRef.current;
-    const resultsTop = resultsEl?.getBoundingClientRect().top;
-
-    const naturalTop =
-      typeof resultsTop === "number" && Number.isFinite(resultsTop)
-        ? Math.min(slotRect.top, resultsTop)
-        : slotRect.top;
-
-    panel.classList.add("haritada-ara-filter-fixed--active");
-    panel.style.position = "fixed";
-    panel.style.left = `${Math.round(slotRect.left)}px`;
-    panel.style.width = `${Math.round(slotRect.width)}px`;
-    panel.style.removeProperty("max-height");
-    panel.style.overflow = "visible";
-
-    const panelHeight = panel.getBoundingClientRect().height;
-    let top = Math.max(FILTER_PIN_TOP, naturalTop);
-
-    // Layout container’ın altına gelince filtrenin alt kenarı container altıyla hizalansın
-    if (containerRect && Number.isFinite(panelHeight) && panelHeight > 0) {
-      top = Math.min(top, containerRect.bottom - panelHeight);
-    }
-
-    panel.style.top = `${Math.round(top)}px`;
-  }, []);
-
-  useLayoutEffect(() => {
-    syncFixedFilterPosition();
-
-    const onScrollOrResize = () => syncFixedFilterPosition();
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize);
-
-    const slot = sidebarSlotRef.current;
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined" && slot
-        ? new ResizeObserver(() => syncFixedFilterPosition())
-        : null;
-    if (slot) resizeObserver?.observe(slot);
-
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-      resizeObserver?.disconnect();
-    };
-  }, [syncFixedFilterPosition, filteredMarkers.length, loading]);
 
   const focusMapForLocation = useCallback(
     async (ilIdValue: string, ilceIdValue: string, mahalleIdValue: string) => {
@@ -360,6 +295,7 @@ export function HaritadaAraPageClient() {
       if (!nextIlceId) setMahalleler([]);
       setSearchQuery(q);
       setAppliedSearchQuery(q);
+      setSelectedKurumTuru(readKurumTuruSlugsFromSearch(searchKey));
       lastHydratedSearchKeyRef.current = searchKey;
       if (nextIlceId || nextMahalleId) {
         void focusMapForLocation(nextIlId, nextIlceId, nextMahalleId);
@@ -385,6 +321,7 @@ export function HaritadaAraPageClient() {
       const trimmedQuery = appliedSearchQuery.trim();
       if (trimmedQuery) params.set("q", trimmedQuery);
       else params.delete("q");
+      writeKurumTuruSlugsToParams(params, selectedKurumTuru);
       const serialized = params.toString();
       if (searchQueryEqual(serialized, searchKey)) return;
       const nextUrl = serialized ? `${pathname}?${serialized}` : pathname;
@@ -399,7 +336,29 @@ export function HaritadaAraPageClient() {
     selectedIlId,
     selectedIlceId,
     selectedMahalleId,
+    selectedKurumTuru,
   ]);
+
+  useEffect(() => {
+    if (selectedKurumTuru.length === 0) {
+      setKurumTuruAllowedIds(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const ids = await resolveInstitutionIdsByKurumTuruSlugs(supabase, selectedKurumTuru);
+        if (!cancelled) setKurumTuruAllowedIds(new Set(ids));
+      } catch (error) {
+        console.error("Kurum türü filtresi yüklenemedi:", error);
+        if (!cancelled) setKurumTuruAllowedIds(new Set());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedKurumTuru]);
 
   useEffect(() => {
     const ilId = parseLocationId(selectedIlId);
@@ -739,6 +698,7 @@ export function HaritadaAraPageClient() {
     if (searchQuery.trim() || appliedSearchQuery.trim()) return true;
     if (selectedIlceId) return true;
     if (selectedMahalleId) return true;
+    if (selectedKurumTuru.length > 0) return true;
     if (nearbyActive) return true;
     if (defaultIlId && selectedIlId !== defaultIlId) return true;
     return false;
@@ -747,10 +707,18 @@ export function HaritadaAraPageClient() {
     appliedSearchQuery,
     selectedIlceId,
     selectedMahalleId,
+    selectedKurumTuru,
     nearbyActive,
     selectedIlId,
     defaultIlId,
   ]);
+
+  const handleKurumTuruToggle = useCallback((slug: KurumTuruSlug) => {
+    setSelectedKurumTuru((prev) =>
+      prev.includes(slug) ? prev.filter((item) => item !== slug) : [...prev, slug],
+    );
+    closeDrawerAndScrollToResults();
+  }, [closeDrawerAndScrollToResults]);
 
   const handleResetFilters = useCallback(() => {
     nearbyRequestIdRef.current += 1;
@@ -764,6 +732,7 @@ export function HaritadaAraPageClient() {
     setSelectedMahalleId("");
     setMahalleler([]);
     setSelectedIlId(defaultIlId);
+    setSelectedKurumTuru([]);
     clearNearbyMode();
     setMapFocus({
       lat: DEFAULT_MAP_CENTER.lat,
@@ -829,12 +798,14 @@ export function HaritadaAraPageClient() {
     selectedIlId,
     selectedIlceId,
     selectedMahalleId,
+    selectedKurumTuru,
     searchQuery,
     onSearchQueryChange: setSearchQuery,
     onSearchSubmit: handleSearchSubmit,
     onIlChange: handleIlChange,
     onIlceChange: handleIlceChange,
     onMahalleChange: handleMahalleChange,
+    onKurumTuruToggle: handleKurumTuruToggle,
     onNearbyClick: handleNearbyClick,
     nearbyLoading,
     nearbyError,
@@ -858,8 +829,7 @@ export function HaritadaAraPageClient() {
           />
         </div>
         <aside className="category-page-layout-sidebar haritada-ara-sidebar">
-          <div ref={sidebarSlotRef} className="haritada-ara-sidebar-slot" aria-hidden />
-          <div ref={fixedFilterRef} className="haritada-ara-filter-fixed">
+          <div className="haritada-ara-filter-panel">
             <HaritadaAraFilterSidebar {...filterSidebarProps} />
           </div>
         </aside>

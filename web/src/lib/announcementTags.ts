@@ -7,7 +7,7 @@ export const ANNOUNCEMENT_TAG_OPTIONS = [
   "Erken Kayıt",
   "Yaz Okulu",
   "Haber",
-  "Merkezden.com’a Özel",
+  "Merkezden'e Özel",
   "Açık Pozisyonlar",
 ] as const;
 
@@ -32,7 +32,7 @@ const ANNOUNCEMENT_TAG_TONE_BY_VALUE: Record<AnnouncementTag, AnnouncementTagTon
   "Erken Kayıt": "orange",
   "Yaz Okulu": "orange",
   Haber: "green",
-  "Merkezden.com’a Özel": "gradient",
+  "Merkezden'e Özel": "gradient",
   "Açık Pozisyonlar": "purple",
 };
 

@@ -11,6 +11,10 @@ import { InstructorCompareToggleButton } from "@/components/compare/InstructorCo
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { parseLocationId } from "@/lib/turkiyeLocationsClient";
 import {
+  resolveInstitutionIdsBySchoolStatuses,
+  type SchoolStatus,
+} from "@/lib/institutionSchoolStatusFilter";
+import {
   resolveInstitutionIdsByPriceRange,
   resolveInstitutionIdsByPriceRangeSelections,
 } from "@/lib/institutionPriceRangeFilter";
@@ -67,7 +71,7 @@ interface SearchResultsProps {
   ilceIdFilter?: string;
   mahalleIdFilter?: string;
   /** Kurum türü: `private` = Özel, `public` = Devlet; birden fazla seçimde OR mantığı */
-  schoolStatusFilters?: ("private" | "public")[];
+  schoolStatusFilters?: SchoolStatus[];
   /** Öğrenci yaşı (ham metin); hem kurum hem eğitmen */
   studentAgeRange?: StudentAgeFilterTextPayload | null;
   /** Hizmet tipi: yüz yüze / online / bireysel / grup; birden fazla seçimde OR mantığı */
@@ -100,15 +104,6 @@ function normalizeFeatureKey(text: string): string {
     .trim();
 }
 
-function isOkulDurumuDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return (
-    t.includes("okul durumu") ||
-    t.includes("okul turu") ||
-    t.includes("kurum turu")
-  );
-}
-
 function isHizmetTipiDefinition(row: { name?: string | null; slug?: string | null }): boolean {
   const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
   return (
@@ -116,14 +111,6 @@ function isHizmetTipiDefinition(row: { name?: string | null; slug?: string | nul
     t.includes("servis tipi") ||
     t.includes("service type")
   );
-}
-
-function choiceLabelMatchesSchoolStatus(choiceName: string, status: "private" | "public"): boolean {
-  const n = String(choiceName ?? "").trim().toLocaleLowerCase("tr-TR");
-  if (status === "private") {
-    return n === "özel" || n.startsWith("özel ") || n === "private";
-  }
-  return n === "devlet" || n.startsWith("devlet ") || n.includes("devlet") || n === "public";
 }
 
 function choiceLabelMatchesServiceType(choiceName: string, target: "face" | "online" | "individual" | "group"): boolean {
@@ -234,18 +221,6 @@ async function resolveInstitutionIdsByFeatureChoices(
   }
 
   return Array.from(idSet);
-}
-
-async function resolveInstitutionIdsBySchoolStatuses(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  statuses: ("private" | "public")[]
-): Promise<number[]> {
-  if (statuses.length === 0) return [];
-  return resolveInstitutionIdsByFeatureChoices(
-    supabase,
-    isOkulDurumuDefinition,
-    (name) => statuses.some((s) => choiceLabelMatchesSchoolStatus(name, s))
-  );
 }
 
 async function resolveInstitutionIdsByServiceTypes(

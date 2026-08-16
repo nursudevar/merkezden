@@ -392,12 +392,12 @@ function AnnouncementCategoryTabs({
                 <Image
                   src={logoSrc}
                   alt=""
-                  width={20}
-                  height={20}
+                  width={28}
+                  height={28}
                   className="announcements-category-card-icon"
                 />
               ) : (
-                <Icon className="announcements-category-card-icon" size={20} />
+                <Icon className="announcements-category-card-icon" size={28} />
               )}
             </span>
             <span className="announcements-category-card-label">{category}</span>
@@ -837,64 +837,64 @@ function AnnouncementsPageContent() {
                   );
                 }}
               />
-
-              {!loading && !error && featured && filteredAnnouncements.length > 0 ? (
-                <section className="announcements-list-section" aria-label="Tüm duyurular">
-                  <h2 className="announcements-list-section-title">Tüm Duyurular</h2>
-                  <div className="announcements-list-grid">
-                    {filteredAnnouncements.map((item) => (
-                      <article
-                        className="announcement-small announcement-clickable"
-                        key={`list-${item.id}`}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openAnnouncement(item)}
-                        onKeyDown={(event) => handleCardKeyDown(event, item)}
-                        aria-label={`${item.title} duyurusunu aç`}
-                      >
-                        <div
-                          className={`announcement-small-thumb${item.imageUrl ? "" : " announcement-small-thumb--empty"}`}
-                          style={
-                            item.imageUrl
-                              ? { backgroundImage: `url("${item.imageUrl}")` }
-                              : undefined
-                          }
-                          aria-hidden
-                        >
-                          {!item.imageUrl ? (
-                            <ImageOff
-                              className="announcement-small-thumb-icon"
-                              size={22}
-                              strokeWidth={1.25}
-                            />
-                          ) : null}
-                        </div>
-                        <div className="announcement-small-body">
-                          {item.ownerName ? (
-                            <div className="announcement-small-kicker">
-                              {item.ownerName.toLocaleUpperCase("tr-TR")}
-                            </div>
-                          ) : null}
-                          {(() => {
-                            const tag = String(item.announcementTag ?? "").trim();
-                            const tagClass = getAnnouncementTagBadgeClassName(tag);
-                            if (!tag || !tagClass) return null;
-                            return <span className={tagClass}>{tag}</span>;
-                          })()}
-                          <h3 className="announcement-small-title">{item.title}</h3>
-                          {item.content ? (
-                            <p className="announcement-small-desc">
-                              {buildAnnouncementExcerpt(item.content, 140)}
-                            </p>
-                          ) : null}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
             </div>
           </div>
+
+          {!loading && !error && featured && filteredAnnouncements.length > 0 ? (
+            <section className="announcements-list-section" aria-label="Tüm duyurular">
+              <h2 className="announcements-list-section-title">Tüm Duyurular</h2>
+              <div className="announcements-list-grid">
+                {filteredAnnouncements.map((item) => (
+                  <article
+                    className="announcement-small announcement-clickable"
+                    key={`list-${item.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openAnnouncement(item)}
+                    onKeyDown={(event) => handleCardKeyDown(event, item)}
+                    aria-label={`${item.title} duyurusunu aç`}
+                  >
+                    <div
+                      className={`announcement-small-thumb${item.imageUrl ? "" : " announcement-small-thumb--empty"}`}
+                      style={
+                        item.imageUrl
+                          ? { backgroundImage: `url("${item.imageUrl}")` }
+                          : undefined
+                      }
+                      aria-hidden
+                    >
+                      {!item.imageUrl ? (
+                        <ImageOff
+                          className="announcement-small-thumb-icon"
+                          size={22}
+                          strokeWidth={1.25}
+                        />
+                      ) : null}
+                    </div>
+                    <div className="announcement-small-body">
+                      {item.ownerName ? (
+                        <div className="announcement-small-kicker">
+                          {item.ownerName.toLocaleUpperCase("tr-TR")}
+                        </div>
+                      ) : null}
+                      {(() => {
+                        const tag = String(item.announcementTag ?? "").trim();
+                        const tagClass = getAnnouncementTagBadgeClassName(tag);
+                        if (!tag || !tagClass) return null;
+                        return <span className={tagClass}>{tag}</span>;
+                      })()}
+                      <h3 className="announcement-small-title">{item.title}</h3>
+                      {item.content ? (
+                        <p className="announcement-small-desc">
+                          {buildAnnouncementExcerpt(item.content, 140)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       </main>
 

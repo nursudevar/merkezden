@@ -13,6 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui";
 import type { TurkiyeLocationOption } from "@/lib/turkiyeLocationsClient";
+import {
+  KURUM_TURU_OPTIONS,
+  type KurumTuruSlug,
+} from "@/lib/institutionSchoolStatusFilter";
 
 const ALL_CITIES_VALUE = "__all_cities__";
 const ALL_DISTRICTS_VALUE = "__all_districts__";
@@ -25,12 +29,14 @@ export type HaritadaAraFilterSidebarProps = {
   selectedIlId: string;
   selectedIlceId: string;
   selectedMahalleId: string;
+  selectedKurumTuru: readonly KurumTuruSlug[];
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   onSearchSubmit: () => void;
   onIlChange: (ilId: string) => void;
   onIlceChange: (ilceId: string) => void;
   onMahalleChange: (mahalleId: string) => void;
+  onKurumTuruToggle: (slug: KurumTuruSlug) => void;
   onNearbyClick: () => void;
   nearbyLoading?: boolean;
   nearbyError?: string | null;
@@ -78,12 +84,14 @@ export function HaritadaAraFilterSidebar({
   selectedIlId,
   selectedIlceId,
   selectedMahalleId,
+  selectedKurumTuru,
   searchQuery,
   onSearchQueryChange,
   onSearchSubmit,
   onIlChange,
   onIlceChange,
   onMahalleChange,
+  onKurumTuruToggle,
   onNearbyClick,
   nearbyLoading = false,
   nearbyError = null,
@@ -275,6 +283,31 @@ export function HaritadaAraFilterSidebar({
                   </SelectContent>
                 </Select>
               </SelectMountGate>
+            </div>
+          </div>
+
+          <div className="category-filter-section">
+            <h3 className="category-filter-section-title">KURUM TÜRÜ</h3>
+            <div className="category-filter-section-checkboxes">
+              {KURUM_TURU_OPTIONS.map((option) => {
+                const isChecked = selectedKurumTuru.includes(option.slug);
+                return (
+                  <label
+                    key={option.slug}
+                    className={`category-filter-checkbox-option${
+                      isChecked ? " category-filter-checkbox-option--selected" : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => onKurumTuruToggle(option.slug)}
+                      className="category-filter-checkbox-input"
+                    />
+                    <span className="category-filter-checkbox-label">{option.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 

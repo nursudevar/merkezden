@@ -1,9 +1,23 @@
+@import '../colors';
+@import '../mixins';
+
 .announcements-page {
   max-width: 1280px;
   width: 100%;
   margin: 0 auto;
   padding: 8px 30px 56px;
-  box-sizing: border-box;
+  /* header-container ile aynı box model (content-box): max-width padding dışı,
+     böylece logo / Hesabım kenarları ile içerik hizası eşitlenir. */
+  @include large-desktop-content-width;
+
+  /* Breadcrumb, üst layout ve Tüm Duyurular aynı sol/sağ kenarı paylaşsın */
+  > * {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
 }
 
 /* Breadcrumb içerik kapsayıcısıyla aynı sol hizada olsun (çift padding/width yok). */
@@ -11,6 +25,7 @@
   padding-top: 12px;
   padding-bottom: 16px;
 
+  .category-breadcrumb,
   .category-breadcrumb-container {
     width: 100%;
     max-width: 100%;
@@ -61,15 +76,15 @@
 .announcements-category-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
-  min-height: 52px;
+  min-height: 56px;
   height: 100%;
-  padding: 10px 12px;
+  padding: 10px 14px;
   box-sizing: border-box;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
+  border-radius:30px;
   background-color: #ffffff;
   color: #111827;
   cursor: pointer;
@@ -96,14 +111,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
 
 .announcements-category-card-icon {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   display: block;
   object-fit: contain;
   color: #6d5dfc;
@@ -179,8 +194,10 @@
   text-decoration: underline;
 }
 
-/* Öne çıkanların altındaki tüm duyurular listesi — box layoutta görüntülenir. */
+/* Öne çıkanların altındaki tüm duyurular — iki kolonlu layout dışında tam genişlik. */
 .announcements-list-section {
+  width: 100%;
+  min-width: 0;
   margin-top: 32px;
 }
 
@@ -195,6 +212,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 1024px) {
@@ -221,6 +240,19 @@
   .announcements-page {
     padding: 4px 16px 36px;
   }
+
+  /* Global breadcrumb mobil padding'i bu sayfada çift inset oluşturmasın */
+  .announcements-page-breadcrumb .category-breadcrumb-container {
+    padding: 0;
+  }
 }
 
-@import '../layout/large-desktop';
+/* large-desktop listesindeki .category-breadcrumb-container kuralını bu sayfada ez */
+@media (min-width: $large-desktop-min) {
+  .announcements-page .category-breadcrumb-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
