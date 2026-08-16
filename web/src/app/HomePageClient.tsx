@@ -13,6 +13,7 @@ import { HomeDrivingSchoolsSection } from "@/components/featured/HomeDrivingScho
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
 import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
+import { HomeLocationSelect } from "@/components/home/HomeLocationSelect";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
@@ -31,7 +32,15 @@ import {
   toggleInstructorFavorite,
 } from "@/lib/favorites/favoritesClient";
 import { getCategoryHref, HOME_MAIN_CATEGORY_ORDER } from "@/lib/categoryHelpers";
-import { ANKARA_DISTRICTS } from "@/constants/districts";
+import {
+  fetchIlcelerByIlId,
+  fetchIller,
+  fetchMahallelerByIlceId,
+  findLocationIdByAd,
+  HOME_DEFAULT_CITY_AD,
+  parseLocationId,
+  type TurkiyeLocationOption,
+} from "@/lib/turkiyeLocationsClient";
 import type { User } from "@supabase/supabase-js";
 import { PriceRangeSliderFilter, type PriceRangeSliderValue } from "@/components/filters/PriceRangeSliderFilter";
 import { AgeRangeSliderFilter } from "@/components/filters/AgeRangeSliderFilter";
@@ -318,6 +327,7 @@ const HOME_PATILI_DOSTLAR_SIDE_CARDS = [
 ] as const;
 
 const ALL_DISTRICTS_VALUE = "__all__";
+const ALL_NEIGHBORHOODS_VALUE = "__all_neighborhoods__";
 
 function HomeCategoryAccordionPlaceholder({
   openCategoryId,
@@ -396,10 +406,13 @@ export default function HomePageClient() {
   const [favoriteInstructorActionLoadingIds, setFavoriteInstructorActionLoadingIds] = useState<Set<number>>(
     () => new Set(),
   );
-  const districts = ANKARA_DISTRICTS;
-  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
+  const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
+  const [ilceler, setIlceler] = useState<TurkiyeLocationOption[]>([]);
+  const [mahalleler, setMahalleler] = useState<TurkiyeLocationOption[]>([]);
+  const [defaultIlId, setDefaultIlId] = useState("");
+  const [selectedIlId, setSelectedIlId] = useState("");
+  const [selectedIlceId, setSelectedIlceId] = useState("");
+  const [selectedMahalleId, setSelectedMahalleId] = useState("");
   const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRangeSliderValue>(null);
   const [openCategoryId, setOpenCategoryId] = useState<string>(() => sidebarCategoryGroups[0]?.id ?? "");
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
@@ -464,11 +477,16 @@ export default function HomePageClient() {
     [selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards]
   );
 
+  const isDefaultHomeLocation =
+    (!selectedIlId || !defaultIlId || selectedIlId === defaultIlId) &&
+    !selectedIlceId &&
+    !selectedMahalleId;
+
   const showDefaultHomeContent = useMemo(
     () =>
       !(
         (query && query.trim().length > 0) ||
-        selectedDistrict ||
+        !isDefaultHomeLocation ||
         selectedSchoolStatuses.size > 0 ||
         isStudentAgeFilterTextActive(selectedAgeRange) ||
         selectedServiceTypes.size > 0 ||
@@ -477,7 +495,7 @@ export default function HomePageClient() {
       ),
     [
       query,
-      selectedDistrict,
+      isDefaultHomeLocation,
       selectedSchoolStatuses,
       selectedAgeRange,
       selectedServiceTypes,
@@ -710,11 +728,70 @@ export default function HomePageClient() {
   }, [isAuthReady, user]);
 
   useEffect(() => {
-    if (!selectedDistrict) {
-      setNeighborhoods([]);
-      setSelectedNeighborhood("");
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIller();
+        if (cancelled) return;
+        setIller(rows);
+        const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
+        if (ankaraId) setDefaultIlId(ankaraId);
+        setSelectedIlId((current) => current || ankaraId);
+      } catch (error) {
+        console.error("İller yüklenemedi:", error);
+        if (!cancelled) setIller([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const ilId = parseLocationId(selectedIlId);
+    if (ilId == null) {
+      setIlceler([]);
+      return;
     }
-  }, [selectedDistrict]);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIlcelerByIlId(ilId);
+        if (!cancelled) setIlceler(rows);
+      } catch (error) {
+        console.error("İlçeler yüklenemedi:", error);
+        if (!cancelled) setIlceler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIlId]);
+
+  useEffect(() => {
+    const ilceId = parseLocationId(selectedIlceId);
+    if (ilceId == null) {
+      setMahalleler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchMahallelerByIlceId(ilceId);
+        if (!cancelled) setMahalleler(rows);
+      } catch (error) {
+        console.error("Mahalleler yüklenemedi:", error);
+        if (!cancelled) setMahalleler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIlceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -801,9 +878,32 @@ export default function HomePageClient() {
     scrollToResultsOnMobile();
   };
 
-  const handleDistrictChange = (value: string) => {
-    setSelectedDistrict(value);
+  const handleIlChange = (value: string) => {
+    setSelectedIlId(value);
+    setSelectedIlceId("");
+    setSelectedMahalleId("");
+    setMahalleler([]);
     scrollToResultsOnMobile();
+  };
+
+  const handleIlceChange = (value: string) => {
+    const nextIlceId = value === ALL_DISTRICTS_VALUE ? "" : value;
+    setSelectedIlceId(nextIlceId);
+    setSelectedMahalleId("");
+    if (!nextIlceId) setMahalleler([]);
+    scrollToResultsOnMobile();
+  };
+
+  const handleMahalleChange = (value: string) => {
+    setSelectedMahalleId(value === ALL_NEIGHBORHOODS_VALUE ? "" : value);
+    scrollToResultsOnMobile();
+  };
+
+  const resetHomeLocationFilters = () => {
+    setSelectedIlId(defaultIlId);
+    setSelectedIlceId("");
+    setSelectedMahalleId("");
+    setMahalleler([]);
   };
 
   return (
@@ -868,75 +968,51 @@ export default function HomePageClient() {
                 <div className="filter-section-inputs">
                   {isClientMounted ? (
                     <>
-                  <Select value="ankara" disabled>
-                    <SelectTrigger className="location-input">
-                      <SelectValue placeholder="Şehir Seçin" />
-                    </SelectTrigger>
-                    <SelectContent
-                      className="select-content home-location-dropdown"
-                      side="bottom"
-                      avoidCollisions={false}
-                    >
-                      <SelectItem value="ankara" className="select-item">
-                        Ankara
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={selectedDistrict || ALL_DISTRICTS_VALUE}
-                    onValueChange={(value) =>
-                      handleDistrictChange(value === ALL_DISTRICTS_VALUE ? "" : value)
-                    }
-                  >
-                    <SelectTrigger className="location-input">
-                      <SelectValue placeholder="İlçe Seçin" />
-                    </SelectTrigger>
-                    <SelectContent
-                      className="select-content home-location-dropdown"
-                      side="bottom"
-                      avoidCollisions={false}
-                    >
-                      <SelectItem value={ALL_DISTRICTS_VALUE} className="select-item">
-                        Tüm İlçeler
-                      </SelectItem>
-                      {districts.map((district) => (
-                        <SelectItem key={district} value={district} className="select-item">
-                          {district}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={selectedNeighborhood || undefined}
-                    onValueChange={setSelectedNeighborhood}
-                    disabled={neighborhoods.length === 0}
-                  >
-                    <SelectTrigger className="location-input">
-                      <SelectValue placeholder="Mahalle Seçin" />
-                    </SelectTrigger>
-                    <SelectContent
-                      className="select-content home-location-dropdown"
-                      side="bottom"
-                      avoidCollisions={false}
-                    >
-                      {neighborhoods.map((neighborhood) => (
-                        <SelectItem key={neighborhood} value={neighborhood} className="select-item">
-                          {neighborhood}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <HomeLocationSelect
+                        id="home-location-il"
+                        value={selectedIlId}
+                        options={iller}
+                        placeholder="İl Seçin"
+                        searchPlaceholder="İl ara"
+                        onValueChange={handleIlChange}
+                      />
+                      <HomeLocationSelect
+                        id="home-location-ilce"
+                        value={selectedIlceId || ALL_DISTRICTS_VALUE}
+                        options={ilceler}
+                        placeholder="İlçe Seçin"
+                        searchPlaceholder="İlçe ara"
+                        disabled={!selectedIlId}
+                        allValue={ALL_DISTRICTS_VALUE}
+                        allLabel="Tüm İlçeler"
+                        onValueChange={handleIlceChange}
+                      />
+                      <HomeLocationSelect
+                        id="home-location-mahalle"
+                        value={
+                          selectedIlceId
+                            ? selectedMahalleId || ALL_NEIGHBORHOODS_VALUE
+                            : undefined
+                        }
+                        options={mahalleler}
+                        placeholder="Mahalle Seçin"
+                        searchPlaceholder="Mahalle ara"
+                        disabled={!selectedIlceId}
+                        allValue={ALL_NEIGHBORHOODS_VALUE}
+                        allLabel="Tüm Mahalleler"
+                        onValueChange={handleMahalleChange}
+                      />
                     </>
                   ) : (
                     <>
                       <div className="location-input select-trigger-default" aria-hidden>
-                        Ankara
+                        {HOME_DEFAULT_CITY_AD}
                       </div>
                       <div className="location-input select-trigger-default" aria-hidden>
-                        {selectedDistrict || "Tüm İlçeler"}
+                        Tüm İlçeler
                       </div>
                       <div className="location-input select-trigger-default" aria-hidden>
-                        {selectedNeighborhood || "Mahalle Seçin"}
+                        Tüm Mahalleler
                       </div>
                     </>
                   )}
@@ -1246,8 +1322,9 @@ export default function HomePageClient() {
           ) : (
             <SearchResults 
               query={query} 
-              cityFilter="Ankara"
-              districtFilter={selectedDistrict}
+              ilIdFilter={selectedIlId}
+              ilceIdFilter={selectedIlceId}
+              mahalleIdFilter={selectedMahalleId}
               schoolStatusFilters={Array.from(selectedSchoolStatuses)}
               studentAgeRange={selectedAgeRange}
               serviceTypeFilters={Array.from(selectedServiceTypes)}
@@ -1265,8 +1342,7 @@ export default function HomePageClient() {
               onClearSearch={() => setQuery("")}
               onClearAllFilters={() => {
                 setQuery("");
-                setSelectedDistrict("");
-                setSelectedNeighborhood("");
+                resetHomeLocationFilters();
                 setSelectedSchoolStatuses(new Set());
                 setSelectedAgeRange(null);
                 setSelectedServiceTypes(new Set());

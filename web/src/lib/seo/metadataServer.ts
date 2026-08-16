@@ -11,6 +11,8 @@ type PublicInstructorRow = {
   branch?: string | null;
   bio?: string | null;
   about?: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
   city?: string | null;
   district?: string | null;
   category_id?: number | null;
@@ -27,7 +29,7 @@ const INSTITUTION_METADATA_SELECT =
   "institution_name, subheading, about, city, district, institution_type:institution_types(name, category:institution_categories(name))";
 
 const INSTRUCTOR_METADATA_SELECT =
-  "id, slug, name, surname, bio, about, branch, city, district, category_id";
+  "id, slug, name, surname, bio, about, branch, il_id, ilce_id, category_id";
 
 export function truncateMetaDescription(text: string, maxLength = 160): string {
   const cleaned = text.replace(/\s+/g, " ").trim();
@@ -174,6 +176,27 @@ async function queryInstructorForMetadata(
   return data as unknown as PublicInstructorRow;
 }
 
+async function enrichInstructorLocationNames(
+  row: PublicInstructorRow,
+): Promise<PublicInstructorRow> {
+  const supabase = await createSupabaseServerClient();
+  const ilId = Number(row.il_id);
+  const ilceId = Number(row.ilce_id);
+  let city = "";
+  let district = "";
+
+  if (Number.isFinite(ilId) && ilId > 0) {
+    const { data } = await supabase.from("iller").select("ad").eq("id", ilId).maybeSingle();
+    city = String((data as { ad?: string | null } | null)?.ad ?? "").trim();
+  }
+  if (Number.isFinite(ilceId) && ilceId > 0) {
+    const { data } = await supabase.from("ilceler").select("ad").eq("id", ilceId).maybeSingle();
+    district = String((data as { ad?: string | null } | null)?.ad ?? "").trim();
+  }
+
+  return { ...row, city, district };
+}
+
 async function enrichInstructorCategoryName(
   row: PublicInstructorRow,
 ): Promise<PublicInstructorRow> {
@@ -210,7 +233,10 @@ export async function fetchPublicInstructorForMetadataServer(
 
   for (const { table, select } of attempts) {
     const row = await queryInstructorForMetadata(table, select, trimmed);
-    if (row) return enrichInstructorCategoryName(row);
+    if (row) {
+      const withCategory = await enrichInstructorCategoryName(row);
+      return enrichInstructorLocationNames(withCategory);
+    }
   }
 
   return null;

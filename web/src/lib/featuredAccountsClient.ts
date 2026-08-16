@@ -1,6 +1,7 @@
 "use client";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { buildLocationAdMaps, lookupLocationAds } from "@/lib/turkiyeLocationsClient";
 
 export const FEATURED_ACCOUNTS_TABLE = "featured_accounts" as const;
 export const FEATURED_ACCOUNT_TYPE_INSTITUTION = "institution" as const;
@@ -372,14 +373,15 @@ export async function fetchActiveFeaturedAccountsForAdmin(
       surname: string | null;
       email: string | null;
       branch: string | null;
-      district: string | null;
+      il_id: number | null;
+      ilce_id: number | null;
     }
   >();
 
   if (instructorIds.length > 0) {
     const { data: instructorsData, error: instructorsError } = await supabase
       .from("instructors")
-      .select("id, name, surname, email, branch, district")
+      .select("id, name, surname, email, branch, il_id, ilce_id")
       .in("id", instructorIds);
 
     if (instructorsError) {
@@ -393,12 +395,15 @@ export async function fetchActiveFeaturedAccountsForAdmin(
       surname: string | null;
       email: string | null;
       branch: string | null;
-      district: string | null;
+      il_id: number | null;
+      ilce_id: number | null;
     }>) {
       const id = Number(row.id);
       if (Number.isFinite(id)) instructorById.set(id, row);
     }
   }
+
+  const instructorLocationMaps = await buildLocationAdMaps([...instructorById.values()]);
 
   const mediaCountByInstitutionId: Record<number, number> = {};
   if (institutionIds.length > 0) {
@@ -456,7 +461,14 @@ export async function fetchActiveFeaturedAccountsForAdmin(
         typeLabel: "Eğitmen",
         name: resolveInstructorDisplayName(instructor),
         categoryOrBranch: String(instructor.branch ?? "").trim() || "-",
-        district: String(instructor.district ?? "").trim() || "-",
+        district: (() => {
+          const { ilAd, ilceAd } = lookupLocationAds(
+            instructor.il_id,
+            instructor.ilce_id,
+            instructorLocationMaps,
+          );
+          return ilceAd || ilAd || "-";
+        })(),
         mediaCount: null,
       });
     }

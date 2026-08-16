@@ -34,7 +34,6 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
-  PUBLIC_INSTRUCTORS_TABLE,
   fetchPublicInstructorsListClient,
   publicInstructorDisplayName,
   type PublicInstructorRow,
@@ -152,15 +151,15 @@ function pickInitials(displayName: string): string {
   return `${first}${last}`.toLocaleUpperCase("tr-TR");
 }
 
-function buildLocation(district?: string | null, city?: string | null): string {
-  const parts = [district, city]
+function buildLocation(ilceAd?: string | null, ilAd?: string | null): string {
+  const parts = [ilceAd, ilAd]
     .map((part) => String(part ?? "").trim())
     .filter(Boolean);
   return parts.join(", ");
 }
 
 function buildSubtitle(row: PublicInstructorRow & Record<string, unknown>): string {
-  const candidates = [row.branch, row.title, row.school];
+  const candidates = [row.branch, row.school];
   for (const candidate of candidates) {
     const value = String(candidate ?? "").trim();
     if (value) return value;
@@ -190,10 +189,7 @@ function mapInstructorRowToCardItem(
     href: `/egitmenler/${encodeURIComponent(hrefKey)}`,
     displayName,
     subtitle: buildSubtitle(row),
-    location: buildLocation(
-      row.district as string | null | undefined,
-      row.city as string | null | undefined,
-    ),
+    location: buildLocation(row.locationIlceAd, row.locationIlAd),
     imageUrl: resolvePublicInstructorProfilePictureUrl(
       String(row.profile_picture ?? "").trim(),
       supabase,
@@ -271,28 +267,12 @@ export function HomeIndividualInstructorsSection({
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from(PUBLIC_INSTRUCTORS_TABLE)
-        .select("*")
-        .eq("is_active", true)
-        .eq("is_approved", true)
-        .order("id", { ascending: false })
-        .limit(HOME_INSTRUCTOR_LIMIT);
-
+      const fallback = await fetchPublicInstructorsListClient({
+        limit: HOME_INSTRUCTOR_LIMIT,
+        supabase,
+      });
       if (cancelled) return;
-
-      let rows: Array<PublicInstructorRow & Record<string, unknown>> = [];
-
-      if (error || !Array.isArray(data)) {
-        const fallback = await fetchPublicInstructorsListClient({
-          limit: HOME_INSTRUCTOR_LIMIT,
-          supabase,
-        });
-        if (cancelled) return;
-        rows = fallback.rows as Array<PublicInstructorRow & Record<string, unknown>>;
-      } else {
-        rows = data as Array<PublicInstructorRow & Record<string, unknown>>;
-      }
+      const rows = fallback.rows as Array<PublicInstructorRow & Record<string, unknown>>;
 
       const mapped = rows
         .map((row) => mapInstructorRowToCardItem(row, supabase))

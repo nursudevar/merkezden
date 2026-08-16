@@ -924,6 +924,11 @@
   padding: 20px;
 }
 
+.admin-individual-users-modal.admin-create-institution-modal {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
 .admin-individual-users-modal-header {
   display: flex;
   align-items: center;

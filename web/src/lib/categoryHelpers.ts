@@ -71,6 +71,7 @@ export function getCategoryHref(name: string, slug: string): string | null {
   if (key.includes("kisisel gelisim")) return "/kisisel-gelisim";
   if (key.includes("mesleki egitim")) return "/mesleki-egitim";
   if (key.includes("ozel egitim")) return "/ozel-egitim";
+  if (key.includes("patili") || key.includes("dostlar")) return "/patili-dostlar";
 
   const normalizedSlug = String(slug ?? "").trim();
   if (normalizedSlug) {

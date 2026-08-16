@@ -30,11 +30,13 @@
 }
 
 .category-hero-breadcrumb-wrapper {
-  padding: 16px 0 8px;
+  padding: 20px 0 12px;
   text-align: left;
+  max-width: 100%;
+  overflow: hidden;
 
   @media (max-width: 640px) {
-    padding: 12px 0 6px;
+    padding: 14px 0 8px;
   }
 }
 

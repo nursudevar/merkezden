@@ -6,6 +6,7 @@
   background-color: transparent;
   padding: 0;
   border-bottom: none;
+  max-width: 100%;
 }
 
 .category-breadcrumb-container {
@@ -13,14 +14,28 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  column-gap: 0;
+  row-gap: 8px;
   font-size: $text-sm;
   font-weight: $font-medium;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  min-width: 0;
+  max-width: 100%;
 
   @media (max-width: 640px) {
     padding: 0 20px;
     font-size: 13px;
+    row-gap: 6px;
   }
+}
+
+.category-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .category-breadcrumb-link {
@@ -28,6 +43,8 @@
   text-decoration: none;
   @include transition;
   transition-property: color;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   &:hover {
     color: $text-zinc-700;
@@ -36,12 +53,18 @@
 }
 
 .category-breadcrumb-separator {
-  color: $text-zinc-700;
+  color: $text-zinc-500;
+  opacity: 0.65;
   user-select: none;
+  flex-shrink: 0;
+  padding: 0 10px;
+  font-weight: $font-normal;
 }
 
 .category-breadcrumb-current {
   color: $purple-main;
   font-weight: $font-semibold;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 

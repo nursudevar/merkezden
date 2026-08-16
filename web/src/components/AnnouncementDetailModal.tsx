@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Globe, X } from "lucide-react";
+import { CalendarDays, Globe, MapPin, X } from "lucide-react";
 import "@/styles/components/announcement-detail-modal.scss";
 
 export type AnnouncementDetailItem = {
@@ -15,6 +15,7 @@ export type AnnouncementDetailItem = {
   linkUrl: string | null;
   announcementTag?: string | null;
   ownerHref?: string | null;
+  locationLabel?: string | null;
 };
 
 interface AnnouncementDetailModalProps {
@@ -126,12 +127,20 @@ export default function AnnouncementDetailModal({
                 </div>
               ) : null}
 
-              {dateText ? (
+              {dateText || announcement.locationLabel ? (
                 <div className="announcement-modal-meta">
-                  <span className="announcement-modal-meta-item">
-                    <CalendarDays className="announcement-modal-meta-icon" />
-                    {dateText}
-                  </span>
+                  {dateText ? (
+                    <span className="announcement-modal-meta-item">
+                      <CalendarDays className="announcement-modal-meta-icon" />
+                      {dateText}
+                    </span>
+                  ) : null}
+                  {announcement.locationLabel ? (
+                    <span className="announcement-modal-meta-item">
+                      <MapPin className="announcement-modal-meta-icon" />
+                      {announcement.locationLabel}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
 

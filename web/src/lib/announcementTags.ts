@@ -44,6 +44,25 @@ export function normalizeAnnouncementTag(value: unknown): AnnouncementTag | null
     : null;
 }
 
+export function announcementTagToSlug(tag: string): string {
+  return String(tag ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function announcementTagFromSlug(slug: string): AnnouncementTag | null {
+  const normalized = announcementTagToSlug(slug);
+  if (!normalized) return null;
+  return (
+    ANNOUNCEMENT_TAG_OPTIONS.find((tag) => announcementTagToSlug(tag) === normalized) ?? null
+  );
+}
+
 export function getAnnouncementTagTone(tag: AnnouncementTag): AnnouncementTagTone {
   return ANNOUNCEMENT_TAG_TONE_BY_VALUE[tag];
 }

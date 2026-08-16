@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
-import { LocateFixed, Loader2, Search as SearchIcon } from "lucide-react";
+import { LocateFixed, Loader2, RotateCcw, Search as SearchIcon } from "lucide-react";
 import {
   Button,
   Input,
@@ -12,20 +12,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
+import type { TurkiyeLocationOption } from "@/lib/turkiyeLocationsClient";
 
 const ALL_CITIES_VALUE = "__all_cities__";
 const ALL_DISTRICTS_VALUE = "__all_districts__";
+const ALL_NEIGHBORHOODS_VALUE = "__all_neighborhoods__";
 
 export type HaritadaAraFilterSidebarProps = {
-  cities: string[];
-  districts: string[];
-  selectedCity: string;
-  selectedDistrict: string;
+  iller: TurkiyeLocationOption[];
+  ilceler: TurkiyeLocationOption[];
+  mahalleler: TurkiyeLocationOption[];
+  selectedIlId: string;
+  selectedIlceId: string;
+  selectedMahalleId: string;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   onSearchSubmit: () => void;
-  onCityChange: (city: string) => void;
-  onDistrictChange: (district: string) => void;
+  onIlChange: (ilId: string) => void;
+  onIlceChange: (ilceId: string) => void;
+  onMahalleChange: (mahalleId: string) => void;
   onNearbyClick: () => void;
   nearbyLoading?: boolean;
   nearbyError?: string | null;
@@ -67,15 +72,18 @@ function SelectMountGate({
 }
 
 export function HaritadaAraFilterSidebar({
-  cities,
-  districts,
-  selectedCity,
-  selectedDistrict,
+  iller,
+  ilceler,
+  mahalleler,
+  selectedIlId,
+  selectedIlceId,
+  selectedMahalleId,
   searchQuery,
   onSearchQueryChange,
   onSearchSubmit,
-  onCityChange,
-  onDistrictChange,
+  onIlChange,
+  onIlceChange,
+  onMahalleChange,
   onNearbyClick,
   nearbyLoading = false,
   nearbyError = null,
@@ -83,10 +91,17 @@ export function HaritadaAraFilterSidebar({
   showResetFilters = false,
   onResetFilters,
 }: HaritadaAraFilterSidebarProps) {
-  const cityLabel = selectedCity || "Şehir Seçin";
-  const districtLabel = selectedCity
-    ? selectedDistrict || "İlçe Seçin"
-    : "Önce şehir seçin";
+  const selectedIlAd = iller.find((row) => String(row.id) === selectedIlId)?.ad ?? "";
+  const selectedIlceAd = ilceler.find((row) => String(row.id) === selectedIlceId)?.ad ?? "";
+  const selectedMahalleAd =
+    mahalleler.find((row) => String(row.id) === selectedMahalleId)?.ad ?? "";
+  const ilLabel = selectedIlAd || "İl Seçin";
+  const ilceLabel = selectedIlId
+    ? selectedIlceAd || "Tüm İlçeler"
+    : "Önce il seçin";
+  const mahalleLabel = selectedIlceId
+    ? selectedMahalleAd || "Tüm Mahalleler"
+    : "Önce ilçe seçin";
 
   return (
     <div className="category-filter-sidebar haritada-ara-filter-sidebar">
@@ -162,17 +177,17 @@ export function HaritadaAraFilterSidebar({
           </div>
 
           <div className="category-filter-section">
-            <h3 className="category-filter-section-title">ŞEHİR</h3>
+            <h3 className="category-filter-section-title">İL</h3>
             <div className="category-filter-section-inputs">
-              <SelectMountGate label={cityLabel}>
+              <SelectMountGate label={ilLabel}>
                 <Select
-                  value={selectedCity ? selectedCity : ALL_CITIES_VALUE}
+                  value={selectedIlId ? selectedIlId : ALL_CITIES_VALUE}
                   onValueChange={(value) =>
-                    onCityChange(value === ALL_CITIES_VALUE ? "" : value)
+                    onIlChange(value === ALL_CITIES_VALUE ? "" : value)
                   }
                 >
                   <SelectTrigger className="category-filter-select">
-                    <SelectValue placeholder="Şehir Seçin" />
+                    <SelectValue placeholder="İl Seçin" />
                   </SelectTrigger>
                   <SelectContent
                     className="select-content home-location-dropdown"
@@ -182,9 +197,9 @@ export function HaritadaAraFilterSidebar({
                     <SelectItem value={ALL_CITIES_VALUE} className="select-item">
                       Tüm Şehirler
                     </SelectItem>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city} className="select-item">
-                        {city}
+                    {iller.map((il) => (
+                      <SelectItem key={il.id} value={String(il.id)} className="select-item">
+                        {il.ad}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -196,17 +211,17 @@ export function HaritadaAraFilterSidebar({
           <div className="category-filter-section">
             <h3 className="category-filter-section-title">İLÇE</h3>
             <div className="category-filter-section-inputs">
-              <SelectMountGate label={districtLabel} disabled={!selectedCity}>
+              <SelectMountGate label={ilceLabel} disabled={!selectedIlId}>
                 <Select
-                  value={selectedDistrict ? selectedDistrict : ALL_DISTRICTS_VALUE}
+                  value={selectedIlceId ? selectedIlceId : ALL_DISTRICTS_VALUE}
                   onValueChange={(value) =>
-                    onDistrictChange(value === ALL_DISTRICTS_VALUE ? "" : value)
+                    onIlceChange(value === ALL_DISTRICTS_VALUE ? "" : value)
                   }
-                  disabled={!selectedCity}
+                  disabled={!selectedIlId}
                 >
                   <SelectTrigger className="category-filter-select">
                     <SelectValue
-                      placeholder={selectedCity ? "İlçe Seçin" : "Önce şehir seçin"}
+                      placeholder={selectedIlId ? "İlçe Seçin" : "Önce il seçin"}
                     />
                   </SelectTrigger>
                   <SelectContent
@@ -217,9 +232,44 @@ export function HaritadaAraFilterSidebar({
                     <SelectItem value={ALL_DISTRICTS_VALUE} className="select-item">
                       Tüm İlçeler
                     </SelectItem>
-                    {districts.map((district) => (
-                      <SelectItem key={district} value={district} className="select-item">
-                        {district}
+                    {ilceler.map((ilce) => (
+                      <SelectItem key={ilce.id} value={String(ilce.id)} className="select-item">
+                        {ilce.ad}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SelectMountGate>
+            </div>
+          </div>
+
+          <div className="category-filter-section">
+            <h3 className="category-filter-section-title">MAHALLE</h3>
+            <div className="category-filter-section-inputs">
+              <SelectMountGate label={mahalleLabel} disabled={!selectedIlceId}>
+                <Select
+                  value={selectedMahalleId ? selectedMahalleId : ALL_NEIGHBORHOODS_VALUE}
+                  onValueChange={(value) =>
+                    onMahalleChange(value === ALL_NEIGHBORHOODS_VALUE ? "" : value)
+                  }
+                  disabled={!selectedIlceId}
+                >
+                  <SelectTrigger className="category-filter-select">
+                    <SelectValue
+                      placeholder={selectedIlceId ? "Mahalle Seçin" : "Önce ilçe seçin"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="select-content home-location-dropdown"
+                    side="bottom"
+                    avoidCollisions={false}
+                  >
+                    <SelectItem value={ALL_NEIGHBORHOODS_VALUE} className="select-item">
+                      Tüm Mahalleler
+                    </SelectItem>
+                    {mahalleler.map((mahalle) => (
+                      <SelectItem key={mahalle.id} value={String(mahalle.id)} className="select-item">
+                        {mahalle.ad}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -232,10 +282,12 @@ export function HaritadaAraFilterSidebar({
             <div className="category-filter-section haritada-ara-reset-filters-section">
               <button
                 type="button"
-                className="haritada-ara-reset-filters-btn"
+                className="category-results-reset-btn haritada-ara-reset-filters-btn"
                 onClick={onResetFilters}
+                aria-label="Tüm filtreleri sıfırla"
               >
-                Filtreleri Sıfırla
+                <RotateCcw size={16} aria-hidden="true" />
+                <span>Filtreleri Sıfırla</span>
               </button>
             </div>
           ) : null}

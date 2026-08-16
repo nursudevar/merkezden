@@ -6,6 +6,12 @@ import {
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import { publicInstructorDisplayName } from "@/lib/publicInstructorClient";
 import { normalizeAnnouncementTag } from "@/lib/announcementTags";
+import {
+  buildLocationAdMaps,
+  formatAnnouncementLocationLabel,
+  lookupLocationAds,
+  parseLocationId,
+} from "@/lib/turkiyeLocationsClient";
 
 export type HomeAnnouncementSourceType = "institution" | "instructor";
 
@@ -30,7 +36,9 @@ export type AnnouncementsPageItem = {
   imageUrl: string | null;
   createdAt: string | null;
   ownerName: string;
-  ownerCity: string;
+  locationLabel: string;
+  il_id: number | null;
+  ilce_id: number | null;
   categoryName: string;
   linkUrl: string | null;
   announcementTag: string | null;
@@ -38,7 +46,6 @@ export type AnnouncementsPageItem = {
 };
 
 export const HOME_ANNOUNCEMENTS_CAROUSEL_COUNT = 10;
-const INSTRUCTOR_PUBLIC_CATEGORY_NAME = "Bireysel Eğitmen";
 
 type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
 
@@ -47,9 +54,13 @@ type PublicInstructorOwnerRow = {
   full_name?: string | null;
   name?: string | null;
   surname?: string | null;
-  city?: string | null;
-  district?: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  locationIlAd?: string | null;
+  locationIlceAd?: string | null;
   slug?: string | null;
+  category_id?: number | null;
+  categoryName?: string | null;
 };
 
 type InstructorAnnouncementRow = {
@@ -62,6 +73,26 @@ type InstructorAnnouncementRow = {
   link_url: string | null;
   announcement_tag: string | null;
   created_at: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+};
+
+type InstitutionCategoryJoin =
+  | { name?: string | null }
+  | Array<{ name?: string | null }>
+  | null;
+
+type InstitutionOwnerJoin = {
+  institution_name: string | null;
+  slug?: string | null;
+  city: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  category?: InstitutionCategoryJoin;
+  institution_type?:
+    | { category?: InstitutionCategoryJoin }
+    | Array<{ category?: InstitutionCategoryJoin }>
+    | null;
 };
 
 type InstitutionAnnouncementRow = {
@@ -72,26 +103,9 @@ type InstitutionAnnouncementRow = {
   link_url: string | null;
   announcement_tag: string | null;
   created_at: string | null;
-  institution:
-    | {
-        institution_name: string | null;
-        slug?: string | null;
-        city: string | null;
-        institution_type?:
-          | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
-          | Array<{ category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
-          | null;
-      }
-    | Array<{
-        institution_name: string | null;
-        slug?: string | null;
-        city: string | null;
-        institution_type?:
-          | { category?: { name?: string | null } | Array<{ name?: string | null }> | null }
-          | Array<{ category?: { name?: string | null } | Array<{ name?: string | null }> | null }>
-          | null;
-      }>
-    | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  institution: InstitutionOwnerJoin | InstitutionOwnerJoin[] | null;
 };
 
 function parseCreatedAtMs(iso: string | null): number {
@@ -112,23 +126,34 @@ function resolveInstructorOwnerName(instructor: PublicInstructorOwnerRow | null 
   return publicInstructorDisplayName(instructor);
 }
 
-function resolveInstructorOwnerCity(instructor: PublicInstructorOwnerRow | null | undefined): string {
-  if (!instructor) return "";
-  const district = String(instructor.district ?? "").trim();
-  const city = String(instructor.city ?? "").trim();
-  if (district && city) return `${district} / ${city}`;
-  return district || city;
+async function attachInstructorOwnerLocationAds(
+  rows: PublicInstructorOwnerRow[],
+): Promise<PublicInstructorOwnerRow[]> {
+  const maps = await buildLocationAdMaps(rows);
+  return rows.map((row) => {
+    const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, maps);
+    return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
+  });
+}
+
+function firstJoin<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function resolveJoinedCategoryName(join: InstitutionCategoryJoin | undefined): string {
+  const row = firstJoin(join ?? null);
+  return String(row?.name ?? "").trim();
 }
 
 function resolveInstitutionCategoryName(
   institution: InstitutionAnnouncementRow["institution"],
 ): string {
-  const row = Array.isArray(institution) ? institution[0] ?? null : institution ?? null;
-  const typeJoin = row?.institution_type;
-  const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
-  const categoryJoin = typeRow?.category;
-  const categoryRow = Array.isArray(categoryJoin) ? categoryJoin[0] : categoryJoin;
-  return String(categoryRow?.name ?? "").trim();
+  const row = firstJoin(institution);
+  const directCategoryName = resolveJoinedCategoryName(row?.category);
+  if (directCategoryName) return directCategoryName;
+  const typeRow = firstJoin(row?.institution_type);
+  return resolveJoinedCategoryName(typeRow?.category);
 }
 
 function resolveInstructorAnnouncementImageUrl(
@@ -154,6 +179,49 @@ function resolveInstructorAnnouncementImageUrl(
   return direct;
 }
 
+async function attachInstructorOwnerCategoryNames(
+  supabase: SupabaseBrowserClient,
+  rows: PublicInstructorOwnerRow[],
+): Promise<PublicInstructorOwnerRow[]> {
+  const categoryIds = [
+    ...new Set(
+      rows
+        .map((row) => Number(row.category_id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  if (categoryIds.length === 0) {
+    return rows.map((row) => ({ ...row, categoryName: "" }));
+  }
+
+  const { data, error } = await supabase
+    .from("instructor_categories")
+    .select("id, name")
+    .in("id", categoryIds)
+    .eq("is_active", true);
+
+  if (error) {
+    console.warn("[announcements-page] instructor categories:", error);
+    return rows.map((row) => ({ ...row, categoryName: "" }));
+  }
+
+  const nameById = new Map<number, string>();
+  for (const row of data ?? []) {
+    const id = Number((row as { id?: unknown }).id);
+    const name = String((row as { name?: unknown }).name ?? "").trim();
+    if (Number.isFinite(id) && id > 0 && name) nameById.set(id, name);
+  }
+
+  return rows.map((row) => {
+    const categoryId = Number(row.category_id);
+    return {
+      ...row,
+      categoryName:
+        Number.isFinite(categoryId) && categoryId > 0 ? nameById.get(categoryId) ?? "" : "",
+    };
+  });
+}
+
 async function fetchApprovedPublicInstructorMap(
   supabase: SupabaseBrowserClient,
   instructorIds: number[],
@@ -164,14 +232,18 @@ async function fetchApprovedPublicInstructorMap(
 
   const { data, error } = await supabase
     .from(PUBLIC_INSTRUCTORS_TABLE)
-    .select("id, full_name, name, surname, city, district, slug")
+    .select("id, full_name, name, surname, il_id, ilce_id, slug, category_id")
     .in("id", uniqueIds)
     .eq("is_active", true)
     .eq("is_approved", true);
 
   if (error) return { map, error };
 
-  for (const row of (data ?? []) as PublicInstructorOwnerRow[]) {
+  const locatedRows = await attachInstructorOwnerLocationAds(
+    (data ?? []) as PublicInstructorOwnerRow[],
+  );
+  const categorizedRows = await attachInstructorOwnerCategoryNames(supabase, locatedRows);
+  for (const row of categorizedRows) {
     const id = Number(row.id);
     if (Number.isFinite(id) && id > 0) map.set(id, row);
   }
@@ -185,7 +257,7 @@ async function fetchPublicInstructorAnnouncementRows(
 ): Promise<{ rows: InstructorAnnouncementRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("instructor_announcements")
-    .select("id, instructor_id, title, content, image_url, image_path, link_url, announcement_tag, created_at")
+    .select("id, instructor_id, title, content, image_url, image_path, link_url, announcement_tag, created_at, il_id, ilce_id")
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(rowLimit);
@@ -244,13 +316,13 @@ async function fetchPublicInstitutionAnnouncementRows(
   includeCategory: boolean,
 ): Promise<{ rows: InstitutionAnnouncementRow[]; error: unknown }> {
   const institutionSelect = includeCategory
-    ? "institution_name, city, slug, institution_type:institution_types(category:institution_categories(name))"
+    ? "institution_name, city, slug, il_id, ilce_id, category:institution_categories(name), institution_type:institution_types(category:institution_categories(name))"
     : "institution_name, slug";
 
   const { data, error } = await supabase
     .from("announcements")
     .select(
-      `id, title, content, announcement_image_url, link_url, announcement_tag, created_at, institution:institutions(${institutionSelect})`,
+      `id, title, content, announcement_image_url, link_url, announcement_tag, created_at, il_id, ilce_id, institution:institutions(${institutionSelect})`,
     )
     .eq("is_active", true)
     .order("created_at", { ascending: false })
@@ -288,15 +360,26 @@ function mapInstitutionRowToPageItem(row: InstitutionAnnouncementRow): Announcem
   const homeItem = mapInstitutionRowToHomeItem(row);
   if (!homeItem) return null;
 
-  const institution = Array.isArray(row.institution)
-    ? row.institution[0] ?? null
-    : row.institution ?? null;
-
   return {
     ...homeItem,
-    ownerCity: String(institution?.city ?? "").trim(),
+    locationLabel: "",
+    il_id: parseLocationId(row.il_id),
+    ilce_id: parseLocationId(row.ilce_id),
     categoryName: resolveInstitutionCategoryName(row.institution),
   };
+}
+
+async function attachAnnouncementLocationLabels(
+  items: AnnouncementsPageItem[],
+): Promise<AnnouncementsPageItem[]> {
+  const maps = await buildLocationAdMaps(items);
+  return items.map((item) => {
+    const { ilAd, ilceAd } = lookupLocationAds(item.il_id, item.ilce_id, maps);
+    return {
+      ...item,
+      locationLabel: formatAnnouncementLocationLabel(ilAd, ilceAd),
+    };
+  });
 }
 
 async function fetchPublicInstitutionAnnouncementItems(
@@ -388,8 +471,10 @@ export async function fetchAnnouncementsPageItems(
         imageUrl: resolveInstructorAnnouncementImageUrl(supabase, row.image_url, row.image_path),
         createdAt: row.created_at ? String(row.created_at) : null,
         ownerName: resolveInstructorOwnerName(instructor),
-        ownerCity: resolveInstructorOwnerCity(instructor),
-        categoryName: INSTRUCTOR_PUBLIC_CATEGORY_NAME,
+        locationLabel: "",
+        il_id: parseLocationId(row.il_id),
+        ilce_id: parseLocationId(row.ilce_id),
+        categoryName: String(instructor.categoryName ?? "").trim(),
         linkUrl: normalizeOptionalUrl(row.link_url),
         announcementTag: normalizeAnnouncementTag(row.announcement_tag),
         ownerHref: `/egitmenler/${encodeURIComponent(String(instructor.slug ?? "").trim() || String(instructorId))}`,
@@ -397,8 +482,10 @@ export async function fetchAnnouncementsPageItems(
     })
     .filter((item): item is AnnouncementsPageItem => item !== null);
 
-  const items = [...institutionItems, ...instructorItems].sort(
-    (a, b) => parseCreatedAtMs(b.createdAt) - parseCreatedAtMs(a.createdAt),
+  const items = await attachAnnouncementLocationLabels(
+    [...institutionItems, ...instructorItems].sort(
+      (a, b) => parseCreatedAtMs(b.createdAt) - parseCreatedAtMs(a.createdAt),
+    ),
   );
 
   return { items, error: null };

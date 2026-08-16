@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { INSTRUCTORS_TABLE } from "@/lib/instructorProfileClient";
 import {
-  PUBLIC_INSTRUCTORS_TABLE,
   publicInstructorDisplayName,
   type PublicInstructorRow,
 } from "@/lib/publicInstructorClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
 import type { FilterState } from "@/components/category/CategoryFilterSidebar";
+import {
+  resolveCategoryListingIlId,
+  useCategoryLocationFilterState,
+} from "@/components/category/categoryLocationFilter";
 import {
   EMPTY_INSTRUCTOR_CATEGORY_FILTERS,
   type InstructorCategoryFilterPayload,
@@ -29,12 +31,11 @@ import {
   type InstructorFeatureCategoryRow,
 } from "@/lib/instructorFeaturesClient";
 import {
+  fetchPublicInstructorsForListing,
   hasInstructorCategoryFilterPayload,
   resolveInstructorIdsFromInstructorCategoryFilterPayload,
 } from "@/lib/publicInstructorSearch";
-
-const FALLBACK_INSTRUCTOR_SELECT =
-  "id, slug, full_name, name, surname, branch, school, city, district, profile_picture, is_active, is_approved, category_id";
+import { parseLocationId } from "@/lib/turkiyeLocationsClient";
 
 type InstructorDirectoryRow = PublicInstructorRow &
   Record<string, unknown> & {
@@ -42,8 +43,10 @@ type InstructorDirectoryRow = PublicInstructorRow &
     full_name?: string | null;
     branch?: string | null;
     school?: string | null;
-    city?: string | null;
-    district?: string | null;
+    il_id?: number | null;
+    ilce_id?: number | null;
+    locationIlAd?: string | null;
+    locationIlceAd?: string | null;
     profile_picture?: string | null;
     is_active?: boolean | null;
     is_approved?: boolean | null;
@@ -169,25 +172,10 @@ function withTemporaryMockInstructors(items: InstructorListItem[]): InstructorLi
   return prioritizeInstructor([...TEMP_MOCK_INSTRUCTORS, ...realItems], PRIORITY_INSTRUCTOR_ID);
 }
 
-function hasSupabaseResponseError(error: unknown): boolean {
-  if (error == null) return false;
-  if (typeof error !== "object") return true;
-  const row = error as { message?: string; code?: string };
-  if (row.message || row.code) return true;
-  return Object.keys(error as object).length > 0;
-}
-
 function describeSupabaseError(error: unknown): string {
   if (!error || typeof error !== "object") return String(error ?? "");
   const row = error as { message?: string; code?: string; details?: string };
   return [row.message, row.code, row.details].filter(Boolean).join(" | ") || JSON.stringify(error);
-}
-
-function isMissingActiveColumnError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const row = error as { message?: string; details?: string };
-  const text = `${String(row.message ?? "")} ${String(row.details ?? "")}`.toLocaleLowerCase("tr-TR");
-  return text.includes("is_active") && text.includes("column");
 }
 
 function buildInstructorDisplayName(row: InstructorDirectoryRow): string {
@@ -197,8 +185,8 @@ function buildInstructorDisplayName(row: InstructorDirectoryRow): string {
 }
 
 function buildInstructorLocation(row: InstructorDirectoryRow): string {
-  const city = String(row.city ?? "").trim();
-  const district = String(row.district ?? "").trim();
+  const city = String(row.locationIlAd ?? "").trim();
+  const district = String(row.locationIlceAd ?? "").trim();
   if (city && district) return `${district} / ${city}`;
   return district || city;
 }
@@ -231,81 +219,6 @@ function mapInstructorRowToListItem(
   };
 }
 
-async function queryInstructorRows(
-  table: string,
-  select: string,
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  filterActive: boolean,
-): Promise<{ rows: InstructorDirectoryRow[]; error: unknown }> {
-  let query = supabase
-    .from(table)
-    .select(select)
-    .eq("is_approved", true)
-    .order("name", { ascending: true })
-    .order("surname", { ascending: true })
-    .limit(1000);
-
-  if (filterActive) {
-    query = query.eq("is_active", true);
-  }
-
-  const { data, error } = await query;
-  return {
-    rows: ((data ?? []) as unknown as InstructorDirectoryRow[]) ?? [],
-    error,
-  };
-}
-
-async function fetchInstructorDirectoryRows(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<{ rows: InstructorDirectoryRow[]; error: string | null }> {
-  const publicActive = await queryInstructorRows(PUBLIC_INSTRUCTORS_TABLE, "*", supabase, true);
-  if (!hasSupabaseResponseError(publicActive.error) && publicActive.rows.length > 0) {
-    return { rows: publicActive.rows, error: null };
-  }
-  if (hasSupabaseResponseError(publicActive.error) && !isMissingActiveColumnError(publicActive.error)) {
-    console.warn("[public_instructors] directory(active):", describeSupabaseError(publicActive.error));
-  }
-
-  if (hasSupabaseResponseError(publicActive.error) && isMissingActiveColumnError(publicActive.error)) {
-    const publicAll = await queryInstructorRows(PUBLIC_INSTRUCTORS_TABLE, "*", supabase, false);
-    if (!hasSupabaseResponseError(publicAll.error) && publicAll.rows.length > 0) {
-      return { rows: publicAll.rows, error: null };
-    }
-    if (hasSupabaseResponseError(publicAll.error)) {
-      console.warn("[public_instructors] directory(all):", describeSupabaseError(publicAll.error));
-    }
-  }
-
-  const instructorsActive = await queryInstructorRows(
-    INSTRUCTORS_TABLE,
-    FALLBACK_INSTRUCTOR_SELECT,
-    supabase,
-    true,
-  );
-  if (!hasSupabaseResponseError(instructorsActive.error)) {
-    return { rows: instructorsActive.rows, error: null };
-  }
-  if (!isMissingActiveColumnError(instructorsActive.error)) {
-    console.warn("[instructors] directory(active):", describeSupabaseError(instructorsActive.error));
-  }
-
-  if (isMissingActiveColumnError(instructorsActive.error)) {
-    const instructorsAll = await queryInstructorRows(
-      INSTRUCTORS_TABLE,
-      FALLBACK_INSTRUCTOR_SELECT,
-      supabase,
-      false,
-    );
-    if (!hasSupabaseResponseError(instructorsAll.error)) {
-      return { rows: instructorsAll.rows, error: null };
-    }
-    console.warn("[instructors] directory(all):", describeSupabaseError(instructorsAll.error));
-  }
-
-  return { rows: [], error: "Eğitmen listesi yüklenemedi." };
-}
-
 export function AllInstructorsPageClient() {
   const [items, setItems] = useState<InstructorListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -316,11 +229,12 @@ export function AllInstructorsPageClient() {
   const [instructorCategories, setInstructorCategories] = useState<InstructorFeatureCategoryRow[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: "",
-    city: "ankara",
+    city: "",
     district: "",
     category: "",
     priceRange: null,
   });
+  const { location, setLocation, locationReady } = useCategoryLocationFilterState();
   const [instructorFeatureFilters, setInstructorFeatureFilters] =
     useState<InstructorCategoryFilterPayload>(EMPTY_INSTRUCTOR_CATEGORY_FILTERS);
   const [featureAllowedIds, setFeatureAllowedIds] = useState<Set<number> | null>(null);
@@ -380,8 +294,7 @@ export function AllInstructorsPageClient() {
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const [result, featuredOrderResult, categoriesResult] = await Promise.all([
-        fetchInstructorDirectoryRows(supabase),
+      const [featuredOrderResult, categoriesResult] = await Promise.all([
         fetchActiveFeaturedInstructorOrderMap(supabase),
         fetchInstructorFeatureCategoriesClient(supabase),
       ]);
@@ -394,34 +307,6 @@ export function AllInstructorsPageClient() {
       if (!featuredOrderResult.error) {
         setFeaturedInstructorOrderMap(featuredOrderResult.orderMap);
       }
-
-      if (result.error) {
-        setItems(withTemporaryMockInstructors([]));
-        setLoadError(null);
-        setLoading(false);
-        return;
-      }
-
-      const instructorIds = result.rows
-        .map((row) => Number(row.id))
-        .filter((id) => Number.isFinite(id) && id > 0);
-      const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-        instructorIds,
-        supabase,
-      );
-
-      const mappedItems = result.rows
-        .map((row) =>
-          mapInstructorRowToListItem(
-            row,
-            supabase,
-            priceLabelsByInstructorId.get(Number(row.id)),
-          ),
-        )
-        .filter((item): item is InstructorListItem => item !== null);
-
-      setItems(withTemporaryMockInstructors(mappedItems));
-      setLoading(false);
     })();
 
     return () => {
@@ -429,9 +314,68 @@ export function AllInstructorsPageClient() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!locationReady) {
+      setLoading(true);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      try {
+        const ilId = await resolveCategoryListingIlId(location.ilId);
+        const ilceId = parseLocationId(location.ilceId);
+        const mahalleId =
+          ilceId != null ? parseLocationId(location.mahalleId) : null;
+
+        const rows = await fetchPublicInstructorsForListing(supabase, {
+          ilId,
+          ilceId,
+          mahalleId,
+        });
+        if (cancelled) return;
+
+        const instructorIds = rows
+          .map((row) => Number(row.id))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
+          instructorIds,
+          supabase,
+        );
+        if (cancelled) return;
+
+        const mappedItems = rows
+          .map((row) =>
+            mapInstructorRowToListItem(
+              row as InstructorDirectoryRow,
+              supabase,
+              priceLabelsByInstructorId.get(Number(row.id)),
+            ),
+          )
+          .filter((item): item is InstructorListItem => item !== null);
+
+        setItems(withTemporaryMockInstructors(mappedItems));
+        setLoading(false);
+      } catch (error) {
+        console.warn("[public_instructors] listing:", describeSupabaseError(error));
+        if (cancelled) return;
+        setItems(withTemporaryMockInstructors([]));
+        setLoadError(null);
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locationReady, location.ilId, location.ilceId, location.mahalleId]);
+
   const filteredItems = useMemo(() => {
     const search = filters.search.trim().toLocaleLowerCase("tr-TR");
-    const district = filters.district.trim().toLocaleLowerCase("tr-TR");
     const priceRange = filters.priceRange;
 
     return items.filter((item) => {
@@ -454,10 +398,6 @@ export function AllInstructorsPageClient() {
           .join(" ")
           .toLocaleLowerCase("tr-TR");
         if (!haystack.includes(search)) return false;
-      }
-
-      if (district && district !== "__all__") {
-        if (!item.locationLabel.toLocaleLowerCase("tr-TR").includes(district)) return false;
       }
 
       if (priceRange) {
@@ -524,8 +464,21 @@ export function AllInstructorsPageClient() {
       emptyResultsMessage="Henüz listelenecek eğitmen bulunmuyor."
       onFilterChange={setFilters}
       instructorModeProps={{
+        linkedLocation: location,
+        onLinkedLocationChange: setLocation,
         onInstructorFilterPayloadChange: setInstructorFeatureFilters,
       }}
+      extraBreadcrumbItems={
+        selectedInstructorCategoryId
+          ? instructorCategories
+              .filter((row) => Number(row.id) === selectedInstructorCategoryId)
+              .map((row) => ({
+                label: String(row.name ?? "").trim(),
+                href: "/egitmenler",
+              }))
+              .filter((item) => item.label.length > 0)
+          : undefined
+      }
     />
   );
 }

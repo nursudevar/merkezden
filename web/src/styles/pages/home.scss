@@ -1402,6 +1402,38 @@
   min-height: 0;
 }
 
+.home-location-dropdown-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-bottom: 4px;
+  background: $bg-white;
+}
+
+.home-location-dropdown-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: $bg-white;
+  font-size: $text-sm;
+  color: $text-zinc-900;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: $blue-main;
+    box-shadow: 0 0 0 3px rgba($blue-main, 0.1);
+    outline: none;
+  }
+}
+
+.home-location-dropdown-empty {
+  padding: 10px 12px;
+  font-size: $text-sm;
+  color: $text-zinc-500;
+}
+
 .select-label {
   padding: 6px 8px;
   font-size: 12px;

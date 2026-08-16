@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
 import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+import { useCategoryLocationFilterState } from "@/components/category/categoryLocationFilter";
 import {
   EMPTY_SCHOOL_CATEGORY_FILTERS,
   type SchoolCategoryFilterPayload,
@@ -16,7 +17,7 @@ const FALLBACK_CATEGORY_SLUG = "patili-dostlar";
 
 export default function PatiliDostlarPage() {
   const [searchText, setSearchText] = useState("");
-  const [district, setDistrict] = useState("");
+  const { location, setLocation, locationReady } = useCategoryLocationFilterState();
   const [categorySlug, setCategorySlug] = useState<string>(FALLBACK_CATEGORY_SLUG);
   const [categoryFilters, setCategoryFilters] = useState<SchoolCategoryFilterPayload>(
     EMPTY_SCHOOL_CATEGORY_FILTERS,
@@ -62,16 +63,18 @@ export default function PatiliDostlarPage() {
     [],
   );
 
-  const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
-    district,
+    ilId: location.ilId,
+    ilceId: location.ilceId,
+    mahalleId: location.mahalleId,
+    locationReady,
     categorySlug,
     schoolFilters: categoryFilters,
   });
 
   return (
       <CategoryPageLayout
-        districts={districts}
         categoryName={CATEGORY_NAME}
         categorySlug={categorySlug}
         subtitle="Evcil dostlarınız için hizmetleri keşfedin."
@@ -82,8 +85,8 @@ export default function PatiliDostlarPage() {
         schoolModeProps={{
           linkedSearch: searchText,
           onLinkedSearchChange: setSearchText,
-          linkedDistrict: district,
-          onLinkedDistrictChange: setDistrict,
+          linkedLocation: location,
+          onLinkedLocationChange: setLocation,
           onSchoolFilterPayloadChange: handleCategoryFilterPayloadChange,
         }}
       />

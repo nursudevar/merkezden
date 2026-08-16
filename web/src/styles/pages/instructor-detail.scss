@@ -7,6 +7,12 @@
 .instructor-detail-container { @extend .institution-detail-container; }
 .instructor-breadcrumb { @extend .institution-breadcrumb; }
 .instructor-breadcrumb-container { @extend .institution-breadcrumb-container; }
+.instructor-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
 .instructor-breadcrumb-link { @extend .institution-breadcrumb-link; }
 .instructor-breadcrumb-separator { @extend .institution-breadcrumb-separator; }
 .instructor-breadcrumb-current { @extend .institution-breadcrumb-current; }

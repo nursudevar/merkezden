@@ -16,7 +16,21 @@ import Image from "next/image";
 import { Input } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { ANKARA_DISTRICTS } from "@/constants/districts";
+import {
+  CATEGORY_ALL_ILCELER_VALUE,
+  CATEGORY_ALL_MAHALLELER_VALUE,
+  EMPTY_CATEGORY_LOCATION_FILTER,
+  type CategoryLocationFilterValue,
+} from "@/components/category/categoryLocationFilter";
+import {
+  fetchIller,
+  fetchIlcelerByIlId,
+  fetchMahallelerByIlceId,
+  findLocationIdByAd,
+  HOME_DEFAULT_CITY_AD,
+  parseLocationId,
+  type TurkiyeLocationOption,
+} from "@/lib/turkiyeLocationsClient";
 import {
   INSTITUTION_PRICE_RANGE_DEFINITION_ID,
   INSTITUTION_PRICE_FILTER_MAX,
@@ -816,7 +830,6 @@ function buildPatiliBaslicaCommonField(
 
   return null;
 }
-const ALL_DISTRICTS_VALUE = "__all__";
 const CLEAR_SUBCATEGORY_VALUE = "__clear_subcategory__";
 const CLEAR_HIGH_SCHOOL_TYPE_VALUE = "__clear_high_school_type__";
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
@@ -1781,12 +1794,14 @@ function orderSurucuKursuInstitutionFilterSections(
 }
 
 const PATILI_DOSTLAR_INSTITUTION_FILTER_ORDER = [
+  "evcil hayvan turu",
   "hizmet turu",
+  "hizmet tipi",
   "hizmet yeri",
   "aylik fiyat araligi",
   "fiziki imkanlar",
-  "egitim dili",
   "egitim saatleri",
+  "egitim dili",
   "odeme secenekleri",
 ] as const;
 
@@ -1796,6 +1811,16 @@ const PATILI_DOSTLAR_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
 
 function normalizePatiliDostlarInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
+  if (
+    key === "evcil hayvan turu" ||
+    key === "evcil hayvan turleri" ||
+    (key.includes("evcil") && key.includes("hayvan") && key.includes("tur"))
+  ) {
+    return "evcil hayvan turu";
+  }
+  if (key === "hizmet tipi" || key === "hizmet tipleri") {
+    return "hizmet tipi";
+  }
   if (
     key === "hizmet turu" ||
     key === "hizmet turleri" ||
@@ -1831,7 +1856,6 @@ function normalizePatiliDostlarInstitutionFilterOrderKey(name: string): string {
 
 function isHiddenPatiliDostlarPublicInstitutionFilter(name: string): boolean {
   const key = normalizeCommonFieldNameKey(name);
-  if (key === "hizmet tipi") return true;
   if (key === "verilen hizmetler" || (key.includes("verilen") && key.includes("hizmet"))) return true;
   if (key === "ogrenci yasi") return true;
   return isHiddenYabanciDillerInstitutionFilter(name);
@@ -1839,6 +1863,8 @@ function isHiddenPatiliDostlarPublicInstitutionFilter(name: string): boolean {
 
 function getPatiliDostlarInstitutionFilterSectionTitle(name: string): string {
   const key = normalizePatiliDostlarInstitutionFilterOrderKey(name);
+  if (key === "evcil hayvan turu") return "EVCİL HAYVAN TÜRÜ";
+  if (key === "hizmet tipi") return "HİZMET TİPİ";
   if (key === "aylik fiyat araligi") return "AYLIK FİYAT ARALIĞI";
   if (key === "egitim saatleri") return "EĞİTİM SAATLERİ";
   if (key === "egitim dili") return "EĞİTİM DİLİ";
@@ -1925,6 +1951,8 @@ type UseCategoryFilterSidebarModelArgs = {
   onLinkedSearchChange?: (value: string) => void;
   linkedDistrict?: string;
   onLinkedDistrictChange?: (value: string) => void;
+  linkedLocation?: CategoryLocationFilterValue;
+  onLinkedLocationChange?: (value: CategoryLocationFilterValue) => void;
   onSchoolFilterPayloadChange?: (payload: SchoolCategoryFilterPayload) => void;
   onInstructorFilterPayloadChange?: (payload: InstructorCategoryFilterPayload) => void;
   filterSchemaSource?: "institution" | "instructor";
@@ -1939,14 +1967,22 @@ function useCategoryFilterSidebarModel({
   onLinkedSearchChange,
   linkedDistrict,
   onLinkedDistrictChange,
+  linkedLocation,
+  onLinkedLocationChange,
   onSchoolFilterPayloadChange,
   onInstructorFilterPayloadChange,
   filterSchemaSource = "institution",
 }: UseCategoryFilterSidebarModelArgs) {
   const [search, setSearch] = useState("");
-  // Ana sayfayla uyumlu olarak şehir Ankara'ya sabit (disabled dropdown).
-  const [city, setCity] = useState("ankara");
+  const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
+  const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
+  const [ilceler, setIlceler] = useState<TurkiyeLocationOption[]>([]);
+  const [mahalleler, setMahalleler] = useState<TurkiyeLocationOption[]>([]);
+  const [defaultIlId, setDefaultIlId] = useState("");
+  const [localIlId, setLocalIlId] = useState("");
+  const [localIlceId, setLocalIlceId] = useState("");
+  const [localMahalleId, setLocalMahalleId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [priceRange, setPriceRange] = useState<PriceRangeSliderValue>(null);
 
@@ -2017,8 +2053,135 @@ function useCategoryFilterSidebarModel({
   const usesGlobalBaslicaCommonFields = categoryUsesGlobalBaslicaCommonFields(effectiveSlug);
   const isLinkedSearch = typeof onLinkedSearchChange === "function";
   const isLinkedDistrict = typeof onLinkedDistrictChange === "function";
+  const isLinkedLocation = typeof onLinkedLocationChange === "function";
   const displaySearch = isLinkedSearch ? (linkedSearch ?? "") : search;
   const displayDistrict = isLinkedDistrict ? (linkedDistrict ?? "") : district;
+  const usesInstitutionLocationFilters = enabled;
+  const displayIlId = usesInstitutionLocationFilters
+    ? (isLinkedLocation ? linkedLocation?.ilId || defaultIlId : localIlId || defaultIlId)
+    : "";
+  const displayIlceId = usesInstitutionLocationFilters
+    ? (isLinkedLocation ? (linkedLocation?.ilceId ?? "") : localIlceId)
+    : "";
+  const displayMahalleId = usesInstitutionLocationFilters
+    ? (isLinkedLocation ? (linkedLocation?.mahalleId ?? "") : localMahalleId)
+    : "";
+
+  const emitLocation = useCallback(
+    (next: CategoryLocationFilterValue) => {
+      if (isLinkedLocation) {
+        onLinkedLocationChange?.(next);
+        return;
+      }
+      setLocalIlId(next.ilId);
+      setLocalIlceId(next.ilceId);
+      setLocalMahalleId(next.mahalleId);
+    },
+    [isLinkedLocation, onLinkedLocationChange],
+  );
+
+  useEffect(() => {
+    if (!usesInstitutionLocationFilters) {
+      setIller([]);
+      setDefaultIlId("");
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIller();
+        if (cancelled) return;
+        setIller(rows);
+        const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
+        if (ankaraId) setDefaultIlId(ankaraId);
+      } catch (error) {
+        console.error("İller yüklenemedi:", error);
+        if (!cancelled) setIller([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [usesInstitutionLocationFilters]);
+
+  useEffect(() => {
+    if (!usesInstitutionLocationFilters) {
+      setIlceler([]);
+      return;
+    }
+    const selectedIlId = parseLocationId(displayIlId);
+    if (selectedIlId == null) {
+      setIlceler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIlcelerByIlId(selectedIlId);
+        if (!cancelled) setIlceler(rows);
+      } catch (error) {
+        console.error("İlçeler yüklenemedi:", error);
+        if (!cancelled) setIlceler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayIlId, usesInstitutionLocationFilters]);
+
+  useEffect(() => {
+    if (!usesInstitutionLocationFilters) {
+      setMahalleler([]);
+      return;
+    }
+    const selectedIlceId = parseLocationId(displayIlceId);
+    if (selectedIlceId == null) {
+      setMahalleler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchMahallelerByIlceId(selectedIlceId);
+        if (!cancelled) setMahalleler(rows);
+      } catch (error) {
+        console.error("Mahalleler yüklenemedi:", error);
+        if (!cancelled) setMahalleler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayIlceId, usesInstitutionLocationFilters]);
+
+  const handleIlChange = useCallback(
+    (value: string) => {
+      emitLocation({ ilId: value, ilceId: "", mahalleId: "" });
+    },
+    [emitLocation],
+  );
+
+  const handleIlceChange = useCallback(
+    (value: string) => {
+      const nextIlceId = value === CATEGORY_ALL_ILCELER_VALUE ? "" : value;
+      emitLocation({ ilId: displayIlId, ilceId: nextIlceId, mahalleId: "" });
+    },
+    [displayIlId, emitLocation],
+  );
+
+  const handleMahalleChange = useCallback(
+    (value: string) => {
+      const nextMahalleId = value === CATEGORY_ALL_MAHALLELER_VALUE ? "" : value;
+      emitLocation({ ilId: displayIlId, ilceId: displayIlceId, mahalleId: nextMahalleId });
+    },
+    [displayIlId, displayIlceId, emitLocation],
+  );
 
   const resetCategoryFeatureFilters = useCallback(() => {
     setSelectedSubcategoryId("");
@@ -3000,7 +3163,11 @@ function useCategoryFilterSidebarModel({
   /** En az bir filtre aktif mi? Sıfırlama butonunun görünürlüğünü belirler. */
   const hasActiveFilters = useMemo(() => {
     if (String(displaySearch ?? "").trim()) return true;
-    if (String(displayDistrict ?? "").trim()) return true;
+    if (usesInstitutionLocationFilters) {
+      if (String(displayIlceId ?? "").trim()) return true;
+      if (String(displayMahalleId ?? "").trim()) return true;
+      if (defaultIlId && displayIlId && displayIlId !== defaultIlId) return true;
+    }
     if (String(selectedCategory ?? "").trim()) return true;
     if (String(selectedSubcategoryId ?? "").trim()) return true;
     if (String(selectedHighSchoolType ?? "").trim()) return true;
@@ -3031,7 +3198,11 @@ function useCategoryFilterSidebarModel({
     return false;
   }, [
     displaySearch,
-    displayDistrict,
+    displayIlId,
+    displayIlceId,
+    displayMahalleId,
+    defaultIlId,
+    usesInstitutionLocationFilters,
     selectedCategory,
     selectedSubcategoryId,
     selectedHighSchoolType,
@@ -3054,6 +3225,9 @@ function useCategoryFilterSidebarModel({
   const resetAll = useCallback(() => {
     setSearch("");
     setDistrict("");
+    setLocalIlId("");
+    setLocalIlceId("");
+    setLocalMahalleId("");
     setSelectedCategory("");
     setPriceRange(null);
     resetCategoryFeatureFilters();
@@ -3062,9 +3236,10 @@ function useCategoryFilterSidebarModel({
     setExpandedInstructorBooleanGroupIds(new Set());
     if (isLinkedSearch) onLinkedSearchChange?.("");
     if (isLinkedDistrict) onLinkedDistrictChange?.("");
+    if (isLinkedLocation) onLinkedLocationChange?.(EMPTY_CATEGORY_LOCATION_FILTER);
     onFilterChange?.({
       search: "",
-      city: "ankara",
+      city: "",
       district: "",
       category: "",
       priceRange: null,
@@ -3072,8 +3247,10 @@ function useCategoryFilterSidebarModel({
   }, [
     isLinkedSearch,
     isLinkedDistrict,
+    isLinkedLocation,
     onLinkedSearchChange,
     onLinkedDistrictChange,
+    onLinkedLocationChange,
     onFilterChange,
     resetCategoryFeatureFilters,
   ]);
@@ -3083,8 +3260,18 @@ function useCategoryFilterSidebarModel({
     searchPlaceholder,
     hasDynamicFeatureMode,
     hasInstructorFeatureMode,
+    usesInstitutionLocationFilters,
     displaySearch,
     displayDistrict,
+    displayIlId,
+    displayIlceId,
+    displayMahalleId,
+    iller,
+    ilceler,
+    mahalleler,
+    handleIlChange,
+    handleIlceChange,
+    handleMahalleChange,
     city,
     district,
     search,
@@ -3160,11 +3347,15 @@ export function InstructorCategoryFilterPanelProvider({
   children,
   config,
   onFilterChange,
+  linkedLocation,
+  onLinkedLocationChange,
   onInstructorFilterPayloadChange,
 }: {
   children: ReactNode;
   config?: CategoryFilterConfig;
   onFilterChange?: (filters: FilterState) => void;
+  linkedLocation: CategoryLocationFilterValue;
+  onLinkedLocationChange: (value: CategoryLocationFilterValue) => void;
   onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
 }) {
   const model = useCategoryFilterSidebarModel({
@@ -3172,6 +3363,8 @@ export function InstructorCategoryFilterPanelProvider({
     config,
     onFilterChange,
     filterSchemaSource: "instructor",
+    linkedLocation,
+    onLinkedLocationChange,
     onInstructorFilterPayloadChange,
   });
   return (
@@ -3186,16 +3379,16 @@ export function SchoolCategoryFilterPanelProvider({
   categorySlug,
   linkedSearch,
   onLinkedSearchChange,
-  linkedDistrict,
-  onLinkedDistrictChange,
+  linkedLocation,
+  onLinkedLocationChange,
   onSchoolFilterPayloadChange,
 }: {
   children: ReactNode;
   categorySlug: string;
   linkedSearch: string;
   onLinkedSearchChange: (value: string) => void;
-  linkedDistrict: string;
-  onLinkedDistrictChange: (value: string) => void;
+  linkedLocation: CategoryLocationFilterValue;
+  onLinkedLocationChange: (value: CategoryLocationFilterValue) => void;
   onSchoolFilterPayloadChange: (payload: SchoolCategoryFilterPayload) => void;
 }) {
   const model = useCategoryFilterSidebarModel({
@@ -3203,8 +3396,8 @@ export function SchoolCategoryFilterPanelProvider({
     categorySlug,
     linkedSearch,
     onLinkedSearchChange,
-    linkedDistrict,
-    onLinkedDistrictChange,
+    linkedLocation,
+    onLinkedLocationChange,
     onSchoolFilterPayloadChange,
   });
   return (
@@ -3246,8 +3439,15 @@ function CategoryFilterSidebarView({
     hasDynamicFeatureMode,
     hasInstructorFeatureMode,
     displaySearch,
-    displayDistrict,
-    city,
+    displayIlId,
+    displayIlceId,
+    displayMahalleId,
+    iller,
+    ilceler,
+    mahalleler,
+    handleIlChange,
+    handleIlceChange,
+    handleMahalleChange,
     selectedCategory,
     priceRange,
     featureGroupsLoading,
@@ -3939,44 +4139,72 @@ function CategoryFilterSidebarView({
           <div className="category-filter-section">
             <CategoryFilterSectionTitle title="KONUM" />
             <div className="category-filter-section-inputs">
-              <Select value={city} disabled>
-                <SelectTrigger className="category-filter-select">
-                  <SelectValue placeholder="Şehir Seçin" />
-                </SelectTrigger>
-                <SelectContent
-                  className="select-content home-location-dropdown"
-                  side="bottom"
-                  avoidCollisions={false}
-                >
-                  <SelectItem value="ankara" className="select-item">
-                    Ankara
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={displayDistrict ? displayDistrict : ALL_DISTRICTS_VALUE}
-                onValueChange={(value) =>
-                  handleFilterChange({ district: value === ALL_DISTRICTS_VALUE ? "" : value })
-                }
-              >
-                <SelectTrigger className="category-filter-select">
-                  <SelectValue placeholder="İlçe Seçin" />
-                </SelectTrigger>
-                <SelectContent
-                  className="select-content home-location-dropdown"
-                  side="bottom"
-                  avoidCollisions={false}
-                >
-                  <SelectItem value={ALL_DISTRICTS_VALUE} className="select-item">
-                    Tüm İlçeler
-                  </SelectItem>
-                  {ANKARA_DISTRICTS.map((d) => (
-                    <SelectItem key={d} value={d} className="select-item">
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <Select
+                    value={displayIlId || undefined}
+                    onValueChange={handleIlChange}
+                    disabled={iller.length === 0}
+                  >
+                    <SelectTrigger className="category-filter-select">
+                      <SelectValue placeholder="İl seçin" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="select-content home-location-dropdown"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
+                      {iller.map((row) => (
+                        <SelectItem key={row.id} value={String(row.id)} className="select-item">
+                          {row.ad}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={displayIlceId ? displayIlceId : CATEGORY_ALL_ILCELER_VALUE}
+                    onValueChange={handleIlceChange}
+                    disabled={!displayIlId}
+                  >
+                    <SelectTrigger className="category-filter-select">
+                      <SelectValue placeholder="İlçe Seçin" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="select-content home-location-dropdown"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
+                      <SelectItem value={CATEGORY_ALL_ILCELER_VALUE} className="select-item">
+                        Tüm İlçeler
+                      </SelectItem>
+                      {ilceler.map((row) => (
+                        <SelectItem key={row.id} value={String(row.id)} className="select-item">
+                          {row.ad}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={displayMahalleId ? displayMahalleId : CATEGORY_ALL_MAHALLELER_VALUE}
+                    onValueChange={handleMahalleChange}
+                    disabled={!displayIlceId}
+                  >
+                    <SelectTrigger className="category-filter-select">
+                      <SelectValue placeholder="Mahalle Seçin" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="select-content home-location-dropdown"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
+                      <SelectItem value={CATEGORY_ALL_MAHALLELER_VALUE} className="select-item">
+                        Tüm Mahalleler
+                      </SelectItem>
+                      {mahalleler.map((row) => (
+                        <SelectItem key={row.id} value={String(row.id)} className="select-item">
+                          {row.ad}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
             </div>
           </div>
 

@@ -51,8 +51,17 @@ import {
   type FeaturedAccountAdminRow,
 } from "@/lib/featuredAccountsClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
-import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  fetchIller,
+  fetchIlcelerByIlId,
+  fetchMahallelerByIlceId,
+  parseLocationId,
+  toLocationIdString,
+  buildLocationAdMaps,
+  lookupLocationAds,
+  type TurkiyeLocationOption,
+} from "@/lib/turkiyeLocationsClient";
 import {
   buildProfileSearchVariants,
   escapeProfileLikeValue,
@@ -101,7 +110,6 @@ type InstitutionCategoryOption = {
   name: string;
 };
 
-const ADMIN_CREATED_INSTITUTION_CITY = "Ankara";
 const ADMIN_CREATED_INSTITUTION_SOURCE = "admin";
 
 const INSTITUTIONS_PAGE_SIZE = 10;
@@ -141,7 +149,10 @@ type InstructorListRow = {
   email: string | null;
   phone: string | null;
   branch: string | null;
-  district: string | null;
+  il_id: number | null;
+  ilce_id: number | null;
+  locationIlAd?: string | null;
+  locationIlceAd?: string | null;
 };
 
 type ApprovalFilter = "all" | "institutions" | "instructors";
@@ -166,12 +177,14 @@ type PendingInstructorApprovalRow = {
   email: string | null;
   phone: string | null;
   school: string | null;
+  department: string | null;
   branch: string | null;
-  title: string | null;
   experience_years: number | null;
   education_level: string | null;
-  city: string | null;
-  district: string | null;
+  il_id: number | null;
+  ilce_id: number | null;
+  locationIlAd?: string | null;
+  locationIlceAd?: string | null;
   address: string | null;
   about: string | null;
   profile_picture: string | null;
@@ -208,7 +221,8 @@ type InstructorEditForm = {
   email: string;
   phone: string;
   branch: string;
-  district: string;
+  ilId: string;
+  ilceId: string;
 };
 
 type AnnouncementListRow = {
@@ -486,7 +500,18 @@ export default function AdminPageClient() {
   const [createInstitutionModalOpen, setCreateInstitutionModalOpen] = useState(false);
   const [createInstitutionName, setCreateInstitutionName] = useState("");
   const [createInstitutionCategoryId, setCreateInstitutionCategoryId] = useState("");
-  const [createInstitutionDistrict, setCreateInstitutionDistrict] = useState("");
+  const [createInstitutionIlId, setCreateInstitutionIlId] = useState("");
+  const [createInstitutionIlceId, setCreateInstitutionIlceId] = useState("");
+  const [createInstitutionMahalleId, setCreateInstitutionMahalleId] = useState("");
+  const [createInstitutionAddress, setCreateInstitutionAddress] = useState("");
+  const [createInstitutionIller, setCreateInstitutionIller] = useState<TurkiyeLocationOption[]>([]);
+  const [createInstitutionIlceler, setCreateInstitutionIlceler] = useState<TurkiyeLocationOption[]>([]);
+  const [createInstitutionMahalleler, setCreateInstitutionMahalleler] = useState<TurkiyeLocationOption[]>(
+    [],
+  );
+  const [createInstitutionIllerLoading, setCreateInstitutionIllerLoading] = useState(false);
+  const [createInstitutionIlcelerLoading, setCreateInstitutionIlcelerLoading] = useState(false);
+  const [createInstitutionMahallelerLoading, setCreateInstitutionMahallelerLoading] = useState(false);
   const [createInstitutionCategories, setCreateInstitutionCategories] = useState<
     InstitutionCategoryOption[]
   >([]);
@@ -497,7 +522,9 @@ export default function AdminPageClient() {
   const [createInstitutionFieldErrors, setCreateInstitutionFieldErrors] = useState<{
     name?: string;
     categoryId?: string;
-    district?: string;
+    ilId?: string;
+    ilceId?: string;
+    mahalleId?: string;
   }>({});
   const [createInstitutionError, setCreateInstitutionError] = useState<string | null>(null);
   const [createInstitutionSubmitting, setCreateInstitutionSubmitting] = useState(false);
@@ -544,11 +571,14 @@ export default function AdminPageClient() {
     email: "",
     phone: "",
     branch: "",
-    district: "",
+    ilId: "",
+    ilceId: "",
   });
   const [instructorEditSaving, setInstructorEditSaving] = useState(false);
   const [instructorEditError, setInstructorEditError] = useState<string | null>(null);
   const [instructorEditPhoneError, setInstructorEditPhoneError] = useState<string | null>(null);
+  const [instructorEditIller, setInstructorEditIller] = useState<TurkiyeLocationOption[]>([]);
+  const [instructorEditIlceler, setInstructorEditIlceler] = useState<TurkiyeLocationOption[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<ApprovalFilter>("all");
   const [pendingApprovalItems, setPendingApprovalItems] = useState<PendingApprovalItem[]>([]);
   const [pendingApprovalsLoading, setPendingApprovalsLoading] = useState(false);
@@ -998,7 +1028,7 @@ export default function AdminPageClient() {
 
       let instructorsQuery = supabase
         .from("instructors")
-        .select("id, name, surname, email, phone, branch, district", { count: "exact" })
+        .select("id, name, surname, email, phone, branch, il_id, ilce_id", { count: "exact" })
         .order("id", { ascending: false });
 
       const normalizedSearch = instructorsSearchQuery.trim();
@@ -1010,13 +1040,11 @@ export default function AdminPageClient() {
           "surname",
           "email",
           "phone",
-          "title",
           "branch",
           "bio",
           "about",
           "school",
-          "city",
-          "district",
+          "department",
           "address",
           "education_level",
           "website",
@@ -1031,6 +1059,23 @@ export default function AdminPageClient() {
         }
         if (relatedInstructorIds.length > 0) {
           orParts.push(`id.in.(${relatedInstructorIds.join(",")})`);
+        }
+        const locationNeedle = `%${escapeProfileLikeValue(normalizedSearch)}%`;
+        const [{ data: matchingIller }, { data: matchingIlceler }] = await Promise.all([
+          supabase.from("iller").select("id").ilike("ad", locationNeedle),
+          supabase.from("ilceler").select("id").ilike("ad", locationNeedle),
+        ]);
+        const matchingIlIds = ((matchingIller ?? []) as Array<{ id: number }>)
+          .map((row) => Number(row.id))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        const matchingIlceIds = ((matchingIlceler ?? []) as Array<{ id: number }>)
+          .map((row) => Number(row.id))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        if (matchingIlIds.length > 0) {
+          orParts.push(`il_id.in.(${matchingIlIds.join(",")})`);
+        }
+        if (matchingIlceIds.length > 0) {
+          orParts.push(`ilce_id.in.(${matchingIlceIds.join(",")})`);
         }
         if (orParts.length > 0) {
           instructorsQuery = instructorsQuery.or(orParts.join(","));
@@ -1056,7 +1101,15 @@ export default function AdminPageClient() {
         return;
       }
 
-      setInstructorsList((data ?? []) as InstructorListRow[]);
+      const rawRows = (data ?? []) as InstructorListRow[];
+      const maps = await buildLocationAdMaps(rawRows);
+      if (cancelled) return;
+      setInstructorsList(
+        rawRows.map((row) => {
+          const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, maps);
+          return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
+        }),
+      );
       setInstructorsTotalCount(count ?? 0);
       setInstructorsListLoading(false);
     };
@@ -1088,7 +1141,7 @@ export default function AdminPageClient() {
         supabase
           .from("instructors")
           .select(
-            "id, name, surname, email, phone, school, branch, title, experience_years, education_level, city, district, address, about, profile_picture, created_at"
+            "id, name, surname, email, phone, school, department, branch, experience_years, education_level, il_id, ilce_id, address, about, profile_picture, created_at"
           )
           .is("is_approved", null)
           .order("created_at", { ascending: false }),
@@ -1134,21 +1187,26 @@ export default function AdminPageClient() {
         imageUrl: resolveInstitutionLogoPublicUrl(supabase, row.logo),
       }));
 
-      const instructorItems: PendingApprovalItem[] = (
-        (instructorsRes.error ? [] : instructorsRes.data ?? []) as PendingInstructorApprovalRow[]
-      ).map((row) => {
+      const instructorRaw = (
+        instructorsRes.error ? [] : instructorsRes.data ?? []
+      ) as PendingInstructorApprovalRow[];
+      const instructorLocationMaps = await buildLocationAdMaps(instructorRaw);
+      if (cancelled) return;
+
+      const instructorItems: PendingApprovalItem[] = instructorRaw.map((row) => {
         const fullName = [row.name, row.surname]
           .map((part) => String(part ?? "").trim())
           .filter(Boolean)
           .join(" ");
+        const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, instructorLocationMaps);
         return {
           kind: "instructor",
-          row,
+          row: { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd },
           displayName: fullName || "-",
           email: String(row.email ?? "").trim() || "-",
           phone: String(row.phone ?? "").trim() || "-",
-          city: String(row.city ?? "").trim() || "-",
-          district: String(row.district ?? "").trim() || "-",
+          city: ilAd || "-",
+          district: ilceAd || "-",
           createdAt: formatAnnouncementDate(row.created_at),
           imageUrl: resolvePublicInstructorProfilePictureUrl(row.profile_picture, supabase),
         };
@@ -1410,7 +1468,12 @@ export default function AdminPageClient() {
   const resetCreateInstitutionForm = () => {
     setCreateInstitutionName("");
     setCreateInstitutionCategoryId("");
-    setCreateInstitutionDistrict("");
+    setCreateInstitutionIlId("");
+    setCreateInstitutionIlceId("");
+    setCreateInstitutionMahalleId("");
+    setCreateInstitutionAddress("");
+    setCreateInstitutionIlceler([]);
+    setCreateInstitutionMahalleler([]);
     setCreateInstitutionFieldErrors({});
     setCreateInstitutionError(null);
   };
@@ -1466,21 +1529,169 @@ export default function AdminPageClient() {
     };
   }, [createInstitutionModalOpen]);
 
+  useEffect(() => {
+    if (!createInstitutionModalOpen) return;
+
+    let cancelled = false;
+    setCreateInstitutionIllerLoading(true);
+
+    void (async () => {
+      try {
+        const rows = await fetchIller();
+        if (cancelled) return;
+        setCreateInstitutionIller(rows);
+      } catch (error) {
+        console.error("İller yüklenemedi:", error);
+        if (!cancelled) setCreateInstitutionIller([]);
+      } finally {
+        if (!cancelled) setCreateInstitutionIllerLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createInstitutionModalOpen]);
+
+  useEffect(() => {
+    const ilId = parseLocationId(createInstitutionIlId);
+    if (ilId == null) {
+      setCreateInstitutionIlceler([]);
+      setCreateInstitutionIlcelerLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCreateInstitutionIlcelerLoading(true);
+
+    void (async () => {
+      try {
+        const rows = await fetchIlcelerByIlId(ilId);
+        if (cancelled) return;
+        setCreateInstitutionIlceler(rows);
+      } catch (error) {
+        console.error("İlçeler yüklenemedi:", error);
+        if (!cancelled) setCreateInstitutionIlceler([]);
+      } finally {
+        if (!cancelled) setCreateInstitutionIlcelerLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createInstitutionIlId]);
+
+  useEffect(() => {
+    const ilceId = parseLocationId(createInstitutionIlceId);
+    if (ilceId == null) {
+      setCreateInstitutionMahalleler([]);
+      setCreateInstitutionMahallelerLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCreateInstitutionMahallelerLoading(true);
+
+    void (async () => {
+      try {
+        const rows = await fetchMahallelerByIlceId(ilceId);
+        if (cancelled) return;
+        setCreateInstitutionMahalleler(rows);
+      } catch (error) {
+        console.error("Mahalleler yüklenemedi:", error);
+        if (!cancelled) setCreateInstitutionMahalleler([]);
+      } finally {
+        if (!cancelled) setCreateInstitutionMahallelerLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createInstitutionIlceId]);
+
+  useEffect(() => {
+    if (!editingInstructor) {
+      setInstructorEditIller([]);
+      setInstructorEditIlceler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIller();
+        if (cancelled) return;
+        setInstructorEditIller(rows);
+      } catch (error) {
+        console.error("İller yüklenemedi:", error);
+        if (!cancelled) setInstructorEditIller([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingInstructor]);
+
+  useEffect(() => {
+    const ilId = parseLocationId(instructorEditForm.ilId);
+    if (!editingInstructor || ilId == null) {
+      setInstructorEditIlceler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIlcelerByIlId(ilId);
+        if (cancelled) return;
+        setInstructorEditIlceler(rows);
+      } catch (error) {
+        console.error("İlçeler yüklenemedi:", error);
+        if (!cancelled) setInstructorEditIlceler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingInstructor, instructorEditForm.ilId]);
+
   const handleCreateInstitutionSubmit = async () => {
     if (createInstitutionSubmitLockRef.current || createInstitutionSubmitting) return;
 
     const name = createInstitutionName.trim();
     const categoryId = Number(createInstitutionCategoryId.trim());
-    const district = createInstitutionDistrict.trim();
-    const nextFieldErrors: { name?: string; categoryId?: string; district?: string } = {};
+    const ilId = parseLocationId(createInstitutionIlId);
+    const ilceId = parseLocationId(createInstitutionIlceId);
+    const mahalleId = parseLocationId(createInstitutionMahalleId);
+    const city = createInstitutionIller.find((row) => row.id === ilId)?.ad.trim() ?? "";
+    const district = createInstitutionIlceler.find((row) => row.id === ilceId)?.ad.trim() ?? "";
+    const address = createInstitutionAddress.trim();
+    const nextFieldErrors: {
+      name?: string;
+      categoryId?: string;
+      ilId?: string;
+      ilceId?: string;
+      mahalleId?: string;
+    } = {};
 
     if (!name) nextFieldErrors.name = "Kurum adı zorunludur.";
     if (!Number.isFinite(categoryId) || categoryId <= 0) {
       nextFieldErrors.categoryId = "Lütfen bir kategori seçin.";
     }
-    if (!district) nextFieldErrors.district = "Lütfen bir ilçe seçin.";
+    if (ilId == null) nextFieldErrors.ilId = "Lütfen bir il seçin.";
+    if (ilceId == null) nextFieldErrors.ilceId = "Lütfen bir ilçe seçin.";
+    if (mahalleId == null) nextFieldErrors.mahalleId = "Lütfen bir mahalle seçin.";
 
-    if (Object.keys(nextFieldErrors).length > 0) {
+    if (
+      Object.keys(nextFieldErrors).length > 0 ||
+      ilId == null ||
+      ilceId == null ||
+      mahalleId == null
+    ) {
       setCreateInstitutionFieldErrors(nextFieldErrors);
       setCreateInstitutionError("Lütfen zorunlu alanları doldurun.");
       return;
@@ -1498,8 +1709,12 @@ export default function AdminPageClient() {
         .insert({
           institution_name: name,
           category_id: categoryId,
-          city: ADMIN_CREATED_INSTITUTION_CITY,
+          il_id: ilId,
+          ilce_id: ilceId,
+          mahalle_id: mahalleId,
+          city,
           district,
+          address,
           owner_auth_id: null,
           source: ADMIN_CREATED_INSTITUTION_SOURCE,
           is_approved: true,
@@ -1590,7 +1805,8 @@ export default function AdminPageClient() {
       email: String(row.email ?? "").trim(),
       phone: String(row.phone ?? "").trim(),
       branch: String(row.branch ?? "").trim(),
-      district: String(row.district ?? "").trim(),
+      ilId: toLocationIdString(row.il_id),
+      ilceId: toLocationIdString(row.ilce_id),
     });
     setInstructorEditError(null);
     setInstructorEditPhoneError(null);
@@ -1633,7 +1849,8 @@ export default function AdminPageClient() {
           email: instructorEditForm.email,
           phone: instructorEditForm.phone,
           branch: instructorEditForm.branch,
-          district: instructorEditForm.district,
+          il_id: parseLocationId(instructorEditForm.ilId),
+          ilce_id: parseLocationId(instructorEditForm.ilceId),
         }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -2328,7 +2545,7 @@ export default function AdminPageClient() {
       email: String(row.email ?? "").trim() || "-",
       phone: String(row.phone ?? "").trim() || "-",
       branch: String(row.branch ?? "").trim() || "-",
-      district: String(row.district ?? "").trim() || "-",
+      district: String(row.locationIlceAd ?? "").trim() || String(row.locationIlAd ?? "").trim() || "-",
       sourceRow: row,
     }));
   }, [instructorsList]);
@@ -3623,8 +3840,8 @@ export default function AdminPageClient() {
                           <strong>{String(selectedApprovalItem.row.branch ?? "").trim() || "-"}</strong>
                         </div>
                         <div>
-                          <span>Ünvan</span>
-                          <strong>{String(selectedApprovalItem.row.title ?? "").trim() || "-"}</strong>
+                          <span>Bölüm</span>
+                          <strong>{String(selectedApprovalItem.row.department ?? "").trim() || "-"}</strong>
                         </div>
                         <div>
                           <span>Deneyim</span>
@@ -3698,7 +3915,7 @@ export default function AdminPageClient() {
               onClick={getBackdropClickHandler(handleCloseCreateInstitutionModal)}
             >
               <div
-                className="admin-individual-users-modal"
+                className="admin-individual-users-modal admin-create-institution-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="admin-create-institution-modal-title"
@@ -3806,33 +4023,38 @@ export default function AdminPageClient() {
                       </p>
                     ) : null}
                   </div>
-                  <label className="admin-individual-users-modal-field">
-                    <span>İl</span>
-                    <input type="text" value={ADMIN_CREATED_INSTITUTION_CITY} disabled />
-                  </label>
                   <div className="admin-individual-users-modal-field">
-                    <span>İlçe</span>
+                    <span>İl</span>
                     <Select
-                      value={createInstitutionDistrict || undefined}
+                      value={createInstitutionIlId || undefined}
                       onValueChange={(next) => {
-                        setCreateInstitutionDistrict(next);
+                        setCreateInstitutionIlId(next);
+                        setCreateInstitutionIlceId("");
+                        setCreateInstitutionMahalleId("");
+                        setCreateInstitutionMahalleler([]);
                         setCreateInstitutionFieldErrors((prev) => ({
                           ...prev,
-                          district: undefined,
+                          ilId: undefined,
+                          ilceId: undefined,
+                          mahalleId: undefined,
                         }));
                       }}
-                      disabled={createInstitutionSubmitting}
+                      disabled={createInstitutionSubmitting || createInstitutionIllerLoading}
                     >
                       <SelectTrigger
                         className={`admin-create-institution-select-trigger${
-                          createInstitutionFieldErrors.district
+                          createInstitutionFieldErrors.ilId
                             ? " admin-individual-users-modal-field-input--error"
                             : ""
                         }`}
-                        aria-invalid={createInstitutionFieldErrors.district ? true : undefined}
-                        aria-label="İlçe seçin"
+                        aria-invalid={createInstitutionFieldErrors.ilId ? true : undefined}
+                        aria-label="İl seçin"
                       >
-                        <SelectValue placeholder="İlçe seçin" />
+                        <SelectValue
+                          placeholder={
+                            createInstitutionIllerLoading ? "İller yükleniyor..." : "İl seçin"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent
                         className="admin-create-institution-select-content"
@@ -3841,19 +4063,142 @@ export default function AdminPageClient() {
                         sideOffset={6}
                         align="start"
                       >
-                        {ANKARA_DISTRICTS.map((district) => (
-                          <SelectItem key={district} value={district}>
-                            {district}
+                        {createInstitutionIller.map((il) => (
+                          <SelectItem key={il.id} value={String(il.id)}>
+                            {il.ad}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {createInstitutionFieldErrors.district ? (
+                    {createInstitutionFieldErrors.ilId ? (
                       <p className="admin-individual-users-modal-field-error">
-                        {createInstitutionFieldErrors.district}
+                        {createInstitutionFieldErrors.ilId}
                       </p>
                     ) : null}
                   </div>
+                  <div className="admin-individual-users-modal-field">
+                    <span>İlçe</span>
+                    <Select
+                      value={createInstitutionIlceId || undefined}
+                      onValueChange={(next) => {
+                        setCreateInstitutionIlceId(next);
+                        setCreateInstitutionMahalleId("");
+                        setCreateInstitutionFieldErrors((prev) => ({
+                          ...prev,
+                          ilceId: undefined,
+                          mahalleId: undefined,
+                        }));
+                      }}
+                      disabled={
+                        createInstitutionSubmitting ||
+                        !createInstitutionIlId ||
+                        createInstitutionIlcelerLoading
+                      }
+                    >
+                      <SelectTrigger
+                        className={`admin-create-institution-select-trigger${
+                          createInstitutionFieldErrors.ilceId
+                            ? " admin-individual-users-modal-field-input--error"
+                            : ""
+                        }`}
+                        aria-invalid={createInstitutionFieldErrors.ilceId ? true : undefined}
+                        aria-label="İlçe seçin"
+                      >
+                        <SelectValue
+                          placeholder={
+                            !createInstitutionIlId
+                              ? "Önce il seçin"
+                              : createInstitutionIlcelerLoading
+                                ? "İlçeler yükleniyor..."
+                                : "İlçe seçin"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent
+                        className="admin-create-institution-select-content"
+                        position="popper"
+                        side="bottom"
+                        sideOffset={6}
+                        align="start"
+                      >
+                        {createInstitutionIlceler.map((ilce) => (
+                          <SelectItem key={ilce.id} value={String(ilce.id)}>
+                            {ilce.ad}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {createInstitutionFieldErrors.ilceId ? (
+                      <p className="admin-individual-users-modal-field-error">
+                        {createInstitutionFieldErrors.ilceId}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="admin-individual-users-modal-field">
+                    <span>Mahalle</span>
+                    <Select
+                      value={createInstitutionMahalleId || undefined}
+                      onValueChange={(next) => {
+                        setCreateInstitutionMahalleId(next);
+                        setCreateInstitutionFieldErrors((prev) => ({
+                          ...prev,
+                          mahalleId: undefined,
+                        }));
+                      }}
+                      disabled={
+                        createInstitutionSubmitting ||
+                        !createInstitutionIlceId ||
+                        createInstitutionMahallelerLoading
+                      }
+                    >
+                      <SelectTrigger
+                        className={`admin-create-institution-select-trigger${
+                          createInstitutionFieldErrors.mahalleId
+                            ? " admin-individual-users-modal-field-input--error"
+                            : ""
+                        }`}
+                        aria-invalid={createInstitutionFieldErrors.mahalleId ? true : undefined}
+                        aria-label="Mahalle seçin"
+                      >
+                        <SelectValue
+                          placeholder={
+                            !createInstitutionIlceId
+                              ? "Önce ilçe seçin"
+                              : createInstitutionMahallelerLoading
+                                ? "Mahalleler yükleniyor..."
+                                : "Mahalle seçin"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent
+                        className="admin-create-institution-select-content"
+                        position="popper"
+                        side="bottom"
+                        sideOffset={6}
+                        align="start"
+                      >
+                        {createInstitutionMahalleler.map((mahalle) => (
+                          <SelectItem key={mahalle.id} value={String(mahalle.id)}>
+                            {mahalle.ad}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {createInstitutionFieldErrors.mahalleId ? (
+                      <p className="admin-individual-users-modal-field-error">
+                        {createInstitutionFieldErrors.mahalleId}
+                      </p>
+                    ) : null}
+                  </div>
+                  <label className="admin-individual-users-modal-field">
+                    <span>Açık Adres</span>
+                    <input
+                      type="text"
+                      value={createInstitutionAddress}
+                      onChange={(event) => setCreateInstitutionAddress(event.target.value)}
+                      disabled={createInstitutionSubmitting}
+                    />
+                  </label>
                   {createInstitutionError ? (
                     <p className="admin-individual-users-modal-error">{createInstitutionError}</p>
                   ) : null}
@@ -4110,17 +4455,44 @@ export default function AdminPageClient() {
                     />
                   </label>
                   <label className="admin-instructors-modal-field">
-                    <span>İlçe</span>
-                    <input
-                      type="text"
-                      value={instructorEditForm.district}
+                    <span>İl</span>
+                    <select
+                      value={instructorEditForm.ilId}
                       onChange={(event) =>
                         setInstructorEditForm((prev) => ({
                           ...prev,
-                          district: event.target.value,
+                          ilId: event.target.value,
+                          ilceId: "",
                         }))
                       }
-                    />
+                    >
+                      <option value="">İl seçin</option>
+                      {instructorEditIller.map((row) => (
+                        <option key={row.id} value={String(row.id)}>
+                          {row.ad}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-instructors-modal-field">
+                    <span>İlçe</span>
+                    <select
+                      value={instructorEditForm.ilceId}
+                      onChange={(event) =>
+                        setInstructorEditForm((prev) => ({
+                          ...prev,
+                          ilceId: event.target.value,
+                        }))
+                      }
+                      disabled={!instructorEditForm.ilId}
+                    >
+                      <option value="">İlçe seçin</option>
+                      {instructorEditIlceler.map((row) => (
+                        <option key={row.id} value={String(row.id)}>
+                          {row.ad}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   {instructorEditError ? (
                     <p className="admin-instructors-modal-error">{instructorEditError}</p>

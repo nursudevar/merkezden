@@ -9,17 +9,25 @@
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INSTRUCTORS_TABLE } from "@/lib/instructorProfileClient";
+import {
+  buildLocationAdMaps,
+  fetchIlcelerByIlId,
+  fetchIller,
+  findLocationAdById,
+  lookupLocationAds,
+  parseLocationId,
+} from "@/lib/turkiyeLocationsClient";
 
 export const PUBLIC_INSTRUCTORS_TABLE = "public_instructors" as const;
 
 /** instructors tablosu ile uyumlu güvenli sütunlar (tc, owner_auth_id vb. yok) */
 export const PUBLIC_INSTRUCTOR_ROW_SELECT =
-  "id, name, surname, title, branch, school, bio, about, city, district, address, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, email, phone, is_approved, is_active";
+  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, mahalle_id, address, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, email, phone, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT}, slug`;
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE =
-  "id, name, surname, title, branch, school, bio, about, city, district, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_approved, is_active";
+  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT_BASE}, slug`;
 
@@ -28,13 +36,16 @@ export type PublicInstructorRow = {
   slug?: string | null;
   name?: string | null;
   surname?: string | null;
-  title?: string | null;
   branch?: string | null;
   school?: string | null;
+  department?: string | null;
   bio?: string | null;
   about?: string | null;
-  city?: string | null;
-  district?: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  mahalle_id?: number | null;
+  locationIlAd?: string | null;
+  locationIlceAd?: string | null;
   address?: string | null;
   profile_picture?: string | null;
   experience_years?: number | null;
@@ -52,6 +63,7 @@ export type PublicInstructorRow = {
   is_active?: boolean | null;
   category_id?: number | null;
   category_name?: string | null;
+  category_slug?: string | null;
 };
 
 function hasSupabaseResponseError(error: unknown): boolean {
@@ -129,7 +141,9 @@ async function enrichPublicInstructorCategory(
   row: PublicInstructorRow,
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<PublicInstructorRow> {
-  if (String(row.category_name ?? "").trim()) return row;
+  const hasName = Boolean(String(row.category_name ?? "").trim());
+  const hasSlug = Boolean(String(row.category_slug ?? "").trim());
+  if (hasName && hasSlug) return row;
 
   let categoryId = row.category_id;
   if (categoryId == null || !Number.isFinite(Number(categoryId))) {
@@ -148,7 +162,7 @@ async function enrichPublicInstructorCategory(
 
   const { data: catData, error: catError } = await supabase
     .from("instructor_categories")
-    .select("name")
+    .select("name, slug")
     .eq("id", Number(categoryId))
     .eq("is_active", true)
     .maybeSingle();
@@ -157,16 +171,60 @@ async function enrichPublicInstructorCategory(
     return { ...row, category_id: Number(categoryId) };
   }
 
-  const categoryName = String((catData as { name?: string | null }).name ?? "").trim();
+  const categoryName =
+    String(row.category_name ?? "").trim() ||
+    String((catData as { name?: string | null }).name ?? "").trim();
+  const categorySlug =
+    String(row.category_slug ?? "").trim() ||
+    String((catData as { slug?: string | null }).slug ?? "").trim();
   if (!categoryName) {
-    return { ...row, category_id: Number(categoryId) };
+    return { ...row, category_id: Number(categoryId), category_slug: categorySlug || null };
   }
 
   return {
     ...row,
     category_id: Number(categoryId),
     category_name: categoryName,
+    category_slug: categorySlug || null,
   };
+}
+
+async function enrichPublicInstructorLocation(
+  row: PublicInstructorRow,
+): Promise<PublicInstructorRow> {
+  const ilId = parseLocationId(row.il_id);
+  if (ilId == null) {
+    return { ...row, locationIlAd: "", locationIlceAd: "" };
+  }
+
+  try {
+    const [iller, ilceler] = await Promise.all([
+      fetchIller(),
+      fetchIlcelerByIlId(ilId),
+    ]);
+    return {
+      ...row,
+      locationIlAd: findLocationAdById(iller, ilId),
+      locationIlceAd: findLocationAdById(ilceler, row.ilce_id),
+    };
+  } catch {
+    return { ...row, locationIlAd: "", locationIlceAd: "" };
+  }
+}
+
+async function enrichPublicInstructorRowsLocation(
+  rows: PublicInstructorRow[],
+): Promise<PublicInstructorRow[]> {
+  if (rows.length === 0) return rows;
+  try {
+    const maps = await buildLocationAdMaps(rows);
+    return rows.map((row) => {
+      const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, maps);
+      return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
+    });
+  } catch {
+    return rows.map((row) => ({ ...row, locationIlAd: "", locationIlceAd: "" }));
+  }
 }
 
 async function queryPublicInstructorRow(
@@ -195,7 +253,6 @@ async function queryPublicInstructorRow(
 /** Liste / arama — yalnızca aktif profiller */
 export async function fetchPublicInstructorsListClient(options?: {
   limit?: number;
-  city?: string;
   supabase?: ReturnType<typeof createSupabaseBrowserClient>;
 }): Promise<{
   rows: PublicInstructorRow[];
@@ -203,7 +260,6 @@ export async function fetchPublicInstructorsListClient(options?: {
 }> {
   const supabase = options?.supabase ?? createSupabaseBrowserClient();
   const limit = options?.limit ?? 100;
-  const city = String(options?.city ?? "").trim();
 
   const attempts: Array<{ table: string; select: string }> = [
     { table: PUBLIC_INSTRUCTORS_TABLE, select: PUBLIC_INSTRUCTOR_ROW_SELECT },
@@ -211,7 +267,7 @@ export async function fetchPublicInstructorsListClient(options?: {
   ];
 
   for (const { table, select } of attempts) {
-    let query = supabase
+    const query = supabase
       .from(table)
       .select(select)
       .eq("is_active", true)
@@ -220,11 +276,12 @@ export async function fetchPublicInstructorsListClient(options?: {
       .order("surname", { ascending: true })
       .limit(limit);
 
-    if (city) query = query.eq("city", city);
-
     const { data, error } = await query;
     if (!hasSupabaseResponseError(error)) {
-      return { rows: ((data ?? []) as unknown) as PublicInstructorRow[], error: null };
+      const rows = await enrichPublicInstructorRowsLocation(
+        ((data ?? []) as unknown) as PublicInstructorRow[],
+      );
+      return { rows, error: null };
     }
     console.warn(`[public_instructors] list (${table}):`, describeSupabaseError(error));
   }
@@ -269,7 +326,8 @@ export async function fetchPublicInstructorByParamClient(
     const { data, error } = await queryPublicInstructorRow(table, select, trimmed, supabase);
     if (!hasSupabaseResponseError(error) && data) {
       const withContact = await enrichPublicInstructorContact(data, supabase);
-      const enriched = await enrichPublicInstructorCategory(withContact, supabase);
+      const withCategory = await enrichPublicInstructorCategory(withContact, supabase);
+      const enriched = await enrichPublicInstructorLocation(withCategory);
       return { row: enriched, error: null };
     }
     if (hasSupabaseResponseError(error)) {

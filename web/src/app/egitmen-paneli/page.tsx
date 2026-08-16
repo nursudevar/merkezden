@@ -28,7 +28,6 @@ import {
 } from "@/lib/auth/authBrowserClient";
 import {
   EMPTY_INSTRUCTOR_PROFILE_FORM,
-  INSTRUCTOR_PROFILE_CITY,
   instructorDisplayNameFromRow,
   instructorProfileFormsEqual,
   loadInstructorRowForAuthUserClient,
@@ -37,7 +36,6 @@ import {
   type InstructorProfileFormState,
   type InstructorProfileRow,
 } from "@/lib/instructorProfileClient";
-import { ANKARA_DISTRICTS } from "@/constants/districts";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import {
   AdminActingAsBanner,
@@ -48,10 +46,20 @@ import { UserBlogPostsPanel } from "@/components/blog/UserBlogPostsPanel";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { Button, Input } from "@/components/ui";
 import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
-import { EgitmenFormSelect } from "./EgitmenFormSelect";
+import { InstructorLocationFields } from "./InstructorLocationFields";
+import { UniversitySelect } from "@/components/university/UniversitySelect";
 import { InstructorAnnouncementsTab } from "./InstructorAnnouncementsTab";
 import { InstructorFeaturesTab } from "./InstructorFeaturesTab";
 import { InstructorMediaTab } from "./InstructorMediaTab";
+import {
+  INSTRUCTOR_DIPLOMA_MAX_BYTES,
+  INSTRUCTOR_MEDIA_DIPLOMA_ERROR,
+  INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR,
+  instructorPrivateDocumentDisplayName,
+  isValidInstructorDiplomaFile,
+  removeInstructorDiplomaFileQuietly,
+  uploadInstructorDiplomaFileToStorage,
+} from "@/lib/instructorMediaClient";
 import "@/styles/main.scss";
 import "@/styles/pages/egitmen-panel.scss";
 
@@ -79,14 +87,15 @@ const INSTRUCTOR_OVERVIEW_LOAD_ERROR =
 
 const INSTRUCTOR_OVERVIEW_COMPLETENESS_KEYS = [
   "phone",
-  "city",
-  "district",
+  "il_id",
+  "ilce_id",
   "address",
-  "title",
   "branch",
   "education_level",
   "experience_years",
   "school",
+  "department",
+  "diploma_document_path",
   "bio",
   "about",
   "working_hours",
@@ -109,14 +118,15 @@ const INSTRUCTOR_OVERVIEW_FIELD_META: Record<
   { label: string; tab: InstructorPanelTabId }
 > = {
   phone: { label: "Telefon", tab: "profile" },
-  city: { label: "Şehir", tab: "profile" },
-  district: { label: "İlçe", tab: "profile" },
+  il_id: { label: "İl", tab: "profile" },
+  ilce_id: { label: "İlçe", tab: "profile" },
   address: { label: "Adres", tab: "profile" },
-  title: { label: "Ünvan", tab: "profile" },
   branch: { label: "Branş", tab: "profile" },
   education_level: { label: "Eğitim Seviyesi", tab: "profile" },
   experience_years: { label: "Deneyim Yılı", tab: "profile" },
   school: { label: "Mezun Olunan Okul", tab: "profile" },
+  department: { label: "Bölüm", tab: "profile" },
+  diploma_document_path: { label: "Diploma / Belge", tab: "profile" },
   bio: { label: "Kısa Biyografi", tab: "profile" },
   about: { label: "Hakkında", tab: "profile" },
   working_hours: { label: "Çalışma Saatleri", tab: "profile" },
@@ -136,14 +146,12 @@ function isInstructorOverviewFieldFilled(
   switch (key) {
     case "phone":
       return Boolean(form.phone.trim());
-    case "city":
-      return Boolean(form.city.trim());
-    case "district":
-      return Boolean(form.district.trim());
+    case "il_id":
+      return Boolean(form.isAbroad || form.ilId.trim());
+    case "ilce_id":
+      return Boolean(form.isAbroad || form.ilceId.trim());
     case "address":
-      return Boolean(form.address.trim());
-    case "title":
-      return Boolean(form.title.trim());
+      return Boolean(form.address.trim() && (form.isAbroad || form.mahalleId.trim()));
     case "branch":
       return Boolean(form.branch.trim());
     case "education_level":
@@ -155,6 +163,10 @@ function isInstructorOverviewFieldFilled(
     }
     case "school":
       return Boolean(form.school.trim());
+    case "department":
+      return Boolean(form.department.trim());
+    case "diploma_document_path":
+      return Boolean(form.diploma_document_path.trim());
     case "bio":
       return Boolean(form.bio.trim());
     case "about":
@@ -175,21 +187,21 @@ function renderInstructorOverviewMissingFieldIcon(id: InstructorOverviewMissingF
   switch (id) {
     case "phone":
       return <Phone className={c} aria-hidden />;
-    case "city":
-    case "district":
+    case "il_id":
+    case "ilce_id":
     case "address":
       return <MapPin className={c} aria-hidden />;
-    case "title":
-      return <User className={c} aria-hidden />;
     case "branch":
       return <Tags className={c} aria-hidden />;
     case "school":
+    case "department":
     case "education_level":
     case "experience_years":
       return <GraduationCap className={c} aria-hidden />;
     case "bio":
     case "about":
     case "cv_url":
+    case "diploma_document_path":
       return <FileText className={c} aria-hidden />;
     case "working_hours":
       return <Clock className={c} aria-hidden />;
@@ -253,6 +265,7 @@ function InstructorPanelPage() {
 
   const [instructorRowId, setInstructorRowId] = useState<number | null>(null);
   const [instructorRow, setInstructorRow] = useState<InstructorProfileRow | null>(null);
+  const [pendingDiplomaFile, setPendingDiplomaFile] = useState<File | null>(null);
   const [profileForm, setProfileForm] = useState<InstructorProfileFormState>(
     EMPTY_INSTRUCTOR_PROFILE_FORM,
   );
@@ -366,6 +379,7 @@ function InstructorPanelPage() {
         setInstructorRow(row);
         setProfileForm(loadedForm);
         setProfileInitialForm(loadedForm);
+        setPendingDiplomaFile(null);
         setInstructorName(instructorDisplayNameFromRow(row));
         setProfileLoadError(null);
       },
@@ -402,7 +416,7 @@ function InstructorPanelPage() {
     const name = profileForm.name.trim();
     const surname = profileForm.surname.trim();
     const email = profileForm.email.trim();
-    const tc = profileForm.tc_identity_no.trim();
+    const tc = profileForm.identity_or_tax_number.trim();
     const exp = profileForm.experience_years.trim();
 
     if (!name) errors.name = "Ad alanı zorunludur.";
@@ -413,11 +427,11 @@ function InstructorPanelPage() {
       errors.email = "Geçerli bir e-posta adresi girin.";
     }
     if (!tc) {
-      errors.tc_identity_no = "TC kimlik numarası zorunludur.";
+      errors.identity_or_tax_number = "TC kimlik numarası zorunludur.";
     } else if (tc.length !== 11) {
-      errors.tc_identity_no = "TC kimlik numarası 11 haneli olmalıdır.";
+      errors.identity_or_tax_number = "TC kimlik numarası 11 haneli olmalıdır.";
     } else if (tc.startsWith("0")) {
-      errors.tc_identity_no = "TC kimlik numarası 0 ile başlayamaz.";
+      errors.identity_or_tax_number = "TC kimlik numarası 0 ile başlayamaz.";
     }
     if (!profileForm.birth_date.trim()) {
       errors.birth_date = "Doğum tarihi zorunludur.";
@@ -450,16 +464,29 @@ function InstructorPanelPage() {
       errors.linkedin_url = "Geçerli bir Linkedin linki girin.";
     }
 
+    if (!profileForm.isAbroad) {
+      if (!profileForm.ilId.trim()) {
+        errors.ilId = "Lütfen il seçin.";
+      }
+      if (!profileForm.ilceId.trim()) {
+        errors.ilceId = "Lütfen ilçe seçin.";
+      }
+      if (!profileForm.mahalleId.trim()) {
+        errors.mahalleId = "Lütfen mahalle seçin.";
+      }
+    }
+
     return errors;
   };
 
   const normalizeProfileFormForSave = (
     form: InstructorProfileFormState,
-  ): InstructorProfileFormState => ({
-    ...form,
-    city: INSTRUCTOR_PROFILE_CITY,
-    phone: cleanInstructorPhoneInput(form.phone),
-  });
+  ): InstructorProfileFormState => {
+    return {
+      ...form,
+      phone: cleanInstructorPhoneInput(form.phone),
+    };
+  };
 
   const handleProfileSave = async () => {
     if (!user?.id || !instructorRowId) {
@@ -479,21 +506,72 @@ function InstructorPanelPage() {
     setProfileSaving(true);
 
     try {
+      const supabase = createSupabaseBrowserClient();
+      let diplomaPath = profileForm.diploma_document_path.trim();
+      let uploadedNewDiplomaPath: string | null = null;
+
+      if (pendingDiplomaFile) {
+        if (!isValidInstructorDiplomaFile(pendingDiplomaFile)) {
+          setProfileFieldErrors((prev) => ({
+            ...prev,
+            diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_ERROR,
+          }));
+          setProfileSaveError("Lütfen zorunlu alanları kontrol edin.");
+          return;
+        }
+        if (pendingDiplomaFile.size > INSTRUCTOR_DIPLOMA_MAX_BYTES) {
+          setProfileFieldErrors((prev) => ({
+            ...prev,
+            diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR,
+          }));
+          setProfileSaveError("Lütfen zorunlu alanları kontrol edin.");
+          return;
+        }
+
+        const uploaded = await uploadInstructorDiplomaFileToStorage(
+          instructorRowId,
+          pendingDiplomaFile,
+          supabase,
+        );
+        if (!uploaded.path) {
+          setProfileSaveError(uploaded.error || INSTRUCTOR_PROFILE_ERROR_MESSAGE);
+          return;
+        }
+        uploadedNewDiplomaPath = uploaded.path;
+        diplomaPath = uploaded.path;
+      }
+
       const { row: data, error } = await updateInstructorProfileForAuthUserClient(
         user.id,
         instructorRowId,
-        normalizeProfileFormForSave(profileForm),
+        normalizeProfileFormForSave({
+          ...profileForm,
+          diploma_document_path: diplomaPath,
+        }),
       );
 
       if (error || !data) {
         console.error("[instructor-panel] profile save error:", error);
+        if (uploadedNewDiplomaPath) {
+          await removeInstructorDiplomaFileQuietly(uploadedNewDiplomaPath, supabase);
+        }
         setProfileSaveError(INSTRUCTOR_PROFILE_ERROR_MESSAGE);
         return;
+      }
+
+      const previousDiplomaPath = profileForm.diploma_document_path.trim();
+      if (
+        uploadedNewDiplomaPath &&
+        previousDiplomaPath &&
+        previousDiplomaPath !== uploadedNewDiplomaPath
+      ) {
+        await removeInstructorDiplomaFileQuietly(previousDiplomaPath, supabase);
       }
 
       const nextForm = mapInstructorRowToFormState(data);
       setProfileForm(nextForm);
       setProfileInitialForm(nextForm);
+      setPendingDiplomaFile(null);
       setInstructorRow(data);
       setInstructorName(instructorDisplayNameFromRow(data));
       setShowProfileSuccessPopup(true);
@@ -520,20 +598,21 @@ function InstructorPanelPage() {
 
   const handleTcIdentityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
-    handleProfileFieldChange("tc_identity_no", digits);
+    handleProfileFieldChange("identity_or_tax_number", digits);
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleProfileFieldChange("phone", cleanInstructorPhoneInput(e.target.value));
   };
 
-  const districtSelectOptions = useMemo(() => {
-    const current = profileForm.district.trim();
-    if (current && !ANKARA_DISTRICTS.includes(current)) {
-      return [current, ...ANKARA_DISTRICTS];
-    }
-    return ANKARA_DISTRICTS;
-  }, [profileForm.district]);
+  const clearProfileFieldError = (field: keyof InstructorProfileFormState) => {
+    setProfileFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const sidebarIcons: Record<InstructorPanelTabId, React.ReactNode> = {
     overview: <LayoutDashboard className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
@@ -572,8 +651,10 @@ function InstructorPanelPage() {
   }, []);
 
   const isProfileFormDirty = useMemo(
-    () => !instructorProfileFormsEqual(profileForm, profileInitialForm),
-    [profileForm, profileInitialForm],
+    () =>
+      Boolean(pendingDiplomaFile) ||
+      !instructorProfileFormsEqual(profileForm, profileInitialForm),
+    [profileForm, profileInitialForm, pendingDiplomaFile],
   );
   const targetInstructorIdParam = (searchParams.get("instructorId") ?? "").trim();
   const isAdminActingAsInstructor =
@@ -940,13 +1021,13 @@ function InstructorPanelPage() {
                               <Input
                                 inputMode="numeric"
                                 className="egitmen-panel-form-input"
-                                value={profileForm.tc_identity_no}
+                                value={profileForm.identity_or_tax_number}
                                 onChange={handleTcIdentityChange}
                                 maxLength={11}
                               />
-                              {profileFieldErrors.tc_identity_no ? (
+                              {profileFieldErrors.identity_or_tax_number ? (
                                 <span className="egitmen-panel-form-error" role="alert">
-                                  {profileFieldErrors.tc_identity_no}
+                                  {profileFieldErrors.identity_or_tax_number}
                                 </span>
                               ) : null}
                             </div>
@@ -986,24 +1067,6 @@ function InstructorPanelPage() {
                           <h3 className="egitmen-panel-form-section-title">Eğitmen Bilgileri</h3>
                           <div className="egitmen-panel-form-row">
                             <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Ünvan</label>
-                              <Input
-                                className="egitmen-panel-form-input"
-                                value={profileForm.title}
-                                onChange={(e) => handleProfileFieldChange("title", e.target.value)}
-                              />
-                            </div>
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Branş</label>
-                              <Input
-                                className="egitmen-panel-form-input"
-                                value={profileForm.branch}
-                                onChange={(e) => handleProfileFieldChange("branch", e.target.value)}
-                              />
-                            </div>
-                          </div>
-                          <div className="egitmen-panel-form-row">
-                            <div className="egitmen-panel-form-field">
                               <label className="egitmen-panel-form-label">Deneyim Yılı</label>
                               <Input
                                 type="number"
@@ -1031,15 +1094,101 @@ function InstructorPanelPage() {
                               />
                             </div>
                           </div>
-                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
+                          <div className="egitmen-panel-form-row">
                             <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">MEZUN OLUNAN OKUL</label>
+                              <label className="egitmen-panel-form-label" htmlFor="egitmen-profile-school">
+                                Mezun Olunan Okul
+                              </label>
+                              <UniversitySelect
+                                id="egitmen-profile-school"
+                                variant="panel"
+                                value={profileForm.school}
+                                onChange={(next) => handleProfileFieldChange("school", next)}
+                                placeholder="Üniversite seçin"
+                                hasError={Boolean(profileFieldErrors.school)}
+                                ariaLabel="Mezun olunan okul"
+                              />
+                              {profileFieldErrors.school ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.school}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Bölüm</label>
                               <Input
                                 className="egitmen-panel-form-input"
-                                value={profileForm.school}
-                                onChange={(e) => handleProfileFieldChange("school", e.target.value)}
-                                placeholder="Mezun olduğunuz okul bilgisini girin."
+                                value={profileForm.department}
+                                onChange={(e) =>
+                                  handleProfileFieldChange("department", e.target.value)
+                                }
+                                placeholder="Bölümünüzü girin."
                               />
+                            </div>
+                          </div>
+                          <div className="egitmen-panel-form-row">
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label">Branş</label>
+                              <Input
+                                className="egitmen-panel-form-input"
+                                value={profileForm.branch}
+                                onChange={(e) => handleProfileFieldChange("branch", e.target.value)}
+                              />
+                            </div>
+                            <div className="egitmen-panel-form-field">
+                              <label className="egitmen-panel-form-label" htmlFor="egitmen-profile-diploma">
+                                Diploma / Belge
+                              </label>
+                              <input
+                                id="egitmen-profile-diploma"
+                                type="file"
+                                className="egitmen-panel-form-input egitmen-panel-form-file-input"
+                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] ?? null;
+                                  if (!file) {
+                                    setPendingDiplomaFile(null);
+                                    return;
+                                  }
+                                  if (!isValidInstructorDiplomaFile(file)) {
+                                    setPendingDiplomaFile(null);
+                                    e.target.value = "";
+                                    setProfileFieldErrors((prev) => ({
+                                      ...prev,
+                                      diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_ERROR,
+                                    }));
+                                    return;
+                                  }
+                                  if (file.size > INSTRUCTOR_DIPLOMA_MAX_BYTES) {
+                                    setPendingDiplomaFile(null);
+                                    e.target.value = "";
+                                    setProfileFieldErrors((prev) => ({
+                                      ...prev,
+                                      diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR,
+                                    }));
+                                    return;
+                                  }
+                                  setPendingDiplomaFile(file);
+                                  setProfileFieldErrors((prev) => {
+                                    if (!prev.diploma_document_path) return prev;
+                                    const next = { ...prev };
+                                    delete next.diploma_document_path;
+                                    return next;
+                                  });
+                                }}
+                              />
+                              {pendingDiplomaFile ? (
+                                <p className="egitmen-panel-form-file-name">{pendingDiplomaFile.name}</p>
+                              ) : profileForm.diploma_document_path ? (
+                                <p className="egitmen-panel-form-file-name">
+                                  {instructorPrivateDocumentDisplayName(profileForm.diploma_document_path)}
+                                </p>
+                              ) : null}
+                              {profileFieldErrors.diploma_document_path ? (
+                                <span className="egitmen-panel-form-error" role="alert">
+                                  {profileFieldErrors.diploma_document_path}
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                           <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
@@ -1156,34 +1305,59 @@ function InstructorPanelPage() {
 
                         <section className="egitmen-panel-form-section">
                           <h3 className="egitmen-panel-form-section-title">Konum ve İletişim</h3>
-                          <div className="egitmen-panel-form-row">
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Şehir</label>
-                              <Input
-                                className="egitmen-panel-form-input egitmen-panel-form-input--readonly"
-                                value={INSTRUCTOR_PROFILE_CITY}
-                                disabled
-                                readOnly
-                                aria-readonly="true"
-                              />
-                            </div>
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label" htmlFor="egitmen-profile-district">
-                                İlçe
-                              </label>
-                              <EgitmenFormSelect
-                                id="egitmen-profile-district"
-                                value={profileForm.district}
-                                onChange={(next) => handleProfileFieldChange("district", next)}
-                                options={districtSelectOptions}
-                                placeholder="İlçe seçin"
-                                ariaLabel="İlçe seçin"
-                              />
-                            </div>
-                          </div>
+                          <InstructorLocationFields
+                            ilId={profileForm.ilId}
+                            ilceId={profileForm.ilceId}
+                            mahalleId={profileForm.mahalleId}
+                            isAbroad={profileForm.isAbroad}
+                            ilError={profileFieldErrors.ilId}
+                            ilceError={profileFieldErrors.ilceId}
+                            mahalleError={profileFieldErrors.mahalleId}
+                            onIsAbroadChange={(nextIsAbroad) => {
+                              setProfileForm((prev) => ({
+                                ...prev,
+                                isAbroad: nextIsAbroad,
+                                ...(nextIsAbroad
+                                  ? { ilId: "", ilceId: "", mahalleId: "" }
+                                  : {}),
+                              }));
+                              if (nextIsAbroad) {
+                                clearProfileFieldError("ilId");
+                                clearProfileFieldError("ilceId");
+                                clearProfileFieldError("mahalleId");
+                              }
+                            }}
+                            onIlChange={(nextIlId) => {
+                              setProfileForm((prev) => ({
+                                ...prev,
+                                ilId: nextIlId,
+                                ilceId: "",
+                                mahalleId: "",
+                              }));
+                              clearProfileFieldError("ilId");
+                              clearProfileFieldError("ilceId");
+                              clearProfileFieldError("mahalleId");
+                            }}
+                            onIlceChange={(nextIlceId) => {
+                              setProfileForm((prev) => ({
+                                ...prev,
+                                ilceId: nextIlceId,
+                                mahalleId: "",
+                              }));
+                              clearProfileFieldError("ilceId");
+                              clearProfileFieldError("mahalleId");
+                            }}
+                            onMahalleChange={(nextMahalleId) => {
+                              setProfileForm((prev) => ({
+                                ...prev,
+                                mahalleId: nextMahalleId,
+                              }));
+                              clearProfileFieldError("mahalleId");
+                            }}
+                          />
                           <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
                             <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Adres</label>
+                              <label className="egitmen-panel-form-label">Açık Adres</label>
                               <textarea
                                 className="egitmen-panel-form-textarea egitmen-panel-form-textarea--compact"
                                 rows={2}
@@ -1266,7 +1440,12 @@ function InstructorPanelPage() {
 
                 {isAnnouncements ? (
                   instructorRowId && user?.id ? (
-                    <InstructorAnnouncementsTab authUserId={user.id} instructorId={instructorRowId} />
+                    <InstructorAnnouncementsTab
+                      authUserId={user.id}
+                      instructorId={instructorRowId}
+                      defaultIlId={profileForm.ilId}
+                      defaultIlceId={profileForm.ilceId}
+                    />
                   ) : profileLoading ? (
                     <p className="egitmen-panel-form-loading">Eğitmen bilgileri yükleniyor…</p>
                   ) : (

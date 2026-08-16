@@ -14,6 +14,11 @@ import CategoryResultsList from "./CategoryResultsList";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
+import {
+  EMPTY_CATEGORY_LOCATION_FILTER,
+  type CategoryLocationFilterValue,
+} from "./categoryLocationFilter";
+import type { PublicBreadcrumbItem } from "@/lib/publicBreadcrumb";
 import type { InstructorCategoryFilterPayload } from "./instructorCategoryFilterTypes";
 import { useCategoryInstitutionMapMarkers } from "@/hooks/useCategoryInstitutionMapMarkers";
 import { useListingFavorites } from "@/hooks/useListingFavorites";
@@ -56,10 +61,6 @@ interface CategoryPageLayoutProps {
    */
   categorySlug?: string;
   /**
-   * Okul/kategori sayfalarında hero arama çubuğu için ilçe listesi.
-   */
-  districts?: string[];
-  /**
    * Yalnızca Okul sayfasında doldurulur: sol panel filtre state'i tek bir
    * Provider üzerinden paylaşılır ve seçimler `onSchoolFilterPayloadChange`
    * ile sayfaya bildirilir. Bu sayede masaüstü + drawer sidebar'ları aynı
@@ -68,16 +69,19 @@ interface CategoryPageLayoutProps {
   schoolModeProps?: {
     linkedSearch: string;
     onLinkedSearchChange: (value: string) => void;
-    linkedDistrict: string;
-    onLinkedDistrictChange: (value: string) => void;
+    linkedLocation: CategoryLocationFilterValue;
+    onLinkedLocationChange: (value: CategoryLocationFilterValue) => void;
     onSchoolFilterPayloadChange: (payload: SchoolCategoryFilterPayload) => void;
   };
   /**
    * Eğitmenler liste sayfası: sol panel filtre şeması instructor_feature_* tablolarından gelir.
    */
   instructorModeProps?: {
+    linkedLocation: CategoryLocationFilterValue;
+    onLinkedLocationChange: (value: CategoryLocationFilterValue) => void;
     onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
   };
+  extraBreadcrumbItems?: PublicBreadcrumbItem[];
 }
 
 export default function CategoryPageLayout({
@@ -91,9 +95,9 @@ export default function CategoryPageLayout({
   resultsTitle,
   onFilterChange,
   categorySlug,
-  districts,
   schoolModeProps,
   instructorModeProps,
+  extraBreadcrumbItems,
 }: CategoryPageLayoutProps) {
   const { markers: categoryMapMarkers, loading: categoryMapLoading } =
     useCategoryInstitutionMapMarkers(results, isLoading);
@@ -126,6 +130,8 @@ export default function CategoryPageLayout({
    */
   const schoolModePropsRef = useRef(schoolModeProps);
   schoolModePropsRef.current = schoolModeProps;
+  const instructorModePropsRef = useRef(instructorModeProps);
+  instructorModePropsRef.current = instructorModeProps;
 
   /**
    * Mobil/tablet drawer açıkken bir filtre seçimi yapıldığında çağrılır:
@@ -152,10 +158,11 @@ export default function CategoryPageLayout({
     schoolModePropsRef.current?.onLinkedSearchChange(value);
   }, []);
 
-  /** İlçe dropdown seçimi → drawer kapat + scroll. */
-  const handleLinkedDistrictChange = useCallback(
-    (value: string) => {
-      schoolModePropsRef.current?.onLinkedDistrictChange(value);
+  /** İl/ilçe/mahalle seçimi → drawer kapat + scroll. */
+  const handleLinkedLocationChange = useCallback(
+    (value: CategoryLocationFilterValue) => {
+      schoolModePropsRef.current?.onLinkedLocationChange(value);
+      instructorModePropsRef.current?.onLinkedLocationChange(value);
       closeDrawerAndScrollToResults();
     },
     [closeDrawerAndScrollToResults],
@@ -241,16 +248,20 @@ export default function CategoryPageLayout({
     </div>
   );
 
-  const heroSection =
-    schoolModeProps && categorySlug ? (
-      <CategoryHero
-        searchValue={schoolModeProps.linkedSearch}
-        onSearchChange={handleLinkedSearchChange}
-        selectedDistrict={schoolModeProps.linkedDistrict}
-        onDistrictChange={handleLinkedDistrictChange}
-        districts={districts}
-      />
-    ) : null;
+  const linkedLocation =
+    schoolModeProps?.linkedLocation ??
+    instructorModeProps?.linkedLocation ??
+    EMPTY_CATEGORY_LOCATION_FILTER;
+
+  const heroSection = (
+    <CategoryHero
+      searchValue={schoolModeProps?.linkedSearch}
+      onSearchChange={schoolModeProps ? handleLinkedSearchChange : undefined}
+      categoryLabel={categoryName}
+      location={linkedLocation}
+      extraBreadcrumbItems={extraBreadcrumbItems}
+    />
+  );
 
   const pageBody = (
     <>
@@ -272,8 +283,8 @@ export default function CategoryPageLayout({
           categorySlug={categorySlug}
           linkedSearch={schoolModeProps.linkedSearch}
           onLinkedSearchChange={handleLinkedSearchChange}
-          linkedDistrict={schoolModeProps.linkedDistrict}
-          onLinkedDistrictChange={handleLinkedDistrictChange}
+          linkedLocation={schoolModeProps.linkedLocation}
+          onLinkedLocationChange={handleLinkedLocationChange}
           onSchoolFilterPayloadChange={handleSchoolFilterPayloadChange}
         >
           {pageBody}
@@ -288,6 +299,8 @@ export default function CategoryPageLayout({
         <InstructorCategoryFilterPanelProvider
           config={filterConfig}
           onFilterChange={onFilterChange}
+          linkedLocation={instructorModeProps.linkedLocation}
+          onLinkedLocationChange={handleLinkedLocationChange}
           onInstructorFilterPayloadChange={instructorModeProps.onInstructorFilterPayloadChange}
         >
           {pageBody}

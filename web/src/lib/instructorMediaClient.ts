@@ -10,11 +10,16 @@ import {
 /** Tüm eğitmen görselleri (profil, galeri, duyuru) — kurum paneli institution-media ile aynı model */
 export const INSTRUCTOR_MEDIA_BUCKET = "instructor-media";
 export const INSTRUCTOR_CV_FILES_BUCKET = "instructor-cv-files";
+export const INSTRUCTOR_DIPLOMA_FILES_BUCKET = "instructor-diploma-files";
 export const INSTRUCTOR_MEDIA_TABLE = "instructor_media" as const;
 
 export const INSTRUCTOR_MEDIA_IMAGE_ERROR = "Lütfen geçerli bir görsel dosyası seçin.";
 export const INSTRUCTOR_MEDIA_CV_ERROR =
   "Lütfen PDF, DOC veya DOCX formatında bir CV yükleyin.";
+export const INSTRUCTOR_MEDIA_DIPLOMA_ERROR =
+  "Lütfen PDF, JPG, JPEG veya PNG formatında bir diploma / belge yükleyin.";
+export const INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR =
+  "Diploma / belge en fazla 10MB olabilir.";
 export const INSTRUCTOR_MEDIA_UPLOAD_ERROR = "Dosya yüklenirken bir hata oluştu.";
 export const INSTRUCTOR_MEDIA_DELETE_ERROR = "Dosya silinirken bir hata oluştu.";
 export const INSTRUCTOR_MEDIA_PROFILE_SUCCESS = "Profil fotoğrafı başarıyla güncellendi.";
@@ -29,11 +34,18 @@ const ALLOWED_CV_TYPES = new Set([
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
+const ALLOWED_DIPLOMA_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+]);
 
 const PROFILE_PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 const GALLERY_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 const ANNOUNCEMENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 const CV_MAX_BYTES = 15 * 1024 * 1024;
+export const INSTRUCTOR_DIPLOMA_MAX_BYTES = 10 * 1024 * 1024;
 
 export type InstructorGalleryMediaRow = {
   id: number;
@@ -92,6 +104,10 @@ function buildInstructorCvPath(instructorId: number, fileName: string): string {
   return `instructors/${instructorId}/cv/${fileName}`;
 }
 
+function buildInstructorDiplomaPath(instructorId: number, fileName: string): string {
+  return `instructors/${instructorId}/diploma/${fileName}`;
+}
+
 function getInstructorMediaPublicUrl(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   path: string,
@@ -107,6 +123,17 @@ export function isValidInstructorCvFile(file: File): boolean {
   if (ALLOWED_CV_TYPES.has(file.type)) return true;
   const lower = file.name.toLowerCase();
   return lower.endsWith(".pdf") || lower.endsWith(".doc") || lower.endsWith(".docx");
+}
+
+export function isValidInstructorDiplomaFile(file: File): boolean {
+  if (ALLOWED_DIPLOMA_TYPES.has(file.type)) return true;
+  const lower = file.name.toLowerCase();
+  return (
+    lower.endsWith(".pdf") ||
+    lower.endsWith(".jpg") ||
+    lower.endsWith(".jpeg") ||
+    lower.endsWith(".png")
+  );
 }
 
 export function isInstructorMediaTableMissingError(error: {
@@ -231,7 +258,7 @@ async function updateInstructorMediaColumn(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   authUid: string,
   instructorId: number,
-  patch: { profile_picture?: string | null; cv_url?: string | null },
+  patch: { profile_picture?: string | null; cv_url?: string | null; diploma_document_path?: string | null },
 ): Promise<{ row: InstructorProfileRow | null; error: string | null }> {
   const { data, error } = await supabase
     .from(INSTRUCTORS_TABLE)
@@ -366,6 +393,94 @@ export async function uploadInstructorCvClient(
   return { row, error: null };
 }
 
+function diplomaFallbackExtension(file: File): string {
+  const fromName = file.name.includes(".") ? (file.name.split(".").pop() ?? "") : "";
+  const lower = fromName.toLowerCase();
+  if (lower === "pdf" || lower === "jpg" || lower === "jpeg" || lower === "png") return lower;
+  if (file.type === "application/pdf") return "pdf";
+  if (file.type === "image/png") return "png";
+  return "jpg";
+}
+
+export function resolveInstructorDiplomaStoragePath(pathOrUrl: string): string | null {
+  const raw = String(pathOrUrl ?? "").trim();
+  if (!raw) return null;
+  if (!raw.includes("://")) {
+    return raw.replace(/^\/+/, "");
+  }
+
+  try {
+    const url = new URL(raw);
+    const bucket = INSTRUCTOR_DIPLOMA_FILES_BUCKET;
+    const markers = [
+      `/storage/v1/object/sign/${bucket}/`,
+      `/storage/v1/object/authenticated/${bucket}/`,
+      `/storage/v1/object/public/${bucket}/`,
+    ];
+    for (const marker of markers) {
+      const idx = url.pathname.indexOf(marker);
+      if (idx >= 0) {
+        return decodeURIComponent(url.pathname.slice(idx + marker.length));
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** Private instructor-diploma-files bucket — yalnızca storage path döner, public URL yazılmaz. */
+export async function uploadInstructorDiplomaFileToStorage(
+  instructorId: number,
+  file: File,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{ path: string | null; error: string | null }> {
+  if (!isValidInstructorDiplomaFile(file)) {
+    return { path: null, error: INSTRUCTOR_MEDIA_DIPLOMA_ERROR };
+  }
+  if (file.size > INSTRUCTOR_DIPLOMA_MAX_BYTES) {
+    return { path: null, error: INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR };
+  }
+
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const storageFileName = buildTimestampedStorageFileName(file.name, diplomaFallbackExtension(file));
+  const path = buildInstructorDiplomaPath(instructorId, storageFileName);
+
+  const { error: uploadError } = await supabase.storage
+    .from(INSTRUCTOR_DIPLOMA_FILES_BUCKET)
+    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+
+  if (uploadError) {
+    const uploadErr = uploadError as { code?: string; message?: string; details?: string; hint?: string };
+    console.error(
+      `[instructor-media] diploma upload | step=diploma_upload_result | code=${uploadErr.code ?? ""} | message=${uploadErr.message ?? ""} | details=${uploadErr.details ?? ""} | hint=${uploadErr.hint ?? ""}`,
+    );
+    return { path: null, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+
+  return { path, error: null };
+}
+
+export async function removeInstructorDiplomaFileQuietly(
+  path: string | null | undefined,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<void> {
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  await removeStorageFileQuietly(
+    supabase,
+    INSTRUCTOR_DIPLOMA_FILES_BUCKET,
+    resolveInstructorDiplomaStoragePath(String(path ?? "")),
+  );
+}
+
+export function instructorPrivateDocumentDisplayName(pathOrName: string): string {
+  const raw = String(pathOrName ?? "").trim();
+  if (!raw) return "";
+  const segment = raw.split("/").pop() ?? raw;
+  const withoutTimestamp = segment.match(/^\d+-(.+)$/);
+  return withoutTimestamp ? withoutTimestamp[1] : segment;
+}
+
 function isStorageObjectNotFoundError(error: { message?: string } | null): boolean {
   const msg = String(error?.message ?? "").toLowerCase();
   return msg.includes("not found") || msg.includes("object not found");
@@ -412,6 +527,49 @@ export async function getInstructorCvViewUrlClient(
   }
 
   return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_CV_NOT_FOUND_ERROR };
+}
+
+export async function getInstructorDiplomaViewUrlClient(
+  diplomaPath: string,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{ url: string | null; isBlobUrl: boolean; error: string | null }> {
+  const path = resolveInstructorDiplomaStoragePath(diplomaPath);
+  if (!path) {
+    return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+
+  const { data, error } = await supabase.storage
+    .from(INSTRUCTOR_DIPLOMA_FILES_BUCKET)
+    .createSignedUrl(path, 60 * 10);
+
+  if (!error && data?.signedUrl) {
+    return { url: data.signedUrl, isBlobUrl: false, error: null };
+  }
+
+  if (error) {
+    console.error("[instructor-media] diploma signed url:", error, { path, raw: diplomaPath });
+  }
+
+  if (!isStorageObjectNotFoundError(error)) {
+    return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
+  }
+
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from(INSTRUCTOR_DIPLOMA_FILES_BUCKET)
+    .download(path);
+
+  if (!downloadError && fileData) {
+    const objectUrl = URL.createObjectURL(fileData);
+    return { url: objectUrl, isBlobUrl: true, error: null };
+  }
+
+  if (downloadError) {
+    console.error("[instructor-media] diploma download:", downloadError, { path, raw: diplomaPath });
+  }
+
+  return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
 }
 
 /** Duyuru görseli — instructor_announcements.image_url / image_path için */

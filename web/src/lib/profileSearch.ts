@@ -412,7 +412,7 @@ async function resolveDirectInstructorIdsByProfileSearch(
 ): Promise<number[]> {
   const ids = new Set<number>();
   const select =
-    "id, name, surname, full_name, title, branch, bio, about, school, city, district, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, education_level, lesson_type, service_type, graduated_university, experience_years";
+    "id, name, surname, full_name, branch, bio, about, school, department, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, education_level, lesson_type, service_type, experience_years";
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -433,13 +433,11 @@ async function resolveDirectInstructorIdsByProfileSearch(
         row.name,
         row.surname,
         row.full_name,
-        row.title,
         row.branch,
         row.bio,
         row.about,
         row.school,
-        row.city,
-        row.district,
+        row.department,
         row.address,
         row.email,
         row.phone,
@@ -451,7 +449,6 @@ async function resolveDirectInstructorIdsByProfileSearch(
         row.education_level,
         row.lesson_type,
         row.service_type,
-        row.graduated_university,
         row.experience_years,
       ].some((value) => profileTextMatches(value, searchTerm));
       if (matches) ids.add(id);

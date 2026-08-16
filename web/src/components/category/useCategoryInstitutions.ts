@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
-import { ANKARA_DISTRICTS } from "@/constants/districts";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
+import { resolveCategoryListingIlId } from "@/components/category/categoryLocationFilter";
+import { parseLocationId } from "@/lib/turkiyeLocationsClient";
 import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   applyInstructorListingFilters,
@@ -112,7 +113,6 @@ type InstitutionRow = {
 };
 
 const FALLBACK = "-";
-const FIXED_CITY = "Ankara";
 const IN_CHUNK = 120;
 /** PostgREST varsayılan max_rows (1000) */
 const QUERY_PAGE_SIZE = 1000;
@@ -124,6 +124,22 @@ const LIGHT_INSTITUTION_SELECT =
   "id, slug, institution_name, subheading, address, district, city, official_phone, official_email, logo, source, high_school_type, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
+
+type InstitutionLocationFilter = {
+  ilId: number | null;
+  ilceId: number | null;
+  mahalleId: number | null;
+};
+
+function applyInstitutionLocationFilter<T extends { eq: (column: string, value: number) => T }>(
+  query: T,
+  location: InstitutionLocationFilter,
+): T {
+  if (location.ilId != null) query = query.eq("il_id", location.ilId);
+  if (location.ilceId != null) query = query.eq("ilce_id", location.ilceId);
+  if (location.mahalleId != null) query = query.eq("mahalle_id", location.mahalleId);
+  return query;
+}
 
 function institutionIdQuerySelect(categoryId: number | null): string {
   if (categoryId != null && Number.isFinite(categoryId) && categoryId > 0) {
@@ -208,7 +224,7 @@ async function fetchAllCategoryInstitutionRows(
   fullSelect: string,
   targetName: string,
   categoryId: number | null,
-  district: string,
+  location: InstitutionLocationFilter,
   searchTerm: string,
 ): Promise<InstitutionRow[]> {
   const rows: InstitutionRow[] = [];
@@ -223,12 +239,11 @@ async function fetchAllCategoryInstitutionRows(
     let query = supabase
       .from("institutions")
       .select(fullSelect)
-      .ilike("city", FIXED_CITY)
       .eq("is_approved", true);
 
     query = applyInstitutionCategoryScope(query, categoryId, targetName);
+    query = applyInstitutionLocationFilter(query, location);
 
-    if (district) query = query.eq("district", district);
     if (searchTerm) {
       query = applyInstitutionSearchFilter(
         query,
@@ -258,7 +273,7 @@ async function fetchAllCategoryInstitutionIds(
   supabase: SupabaseBrowser,
   categoryId: number | null,
   targetName: string,
-  district: string,
+  location: InstitutionLocationFilter,
   searchTerm: string,
   institutionTypeId?: number | null,
   highSchoolType?: string | null,
@@ -275,12 +290,11 @@ async function fetchAllCategoryInstitutionIds(
     let query = supabase
       .from("institutions")
       .select(institutionIdQuerySelect(categoryId))
-      .ilike("city", FIXED_CITY)
       .eq("is_approved", true);
 
     query = applyInstitutionCategoryScope(query, categoryId, targetName);
+    query = applyInstitutionLocationFilter(query, location);
 
-    if (district) query = query.eq("district", district);
     if (searchTerm) {
       query = applyInstitutionSearchFilter(
         query,
@@ -779,7 +793,7 @@ async function fetchCategoryInstructorResults(
     institutionCategoryId: number | null;
     categoryName: string;
     categorySlug?: string;
-    district: string;
+    location: InstitutionLocationFilter;
     searchTerm: string;
     schoolFilters?: SchoolCategoryFilterPayload;
   },
@@ -788,7 +802,7 @@ async function fetchCategoryInstructorResults(
     institutionCategoryId,
     categoryName,
     categorySlug,
-    district,
+    location,
     searchTerm,
     schoolFilters,
   } = options;
@@ -810,8 +824,9 @@ async function fetchCategoryInstructorResults(
 
   const rows = await fetchPublicInstructorsForListing(supabase, {
     categoryId: instructorCategoryId,
-    district,
-    city: FIXED_CITY,
+    ilId: location.ilId,
+    ilceId: location.ilceId,
+    mahalleId: location.mahalleId,
     searchTerm,
     allowedInstructorIds:
       instructorFilters.featureFilterIds !== null ? instructorFilters.featureFilterIds : undefined,
@@ -925,7 +940,13 @@ export function useCategoryInstitutions(
   categoryName: string,
   options?: {
     search?: string;
+    /** Eski metin ilçe; konum filtresi ID kolonları üzerinden gider. */
     district?: string;
+    ilId?: string;
+    ilceId?: string;
+    mahalleId?: string;
+    /** URL/searchParams okunana kadar kurum sorgusunu beklet. */
+    locationReady?: boolean;
     /** institution_categories.slug — id çözümlemesi ve debug log için. */
     categorySlug?: string;
     /** Yalnızca Okul kategori sayfası doldurur. */
@@ -935,11 +956,13 @@ export function useCategoryInstitutions(
   results: CategoryResultItem[];
   isLoading: boolean;
   error: string | null;
-  districts: string[];
   categoryLabel: string;
 } {
   const rawSearch = options?.search ?? "";
-  const district = (options?.district ?? "").trim();
+  const ilId = String(options?.ilId ?? "").trim();
+  const ilceId = String(options?.ilceId ?? "").trim();
+  const mahalleId = String(options?.mahalleId ?? "").trim();
+  const locationReady = options?.locationReady !== false;
   const categorySlug = String(options?.categorySlug ?? "").trim();
   const schoolFilters = options?.schoolFilters;
 
@@ -947,7 +970,6 @@ export function useCategoryInstitutions(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryLabel, setCategoryLabel] = useState("");
-  const districts = ANKARA_DISTRICTS;
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
@@ -962,6 +984,11 @@ export function useCategoryInstitutions(
   useEffect(() => {
     const targetName = String(categoryName ?? "").trim();
     const slug = categorySlug;
+
+    if (!locationReady) {
+      setIsLoading(true);
+      return;
+    }
 
     if (!targetName && !slug) {
       setResults([]);
@@ -1011,12 +1038,19 @@ export function useCategoryInstitutions(
           });
         }
 
+        const listingLocation: InstitutionLocationFilter = {
+          ilId: await resolveCategoryListingIlId(ilId),
+          ilceId: parseLocationId(ilceId),
+          mahalleId: parseLocationId(ilceId) != null ? parseLocationId(mahalleId) : null,
+        };
+        if (cancelled) return;
+
         if (!useSchoolPipeline) {
           const institutionIds = await fetchAllCategoryInstitutionIds(
             supabase,
             categoryId,
             listingName,
-            district,
+            listingLocation,
             searchTerm,
           );
           if (cancelled) return;
@@ -1027,7 +1061,7 @@ export function useCategoryInstitutions(
               institutionCategoryId: categoryId,
               categoryName: listingName,
               categorySlug: slug,
-              district,
+              location: listingLocation,
               searchTerm,
               schoolFilters,
             }),
@@ -1105,7 +1139,7 @@ export function useCategoryInstitutions(
           supabase,
           categoryId,
           listingName,
-          district,
+          listingLocation,
           searchTerm,
           payload.institutionTypeId,
           payload.highSchoolType,
@@ -1119,7 +1153,7 @@ export function useCategoryInstitutions(
             institutionCategoryId: categoryId,
             categoryName: listingName,
             categorySlug: slug,
-            district,
+            location: listingLocation,
             searchTerm,
             schoolFilters: payload,
           });
@@ -1258,7 +1292,7 @@ export function useCategoryInstitutions(
           institutionCategoryId: categoryId,
           categoryName: listingName,
           categorySlug: slug,
-          district,
+          location: listingLocation,
           searchTerm,
           schoolFilters: payload,
         });
@@ -1286,9 +1320,9 @@ export function useCategoryInstitutions(
     };
     // schoolFilters için kararlı JSON anahtarı kullanılıyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryName, categorySlug, debouncedSearch, district, schoolFiltersKey]);
+  }, [categoryName, categorySlug, debouncedSearch, ilId, ilceId, mahalleId, locationReady, schoolFiltersKey]);
 
-  return { results, isLoading, error, districts, categoryLabel };
+  return { results, isLoading, error, categoryLabel };
 }
 
 function mapRow(

@@ -10,6 +10,7 @@
     "postinstall": "patch-package",
     "lint": "eslint",
     "import:meb": "node scripts/import-meb.js",
+    "import:konumlar": "node scripts/import-turkiye-konumlari.js",
     "geocode:institutions": "node scripts/geocode-institution-locations.js"
   },
   "dependencies": {

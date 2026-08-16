@@ -91,6 +91,13 @@ import {
 import { InstitutionExtraBranchesSidebarCard } from "./InstitutionExtraBranchesSidebarCard";
 import { InstitutionFeatureSelectionGroupList } from "./InstitutionFeatureSelectionGroupList";
 import { WorkingHoursTimePicker } from "./WorkingHoursTimePicker";
+import { AnnouncementLocationFields } from "@/components/announcements/AnnouncementLocationFields";
+import { parseLocationId } from "@/lib/turkiyeLocationsClient";
+import {
+  InstitutionLocationFields,
+  toLocationIdString,
+  type InstitutionLocationFieldsHandle,
+} from "./InstitutionLocationFields";
 import {
   Button,
   Input,
@@ -493,6 +500,7 @@ function PanelContent() {
   const [logoValidationModalMessage, setLogoValidationModalMessage] = useState<string | null>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const extraBranchesSectionRef = useRef<InstitutionExtraBranchesSectionHandle>(null);
+  const institutionLocationFieldsRef = useRef<InstitutionLocationFieldsHandle>(null);
   const pendingExtraBranchesNavigationRef = useRef(false);
   const [extraBranchSlotCount, setExtraBranchSlotCount] = useState(0);
   const [isEditingInstitutionProfile, setIsEditingInstitutionProfile] = useState(false);
@@ -528,6 +536,9 @@ function PanelContent() {
     subheading: "",
     city: "",
     district: "",
+    ilId: "",
+    ilceId: "",
+    mahalleId: "",
     workingHoursStart: "",
     workingHoursEnd: "",
     address: "",
@@ -546,6 +557,9 @@ function PanelContent() {
     subheading: "",
     city: "",
     district: "",
+    ilId: "",
+    ilceId: "",
+    mahalleId: "",
     workingHoursStart: "",
     workingHoursEnd: "",
     address: "",
@@ -563,6 +577,8 @@ function PanelContent() {
     imageUrl: string | null;
     linkUrl: string | null;
     announcementTag: string | null;
+    ilId: string;
+    ilceId: string;
   }
 
   const [announcementsList, setAnnouncementsList] = useState<AnnouncementRow[]>([]);
@@ -577,6 +593,8 @@ function PanelContent() {
     linkUrl: "",
     announcementTag: "",
     isActive: true,
+    ilId: "",
+    ilceId: "",
   });
   const [announcementFormErrors, setAnnouncementFormErrors] = useState<{
     title?: string;
@@ -833,6 +851,8 @@ interface InstitutionDetailPreparedData {
     announcement_tag: string | null;
     created_at: string | null;
     is_active: boolean | null;
+    il_id?: number | null;
+    ilce_id?: number | null;
   }): AnnouncementRow => {
     const content = String(row.content ?? "");
     const linkRaw = row.link_url;
@@ -847,6 +867,8 @@ interface InstitutionDetailPreparedData {
       imageUrl: row.announcement_image_url,
       linkUrl: linkTrimmed || null,
       announcementTag: normalizeAnnouncementTag(row.announcement_tag),
+      ilId: toLocationIdString(row.il_id),
+      ilceId: toLocationIdString(row.ilce_id),
     };
   };
 
@@ -868,7 +890,7 @@ interface InstitutionDetailPreparedData {
         const { data, error } = await supabase
           .from("announcements")
           .select(
-            "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, is_active",
+            "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, is_active, il_id, ilce_id",
           )
           .eq("institution_id", instId)
           .order("created_at", { ascending: false });
@@ -887,6 +909,8 @@ interface InstitutionDetailPreparedData {
           announcement_tag: string | null;
           created_at: string | null;
           is_active: boolean | null;
+          il_id?: number | null;
+          ilce_id?: number | null;
         }>;
         setAnnouncementsList(rows.map(mapAnnouncementDbRow));
       } finally {
@@ -1185,6 +1209,9 @@ interface InstitutionDetailPreparedData {
           subheading: row.subheading || "",
           city: row.city || "",
           district: row.district || "",
+          ilId: toLocationIdString(row.il_id),
+          ilceId: toLocationIdString(row.ilce_id),
+          mahalleId: toLocationIdString(row.mahalle_id),
           workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
           workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
           address: row.address || "",
@@ -1203,6 +1230,9 @@ interface InstitutionDetailPreparedData {
           subheading: row.subheading || "",
           city: row.city || "",
           district: row.district || "",
+          ilId: toLocationIdString(row.il_id),
+          ilceId: toLocationIdString(row.ilce_id),
+          mahalleId: toLocationIdString(row.mahalle_id),
           workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
           workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
           address: row.address || "",
@@ -1593,7 +1623,12 @@ interface InstitutionDetailPreparedData {
         items.push({ id: "high_school_type", label: "Lise Türü", tab: "institutions" });
       }
     }
-    if (!(institutionFormData.address ?? "").trim()) {
+    if (
+      !(institutionFormData.address ?? "").trim() ||
+      !institutionFormData.ilId ||
+      !institutionFormData.ilceId ||
+      !institutionFormData.mahalleId
+    ) {
       items.push({ id: "address", label: "Adres", tab: "institution-profile" });
     }
     if (!(institutionFormData.about ?? "").trim()) {
@@ -1606,6 +1641,9 @@ interface InstitutionDetailPreparedData {
     institutionFormData.email,
     institutionFormData.logoUrl,
     institutionFormData.address,
+    institutionFormData.ilId,
+    institutionFormData.ilceId,
+    institutionFormData.mahalleId,
     institutionFormData.about,
     institutionTypeId,
     institutionCategoryId,
@@ -1914,6 +1952,23 @@ interface InstitutionDetailPreparedData {
       return;
     }
 
+    if (!institutionFormData.ilId) {
+      setInstitutionProfileMessage("Lütfen il seçin.");
+      return;
+    }
+    if (!institutionFormData.ilceId) {
+      setInstitutionProfileMessage("Lütfen ilçe seçin.");
+      return;
+    }
+    if (!institutionFormData.mahalleId) {
+      setInstitutionProfileMessage("Lütfen mahalle seçin.");
+      return;
+    }
+
+    const locationNames = institutionLocationFieldsRef.current?.getSelectedNames();
+    const cityName = (locationNames?.city || institutionFormData.city).trim();
+    const districtName = (locationNames?.district || institutionFormData.district).trim();
+
     const supabase = createSupabaseBrowserClient();
     const payload = {
       institution_name: institutionFormData.institutionName.trim(),
@@ -1924,8 +1979,11 @@ interface InstitutionDetailPreparedData {
       x_url: institutionFormData.xUrl.trim() || null,
       linkedin_url: institutionFormData.linkedinUrl.trim() || null,
       subheading: institutionFormData.subheading.trim(),
-      city: institutionFormData.city.trim(),
-      district: institutionFormData.district.trim(),
+      il_id: Number(institutionFormData.ilId),
+      ilce_id: Number(institutionFormData.ilceId),
+      mahalle_id: Number(institutionFormData.mahalleId),
+      city: cityName,
+      district: districtName,
       working_hours_start: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursStart),
       working_hours_end: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
       address: institutionFormData.address.trim(),
@@ -1947,7 +2005,7 @@ interface InstitutionDetailPreparedData {
         .update(payload)
         .eq("id", instNumericId)
         .select(
-          "id, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, working_hours_start, working_hours_end"
+          "id, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, working_hours_start, working_hours_end, il_id, ilce_id, mahalle_id"
         )
         .maybeSingle();
 
@@ -1976,6 +2034,9 @@ interface InstitutionDetailPreparedData {
         subheading?: string | null;
         city?: string | null;
         district?: string | null;
+        il_id?: number | null;
+        ilce_id?: number | null;
+        mahalle_id?: number | null;
         address?: string | null;
         about?: string | null;
         logo?: string | null;
@@ -1997,6 +2058,9 @@ interface InstitutionDetailPreparedData {
         subheading: row.subheading || "",
         city: row.city || "",
         district: row.district || "",
+        ilId: toLocationIdString(row.il_id),
+        ilceId: toLocationIdString(row.ilce_id),
+        mahalleId: toLocationIdString(row.mahalle_id),
         workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
         workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
         address: row.address || "",
@@ -2665,7 +2729,15 @@ interface InstitutionDetailPreparedData {
 
   const openNewAnnouncementModal = () => {
     setEditingAnnouncementId(null);
-    setAnnouncementForm({ title: "", content: "", linkUrl: "", announcementTag: "", isActive: true });
+    setAnnouncementForm({
+      title: "",
+      content: "",
+      linkUrl: "",
+      announcementTag: "",
+      isActive: true,
+      ilId: institutionFormData.ilId,
+      ilceId: institutionFormData.ilceId,
+    });
     setAnnouncementFormErrors({});
     setAnnouncementImageFile(null);
     setAnnouncementImageRemovePending(false);
@@ -2681,6 +2753,8 @@ interface InstitutionDetailPreparedData {
       linkUrl: item.linkUrl ?? "",
       announcementTag: item.announcementTag ?? "",
       isActive: item.isActive,
+      ilId: item.ilId,
+      ilceId: item.ilceId,
     });
     setAnnouncementFormErrors({});
     setAnnouncementImageFile(null);
@@ -2750,6 +2824,8 @@ interface InstitutionDetailPreparedData {
     const content = announcementForm.content.trim();
     const link_url = announcementForm.linkUrl.trim() || null;
     const announcement_tag = normalizeAnnouncementTag(announcementForm.announcementTag);
+    const il_id = parseLocationId(announcementForm.ilId);
+    const ilce_id = parseLocationId(announcementForm.ilceId);
     const errors: { title?: string; content?: string; announcementTag?: string } = {};
     if (!title) errors.title = "Başlık zorunludur.";
     if (!content) errors.content = "İçerik zorunludur.";
@@ -2798,6 +2874,8 @@ interface InstitutionDetailPreparedData {
               link_url,
               announcement_tag,
               is_active,
+              il_id,
+              ilce_id,
               announcement_image_url: newUrl,
             })
             .eq("id", editingAnnouncementId)
@@ -2829,6 +2907,8 @@ interface InstitutionDetailPreparedData {
               link_url,
               announcement_tag,
               is_active,
+              il_id,
+              ilce_id,
               announcement_image_url: null,
             })
             .eq("id", editingAnnouncementId)
@@ -2856,6 +2936,8 @@ interface InstitutionDetailPreparedData {
               link_url,
               announcement_tag,
               is_active,
+              il_id,
+              ilce_id,
             })
             .eq("id", editingAnnouncementId)
             .eq("institution_id", instId);
@@ -2884,6 +2966,8 @@ interface InstitutionDetailPreparedData {
           link_url,
           announcement_tag,
           is_active,
+          il_id,
+          ilce_id,
           announcement_image_url: imageUrl,
         });
 
@@ -3419,25 +3503,46 @@ interface InstitutionDetailPreparedData {
                       ) : null}
                     </div>
                   </div>
-                  <div className="panel-institution-form-row">
+                  <InstitutionLocationFields
+                    ref={institutionLocationFieldsRef}
+                    ilId={institutionFormData.ilId}
+                    ilceId={institutionFormData.ilceId}
+                    mahalleId={institutionFormData.mahalleId}
+                    disabled={!isEditingInstitutionProfile}
+                    onIlChange={(nextIlId, ilAd) => {
+                      setInstitutionFormData((prev) => ({
+                        ...prev,
+                        ilId: nextIlId,
+                        city: ilAd,
+                        ilceId: "",
+                        district: "",
+                        mahalleId: "",
+                      }));
+                    }}
+                    onIlceChange={(nextIlceId, ilceAd) => {
+                      setInstitutionFormData((prev) => ({
+                        ...prev,
+                        ilceId: nextIlceId,
+                        district: ilceAd,
+                        mahalleId: "",
+                      }));
+                    }}
+                    onMahalleChange={(nextMahalleId) => {
+                      setInstitutionFormData((prev) => ({
+                        ...prev,
+                        mahalleId: nextMahalleId,
+                      }));
+                    }}
+                  />
+                  <div className="panel-institution-form-row panel-institution-form-row--full">
                     <div className="panel-institution-form-field">
-                      <label className="panel-institution-form-label">ŞEHİR</label>
-                      <Input
-                        type="text"
-                        value={institutionFormData.city}
-                        onChange={(e) => handleInstitutionFormChange("city", e.target.value)}
+                      <label className="panel-institution-form-label">Açık Adres</label>
+                      <textarea
+                        value={institutionFormData.address}
+                        onChange={(e) => handleInstitutionFormChange("address", e.target.value)}
                         disabled={!isEditingInstitutionProfile}
-                        className="panel-institution-form-input"
-                      />
-                    </div>
-                    <div className="panel-institution-form-field">
-                      <label className="panel-institution-form-label">İLÇE</label>
-                      <Input
-                        type="text"
-                        value={institutionFormData.district}
-                        onChange={(e) => handleInstitutionFormChange("district", e.target.value)}
-                        disabled={!isEditingInstitutionProfile}
-                        className="panel-institution-form-input"
+                        className="panel-institution-form-textarea"
+                        rows={4}
                       />
                     </div>
                   </div>
@@ -3476,18 +3581,6 @@ interface InstitutionDetailPreparedData {
                         disabled={!isEditingInstitutionProfile}
                         ariaLabel="Çalışma saatleri bitiş"
                         placeholder="Bitiş"
-                      />
-                    </div>
-                  </div>
-                  <div className="panel-institution-form-row panel-institution-form-row--full">
-                    <div className="panel-institution-form-field">
-                      <label className="panel-institution-form-label">ADRES</label>
-                      <textarea
-                        value={institutionFormData.address}
-                        onChange={(e) => handleInstitutionFormChange("address", e.target.value)}
-                        disabled={!isEditingInstitutionProfile}
-                        className="panel-institution-form-textarea"
-                        rows={4}
                       />
                     </div>
                   </div>
@@ -4350,6 +4443,24 @@ interface InstitutionDetailPreparedData {
                     </span>
                   )}
                 </div>
+                <AnnouncementLocationFields
+                  ilId={announcementForm.ilId}
+                  ilceId={announcementForm.ilceId}
+                  disabled={announcementSaving}
+                  onIlChange={(nextIlId) => {
+                    setAnnouncementForm((prev) => ({ ...prev, ilId: nextIlId, ilceId: "" }));
+                  }}
+                  onIlceChange={(nextIlceId) => {
+                    setAnnouncementForm((prev) => ({ ...prev, ilceId: nextIlceId }));
+                  }}
+                  rowClassName="panel-institution-form-row"
+                  fieldClassName="panel-institution-form-field"
+                  labelClassName="panel-institution-form-label"
+                  selectTriggerClassName="panel-announcement-status-select"
+                  selectContentClassName="select-content panel-announcement-status-dropdown"
+                  ilSelectId="panel-announcement-il"
+                  ilceSelectId="panel-announcement-ilce"
+                />
                 <div className="panel-institution-form-field">
                   <label className="panel-institution-form-label">İÇERİK</label>
                   <textarea

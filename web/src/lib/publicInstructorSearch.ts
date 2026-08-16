@@ -16,6 +16,11 @@ import {
 } from "@/lib/profileSearch";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  buildLocationAdMaps,
+  formatInstructorLocationLabel,
+  lookupLocationAds,
+} from "@/lib/turkiyeLocationsClient";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
 import {
@@ -31,24 +36,21 @@ import {
 } from "@/lib/studentAgeRangeFeature";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
-  "id, slug, name, surname, full_name, city, district, address, title, branch, bio, about, school, education_level, lesson_type, service_type, graduated_university, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at";
+  "id, slug, name, surname, full_name, address, branch, bio, about, school, department, education_level, lesson_type, service_type, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at, il_id, ilce_id";
 
 const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "name",
   "surname",
   "full_name",
-  "city",
-  "district",
   "address",
-  "title",
   "branch",
   "bio",
   "about",
   "school",
+  "department",
   "education_level",
   "lesson_type",
   "service_type",
-  "graduated_university",
   "website",
 ] as const;
 
@@ -61,18 +63,15 @@ export type PublicInstructorListRow = {
   name?: string | null;
   surname?: string | null;
   full_name?: string | null;
-  city?: string | null;
-  district?: string | null;
   address?: string | null;
-  title?: string | null;
   branch?: string | null;
   bio?: string | null;
   about?: string | null;
   school?: string | null;
+  department?: string | null;
   education_level?: string | null;
   lesson_type?: string | null;
   service_type?: string | null;
-  graduated_university?: string | null;
   website?: string | null;
   experience_years?: number | null;
   profile_picture?: string | null;
@@ -80,6 +79,10 @@ export type PublicInstructorListRow = {
   is_approved?: boolean | null;
   is_active?: boolean | null;
   created_at?: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  locationIlAd?: string | null;
+  locationIlceAd?: string | null;
 };
 
 export type FeaturedInstructorItem = {
@@ -91,7 +94,6 @@ export type FeaturedInstructorItem = {
   bodyMainCategory: string;
   bodyLocation: string;
   branch?: string;
-  title?: string;
   priceRange?: string;
 };
 
@@ -105,11 +107,41 @@ export type InstructorListingFilters = {
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
+async function resolveInstructorLocationIdsByName(
+  supabase: SupabaseBrowser,
+  searchTerm: string,
+): Promise<{ ilIds: number[]; ilceIds: number[] }> {
+  const needle = `%${escapeProfileLikeValue(searchTerm.trim())}%`;
+  if (needle === "%%") return { ilIds: [], ilceIds: [] };
+
+  const [{ data: matchingIller }, { data: matchingIlceler }] = await Promise.all([
+    supabase.from("iller").select("id").ilike("ad", needle),
+    supabase.from("ilceler").select("id").ilike("ad", needle),
+  ]);
+
+  const toIds = (rows: unknown): number[] =>
+    ((rows ?? []) as Array<{ id: number }>)
+      .map((row) => Number(row.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+
+  return {
+    ilIds: toIds(matchingIller),
+    ilceIds: toIds(matchingIlceler),
+  };
+}
+
 function applyPublicInstructorSearchFilter<
   T extends { or: (filters: string) => T },
->(query: T, searchTerm: string, relatedInstructorIds: number[] = []): T {
+>(
+  query: T,
+  searchTerm: string,
+  relatedInstructorIds: number[] = [],
+  locationIds: { ilIds: number[]; ilceIds: number[] } = { ilIds: [], ilceIds: [] },
+): T {
   const variants = buildProfileSearchVariants(searchTerm).map(escapeProfileLikeValue).filter(Boolean);
-  if (variants.length === 0) return query;
+  if (variants.length === 0 && locationIds.ilIds.length === 0 && locationIds.ilceIds.length === 0) {
+    return query;
+  }
 
   const orParts = variants.flatMap((term) => {
     const q = `%${term}%`;
@@ -122,6 +154,13 @@ function applyPublicInstructorSearchFilter<
   if (relatedInstructorIds.length > 0) {
     orParts.push(`id.in.(${relatedInstructorIds.join(",")})`);
   }
+  if (locationIds.ilIds.length > 0) {
+    orParts.push(`il_id.in.(${locationIds.ilIds.join(",")})`);
+  }
+  if (locationIds.ilceIds.length > 0) {
+    orParts.push(`ilce_id.in.(${locationIds.ilceIds.join(",")})`);
+  }
+  if (orParts.length === 0) return query;
   return query.or(orParts.join(","));
 }
 
@@ -140,10 +179,21 @@ export function mapPublicInstructorDisplayName(row: PublicInstructorListRow): st
 }
 
 export function buildPublicInstructorLocation(row: PublicInstructorListRow): string {
-  const city = String(row.city ?? "").trim();
-  const district = String(row.district ?? "").trim();
-  if (city && district) return `${district} / ${city}`;
-  return district || city || "-";
+  return formatInstructorLocationLabel(
+    String(row.locationIlAd ?? "").trim(),
+    String(row.locationIlceAd ?? "").trim(),
+  );
+}
+
+export async function attachPublicInstructorLocationAds(
+  rows: PublicInstructorListRow[],
+): Promise<PublicInstructorListRow[]> {
+  if (rows.length === 0) return rows;
+  const maps = await buildLocationAdMaps(rows);
+  return rows.map((row) => {
+    const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, maps);
+    return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
+  });
 }
 
 function pickInitial(name: string): string {
@@ -187,16 +237,27 @@ export async function fetchPublicInstructorsForListing(
   options?: {
     searchTerm?: string;
     categoryId?: number | null;
-    district?: string;
-    city?: string;
+    ilId?: number | null;
+    ilceId?: number | null;
+    mahalleId?: number | null;
     priceRange?: { min: number; max: number } | null;
     limit?: number;
     allowedInstructorIds?: Set<number>;
   },
 ): Promise<PublicInstructorListRow[]> {
   const searchTerm = String(options?.searchTerm ?? "").trim();
-  const district = String(options?.district ?? "").trim();
-  const city = String(options?.city ?? "").trim();
+  const ilId =
+    typeof options?.ilId === "number" && Number.isFinite(options.ilId) && options.ilId > 0
+      ? options.ilId
+      : null;
+  const ilceId =
+    typeof options?.ilceId === "number" && Number.isFinite(options.ilceId) && options.ilceId > 0
+      ? options.ilceId
+      : null;
+  const mahalleId =
+    typeof options?.mahalleId === "number" && Number.isFinite(options.mahalleId) && options.mahalleId > 0
+      ? options.mahalleId
+      : null;
   const categoryId = options?.categoryId;
   const hardLimit = options?.limit ?? 600;
   let allowedInstructorIds = options?.allowedInstructorIds;
@@ -221,6 +282,9 @@ export async function fetchPublicInstructorsForListing(
   const relatedInstructorIds = searchTerm
     ? await resolveInstructorIdsByProfileSearch(supabase, searchTerm)
     : [];
+  const locationIds = searchTerm
+    ? await resolveInstructorLocationIdsByName(supabase, searchTerm)
+    : { ilIds: [], ilceIds: [] };
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -235,17 +299,20 @@ export async function fetchPublicInstructorsForListing(
     if (categoryId != null && Number.isFinite(categoryId)) {
       query = query.eq("category_id", categoryId);
     }
-    if (city) {
-      query = query.ilike("city", city);
+    if (ilId != null) {
+      query = query.eq("il_id", ilId);
     }
-    if (district) {
-      query = query.eq("district", district);
+    if (ilceId != null) {
+      query = query.eq("ilce_id", ilceId);
+    }
+    if (mahalleId != null) {
+      query = query.eq("mahalle_id", mahalleId);
     }
     if (allowedInstructorIds !== undefined && allowedInstructorIds.size > 0) {
       query = query.in("id", Array.from(allowedInstructorIds));
     }
     if (searchTerm) {
-      query = applyPublicInstructorSearchFilter(query, searchTerm, relatedInstructorIds);
+      query = applyPublicInstructorSearchFilter(query, searchTerm, relatedInstructorIds, locationIds);
     }
 
     const { data, error } = await query
@@ -275,7 +342,7 @@ export async function fetchPublicInstructorsForListing(
     priceRange: null,
   });
 
-  return filteredRows.slice(0, hardLimit);
+  return attachPublicInstructorLocationAds(filteredRows.slice(0, hardLimit));
 }
 
 export type MappedPublicInstructorListItem = {
@@ -309,11 +376,11 @@ export function mapPublicInstructorToListItem(
   if (!Number.isFinite(numericId) || numericId <= 0) return null;
 
   const name = mapPublicInstructorDisplayName(row);
-  const title = String(row.title ?? "").trim();
   const branch = String(row.branch ?? "").trim();
+  const school = String(row.school ?? "").trim();
   const about = String(row.about ?? "").trim();
   const bio = String(row.bio ?? "").trim();
-  const description = about || bio || title || branch;
+  const description = about || bio || branch || school;
   const priceRange = String(priceLabel ?? "").trim();
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) ||
@@ -336,7 +403,7 @@ export function mapPublicInstructorToListItem(
     imageUrl,
     slug,
     detailUrl: getPublicInstructorDetailHref(row.slug, numericId),
-    instructorTitle: title || undefined,
+    instructorTitle: school || undefined,
     instructorBranch: branch || undefined,
     priceRange: priceRange || undefined,
     instructorId: numericId,
@@ -681,8 +748,9 @@ function applyInstructorBranchTitleFilter(
   if (branchTitleTerms.length === 0) return rows;
   return rows.filter((row) => {
     const branchMatch = fieldMatchesAnyTerm(row.branch, branchTitleTerms);
-    const titleMatch = fieldMatchesAnyTerm(row.title, branchTitleTerms);
-    return branchMatch || titleMatch;
+    const schoolMatch = fieldMatchesAnyTerm(row.school, branchTitleTerms);
+    const departmentMatch = fieldMatchesAnyTerm(row.department, branchTitleTerms);
+    return branchMatch || schoolMatch || departmentMatch;
   });
 }
 
@@ -1020,8 +1088,10 @@ export async function fetchFeaturedPublicInstructors(
 
   if (error) throw error;
 
-  return ((data ?? []) as PublicInstructorListRow[]).filter(
-    (row) => Number.isFinite(Number(row.id)) && Number(row.id) > 0,
+  return attachPublicInstructorLocationAds(
+    ((data ?? []) as PublicInstructorListRow[]).filter(
+      (row) => Number.isFinite(Number(row.id)) && Number(row.id) > 0,
+    ),
   );
 }
 
@@ -1035,7 +1105,7 @@ export function mapPublicInstructorToFeaturedItem(
 
   const name = mapPublicInstructorDisplayName(row);
   const branch = String(row.branch ?? "").trim();
-  const title = String(row.title ?? "").trim();
+  const school = String(row.school ?? "").trim();
   const priceRange = String(priceLabel ?? "").trim();
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) || "";
@@ -1046,10 +1116,9 @@ export function mapPublicInstructorToFeaturedItem(
     slug: String(row.slug ?? "").trim() || String(numericId),
     imageUrl,
     href: getPublicInstructorDetailHref(row.slug, numericId),
-    bodyMainCategory: branch || title || "Bireysel Eğitmen",
+    bodyMainCategory: branch || school || "Bireysel Eğitmen",
     bodyLocation: buildPublicInstructorLocation(row),
     branch: branch || undefined,
-    title: title || undefined,
     priceRange: priceRange || undefined,
   };
 }

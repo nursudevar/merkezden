@@ -33,7 +33,7 @@ export function SignupCategorySelect({
   hasError = false,
 }: SignupCategorySelectProps) {
   return (
-    <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger
         id={id}
         className={`signup-category-select-trigger${hasError ? " signup-category-select-trigger--error" : ""}`}

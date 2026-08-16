@@ -26,6 +26,10 @@ import {
   getPublicInstructorDetailHref,
   mapPublicInstructorDisplayName,
 } from "@/lib/publicInstructorSearch";
+import {
+  buildLocationAdMaps,
+  lookupLocationAds,
+} from "@/lib/turkiyeLocationsClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 
 type CompareInstructorColumn = {
@@ -47,12 +51,15 @@ type InstructorListRow = {
   name: string | null;
   surname: string | null;
   full_name?: string | null;
-  title: string | null;
   branch: string | null;
   about: string | null;
   bio: string | null;
-  city: string | null;
-  district: string | null;
+  school: string | null;
+  department: string | null;
+  il_id: number | null;
+  ilce_id: number | null;
+  locationIlAd?: string | null;
+  locationIlceAd?: string | null;
   profile_picture: string | null;
   category_id: number | null;
   is_approved: boolean | null;
@@ -82,8 +89,9 @@ function buildInstructorSummary(row: InstructorListRow): string {
   if (about) return about;
   const bio = String(row.bio ?? "").trim();
   if (bio) return bio;
-  const title = String(row.title ?? "").trim();
-  return title;
+  const branch = String(row.branch ?? "").trim();
+  if (branch) return branch;
+  return String(row.school ?? "").trim();
 }
 
 export default function InstructorComparePageClient() {
@@ -126,7 +134,7 @@ export default function InstructorComparePageClient() {
           supabase
             .from("instructors")
             .select(
-              "id, slug, name, surname, full_name, title, branch, about, bio, city, district, profile_picture, category_id, is_approved, is_active",
+              "id, slug, name, surname, full_name, branch, school, department, about, bio, il_id, ilce_id, profile_picture, category_id, is_approved, is_active",
             )
             .eq("is_approved", true)
             .eq("is_active", true)
@@ -184,11 +192,16 @@ export default function InstructorComparePageClient() {
         const orderedRows = requestedIds
           .map((id) => byId.get(id))
           .filter((row): row is InstructorListRow => Boolean(row));
+        const locationMaps = await buildLocationAdMaps(orderedRows);
+        const locatedRows = orderedRows.map((row) => {
+          const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, locationMaps);
+          return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
+        });
 
         // Public detail / liste ile aynı: category_id → ayrı instructor_categories sorgusu
         const categoryIds = Array.from(
           new Set(
-            orderedRows
+            locatedRows
               .map((row) => Number(row.category_id))
               .filter((id) => Number.isFinite(id) && id > 0),
           ),
@@ -224,7 +237,7 @@ export default function InstructorComparePageClient() {
           }
         }
 
-        const nextColumns: CompareInstructorColumn[] = orderedRows
+        const nextColumns: CompareInstructorColumn[] = locatedRows
           .map((row) => {
             const numericId = Number(row.id);
             if (!Number.isInteger(numericId) || numericId <= 0) return null;
@@ -237,7 +250,8 @@ export default function InstructorComparePageClient() {
                 : undefined;
             const specialty =
               String(row.branch ?? "").trim() ||
-              String(row.title ?? "").trim() ||
+              String(row.school ?? "").trim() ||
+              String(row.department ?? "").trim() ||
               String(category?.name ?? "").trim();
             return {
               id: numericId,

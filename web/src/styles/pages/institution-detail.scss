@@ -29,15 +29,29 @@
 // Breadcrumb
 .institution-breadcrumb {
   margin-bottom: 24px;
+  max-width: 100%;
 }
 
 .institution-breadcrumb-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  column-gap: 0;
+  row-gap: 8px;
   font-size: $text-sm;
   font-weight: $font-medium;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
   color: $text-zinc-500;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.institution-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .institution-breadcrumb-link {
@@ -45,6 +59,8 @@
   text-decoration: none;
   @include transition;
   transition-property: color;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   &:hover {
     color: $purple-main;
@@ -52,13 +68,19 @@
 }
 
 .institution-breadcrumb-separator {
-  color: $text-zinc-700;
+  color: $text-zinc-500;
+  opacity: 0.65;
   user-select: none;
+  flex-shrink: 0;
+  padding: 0 10px;
+  font-weight: $font-normal;
 }
 
 .institution-breadcrumb-current {
   color: $purple-main;
   font-weight: $font-semibold;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 // Hero Card

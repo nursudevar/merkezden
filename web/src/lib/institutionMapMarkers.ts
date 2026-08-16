@@ -17,6 +17,9 @@ export type InstitutionMapMarker = {
   categoryId: number | null;
   city: string;
   district: string;
+  ilId: number | null;
+  ilceId: number | null;
+  mahalleId: number | null;
 };
 
 type InstitutionLocationRow = {
@@ -36,6 +39,9 @@ type InstitutionRow = {
   slug: string | null;
   city: string | null;
   district: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  mahalle_id?: number | null;
   institution_type?:
     | {
         name?: string | null;
@@ -88,12 +94,20 @@ export type InstitutionMapMarkerListSource = InstitutionMapMarkerSource & {
   categoryId?: number | null;
   city?: string;
   district?: string;
+  ilId?: number | null;
+  ilceId?: number | null;
+  mahalleId?: number | null;
 };
 
 const LOCATION_CHUNK = 200;
 /** PostgREST varsayılan max_rows (1000); range ile sayfalama için sayfa boyutu */
 const LOCATION_PAGE_SIZE = 1000;
 const MAX_LOCATION_PAGES = 50;
+
+function toMarkerLocationId(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
 
 function dedupeLocationRowsByInstitutionId(
   rows: InstitutionLocationRow[],
@@ -150,6 +164,9 @@ function mergeLocationRowsWithListSources(
             : null,
         city: String(source.city ?? "").trim(),
         district: String(source.district ?? "").trim(),
+        ilId: toMarkerLocationId(source.ilId),
+        ilceId: toMarkerLocationId(source.ilceId),
+        mahalleId: toMarkerLocationId(source.mahalleId),
       };
       return marker;
     })
@@ -193,6 +210,9 @@ function mergeLocationRowsWithInstitutionRows(
         categoryId: Number.isFinite(Number(categoryRow?.id)) ? Number(categoryRow?.id) : null,
         city: String(institution.city ?? "").trim(),
         district: String(institution.district ?? "").trim(),
+        ilId: toMarkerLocationId(institution.il_id),
+        ilceId: toMarkerLocationId(institution.ilce_id),
+        mahalleId: toMarkerLocationId(institution.mahalle_id),
       };
       return marker;
     })
@@ -211,7 +231,7 @@ async function fetchInstitutionRowsByIds(
     const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
     const { data, error } = await supabase
       .from("institutions")
-      .select("id, institution_name, address, official_phone, official_email, logo, slug, city, district, institution_type:institution_types(name, category:institution_categories(id, name, slug))")
+      .select("id, institution_name, address, official_phone, official_email, logo, slug, city, district, il_id, ilce_id, mahalle_id, institution_type:institution_types(name, category:institution_categories(id, name, slug))")
       .in("id", chunk)
       .eq("is_approved", true);
 

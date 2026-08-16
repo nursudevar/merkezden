@@ -1,49 +1,68 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import PublicBreadcrumbNav from "./PublicBreadcrumbNav";
+import type { CategoryLocationFilterValue } from "./categoryLocationFilter";
+import { EMPTY_CATEGORY_LOCATION_FILTER } from "./categoryLocationFilter";
+import {
+  assemblePublicBreadcrumbItems,
+  getRouteCategoryBreadcrumbLabel,
+  toBreadcrumbLabel,
+  useLocationBreadcrumbTrail,
+  type PublicBreadcrumbItem,
+} from "@/lib/publicBreadcrumb";
+import type { PublicBreadcrumbVariant } from "./PublicBreadcrumbNav";
 
-const categoryMap: Record<string, string> = {
-  okul: "OKUL",
-  "kurs-ve-sinava-hazirlik": "KURS & SINAVA HAZIRLIK",
-  "surucu-kursu": "SÜRÜCÜ KURSU",
-  spor: "SPOR",
-  sanat: "SANAT",
-  "yabanci-dil": "YABANCI DİL",
-  "kisisel-gelisim": "KİŞİSEL GELİŞİM",
-  "mesleki-egitim": "MESLEKİ EĞİTİM",
-  "ozel-egitim": "ÖZEL EĞİTİM",
-  "patili-dostlar": "PATİLİ DOSTLAR",
-};
-
-function getCategoryLabel(pathname: string): string {
-  const slug = pathname.split("/").pop() || "";
-  
-  if (categoryMap[slug]) {
-    return categoryMap[slug];
-  }
-  
-  return slug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ")
-    .toUpperCase();
-}
-
-export default function CategoryBreadcrumb() {
+export default function CategoryBreadcrumb({
+  categoryLabel,
+  categoryHref,
+  extraItems,
+  location = EMPTY_CATEGORY_LOCATION_FILTER,
+  applyDefaultCity = false,
+  listingPathname,
+  currentLabel,
+  variant = "category",
+}: {
+  categoryLabel?: string;
+  categoryHref?: string;
+  extraItems?: PublicBreadcrumbItem[];
+  location?: CategoryLocationFilterValue;
+  applyDefaultCity?: boolean;
+  listingPathname?: string;
+  currentLabel?: string;
+  variant?: PublicBreadcrumbVariant;
+}) {
   const pathname = usePathname();
-  const categoryLabel = getCategoryLabel(pathname);
+  const resolvedListingPath =
+    listingPathname !== undefined
+      ? String(listingPathname).trim()
+      : String(pathname ?? "").trim() || "/";
+  const resolvedCategoryLabel =
+    categoryLabel !== undefined
+      ? toBreadcrumbLabel(categoryLabel)
+      : getRouteCategoryBreadcrumbLabel(resolvedListingPath || pathname);
+  const trail = useLocationBreadcrumbTrail(location, { applyDefaultCity });
 
-  return (
-    <nav className="category-breadcrumb" aria-label="Breadcrumb">
-      <div className="category-breadcrumb-container">
-        <Link href="/" className="category-breadcrumb-link">
-          ANA SAYFA
-        </Link>
-        <span className="category-breadcrumb-separator"> &gt; </span>
-        <span className="category-breadcrumb-current">{categoryLabel}</span>
-      </div>
-    </nav>
+  const items = useMemo(
+    () =>
+      assemblePublicBreadcrumbItems({
+        categoryLabel: resolvedCategoryLabel,
+        categoryHref: categoryHref || resolvedListingPath || undefined,
+        extraItems,
+        trail,
+        listingPathname: resolvedListingPath,
+        currentLabel,
+      }),
+    [
+      categoryHref,
+      currentLabel,
+      extraItems,
+      resolvedCategoryLabel,
+      resolvedListingPath,
+      trail,
+    ],
   );
-}
 
+  return <PublicBreadcrumbNav items={items} variant={variant} />;
+}

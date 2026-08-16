@@ -10,6 +10,7 @@ import {
   getPublicInstructorDetailHref,
   mapPublicInstructorDisplayName,
   buildPublicInstructorLocation,
+  attachPublicInstructorLocationAds,
   type PublicInstructorListRow,
 } from '@/lib/publicInstructorSearch';
 import { PUBLIC_INSTRUCTORS_TABLE } from '@/lib/publicInstructorClient';
@@ -481,8 +482,12 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
     throw new FavoritesError('FAVORITES_FETCH_FAILED', 'Favoriler yüklenemedi. Lütfen tekrar deneyin.');
   }
 
+  const locatedRows = await attachPublicInstructorLocationAds(
+    (instructorRows ?? []) as PublicInstructorListRow[],
+  );
+
   const byId = new Map<number, PublicInstructorListRow>();
-  for (const row of (instructorRows ?? []) as PublicInstructorListRow[]) {
+  for (const row of locatedRows) {
     const id = Number(row.id);
     if (Number.isFinite(id) && id > 0) byId.set(id, row);
   }
@@ -500,7 +505,7 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
       return {
         id,
         name,
-        title: String(row.title ?? '').trim() || null,
+        title: String(row.branch ?? '').trim() || String(row.school ?? '').trim() || null,
         branch: String(row.branch ?? '').trim() || null,
         school: String(row.school ?? '').trim() || null,
         location: buildPublicInstructorLocation(row),

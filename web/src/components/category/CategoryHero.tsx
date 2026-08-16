@@ -6,13 +6,18 @@ import { GraduationCap } from "lucide-react";
 import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 import CategoryBreadcrumb from "./CategoryBreadcrumb";
 import CategorySearchBar from "./CategorySearchBar";
+import {
+  EMPTY_CATEGORY_LOCATION_FILTER,
+  type CategoryLocationFilterValue,
+} from "./categoryLocationFilter";
+import type { PublicBreadcrumbItem } from "@/lib/publicBreadcrumb";
 
 interface CategoryHeroProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
-  selectedDistrict?: string;
-  onDistrictChange?: (value: string) => void;
-  districts?: string[];
+  categoryLabel?: string;
+  location?: CategoryLocationFilterValue;
+  extraBreadcrumbItems?: PublicBreadcrumbItem[];
 }
 
 const SHOW_CATEGORY_HERO_TITLE = false;
@@ -71,9 +76,9 @@ function getCategoryData(pathname: string): { title: string } {
 export default function CategoryHero({
   searchValue,
   onSearchChange,
-  selectedDistrict,
-  onDistrictChange,
-  districts,
+  categoryLabel,
+  location = EMPTY_CATEGORY_LOCATION_FILTER,
+  extraBreadcrumbItems,
 }: CategoryHeroProps) {
   const pathname = usePathname();
   const pathSegments = pathname.split("/").filter(Boolean);
@@ -111,7 +116,12 @@ export default function CategoryHero({
     <section className="category-hero">
       <div className="category-hero-container">
         <div className="category-hero-breadcrumb-wrapper">
-          <CategoryBreadcrumb />
+          <CategoryBreadcrumb
+            categoryLabel={categoryLabel}
+            location={location}
+            applyDefaultCity
+            extraItems={extraBreadcrumbItems}
+          />
         </div>
         {SHOW_CATEGORY_HERO_TITLE ? (
           <div className="category-hero-content">
@@ -128,9 +138,6 @@ export default function CategoryHero({
             <CategorySearchBar
               searchValue={searchValue}
               onSearchChange={onSearchChange}
-              selectedDistrict={selectedDistrict}
-              onDistrictChange={onDistrictChange}
-              districts={districts}
             />
           </div>
         ) : null}

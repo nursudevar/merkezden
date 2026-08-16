@@ -204,6 +204,19 @@
     }
   }
 
+  .haritada-ara-breadcrumb {
+    grid-column: 1 / -1;
+    padding-top: 4px;
+    padding-bottom: 4px;
+
+    .category-breadcrumb-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  }
+
   .haritada-ara-sidebar {
     position: relative;
     min-width: 0;
@@ -447,6 +460,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   width: 100%;
   min-height: 44px;
   padding: 10px 14px;

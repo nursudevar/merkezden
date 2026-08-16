@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui";
 import {
@@ -46,6 +45,8 @@ import AnnouncementDetailModal, {
 } from "@/components/AnnouncementDetailModal";
 import InstructorShareButton from "./InstructorShareButton";
 import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
+import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
+import { toLocationIdString } from "@/lib/turkiyeLocationsClient";
 
 type InstructorDetailTab = "about" | "features" | "announcements" | "gallery";
 
@@ -156,7 +157,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
     return resolvePublicInstructorProfilePictureUrl(row.profile_picture);
   }, [row]);
 
-  const location = [row?.city, row?.district].filter(Boolean).join(", ");
+  const location = [row?.locationIlAd, row?.locationIlceAd].filter(Boolean).join(", ");
   const about = String(row?.about ?? row?.bio ?? "").trim();
   const school = String(row?.school ?? "").trim();
   const email = String(row?.email ?? "").trim();
@@ -182,7 +183,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
     return null;
   })();
   const branch = String(row?.branch ?? "").trim();
-  const title = String(row?.title ?? "").trim();
   const categoryName = String(row?.category_name ?? "").trim();
   const hasPhoto = Boolean(photoUrl) && !photoLoadFailed;
 
@@ -377,15 +377,18 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   return (
     <div className="instructor-detail-page">
       <div className="instructor-detail-container">
-        <nav className="instructor-breadcrumb" aria-label="Breadcrumb">
-          <div className="instructor-breadcrumb-container">
-            <Link href="/" className="instructor-breadcrumb-link">
-              Ana Sayfa
-            </Link>
-            <span className="instructor-breadcrumb-separator"> &gt; </span>
-            <span className="instructor-breadcrumb-current">{displayName}</span>
-          </div>
-        </nav>
+        <CategoryBreadcrumb
+          variant="instructor"
+          categoryLabel={String(row.category_name ?? "").trim()}
+          categoryHref="/egitmenler"
+          listingPathname="/egitmenler"
+          location={{
+            ilId: toLocationIdString(row.il_id),
+            ilceId: toLocationIdString(row.ilce_id),
+            mahalleId: toLocationIdString(row.mahalle_id),
+          }}
+          currentLabel={displayName}
+        />
 
         <Card className="instructor-hero">
           <CardContent className="instructor-hero-content">
@@ -426,11 +429,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                   {categoryName ? (
                     <div className="instructor-meta-item">
                       <span className="instructor-meta-badge instructor-meta-badge--title">{categoryName}</span>
-                    </div>
-                  ) : null}
-                  {title ? (
-                    <div className="instructor-meta-item">
-                      <span className="instructor-meta-badge instructor-meta-badge--title">{title}</span>
                     </div>
                   ) : null}
                   {school ? (
@@ -552,6 +550,8 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                                 createdAt: item.createdAt,
                                 institutionName: displayName,
                                 linkUrl: item.linkUrl,
+                                announcementTag: item.announcementTag,
+                                locationLabel: item.locationLabel,
                               })
                             }
                             onKeyDown={(event) => {
@@ -565,6 +565,8 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                                   createdAt: item.createdAt,
                                   institutionName: displayName,
                                   linkUrl: item.linkUrl,
+                                  announcementTag: item.announcementTag,
+                                  locationLabel: item.locationLabel,
                                 });
                               }
                             }}
@@ -614,6 +616,12 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                                   <span className="instructor-announcement-meta-item">
                                     <CalendarDays className="instructor-announcement-meta-icon" size={14} />
                                     <span>{formatAnnouncementDateTr(item.createdAt)}</span>
+                                  </span>
+                                ) : null}
+                                {item.locationLabel ? (
+                                  <span className="instructor-announcement-meta-item">
+                                    <MapPin className="instructor-announcement-meta-icon" size={14} />
+                                    <span>{item.locationLabel}</span>
                                   </span>
                                 ) : null}
                                 {hasLink && absoluteLink ? (

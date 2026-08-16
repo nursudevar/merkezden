@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
 import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+import { useCategoryLocationFilterState } from "@/components/category/categoryLocationFilter";
 import {
   EMPTY_SCHOOL_CATEGORY_FILTERS,
   type SchoolCategoryFilterPayload,
@@ -14,7 +15,7 @@ const CATEGORY_SLUG = "okul";
 
 export default function SchoolPageClient() {
   const [searchText, setSearchText] = useState("");
-  const [district, setDistrict] = useState("");
+  const { location, setLocation, locationReady } = useCategoryLocationFilterState();
   const [schoolFilters, setSchoolFilters] = useState<SchoolCategoryFilterPayload>(
     EMPTY_SCHOOL_CATEGORY_FILTERS,
   );
@@ -23,16 +24,18 @@ export default function SchoolPageClient() {
     setSchoolFilters(payload);
   }, []);
 
-  const { results, isLoading, error, districts } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
-    district,
+    ilId: location.ilId,
+    ilceId: location.ilceId,
+    mahalleId: location.mahalleId,
+    locationReady,
     categorySlug: CATEGORY_SLUG,
     schoolFilters,
   });
 
   return (
       <CategoryPageLayout
-        districts={districts}
         categoryName={CATEGORY_NAME}
         categorySlug={CATEGORY_SLUG}
         subtitle="Ankara bölgesinde öne çıkan en iyi eğitim kurumlarını inceleyin."
@@ -42,8 +45,8 @@ export default function SchoolPageClient() {
         schoolModeProps={{
           linkedSearch: searchText,
           onLinkedSearchChange: setSearchText,
-          linkedDistrict: district,
-          onLinkedDistrictChange: setDistrict,
+          linkedLocation: location,
+          onLinkedLocationChange: setLocation,
           onSchoolFilterPayloadChange: handleSchoolFilterPayloadChange,
         }}
       />

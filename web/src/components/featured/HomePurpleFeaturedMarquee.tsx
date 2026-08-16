@@ -6,6 +6,12 @@ import { Building2, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import {
+  fetchIller,
+  findLocationIdByAd,
+  HOME_DEFAULT_CITY_AD,
+  parseLocationId,
+} from "@/lib/turkiyeLocationsClient";
 
 const LIST_SIZE = 20;
 const FETCH_LIMIT = 240;
@@ -66,7 +72,10 @@ export function HomePurpleFeaturedMarquee() {
 
     (async () => {
       const supabase = createSupabaseBrowserClient();
-      const category = await fetchInstitutionCategoryBySlug(DRIVING_SCHOOL_CATEGORY_SLUG);
+      const [category, iller] = await Promise.all([
+        fetchInstitutionCategoryBySlug(DRIVING_SCHOOL_CATEGORY_SLUG),
+        fetchIller(),
+      ]);
 
       if (cancelled) return;
 
@@ -78,11 +87,18 @@ export function HomePurpleFeaturedMarquee() {
         return;
       }
 
+      const ankaraId = parseLocationId(findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD));
+      if (ankaraId == null) {
+        console.warn("[purple-featured] Ankara il_id resolve edilemedi");
+        setCards([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("institutions")
         .select("id, slug, source, institution_name, city, district, logo")
         .eq("category_id", category.id)
-        .ilike("city", "Ankara")
+        .eq("il_id", ankaraId)
         .not("institution_name", "is", null)
         .eq("is_approved", true)
         .order("institution_name", { ascending: true })

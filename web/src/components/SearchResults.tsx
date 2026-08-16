@@ -9,6 +9,7 @@ import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib
 import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
 import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { parseLocationId } from "@/lib/turkiyeLocationsClient";
 import {
   resolveInstitutionIdsByPriceRange,
   resolveInstitutionIdsByPriceRangeSelections,
@@ -62,8 +63,9 @@ interface SearchResult {
 
 interface SearchResultsProps {
   query: string;
-  cityFilter?: string;
-  districtFilter?: string;
+  ilIdFilter?: string;
+  ilceIdFilter?: string;
+  mahalleIdFilter?: string;
   /** Kurum türü: `private` = Özel, `public` = Devlet; birden fazla seçimde OR mantığı */
   schoolStatusFilters?: ("private" | "public")[];
   /** Öğrenci yaşı (ham metin); hem kurum hem eğitmen */
@@ -260,8 +262,9 @@ async function resolveInstitutionIdsByServiceTypes(
 
 export default function SearchResults({
   query,
-  cityFilter,
-  districtFilter,
+  ilIdFilter,
+  ilceIdFilter,
+  mahalleIdFilter,
   schoolStatusFilters,
   studentAgeRange,
   serviceTypeFilters,
@@ -304,8 +307,9 @@ export default function SearchResults({
   }, []);
 
   const trimmedQuery = query.trim();
-  const trimmedCity = String(cityFilter ?? "").trim();
-  const trimmedDistrict = String(districtFilter ?? "").trim();
+  const ilId = parseLocationId(ilIdFilter);
+  const ilceId = parseLocationId(ilceIdFilter);
+  const mahalleId = parseLocationId(mahalleIdFilter);
   const schoolStatuses = schoolStatusFilters ?? [];
   const studentAgeFilter = studentAgeFilterQueryFromTextPayload(studentAgeRange);
   const studentAgeFilterActive = isStudentAgeFilterTextActive(studentAgeRange);
@@ -327,7 +331,9 @@ export default function SearchResults({
   const institutionTypeIdList = institutionTypeIds ?? [];
   const hasActiveFilter =
     trimmedQuery.length > 0 ||
-    trimmedDistrict.length > 0 ||
+    ilId != null ||
+    ilceId != null ||
+    mahalleId != null ||
     schoolStatuses.length > 0 ||
     studentAgeFilterActive ||
     serviceTypes.length > 0 ||
@@ -338,6 +344,12 @@ export default function SearchResults({
     if (!hasActiveFilter) {
       setResults([]);
       setLoading(false);
+      setError(null);
+      return;
+    }
+
+    if (ilId == null) {
+      setLoading(true);
       setError(null);
       return;
     }
@@ -356,11 +368,12 @@ export default function SearchResults({
             .order("institution_name", { ascending: true })
             .limit(600);
 
-          if (trimmedCity) {
-            baseQuery = baseQuery.ilike("city", trimmedCity);
+          baseQuery = baseQuery.eq("il_id", ilId);
+          if (ilceId != null) {
+            baseQuery = baseQuery.eq("ilce_id", ilceId);
           }
-          if (trimmedDistrict) {
-            baseQuery = baseQuery.ilike("district", trimmedDistrict);
+          if (mahalleId != null) {
+            baseQuery = baseQuery.eq("mahalle_id", mahalleId);
           }
 
           if (institutionTypeIdList.length > 0) {
@@ -463,8 +476,9 @@ export default function SearchResults({
             baseQuery,
             fetchPublicInstructorsForListing(supabase, {
               searchTerm: trimmedQuery || undefined,
-              city: trimmedCity || undefined,
-              district: trimmedDistrict || undefined,
+              ilId,
+              ilceId,
+              mahalleId,
               priceRange:
                 priceFilterIsActive && !priceSelectionFilterIsActive
                   ? { min: priceMin, max: priceMax }
@@ -532,11 +546,11 @@ export default function SearchResults({
             if (!Number.isFinite(numericId) || numericId <= 0) return [];
 
             const name = mapPublicInstructorDisplayName(row);
-            const title = String(row.title ?? "").trim();
             const branch = String(row.branch ?? "").trim();
+            const school = String(row.school ?? "").trim();
             const about = String(row.about ?? "").trim();
             const bio = String(row.bio ?? "").trim();
-            const description = about || bio || title || branch;
+            const description = about || bio || branch || school;
             const imageUrl = resolvePublicInstructorProfilePictureUrl(
               String(row.profile_picture ?? "").trim(),
               supabase,
@@ -574,7 +588,15 @@ export default function SearchResults({
           setVisibleCount(pageSizeRef.current);
           setError(null);
         } catch (err) {
-          console.error("[SearchResults] Error:", err);
+          const supabaseError = err as {
+            code?: string;
+            message?: string;
+            details?: string;
+            hint?: string;
+          };
+          console.error(
+            `SearchResults error | step=listing | code=${supabaseError?.code ?? ""} | message=${supabaseError?.message ?? ""} | details=${supabaseError?.details ?? ""} | hint=${supabaseError?.hint ?? ""} | raw=${err instanceof Error ? err.message : String(err)}`,
+          );
           setError("Arama sırasında bir hata oluştu");
           setResults([]);
         } finally {
@@ -588,7 +610,7 @@ export default function SearchResults({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasActiveFilter, trimmedQuery, trimmedCity, trimmedDistrict, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(",")]);
+  }, [hasActiveFilter, trimmedQuery, ilId, ilceId, mahalleId, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(",")]);
 
   if (!hasActiveFilter) {
     return null;
@@ -598,7 +620,7 @@ export default function SearchResults({
     ? `"${trimmedQuery}" için sonuç bulunamadı.`
     : "Bu filtre ile eşleşen kurum veya eğitmen bulunamadı.";
 
-  if (loading) {
+  if (loading || ilId == null) {
     return (
       <section className="search-results-section">
         <div className="search-results-container">

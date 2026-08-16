@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui";
 import {
@@ -47,7 +46,15 @@ import ShareButton from "./ShareButton";
 import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
 } from "@/components/AnnouncementDetailModal";
+import {
+  buildLocationAdMaps,
+  formatAnnouncementLocationLabel,
+  lookupLocationAds,
+} from "@/lib/turkiyeLocationsClient";
 import { getHighSchoolTypeLabel } from "@/lib/schoolInstitutionTypes";
+import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
+import { getCategoryHref } from "@/lib/categoryHelpers";
+import { toLocationIdString } from "@/lib/turkiyeLocationsClient";
 
 type DbInstitutionRow = {
   id: number;
@@ -79,6 +86,9 @@ type DbInstitutionRow = {
   is_approved: boolean | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
+  il_id?: number | null;
+  ilce_id?: number | null;
+  mahalle_id?: number | null;
 };
 
 type InstitutionMediaImageRow = {
@@ -159,7 +169,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, category:institution_categories(name, slug), institution_type:institution_types(name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, il_id, ilce_id, mahalle_id, category:institution_categories(name, slug), institution_type:institution_types(name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
         .eq("is_approved", true)
@@ -232,7 +242,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("announcements")
         .select(
-          "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, institution:institutions(institution_name)"
+          "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, il_id, ilce_id, institution:institutions(institution_name)"
         )
         .eq("institution_id", row.id)
         .eq("is_active", true)
@@ -257,11 +267,16 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         link_url: string | null;
         announcement_tag: string | null;
         created_at: string | null;
+        il_id?: number | null;
+        ilce_id?: number | null;
         institution:
           | { institution_name: string | null }
           | Array<{ institution_name: string | null }>
           | null;
       }>;
+
+      const locationMaps = await buildLocationAdMaps(rows);
+      if (cancelled) return;
 
       const mapped: AnnouncementDetailItem[] = rows
         .map((r) => {
@@ -270,6 +285,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             : r.institution ?? null;
           const title = String(r.title ?? "").trim();
           if (!title) return null;
+          const { ilAd, ilceAd } = lookupLocationAds(r.il_id, r.ilce_id, locationMaps);
           return {
             id: String(r.id),
             title,
@@ -283,6 +299,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             announcementTag: r.announcement_tag
               ? String(r.announcement_tag).trim() || null
               : null,
+            locationLabel: formatAnnouncementLocationLabel(ilAd, ilceAd) || null,
           } as AnnouncementDetailItem;
         })
         .filter((item): item is AnnouncementDetailItem => item !== null);
@@ -335,6 +352,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     : row?.category ?? null;
   const categoryName = (institutionCategoryRow?.name ?? "").trim();
   const institutionCategorySlug = (institutionCategoryRow?.slug ?? "").trim();
+  const categoryListingHref = getCategoryHref(categoryName, institutionCategorySlug) ?? "";
   const schoolLevelLabel = (institutionTypeRow?.name ?? "").trim();
   const highSchoolLabel = getHighSchoolTypeLabel(row?.high_school_type);
   const institutionTypeBadgeText =
@@ -639,19 +657,18 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   return (
     <div className="institution-detail-page">
       <div className="institution-detail-container">
-        <nav className="institution-breadcrumb" aria-label="Breadcrumb">
-          <div className="institution-breadcrumb-container">
-            <Link href="/" className="institution-breadcrumb-link">
-              Ana Sayfa
-            </Link>
-            <span className="institution-breadcrumb-separator"> &gt; </span>
-            <Link href="/" className="institution-breadcrumb-link">
-              Kurumlar
-            </Link>
-            <span className="institution-breadcrumb-separator"> &gt; </span>
-            <span className="institution-breadcrumb-current">{name}</span>
-          </div>
-        </nav>
+        <CategoryBreadcrumb
+          variant="institution"
+          categoryLabel={categoryName}
+          categoryHref={categoryListingHref || undefined}
+          listingPathname={categoryListingHref}
+          location={{
+            ilId: toLocationIdString(row.il_id),
+            ilceId: toLocationIdString(row.ilce_id),
+            mahalleId: toLocationIdString(row.mahalle_id),
+          }}
+          currentLabel={name}
+        />
 
         <Card className="institution-hero">
           <CardContent className="institution-hero-content">
@@ -1152,6 +1169,15 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                                   <span>
                                     {formatAnnouncementDateTr(item.createdAt)}
                                   </span>
+                                </span>
+                              ) : null}
+                              {item.locationLabel ? (
+                                <span className="institution-announcement-meta-item">
+                                  <MapPin
+                                    className="institution-announcement-meta-icon"
+                                    size={14}
+                                  />
+                                  <span>{item.locationLabel}</span>
                                 </span>
                               ) : null}
                               {hasLink && absoluteLink ? (

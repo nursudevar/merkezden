@@ -17,6 +17,12 @@ import {
   publicInstructorDisplayName,
   type PublicInstructorRow,
 } from "@/lib/publicInstructorClient";
+import {
+  buildLocationAdMaps,
+  formatAnnouncementLocationLabel,
+  lookupLocationAds,
+  parseLocationId,
+} from "@/lib/turkiyeLocationsClient";
 
 export { fetchPublicInstructorByParamClient, publicInstructorDisplayName };
 export type { PublicInstructorFeatureLine, PublicInstructorFeatureSection };
@@ -34,6 +40,9 @@ export type PublicInstructorAnnouncementItem = {
   linkUrl: string | null;
   createdAt: string | null;
   announcementTag: string | null;
+  locationLabel: string | null;
+  il_id: number | null;
+  ilce_id: number | null;
 };
 
 export function resolvePublicInstructorProfilePictureUrl(
@@ -53,8 +62,8 @@ export function buildInstructorProfileSummaryLines(
 ): PublicInstructorFeatureLine[] {
   const lines: Array<{ label: string; value: string | null }> = [
     { label: "Branş", value: row.branch ?? null },
-    { label: "Ünvan", value: row.title ?? null },
     { label: "Mezun Olunan Okul", value: row.school ?? null },
+    { label: "Bölüm", value: row.department ?? null },
     {
       label: "Deneyim Yılı",
       value:
@@ -138,7 +147,7 @@ export async function fetchPublicInstructorAnnouncementsClient(
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("instructor_announcements")
-    .select("id, title, content, image_url, link_url, announcement_tag, created_at")
+    .select("id, title, content, image_url, link_url, announcement_tag, created_at, il_id, ilce_id")
     .eq("instructor_id", instructorId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -148,7 +157,7 @@ export async function fetchPublicInstructorAnnouncementsClient(
     return { items: [], error };
   }
 
-  const items = ((data ?? []) as Array<{
+  const rows = ((data ?? []) as Array<{
     id: number;
     title: string | null;
     content: string | null;
@@ -156,10 +165,19 @@ export async function fetchPublicInstructorAnnouncementsClient(
     link_url: string | null;
     announcement_tag: string | null;
     created_at: string | null;
-  }>)
+    il_id?: number | null;
+    ilce_id?: number | null;
+  }>);
+
+  const locationMaps = await buildLocationAdMaps(rows);
+
+  const items = rows
     .map((row) => {
       const title = String(row.title ?? "").trim();
       if (!title) return null;
+      const il_id = parseLocationId(row.il_id);
+      const ilce_id = parseLocationId(row.ilce_id);
+      const { ilAd, ilceAd } = lookupLocationAds(il_id, ilce_id, locationMaps);
       return {
         id: String(row.id),
         title,
@@ -168,6 +186,9 @@ export async function fetchPublicInstructorAnnouncementsClient(
         linkUrl: row.link_url ? String(row.link_url).trim() || null : null,
         createdAt: row.created_at ? String(row.created_at) : null,
         announcementTag: row.announcement_tag ? String(row.announcement_tag).trim() || null : null,
+        locationLabel: formatAnnouncementLocationLabel(ilAd, ilceAd) || null,
+        il_id,
+        ilce_id,
       };
     })
     .filter((item): item is PublicInstructorAnnouncementItem => item !== null);

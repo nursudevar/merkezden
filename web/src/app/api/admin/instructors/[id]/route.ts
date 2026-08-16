@@ -8,7 +8,8 @@ type InstructorAdminUpdateBody = {
   email?: string;
   phone?: string;
   branch?: string;
-  district?: string;
+  il_id?: number | string | null;
+  ilce_id?: number | string | null;
 };
 
 function isValidPhone(phone: string): boolean {
@@ -21,6 +22,12 @@ function isValidPhone(phone: string): boolean {
 function normalizeText(value: unknown): string | null {
   const trimmed = String(value ?? "").trim();
   return trimmed || null;
+}
+
+function normalizeLocationId(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 async function getServiceSupabase() {
@@ -74,10 +81,11 @@ export async function PATCH(
       email: normalizeText(body.email),
       phone: normalizeText(body.phone),
       branch: normalizeText(body.branch),
-      district: normalizeText(body.district),
+      il_id: normalizeLocationId(body.il_id),
+      ilce_id: normalizeLocationId(body.ilce_id),
     })
     .eq("id", instructorId)
-    .select("id, name, surname, email, phone, branch, district")
+    .select("id, name, surname, email, phone, branch, il_id, ilce_id")
     .maybeSingle();
 
   if (error) {

@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { SlidersHorizontal } from "lucide-react";
+import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
 import { HaritadaAraFilterSidebar } from "@/components/map/HaritadaAraFilterSidebar";
 import { InstitutionMapSearchExperience } from "@/components/map/InstitutionMapSearchExperience";
 import type { InstitutionMapFocusTarget } from "@/components/map/InstitutionLocationsMap";
@@ -15,11 +17,35 @@ import {
 } from "@/lib/favorites/favoritesClient";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 import { haversineDistanceKm, isValidLatLng } from "@/lib/geoDistance";
-import { resolveDistrictMapView } from "@/lib/districtMapView";
+import { resolveDistrictMapView, boundsFromMarkers } from "@/lib/districtMapView";
 import {
   beginUserGeolocationRequest,
   diagnoseGeolocationPreflight,
 } from "@/lib/geolocationClient";
+import {
+  fetchIller,
+  fetchIlcelerByIlId,
+  fetchMahallelerByIlceId,
+  findLocationIdByAd,
+  HOME_DEFAULT_CITY_AD,
+  parseLocationId,
+  type TurkiyeLocationOption,
+} from "@/lib/turkiyeLocationsClient";
+import {
+  resolveCategoryLocationFromSearch,
+  writeCategoryLocationToSearch,
+} from "@/components/category/categoryLocationFilter";
+
+function searchQueryEqual(a: string, b: string): boolean {
+  const left = new URLSearchParams(a.startsWith("?") ? a.slice(1) : a);
+  const right = new URLSearchParams(b.startsWith("?") ? b.slice(1) : b);
+  const serialize = (params: URLSearchParams) =>
+    [...params.entries()]
+      .map(([key, value]) => `${key}=${value}`)
+      .sort((x, y) => x.localeCompare(y))
+      .join("&");
+  return serialize(left) === serialize(right);
+}
 
 const DESKTOP_MIN_WIDTH = 1024;
 /** Header altında kalacak minimum üst boşluk */
@@ -47,14 +73,16 @@ function normalizeLocationKey(value: string): string {
     .replace(/ı/g, "i");
 }
 
-function markerMatchesCity(marker: InstitutionMapMarker, city: string): boolean {
-  if (!city) return true;
-  return normalizeLocationKey(marker.city) === normalizeLocationKey(city);
-}
-
-function markerMatchesDistrict(marker: InstitutionMapMarker, district: string): boolean {
-  if (!district) return true;
-  return normalizeLocationKey(marker.district) === normalizeLocationKey(district);
+function markerMatchesLocationIds(
+  marker: InstitutionMapMarker,
+  ilId: number | null,
+  ilceId: number | null,
+  mahalleId: number | null,
+): boolean {
+  if (ilId != null && marker.ilId !== ilId) return false;
+  if (ilceId != null && marker.ilceId !== ilceId) return false;
+  if (mahalleId != null && marker.mahalleId !== mahalleId) return false;
+  return true;
 }
 
 function isDesktopViewport(): boolean {
@@ -62,6 +90,10 @@ function isDesktopViewport(): boolean {
 }
 
 export function HaritadaAraPageClient() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchKey = searchParams.toString();
   const { markers, loading } = useAllInstitutionMapMarkers();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -79,12 +111,16 @@ export function HaritadaAraPageClient() {
   const sidebarSlotRef = useRef<HTMLDivElement>(null);
   const fixedFilterRef = useRef<HTMLDivElement>(null);
 
-  const [selectedCity, setSelectedCity] = useState("");
-  const [defaultCity, setDefaultCity] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedIlId, setSelectedIlId] = useState("");
+  const [defaultIlId, setDefaultIlId] = useState("");
+  const [selectedIlceId, setSelectedIlceId] = useState("");
+  const [selectedMahalleId, setSelectedMahalleId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearchQuery, setAppliedSearchQuery] = useState("");
-  const [cityDistrictMap, setCityDistrictMap] = useState<Record<string, string[]>>({});
+  const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
+  const [ilceler, setIlceler] = useState<TurkiyeLocationOption[]>([]);
+  const [mahalleler, setMahalleler] = useState<TurkiyeLocationOption[]>([]);
+  const [locationDefaultsReady, setLocationDefaultsReady] = useState(false);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [nearbyActive, setNearbyActive] = useState(false);
@@ -94,22 +130,27 @@ export function HaritadaAraPageClient() {
   const nearbyInFlightRef = useRef(false);
   const districtFocusRequestIdRef = useRef(0);
   const activeGeoCancelRef = useRef<(() => void) | null>(null);
+  const locationDefaultsReadyRef = useRef(false);
+  const lastHydratedSearchKeyRef = useRef<string | null>(null);
+  const writeGenerationRef = useRef(0);
+  const markersRef = useRef(markers);
+  const illerRef = useRef(iller);
+  markersRef.current = markers;
+  illerRef.current = iller;
 
-  const cities = useMemo(
-    () => Object.keys(cityDistrictMap).sort((a, b) => a.localeCompare(b, "tr")),
-    [cityDistrictMap],
-  );
-
-  const districts = useMemo(() => {
-    if (!selectedCity) return [];
-    return cityDistrictMap[selectedCity] ?? [];
-  }, [cityDistrictMap, selectedCity]);
+  const selectedIlAd = iller.find((row) => String(row.id) === selectedIlId)?.ad ?? "";
+  const selectedIlceAd = ilceler.find((row) => String(row.id) === selectedIlceId)?.ad ?? "";
+  const selectedIlIdNum = parseLocationId(selectedIlId);
+  const selectedIlceIdNum = parseLocationId(selectedIlceId);
+  const selectedMahalleIdNum = parseLocationId(selectedMahalleId);
 
   const filteredMarkers = useMemo(() => {
+    if (!locationDefaultsReady) return [];
     const searchKey = normalizeLocationKey(appliedSearchQuery);
     const filtered = markers.filter((marker) => {
-      if (!markerMatchesCity(marker, selectedCity)) return false;
-      if (!markerMatchesDistrict(marker, selectedDistrict)) return false;
+      if (!markerMatchesLocationIds(marker, selectedIlIdNum, selectedIlceIdNum, selectedMahalleIdNum)) {
+        return false;
+      }
       if (!searchKey) return true;
       const haystack = normalizeLocationKey(
         [
@@ -141,7 +182,16 @@ export function HaritadaAraPageClient() {
       );
       return da - db;
     });
-  }, [markers, selectedCity, selectedDistrict, appliedSearchQuery, nearbyActive, userLocation]);
+  }, [
+    markers,
+    locationDefaultsReady,
+    selectedIlIdNum,
+    selectedIlceIdNum,
+    selectedMahalleIdNum,
+    appliedSearchQuery,
+    nearbyActive,
+    userLocation,
+  ]);
 
   const syncFixedFilterPosition = useCallback(() => {
     const slot = sidebarSlotRef.current;
@@ -209,40 +259,82 @@ export function HaritadaAraPageClient() {
     };
   }, [syncFixedFilterPosition, filteredMarkers.length, loading]);
 
+  const focusMapForLocation = useCallback(
+    async (ilIdValue: string, ilceIdValue: string, mahalleIdValue: string) => {
+      const requestId = ++districtFocusRequestIdRef.current;
+      const parsedIlId = parseLocationId(ilIdValue);
+      const parsedIlceId = parseLocationId(ilceIdValue);
+      const parsedMahalleId = parseLocationId(mahalleIdValue);
+
+      if (parsedIlceId == null) {
+        setMapFocus({
+          lat: DEFAULT_MAP_CENTER.lat,
+          lng: DEFAULT_MAP_CENTER.lng,
+          zoom: DEFAULT_MAP_ZOOM,
+          boundaryGeoJson: null,
+          token: Date.now(),
+        });
+        return;
+      }
+
+      if (parsedMahalleId != null) {
+        const mahalleMarkers = markersRef.current.filter((marker) =>
+          markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, parsedMahalleId),
+        );
+        const bounds = boundsFromMarkers(mahalleMarkers);
+        if (requestId !== districtFocusRequestIdRef.current || !bounds) return;
+        setMapFocus({
+          bounds,
+          boundaryGeoJson: null,
+          token: Date.now(),
+        });
+        return;
+      }
+
+      const cityAd = illerRef.current.find((row) => row.id === parsedIlId)?.ad ?? "";
+      let districtAd = "";
+      if (parsedIlId != null) {
+        try {
+          const ilceRows = await fetchIlcelerByIlId(parsedIlId);
+          districtAd = ilceRows.find((row) => row.id === parsedIlceId)?.ad ?? "";
+        } catch {
+          districtAd = "";
+        }
+      }
+
+      const districtMarkers = markersRef.current.filter((marker) =>
+        markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, null),
+      );
+      const view = await resolveDistrictMapView(cityAd, districtAd, districtMarkers);
+      if (requestId !== districtFocusRequestIdRef.current || !view) return;
+      setMapFocus({
+        bounds: view.bounds,
+        boundaryGeoJson: view.boundaryGeoJson,
+        token: Date.now(),
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     let cancelled = false;
-    const supabase = createSupabaseBrowserClient();
 
     void (async () => {
-      const { data } = await supabase
-        .from("institutions")
-        .select("city, district")
-        .eq("is_approved", true)
-        .limit(5000);
-
-      if (cancelled || !Array.isArray(data)) return;
-
-      const nextMap: Record<string, Set<string>> = {};
-      for (const row of data) {
-        const city = String(row.city ?? "").trim();
-        const district = String(row.district ?? "").trim();
-        if (!city) continue;
-        if (!nextMap[city]) nextMap[city] = new Set();
-        if (district) nextMap[city].add(district);
-      }
-
-      const plain: Record<string, string[]> = {};
-      for (const [city, set] of Object.entries(nextMap)) {
-        plain[city] = Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
-      }
-      setCityDistrictMap(plain);
-
-      const ankaraKey = Object.keys(plain).find(
-        (city) => normalizeLocationKey(city) === "ankara",
-      );
-      if (ankaraKey) {
-        setDefaultCity(ankaraKey);
-        setSelectedCity((prev) => prev || ankaraKey);
+      try {
+        const rows = await fetchIller();
+        if (cancelled) return;
+        setIller(rows);
+        illerRef.current = rows;
+        const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
+        if (ankaraId) setDefaultIlId(ankaraId);
+      } catch (error) {
+        console.error("İller yüklenemedi:", error);
+        if (!cancelled) setIller([]);
+      } finally {
+        if (!cancelled) {
+          locationDefaultsReadyRef.current = true;
+          setLocationDefaultsReady(true);
+        }
       }
     })();
 
@@ -250,6 +342,110 @@ export function HaritadaAraPageClient() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!locationDefaultsReady) return;
+    let cancelled = false;
+    void (async () => {
+      const resolved = await resolveCategoryLocationFromSearch(searchKey ? `?${searchKey}` : "");
+      if (cancelled) return;
+      const q = String(new URLSearchParams(searchKey).get("q") ?? "").trim();
+      const nextIlId = resolved.ilId || defaultIlId;
+      const nextIlceId = nextIlId ? resolved.ilceId : "";
+      const nextMahalleId = nextIlceId ? resolved.mahalleId : "";
+      setSelectedIlId(nextIlId);
+      setSelectedIlceId(nextIlceId);
+      setSelectedMahalleId(nextMahalleId);
+      if (!nextIlId) setIlceler([]);
+      if (!nextIlceId) setMahalleler([]);
+      setSearchQuery(q);
+      setAppliedSearchQuery(q);
+      lastHydratedSearchKeyRef.current = searchKey;
+      if (nextIlceId || nextMahalleId) {
+        void focusMapForLocation(nextIlId, nextIlceId, nextMahalleId);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [defaultIlId, focusMapForLocation, locationDefaultsReady, searchKey]);
+
+  useEffect(() => {
+    if (!locationDefaultsReady) return;
+    if (lastHydratedSearchKeyRef.current !== searchKey) return;
+    const generation = ++writeGenerationRef.current;
+    void (async () => {
+      const nextSearch = await writeCategoryLocationToSearch(searchKey ? `?${searchKey}` : "", {
+        ilId: selectedIlId,
+        ilceId: selectedIlceId,
+        mahalleId: selectedMahalleId,
+      });
+      if (generation !== writeGenerationRef.current) return;
+      const params = new URLSearchParams(nextSearch);
+      const trimmedQuery = appliedSearchQuery.trim();
+      if (trimmedQuery) params.set("q", trimmedQuery);
+      else params.delete("q");
+      const serialized = params.toString();
+      if (searchQueryEqual(serialized, searchKey)) return;
+      const nextUrl = serialized ? `${pathname}?${serialized}` : pathname;
+      router.push(nextUrl, { scroll: false });
+    })();
+  }, [
+    appliedSearchQuery,
+    locationDefaultsReady,
+    pathname,
+    router,
+    searchKey,
+    selectedIlId,
+    selectedIlceId,
+    selectedMahalleId,
+  ]);
+
+  useEffect(() => {
+    const ilId = parseLocationId(selectedIlId);
+    if (ilId == null) {
+      setIlceler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchIlcelerByIlId(ilId);
+        if (!cancelled) setIlceler(rows);
+      } catch (error) {
+        console.error("İlçeler yüklenemedi:", error);
+        if (!cancelled) setIlceler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIlId]);
+
+  useEffect(() => {
+    const ilceId = parseLocationId(selectedIlceId);
+    if (ilceId == null) {
+      setMahalleler([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchMahallelerByIlceId(ilceId);
+        if (!cancelled) setMahalleler(rows);
+      } catch (error) {
+        console.error("Mahalleler yüklenemedi:", error);
+        if (!cancelled) setMahalleler([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIlceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -336,11 +532,13 @@ export function HaritadaAraPageClient() {
     closeDrawerAndScrollToResults();
   }, [searchQuery, clearNearbyMode, closeDrawerAndScrollToResults]);
 
-  const handleCityChange = useCallback(
-    (city: string) => {
+  const handleIlChange = useCallback(
+    (ilId: string) => {
       districtFocusRequestIdRef.current += 1;
-      setSelectedCity(city);
-      setSelectedDistrict("");
+      setSelectedIlId(ilId);
+      setSelectedIlceId("");
+      setSelectedMahalleId("");
+      setMahalleler([]);
       clearNearbyMode();
       setMapFocus({
         lat: DEFAULT_MAP_CENTER.lat,
@@ -354,15 +552,17 @@ export function HaritadaAraPageClient() {
     [clearNearbyMode, closeDrawerAndScrollToResults],
   );
 
-  const handleDistrictChange = useCallback(
-    (district: string) => {
+  const handleIlceChange = useCallback(
+    (ilceId: string) => {
       districtFocusRequestIdRef.current += 1;
       const requestId = districtFocusRequestIdRef.current;
-      setSelectedDistrict(district);
+      setSelectedIlceId(ilceId);
+      setSelectedMahalleId("");
+      if (!ilceId) setMahalleler([]);
       clearNearbyMode();
       closeDrawerAndScrollToResults();
 
-      if (!district.trim()) {
+      if (!ilceId.trim()) {
         setMapFocus({
           lat: DEFAULT_MAP_CENTER.lat,
           lng: DEFAULT_MAP_CENTER.lng,
@@ -373,12 +573,16 @@ export function HaritadaAraPageClient() {
         return;
       }
 
+      const parsedIlId = parseLocationId(selectedIlId);
+      const parsedIlceId = parseLocationId(ilceId);
+      const cityAd = selectedIlAd;
+      const districtAd = ilceler.find((row) => row.id === parsedIlceId)?.ad ?? "";
+
       void (async () => {
-        const districtMarkers = markers.filter(
-          (marker) =>
-            markerMatchesCity(marker, selectedCity) && markerMatchesDistrict(marker, district),
+        const districtMarkers = markers.filter((marker) =>
+          markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, null),
         );
-        const view = await resolveDistrictMapView(selectedCity, district, districtMarkers);
+        const view = await resolveDistrictMapView(cityAd, districtAd, districtMarkers);
         if (requestId !== districtFocusRequestIdRef.current || !view) return;
 
         setMapFocus({
@@ -388,7 +592,72 @@ export function HaritadaAraPageClient() {
         });
       })();
     },
-    [clearNearbyMode, closeDrawerAndScrollToResults, markers, selectedCity],
+    [clearNearbyMode, closeDrawerAndScrollToResults, markers, selectedIlId, selectedIlAd, ilceler],
+  );
+
+  const handleMahalleChange = useCallback(
+    (mahalleId: string) => {
+      districtFocusRequestIdRef.current += 1;
+      const requestId = districtFocusRequestIdRef.current;
+      setSelectedMahalleId(mahalleId);
+      clearNearbyMode();
+      closeDrawerAndScrollToResults();
+
+      if (!mahalleId.trim()) {
+        if (!selectedIlceId.trim()) {
+          setMapFocus({
+            lat: DEFAULT_MAP_CENTER.lat,
+            lng: DEFAULT_MAP_CENTER.lng,
+            zoom: DEFAULT_MAP_ZOOM,
+            boundaryGeoJson: null,
+            token: Date.now(),
+          });
+          return;
+        }
+
+        const parsedIlId = parseLocationId(selectedIlId);
+        const parsedIlceId = parseLocationId(selectedIlceId);
+        void (async () => {
+          const districtMarkers = markers.filter((marker) =>
+            markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, null),
+          );
+          const view = await resolveDistrictMapView(selectedIlAd, selectedIlceAd, districtMarkers);
+          if (requestId !== districtFocusRequestIdRef.current || !view) return;
+          setMapFocus({
+            bounds: view.bounds,
+            boundaryGeoJson: view.boundaryGeoJson,
+            token: Date.now(),
+          });
+        })();
+        return;
+      }
+
+      const parsedMahalleId = parseLocationId(mahalleId);
+      const mahalleMarkers = markers.filter((marker) =>
+        markerMatchesLocationIds(
+          marker,
+          parseLocationId(selectedIlId),
+          parseLocationId(selectedIlceId),
+          parsedMahalleId,
+        ),
+      );
+      const bounds = boundsFromMarkers(mahalleMarkers);
+      if (!bounds) return;
+      setMapFocus({
+        bounds,
+        boundaryGeoJson: null,
+        token: Date.now(),
+      });
+    },
+    [
+      clearNearbyMode,
+      closeDrawerAndScrollToResults,
+      markers,
+      selectedIlId,
+      selectedIlceId,
+      selectedIlAd,
+      selectedIlceAd,
+    ],
   );
 
   useEffect(() => {
@@ -446,8 +715,12 @@ export function HaritadaAraPageClient() {
         return;
       }
 
-      setSelectedCity("");
-      setSelectedDistrict("");
+      locationDefaultsReadyRef.current = true;
+      setLocationDefaultsReady(true);
+      setSelectedIlId("");
+      setSelectedIlceId("");
+      setSelectedMahalleId("");
+      setMahalleler([]);
       setAppliedSearchQuery("");
       setUserLocation({ lat, lng });
       setNearbyActive(true);
@@ -464,17 +737,19 @@ export function HaritadaAraPageClient() {
 
   const hasActiveFilters = useMemo(() => {
     if (searchQuery.trim() || appliedSearchQuery.trim()) return true;
-    if (selectedDistrict) return true;
+    if (selectedIlceId) return true;
+    if (selectedMahalleId) return true;
     if (nearbyActive) return true;
-    if (defaultCity && selectedCity !== defaultCity) return true;
+    if (defaultIlId && selectedIlId !== defaultIlId) return true;
     return false;
   }, [
     searchQuery,
     appliedSearchQuery,
-    selectedDistrict,
+    selectedIlceId,
+    selectedMahalleId,
     nearbyActive,
-    selectedCity,
-    defaultCity,
+    selectedIlId,
+    defaultIlId,
   ]);
 
   const handleResetFilters = useCallback(() => {
@@ -485,8 +760,10 @@ export function HaritadaAraPageClient() {
     setNearbyLoading(false);
     setSearchQuery("");
     setAppliedSearchQuery("");
-    setSelectedDistrict("");
-    setSelectedCity(defaultCity);
+    setSelectedIlceId("");
+    setSelectedMahalleId("");
+    setMahalleler([]);
+    setSelectedIlId(defaultIlId);
     clearNearbyMode();
     setMapFocus({
       lat: DEFAULT_MAP_CENTER.lat,
@@ -496,7 +773,7 @@ export function HaritadaAraPageClient() {
       token: Date.now(),
     });
     closeDrawerAndScrollToResults();
-  }, [defaultCity, clearNearbyMode, closeDrawerAndScrollToResults]);
+  }, [defaultIlId, clearNearbyMode, closeDrawerAndScrollToResults]);
 
   const handleFavoriteToggle = useCallback(
     async (institutionId: number, e: React.MouseEvent) => {
@@ -546,15 +823,18 @@ export function HaritadaAraPageClient() {
   );
 
   const filterSidebarProps = {
-    cities,
-    districts,
-    selectedCity,
-    selectedDistrict,
+    iller,
+    ilceler,
+    mahalleler,
+    selectedIlId,
+    selectedIlceId,
+    selectedMahalleId,
     searchQuery,
     onSearchQueryChange: setSearchQuery,
     onSearchSubmit: handleSearchSubmit,
-    onCityChange: handleCityChange,
-    onDistrictChange: handleDistrictChange,
+    onIlChange: handleIlChange,
+    onIlceChange: handleIlceChange,
+    onMahalleChange: handleMahalleChange,
     onNearbyClick: handleNearbyClick,
     nearbyLoading,
     nearbyError,
@@ -566,6 +846,17 @@ export function HaritadaAraPageClient() {
   return (
     <main className="category-page-layout haritada-ara-page" aria-labelledby="institution-map-search-title">
       <div className="category-page-layout-container">
+        <div className="category-hero-breadcrumb-wrapper haritada-ara-breadcrumb">
+          <CategoryBreadcrumb
+            categoryLabel="HARİTADA ARA"
+            listingPathname="/haritada-ara"
+            location={{
+              ilId: selectedIlId,
+              ilceId: selectedIlceId,
+              mahalleId: selectedMahalleId,
+            }}
+          />
+        </div>
         <aside className="category-page-layout-sidebar haritada-ara-sidebar">
           <div ref={sidebarSlotRef} className="haritada-ara-sidebar-slot" aria-hidden />
           <div ref={fixedFilterRef} className="haritada-ara-filter-fixed">
@@ -602,7 +893,7 @@ export function HaritadaAraPageClient() {
           <div ref={resultsScrollRef} className="haritada-ara-results">
             <InstitutionMapSearchExperience
               markers={filteredMarkers}
-              loading={loading}
+              loading={loading || !locationDefaultsReady}
               mapKeyPrefix="haritada-ara"
               layout="page"
               showViewportInstitutionList

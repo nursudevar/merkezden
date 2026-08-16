@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { notFound, useParams } from "next/navigation";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
 import { useCategoryInstitutions } from "@/components/category/useCategoryInstitutions";
+import { useCategoryLocationFilterState } from "@/components/category/categoryLocationFilter";
 import {
   EMPTY_SCHOOL_CATEGORY_FILTERS,
   type SchoolCategoryFilterPayload,
@@ -17,7 +18,7 @@ export default function CategorySlugPageClient() {
   ).trim();
 
   const [searchText, setSearchText] = useState("");
-  const [district, setDistrict] = useState("");
+  const { location, setLocation, locationReady } = useCategoryLocationFilterState();
   const [categoryFilters, setCategoryFilters] = useState<SchoolCategoryFilterPayload>(
     EMPTY_SCHOOL_CATEGORY_FILTERS,
   );
@@ -35,9 +36,12 @@ export default function CategorySlugPageClient() {
     [],
   );
 
-  const { results, isLoading, error, districts, categoryLabel } = useCategoryInstitutions("", {
+  const { results, isLoading, error, categoryLabel } = useCategoryInstitutions("", {
     search: searchText,
-    district,
+    ilId: location.ilId,
+    ilceId: location.ilceId,
+    mahalleId: location.mahalleId,
+    locationReady,
     categorySlug,
     schoolFilters: categoryFilters,
   });
@@ -54,7 +58,6 @@ export default function CategorySlugPageClient() {
 
   return (
     <CategoryPageLayout
-      districts={districts}
       categoryName={categoryLabel || categorySlug}
       categorySlug={categorySlug}
       subtitle="Ankara bölgesinde öne çıkan eğitim kurumlarını inceleyin."
@@ -64,8 +67,8 @@ export default function CategorySlugPageClient() {
       schoolModeProps={{
         linkedSearch: searchText,
         onLinkedSearchChange: setSearchText,
-        linkedDistrict: district,
-        onLinkedDistrictChange: setDistrict,
+        linkedLocation: location,
+        onLinkedLocationChange: setLocation,
         onSchoolFilterPayloadChange: handleCategoryFilterPayloadChange,
       }}
     />

@@ -172,22 +172,10 @@ function BlogPageContent() {
     return displayPosts.filter((post) => categoryMatches(post.categoryName, selectedCategory));
   }, [displayPosts, selectedCategory]);
 
-  const featuredPost = useMemo(() => {
-    const realFeatured = filteredPosts.find((post) => !post.isMock);
-    if (realFeatured) return toListingPost(realFeatured);
-    const mockFeatured = filteredPosts.find((post) => post.featured);
-    if (mockFeatured) return toListingPost(mockFeatured);
-    return filteredPosts[0] ? toListingPost(filteredPosts[0]) : null;
-  }, [filteredPosts]);
-
-  const remainingPosts = useMemo(() => {
-    if (!featuredPost) {
-      return filteredPosts.map(toListingPost);
-    }
-    return filteredPosts
-      .filter((post) => post.slug !== featuredPost.slug)
-      .map(toListingPost);
-  }, [filteredPosts, featuredPost]);
+  const listingPosts = useMemo(
+    () => filteredPosts.map(toListingPost),
+    [filteredPosts],
+  );
 
   return (
     <div className="page-container">
@@ -208,19 +196,9 @@ function BlogPageContent() {
             <p className="blog-listing-loading">Güncel yazılar yüklenemedi. Örnek içerikler gösteriliyor.</p>
           ) : null}
 
-          {featuredPost && (
-            <div className="blog-featured-section">
-              <FeaturedPost
-                title={featuredPost.title}
-                excerpt={featuredPost.excerpt}
-                imageUrl={featuredPost.coverImage}
-                slug={featuredPost.slug}
-                category={featuredPost.category}
-                author={featuredPost.author}
-                date={featuredPost.date}
-              />
-            </div>
-          )}
+          <div className="blog-featured-section">
+            <BlogSubmitCtaBanner />
+          </div>
 
           <div className="blog-posts-section">
             <div className="blog-posts-section-toolbar">
@@ -228,9 +206,9 @@ function BlogPageContent() {
             </div>
 
             {viewMode === "grid" ? (
-              <PostGrid posts={remainingPosts} />
+              <PostGrid posts={listingPosts} />
             ) : (
-              <PostList posts={remainingPosts} />
+              <PostList posts={listingPosts} />
             )}
           </div>
         </div>
@@ -256,65 +234,24 @@ export default function BlogPageClient() {
   );
 }
 
-type FeaturedPostProps = {
-  title: string;
-  excerpt: string;
-  imageUrl: string;
-  slug: string;
-  category?: string;
-  author?: string;
-  date?: string;
-};
-
-function FeaturedPost({
-  title,
-  excerpt,
-  imageUrl,
-  slug,
-  category,
-  author,
-  date,
-}: FeaturedPostProps) {
+function BlogSubmitCtaBanner() {
   return (
-    <Link href={`/blog-yazilari/${slug}`} className="featured-post-link">
-      <article className="featured-post">
-        <div className="featured-post-image-wrapper">
-          <Image
-            src={imageUrl}
-            alt={title}
-            fill
-            className="featured-post-image"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority
-            unoptimized
-          />
-        </div>
-        <div className="featured-post-content">
-          {category && (
-            <div className="featured-post-category">
-              <span className="featured-post-category-dot" />
-              <span>{category}</span>
-            </div>
-          )}
-          <h2 className="featured-post-title">{title}</h2>
-          <p className="featured-post-excerpt">{excerpt}</p>
-          <div className="featured-post-meta">
-            {author && (
-              <div className="featured-post-author">
-                <div className="featured-post-author-avatar" />
-                <div>
-                  <div className="featured-post-author-name">{author}</div>
-                  {date && <div className="featured-post-date">{date}</div>}
-                </div>
-              </div>
-            )}
-            <span className="featured-post-read-more">
-              Devamını Oku →
-            </span>
-          </div>
-        </div>
-      </article>
-    </Link>
+    <section className="blog-submit-cta" aria-labelledby="blog-submit-cta-title">
+      <span className="blog-submit-cta-glow" aria-hidden="true" />
+      <span className="blog-submit-cta-orb blog-submit-cta-orb--one" aria-hidden="true" />
+      <span className="blog-submit-cta-orb blog-submit-cta-orb--two" aria-hidden="true" />
+      <div className="blog-submit-cta-content">
+        <h2 id="blog-submit-cta-title" className="blog-submit-cta-title">
+          Siz de bize blog yazıp gönderebilirsiniz!
+        </h2>
+        <p className="blog-submit-cta-subtitle">
+          Bilginizi ve deneyiminizi Merkezden topluluğuyla paylaşın.
+        </p>
+        <Link href="/profil#my-blogs" className="blog-submit-cta-button">
+          Blog Yazısı Gönder
+        </Link>
+      </div>
+    </section>
   );
 }
 

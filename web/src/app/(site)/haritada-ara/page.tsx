@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { HaritadaAraPageClient } from "./HaritadaAraPageClient";
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function HaritadaAraPage() {
-  return <HaritadaAraPageClient />;
+  return (
+    <Suspense fallback={<main className="category-page-layout haritada-ara-page" />}>
+      <HaritadaAraPageClient />
+    </Suspense>
+  );
 }

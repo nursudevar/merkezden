@@ -37,10 +37,14 @@ import {
 } from "@/lib/announcementTags";
 import { Button, Input } from "@/components/ui";
 import { EgitmenFormSelect } from "./EgitmenFormSelect";
+import { AnnouncementLocationFields } from "@/components/announcements/AnnouncementLocationFields";
+import { parseLocationId, toLocationIdString } from "@/lib/turkiyeLocationsClient";
 
 type Props = {
   authUserId: string;
   instructorId: number;
+  defaultIlId?: string;
+  defaultIlceId?: string;
 };
 
 type AnnouncementFormState = {
@@ -49,6 +53,8 @@ type AnnouncementFormState = {
   linkUrl: string;
   announcementTag: string;
   isActive: boolean;
+  ilId: string;
+  ilceId: string;
 };
 
 const EMPTY_FORM: AnnouncementFormState = {
@@ -57,6 +63,8 @@ const EMPTY_FORM: AnnouncementFormState = {
   linkUrl: "",
   announcementTag: "",
   isActive: true,
+  ilId: "",
+  ilceId: "",
 };
 
 function AnnouncementTableThumbCell({ url }: { url: string | null }) {
@@ -86,7 +94,12 @@ function AnnouncementTableThumbCell({ url }: { url: string | null }) {
   );
 }
 
-export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) {
+export function InstructorAnnouncementsTab({
+  authUserId,
+  instructorId,
+  defaultIlId = "",
+  defaultIlceId = "",
+}: Props) {
   const [items, setItems] = useState<InstructorAnnouncementRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -176,7 +189,11 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
 
   const openNewModal = () => {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm({
+      ...EMPTY_FORM,
+      ilId: defaultIlId,
+      ilceId: defaultIlceId,
+    });
     setFormErrors({});
     setImageFile(null);
     setImageRemovePending(false);
@@ -192,6 +209,8 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
       linkUrl: String(row.link_url ?? ""),
       announcementTag: normalizeAnnouncementTag(row.announcement_tag) ?? "",
       isActive: Boolean(row.is_active),
+      ilId: toLocationIdString(row.il_id),
+      ilceId: toLocationIdString(row.ilce_id),
     });
     setFormErrors({});
     setImageFile(null);
@@ -314,6 +333,8 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
             link_url,
             announcement_tag: announcementTag,
             is_active: form.isActive,
+            il_id: parseLocationId(form.ilId),
+            ilce_id: parseLocationId(form.ilceId),
             imageFile,
             removeImage: imageRemovePending,
           },
@@ -337,6 +358,8 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
             link_url,
             announcement_tag: announcementTag,
             is_active: form.isActive,
+            il_id: parseLocationId(form.ilId),
+            ilce_id: parseLocationId(form.ilceId),
             imageFile,
           },
           supabase,
@@ -617,6 +640,24 @@ export function InstructorAnnouncementsTab({ authUserId, instructorId }: Props) 
                     </span>
                   ) : null}
                 </div>
+                <AnnouncementLocationFields
+                  ilId={form.ilId}
+                  ilceId={form.ilceId}
+                  disabled={saving}
+                  onIlChange={(nextIlId) => {
+                    setForm((prev) => ({ ...prev, ilId: nextIlId, ilceId: "" }));
+                  }}
+                  onIlceChange={(nextIlceId) => {
+                    setForm((prev) => ({ ...prev, ilceId: nextIlceId }));
+                  }}
+                  rowClassName="egitmen-panel-form-row"
+                  fieldClassName="egitmen-panel-form-field"
+                  labelClassName="egitmen-panel-form-label"
+                  selectTriggerClassName="egitmen-panel-announcement-status-select"
+                  selectContentClassName="select-content egitmen-panel-location-select-content"
+                  ilSelectId="egitmen-announcement-il"
+                  ilceSelectId="egitmen-announcement-ilce"
+                />
                 <div className="egitmen-panel-form-field">
                   <label className="egitmen-panel-form-label">İÇERİK</label>
                   <textarea
