@@ -2,6 +2,11 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  applyAuthCookiePersistence,
+  getAllBrowserCookies,
+  serializeBrowserCookie,
+} from '@/lib/auth/rememberMe';
 
 declare global {
   var __merkezdenSupabaseBrowserClient: SupabaseClient | undefined;
@@ -22,7 +27,20 @@ export function createSupabaseBrowserClient() {
     throw new Error('Missing Supabase environment variables. Please check your .env.local file.');
   }
 
-  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return getAllBrowserCookies();
+      },
+      setAll(cookiesToSet) {
+        if (typeof document === 'undefined') return;
+        cookiesToSet.forEach(({ name, value, options }) => {
+          const nextOptions = applyAuthCookiePersistence({ ...options });
+          document.cookie = serializeBrowserCookie(name, value, nextOptions);
+        });
+      },
+    },
+  });
 
   if (typeof window !== 'undefined') {
     globalThis.__merkezdenSupabaseBrowserClient = browserClient;
@@ -30,4 +48,3 @@ export function createSupabaseBrowserClient() {
 
   return browserClient;
 }
-

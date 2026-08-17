@@ -252,6 +252,20 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+
+  .auth-checkbox {
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+
+    input[type="checkbox"] {
+      margin-top: 0;
+    }
+
+    span {
+      flex: 0 1 auto;
+    }
+  }
 }
 
 .auth-checkbox {

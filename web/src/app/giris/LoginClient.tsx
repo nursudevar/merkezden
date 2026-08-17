@@ -1,44 +1,60 @@
 "use client";
 
-import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { getAuthErrorMessageTr } from '@/lib/auth/authBrowserClient';
+import {
+  getRememberMePrefill,
+  persistRememberMePreference,
+  setPendingRememberMe,
+} from '@/lib/auth/rememberMe';
 import MekoChromaVideo from '@/components/MekoChromaVideo';
 import '@/styles/main.scss';
 import '@/styles/pages/auth.scss';
 
 function LoginPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const prefill = getRememberMePrefill();
+    if (!prefill.rememberMe) return;
+    setRememberMe(true);
+    if (prefill.email) setEmail(prefill.email);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    setPendingRememberMe(rememberMe);
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
+        setPendingRememberMe(null);
         setError(
           getAuthErrorMessageTr(signInError, 'Giriş yapılırken bir hata oluştu.'),
         );
         return;
       }
 
+      persistRememberMePreference(rememberMe, email);
       window.location.href = '/';
-    } catch (err) {
+    } catch {
+      setPendingRememberMe(null);
       setError('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
@@ -97,6 +113,7 @@ function LoginPageContent() {
                       placeholder="eposta@adresiniz.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="username"
                       required
                       disabled={loading}
                     />
@@ -115,6 +132,7 @@ function LoginPageContent() {
                         placeholder="Şifrenizi girin"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
                         required
                         disabled={loading}
                       />
@@ -139,7 +157,18 @@ function LoginPageContent() {
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
+                  <div className="auth-row-between">
+                    <label className="auth-checkbox" htmlFor="login-remember-me">
+                      <input
+                        type="checkbox"
+                        id="login-remember-me"
+                        name="rememberMe"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        disabled={loading}
+                      />
+                      <span>Beni hatırla</span>
+                    </label>
                     <Link href="/sifremi-unuttum" className="auth-link-small">
                       Şifremi unuttum
                     </Link>

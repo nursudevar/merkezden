@@ -1,5 +1,9 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import {
+  applyAuthCookiePersistence,
+  AUTH_PERSIST_COOKIE_NAME,
+} from '@/lib/auth/rememberMe';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -18,8 +22,9 @@ export async function createSupabaseServerClient() {
       },
       setAll(cookiesToSet) {
         try {
+          const persistFlag = cookieStore.get(AUTH_PERSIST_COOKIE_NAME)?.value ?? null;
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            cookieStore.set(name, value, applyAuthCookiePersistence({ ...options }, persistFlag));
           });
         } catch (error) {
         }
