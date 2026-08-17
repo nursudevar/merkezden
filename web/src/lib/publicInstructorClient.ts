@@ -13,6 +13,7 @@ import {
   buildLocationAdMaps,
   fetchIlcelerByIlId,
   fetchIller,
+  fetchMahallelerByIlceId,
   findLocationAdById,
   lookupLocationAds,
   parseLocationId,
@@ -27,7 +28,7 @@ export const PUBLIC_INSTRUCTOR_ROW_SELECT =
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT}, slug`;
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE =
-  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_approved, is_active";
+  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, mahalle_id, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT_BASE}, slug`;
 
@@ -46,6 +47,7 @@ export type PublicInstructorRow = {
   mahalle_id?: number | null;
   locationIlAd?: string | null;
   locationIlceAd?: string | null;
+  locationMahalleAd?: string | null;
   address?: string | null;
   profile_picture?: string | null;
   experience_years?: number | null;
@@ -84,6 +86,25 @@ export function publicInstructorDisplayName(row: PublicInstructorRow | null): st
   if (!row) return "Eğitmen";
   const combined = `${String(row.name ?? "").trim()} ${String(row.surname ?? "").trim()}`.trim();
   return combined || "Eğitmen";
+}
+
+function isDisplayableLocationPart(value: unknown): string {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const lower = text.toLocaleLowerCase("tr-TR");
+  if (lower === "-" || lower === "null" || lower === "undefined") return "";
+  return text;
+}
+
+/** Public eğitmen detay konumu: İl, İlçe, Mahalle. Boş parçalar atlanır. */
+export function formatPublicInstructorDetailLocation(
+  row: Pick<PublicInstructorRow, "locationIlAd" | "locationIlceAd" | "locationMahalleAd"> | null,
+): string {
+  if (!row) return "";
+  return [row.locationIlAd, row.locationIlceAd, row.locationMahalleAd]
+    .map(isDisplayableLocationPart)
+    .filter(Boolean)
+    .join(", ");
 }
 
 type InstructorQueryResult = {
@@ -192,23 +213,31 @@ async function enrichPublicInstructorCategory(
 async function enrichPublicInstructorLocation(
   row: PublicInstructorRow,
 ): Promise<PublicInstructorRow> {
+  const emptyLocation = {
+    ...row,
+    locationIlAd: "",
+    locationIlceAd: "",
+    locationMahalleAd: "",
+  };
   const ilId = parseLocationId(row.il_id);
-  if (ilId == null) {
-    return { ...row, locationIlAd: "", locationIlceAd: "" };
-  }
+  if (ilId == null) return emptyLocation;
+
+  const ilceId = parseLocationId(row.ilce_id);
 
   try {
-    const [iller, ilceler] = await Promise.all([
+    const [iller, ilceler, mahalleler] = await Promise.all([
       fetchIller(),
       fetchIlcelerByIlId(ilId),
+      ilceId != null ? fetchMahallelerByIlceId(ilceId) : Promise.resolve([]),
     ]);
     return {
       ...row,
       locationIlAd: findLocationAdById(iller, ilId),
       locationIlceAd: findLocationAdById(ilceler, row.ilce_id),
+      locationMahalleAd: findLocationAdById(mahalleler, row.mahalle_id),
     };
   } catch {
-    return { ...row, locationIlAd: "", locationIlceAd: "" };
+    return emptyLocation;
   }
 }
 

@@ -199,12 +199,22 @@ export function isInstructorExcludedFacilityGroup(
   return keys.some((key) => INSTRUCTOR_EXCLUDED_FACILITY_GROUP_KEYS.has(key));
 }
 
+export function parseInstructorCategoryId(
+  value: string | number | null | undefined,
+): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(String(value).trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
 export function resolveInstructorCategorySlug(
   categoryId: number | null | undefined,
   categories: InstructorFeatureCategoryRow[],
 ): string | null {
-  if (categoryId == null || !Number.isFinite(Number(categoryId))) return null;
-  const cat = categories.find((c) => c.id === Number(categoryId));
+  const parsedId = parseInstructorCategoryId(categoryId);
+  if (parsedId == null) return null;
+  const cat = categories.find((c) => c.id === parsedId);
   const slug = (cat?.slug ?? "").trim();
   return slug.length > 0 ? slug : null;
 }
@@ -213,12 +223,13 @@ export function resolveInstructorCategoryDisplayName(
   categoryId: number | null | undefined,
   categories: InstructorFeatureCategoryRow[],
 ): string {
-  if (categoryId == null || !Number.isFinite(Number(categoryId))) {
+  const parsedId = parseInstructorCategoryId(categoryId);
+  if (parsedId == null) {
     return "Kategori atanmamış";
   }
-  const cat = categories.find((c) => c.id === Number(categoryId));
+  const cat = categories.find((c) => c.id === parsedId);
   if (cat?.name?.trim()) return cat.name.trim();
-  return `Kategori #${categoryId}`;
+  return `Kategori #${parsedId}`;
 }
 
 export function isInstructorFeatureGroupVisibleForCategory(
@@ -979,6 +990,35 @@ export async function fetchInstructorFeatureCategoriesClient(
   return { categories: (data as InstructorFeatureCategoryRow[] | null) ?? [], error: null };
 }
 
+/** Eğitmen paneli: kategori yalnızca instructors.category_id üzerinden okunur. */
+export async function fetchInstructorOwnedCategoryIdClient(
+  authUid: string,
+  instructorId: number,
+  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+): Promise<{ categoryId: number | null; error: string | null }> {
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from(INSTRUCTORS_TABLE)
+    .select("category_id")
+    .eq("id", instructorId)
+    .eq("owner_auth_id", authUid)
+    .maybeSingle();
+
+  if (error) {
+    logInstructorFeaturesSupabaseError("category_id fetch", error);
+    return { categoryId: null, error: INSTRUCTOR_FEATURES_LOAD_ERROR };
+  }
+
+  if (!data) {
+    return { categoryId: null, error: INSTRUCTOR_FEATURES_INSTRUCTOR_NOT_FOUND };
+  }
+
+  return {
+    categoryId: parseInstructorCategoryId((data as { category_id?: number | null }).category_id),
+    error: null,
+  };
+}
+
 export async function fetchInstructorFeatureDefinitionsBundleClient(
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{
@@ -1494,6 +1534,62 @@ export function createEmptyInstructorFeatureFormState(): InstructorFeatureFormSt
   };
 }
 
+export function buildInstructorDefinitionGroupCategorySlugMap(
+  definitions: Array<{ id: number; group_id: number }>,
+  groups: Array<{ id: number; category_slug: string | null }>,
+): Map<number, string> {
+  const groupSlugById = new Map<number, string>();
+  for (const group of groups) {
+    groupSlugById.set(group.id, normalizeInstructorGroupCategorySlug(group.category_slug));
+  }
+
+  const map = new Map<number, string>();
+  for (const definition of definitions) {
+    if (!groupSlugById.has(definition.group_id)) continue;
+    map.set(definition.id, groupSlugById.get(definition.group_id) ?? "");
+  }
+  return map;
+}
+
+/**
+ * Kategori değişince yalnızca eski kategoriye ait form değerlerini temizler.
+ * Global/ortak feature değerleri korunur.
+ */
+export function stripInstructorCategorySpecificFeatureFormValues(
+  form: InstructorFeatureFormState,
+  definitions: InstructorFeatureDefinitionRow[],
+  groups: InstructorFeatureGroupRow[],
+  nextCategorySlug: string | null,
+): InstructorFeatureFormState {
+  const nextSlug = normalizeInstructorGroupCategorySlug(nextCategorySlug);
+  const groupSlugByDefId = buildInstructorDefinitionGroupCategorySlugMap(definitions, groups);
+
+  const shouldKeep = (featureId: number) => {
+    if (!groupSlugByDefId.has(featureId)) return true;
+    const groupSlug = groupSlugByDefId.get(featureId) ?? "";
+    if (!groupSlug) return true;
+    return groupSlug === nextSlug;
+  };
+
+  const filterRecord = <T,>(record: Record<number, T>): Record<number, T> => {
+    const next: Record<number, T> = {};
+    for (const [key, value] of Object.entries(record)) {
+      const id = Number(key);
+      if (shouldKeep(id)) next[id] = value as T;
+    }
+    return next;
+  };
+
+  return {
+    booleanValues: filterRecord(form.booleanValues),
+    textValues: filterRecord(form.textValues),
+    numberValues: filterRecord(form.numberValues),
+    dateValues: filterRecord(form.dateValues),
+    singleSelectValues: filterRecord(form.singleSelectValues),
+    multiSelectValues: filterRecord(form.multiSelectValues),
+  };
+}
+
 /** Panelde görünür gruplardan geçerli definition id set'i. */
 export function collectDefinitionIdsFromInstructorFeatureGroups(
   groups: Array<{ features: Array<{ id: number }> }>,
@@ -1543,8 +1639,9 @@ export function isInstructorFeatureFilledInFormState(
 
 /**
  * Kaydet reconciliation:
- * A) currentValidDefinitionIds dışındaki entry'ler stale
- * B) valid scope içinde form boş olan entry'ler stale
+ * A) Yeni kategorinin geçerli scope'u dışındaki kategori-özel entry'ler stale
+ * B) Global/ortak entry'ler, kategori-özel grup yüzünden gizlenseler bile silinmez
+ * C) valid scope içinde form boş olan entry'ler stale
  */
 export function collectStaleInstructorFeatureEntryIds(args: {
   dbEntries: Array<{ id: number; feature_definition_id: number }>;
@@ -1553,15 +1650,22 @@ export function collectStaleInstructorFeatureEntryIds(args: {
   form: InstructorFeatureFormState;
   /** Kategori gizlenince bile korunacak definition'lar (ör. Öğrenci Yaşı). */
   protectedDefinitionIds?: ReadonlySet<number>;
+  /** definition_id → group category_slug (boş string = global/ortak). */
+  definitionGroupCategorySlugById?: ReadonlyMap<number, string>;
 }): number[] {
   const staleEntryIds: number[] = [];
   const protectedIds = args.protectedDefinitionIds ?? new Set<number>();
+  const groupSlugByDefId = args.definitionGroupCategorySlugById;
 
   for (const entry of args.dbEntries) {
     const defId = entry.feature_definition_id;
     if (protectedIds.has(defId)) continue;
 
     if (!args.currentValidDefinitionIds.has(defId)) {
+      if (groupSlugByDefId?.has(defId)) {
+        const groupSlug = normalizeInstructorGroupCategorySlug(groupSlugByDefId.get(defId));
+        if (!groupSlug) continue;
+      }
       staleEntryIds.push(entry.id);
       continue;
     }
@@ -1584,11 +1688,12 @@ export type SaveInstructorFeaturesParams = {
   authUid: string;
   instructorId: number;
   definitions: InstructorFeatureDefinitionRow[];
+  groups: InstructorFeatureGroupRow[];
   choices: InstructorFeatureChoiceRow[];
   entries: InstructorFeatureEntryRow[];
   form: InstructorFeatureFormState;
   featureIdsToSave: number[];
-  /** Yalnızca instructors.can_edit_category === true iken çağırıcı tarafından gönderilir. */
+  /** instructors.category_id olarak yazılır (owner_auth_id ile). */
   categoryIdToSave?: number;
   /** Stale reconciliation sırasında silinmeyecek definition id'leri. */
   protectedDefinitionIds?: number[];
@@ -1603,6 +1708,7 @@ export async function saveInstructorFeaturesClient(
     authUid,
     instructorId,
     definitions,
+    groups,
     choices,
     form,
     featureIdsToSave,
@@ -1613,28 +1719,11 @@ export async function saveInstructorFeaturesClient(
   const currentValidDefinitionIds = new Set(featureIdsToSave);
   const protectedDefinitionIdSet = new Set(protectedDefinitionIds ?? []);
   const shouldPersist = (featureId: number) => currentValidDefinitionIds.has(featureId);
-
-  const categoryPatch: DirectInstructorFeaturePatch = {};
-  if (
-    typeof categoryIdToSave === "number" &&
-    Number.isFinite(categoryIdToSave) &&
-    categoryIdToSave > 0
-  ) {
-    categoryPatch.category_id = categoryIdToSave;
-  }
-
-  if (Object.keys(categoryPatch).length > 0) {
-    const { error: categoryError } = await supabase
-      .from(INSTRUCTORS_TABLE)
-      .update(categoryPatch)
-      .eq("id", instructorId)
-      .eq("owner_auth_id", authUid);
-
-    if (categoryError) {
-      logInstructorFeaturesSupabaseError("category save", categoryError);
-      return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
-    }
-  }
+  const definitionGroupCategorySlugById = buildInstructorDefinitionGroupCategorySlugMap(
+    definitions,
+    groups,
+  );
+  const parsedCategoryIdToSave = parseInstructorCategoryId(categoryIdToSave);
 
   const freshEntriesResult = await fetchInstructorFeatureEntriesClient(
     authUid,
@@ -1657,6 +1746,7 @@ export async function saveInstructorFeaturesClient(
     definitionsById,
     form,
     protectedDefinitionIds: protectedDefinitionIdSet,
+    definitionGroupCategorySlugById,
   });
 
   if (staleEntryIds.length > 0) {
@@ -1996,15 +2086,20 @@ export async function saveInstructorFeaturesClient(
     form,
     featureIdsToSave,
   );
-  if (Object.keys(legacySyncPatch).length > 0) {
-    const { error: legacySyncError } = await supabase
+  const instructorRowPatch: DirectInstructorFeaturePatch = { ...legacySyncPatch };
+  if (parsedCategoryIdToSave != null) {
+    instructorRowPatch.category_id = parsedCategoryIdToSave;
+  }
+
+  if (Object.keys(instructorRowPatch).length > 0) {
+    const { error: instructorRowError } = await supabase
       .from(INSTRUCTORS_TABLE)
-      .update(legacySyncPatch)
+      .update(instructorRowPatch)
       .eq("id", instructorId)
       .eq("owner_auth_id", authUid);
 
-    if (legacySyncError) {
-      logInstructorFeaturesSupabaseError("legacy sync", legacySyncError);
+    if (instructorRowError) {
+      logInstructorFeaturesSupabaseError("instructor row save", instructorRowError);
       return { error: INSTRUCTOR_FEATURES_SAVE_ERROR };
     }
   }

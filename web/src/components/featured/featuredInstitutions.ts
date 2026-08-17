@@ -9,6 +9,7 @@ import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/inst
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import {
   PUBLIC_INSTRUCTOR_LIST_SELECT,
+  enrichPublicInstructorListRows,
   mapPublicInstructorToFeaturedItem,
   type FeaturedInstructorItem,
   type PublicInstructorListRow,
@@ -319,6 +320,16 @@ async function fetchApprovedInstructorRowsByIds(
 
       if (batch.length < ENTITY_ID_CHUNK_SIZE) break;
     }
+  }
+
+  const enrichedRows = await enrichPublicInstructorListRows(
+    Array.from(instructorById.values()),
+    supabase,
+  );
+  instructorById.clear();
+  for (const row of enrichedRows) {
+    const id = Number(row.id);
+    if (Number.isFinite(id)) instructorById.set(id, row);
   }
 
   return instructorById;

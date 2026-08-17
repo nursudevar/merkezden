@@ -19,6 +19,7 @@ import {
   MapPin,
   CheckCircle,
   Clock,
+  CloudUpload,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -572,7 +573,11 @@ function InstructorPanelPage() {
       setProfileForm(nextForm);
       setProfileInitialForm(nextForm);
       setPendingDiplomaFile(null);
-      setInstructorRow(data);
+      setInstructorRow({
+        ...instructorRow,
+        ...data,
+        category_id: data.category_id ?? instructorRow?.category_id ?? null,
+      });
       setInstructorName(instructorDisplayNameFromRow(data));
       setShowProfileSuccessPopup(true);
     } catch (err) {
@@ -1126,7 +1131,7 @@ function InstructorPanelPage() {
                               />
                             </div>
                           </div>
-                          <div className="egitmen-panel-form-row">
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
                             <div className="egitmen-panel-form-field">
                               <label className="egitmen-panel-form-label">Branş</label>
                               <Input
@@ -1135,55 +1140,81 @@ function InstructorPanelPage() {
                                 onChange={(e) => handleProfileFieldChange("branch", e.target.value)}
                               />
                             </div>
+                          </div>
+                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
                             <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label" htmlFor="egitmen-profile-diploma">
+                              <span className="egitmen-panel-form-label" id="egitmen-profile-diploma-label">
                                 Diploma / Belge
+                              </span>
+                              <label
+                                htmlFor="egitmen-profile-diploma"
+                                className={`egitmen-panel-dropzone egitmen-panel-dropzone--form${
+                                  profileFieldErrors.diploma_document_path
+                                    ? " egitmen-panel-dropzone--error"
+                                    : ""
+                                }${
+                                  pendingDiplomaFile || profileForm.diploma_document_path
+                                    ? " egitmen-panel-dropzone--selected"
+                                    : ""
+                                }`}
+                              >
+                                <input
+                                  id="egitmen-profile-diploma"
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                  aria-labelledby="egitmen-profile-diploma-label"
+                                  aria-invalid={
+                                    profileFieldErrors.diploma_document_path ? true : undefined
+                                  }
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] ?? null;
+                                    if (!file) {
+                                      setPendingDiplomaFile(null);
+                                      return;
+                                    }
+                                    if (!isValidInstructorDiplomaFile(file)) {
+                                      setPendingDiplomaFile(null);
+                                      e.target.value = "";
+                                      setProfileFieldErrors((prev) => ({
+                                        ...prev,
+                                        diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_ERROR,
+                                      }));
+                                      return;
+                                    }
+                                    if (file.size > INSTRUCTOR_DIPLOMA_MAX_BYTES) {
+                                      setPendingDiplomaFile(null);
+                                      e.target.value = "";
+                                      setProfileFieldErrors((prev) => ({
+                                        ...prev,
+                                        diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR,
+                                      }));
+                                      return;
+                                    }
+                                    setPendingDiplomaFile(file);
+                                    setProfileFieldErrors((prev) => {
+                                      if (!prev.diploma_document_path) return prev;
+                                      const next = { ...prev };
+                                      delete next.diploma_document_path;
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                <div className="egitmen-panel-dropzone-inner">
+                                  <CloudUpload className="egitmen-panel-dropzone-icon" aria-hidden />
+                                  <p className="egitmen-panel-dropzone-title">
+                                    {pendingDiplomaFile
+                                      ? pendingDiplomaFile.name
+                                      : profileForm.diploma_document_path
+                                        ? instructorPrivateDocumentDisplayName(
+                                            profileForm.diploma_document_path,
+                                          )
+                                        : "Diploma / belgenizi yükleyin"}
+                                  </p>
+                                  <p className="egitmen-panel-dropzone-subtitle">
+                                    PDF, JPG, JPEG veya PNG (maks. 10MB)
+                                  </p>
+                                </div>
                               </label>
-                              <input
-                                id="egitmen-profile-diploma"
-                                type="file"
-                                className="egitmen-panel-form-input egitmen-panel-form-file-input"
-                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0] ?? null;
-                                  if (!file) {
-                                    setPendingDiplomaFile(null);
-                                    return;
-                                  }
-                                  if (!isValidInstructorDiplomaFile(file)) {
-                                    setPendingDiplomaFile(null);
-                                    e.target.value = "";
-                                    setProfileFieldErrors((prev) => ({
-                                      ...prev,
-                                      diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_ERROR,
-                                    }));
-                                    return;
-                                  }
-                                  if (file.size > INSTRUCTOR_DIPLOMA_MAX_BYTES) {
-                                    setPendingDiplomaFile(null);
-                                    e.target.value = "";
-                                    setProfileFieldErrors((prev) => ({
-                                      ...prev,
-                                      diploma_document_path: INSTRUCTOR_MEDIA_DIPLOMA_SIZE_ERROR,
-                                    }));
-                                    return;
-                                  }
-                                  setPendingDiplomaFile(file);
-                                  setProfileFieldErrors((prev) => {
-                                    if (!prev.diploma_document_path) return prev;
-                                    const next = { ...prev };
-                                    delete next.diploma_document_path;
-                                    return next;
-                                  });
-                                }}
-                              />
-                              {pendingDiplomaFile ? (
-                                <p className="egitmen-panel-form-file-name">{pendingDiplomaFile.name}</p>
-                              ) : profileForm.diploma_document_path ? (
-                                <p className="egitmen-panel-form-file-name">
-                                  {instructorPrivateDocumentDisplayName(profileForm.diploma_document_path)}
-                                </p>
-                              ) : null}
                               {profileFieldErrors.diploma_document_path ? (
                                 <span className="egitmen-panel-form-error" role="alert">
                                   {profileFieldErrors.diploma_document_path}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { GraduationCap, ChevronDown } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectMountGate } from "@/components/ui";
 import { CategoryFilterResetButton } from "./CategoryFilterSidebar";
 import CategoryResultsCard from "./CategoryResultsCard";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
@@ -82,6 +82,8 @@ export default function CategoryResultsList({
     setVisibleCount((prev) => Math.min(prev + LOAD_MORE_STEP, totalCount));
   };
 
+  const sortLabel = viewMode === "two" ? "2'li Görünüm" : "Tekli Görünüm";
+
   return (
     <div className="category-results-list">
       <div className="category-results-header">
@@ -95,6 +97,10 @@ export default function CategoryResultsList({
           <CategoryFilterResetButton />
           <div className="category-results-sort">
             <span className="category-results-sort-label">Sırala:</span>
+            <SelectMountGate
+              label={sortLabel}
+              className="select-trigger-default category-results-sort-select"
+            >
             <Select
               value={viewMode}
               onValueChange={(next) => setViewMode(next as ViewMode)}
@@ -107,6 +113,7 @@ export default function CategoryResultsList({
                 <SelectItem value="single" className="select-item">Tekli Görünüm</SelectItem>
               </SelectContent>
             </Select>
+            </SelectMountGate>
           </div>
         </div>
       </div>

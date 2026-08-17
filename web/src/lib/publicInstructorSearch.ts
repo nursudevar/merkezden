@@ -83,6 +83,7 @@ export type PublicInstructorListRow = {
   ilce_id?: number | null;
   locationIlAd?: string | null;
   locationIlceAd?: string | null;
+  category_name?: string | null;
 };
 
 export type FeaturedInstructorItem = {
@@ -183,6 +184,73 @@ export function buildPublicInstructorLocation(row: PublicInstructorListRow): str
     String(row.locationIlAd ?? "").trim(),
     String(row.locationIlceAd ?? "").trim(),
   );
+}
+
+/** Kart/liste görünümü — il, ilçe; boşsa fallback yok. */
+export function buildPublicInstructorCardLocation(row: PublicInstructorListRow): string {
+  return [String(row.locationIlAd ?? "").trim(), String(row.locationIlceAd ?? "").trim()]
+    .filter(Boolean)
+    .join(", ");
+}
+
+export function resolvePublicInstructorFeaturedCardLabels(row: PublicInstructorListRow): {
+  categoryLabel: string;
+  branch: string;
+  location: string;
+} {
+  return {
+    categoryLabel: String(row.category_name ?? "").trim(),
+    branch: String(row.branch ?? "").trim(),
+    location: buildPublicInstructorCardLocation(row),
+  };
+}
+
+export async function attachPublicInstructorCategoryNames(
+  rows: PublicInstructorListRow[],
+  supabaseArg?: SupabaseBrowser,
+): Promise<PublicInstructorListRow[]> {
+  if (rows.length === 0) return rows;
+
+  const supabase = supabaseArg ?? createSupabaseBrowserClient();
+  const categoryIds = [
+    ...new Set(
+      rows
+        .map((row) => Number(row.category_id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  if (categoryIds.length === 0) return rows;
+
+  const { data, error } = await supabase
+    .from("instructor_categories")
+    .select("id, name")
+    .in("id", categoryIds)
+    .eq("is_active", true);
+
+  if (error || !data?.length) return rows;
+
+  const nameById = new Map<number, string>();
+  for (const item of data as Array<{ id: number; name: string | null }>) {
+    const id = Number(item.id);
+    const name = String(item.name ?? "").trim();
+    if (Number.isFinite(id) && name) nameById.set(id, name);
+  }
+
+  return rows.map((row) => {
+    const categoryId = Number(row.category_id);
+    if (!Number.isFinite(categoryId) || categoryId <= 0) return row;
+    const categoryName = nameById.get(categoryId);
+    if (!categoryName) return row;
+    return { ...row, category_name: categoryName };
+  });
+}
+
+export async function enrichPublicInstructorListRows(
+  rows: PublicInstructorListRow[],
+  supabaseArg?: SupabaseBrowser,
+): Promise<PublicInstructorListRow[]> {
+  const withLocation = await attachPublicInstructorLocationAds(rows);
+  return attachPublicInstructorCategoryNames(withLocation, supabaseArg);
 }
 
 export async function attachPublicInstructorLocationAds(
@@ -1088,10 +1156,11 @@ export async function fetchFeaturedPublicInstructors(
 
   if (error) throw error;
 
-  return attachPublicInstructorLocationAds(
+  return enrichPublicInstructorListRows(
     ((data ?? []) as PublicInstructorListRow[]).filter(
       (row) => Number.isFinite(Number(row.id)) && Number(row.id) > 0,
     ),
+    supabase,
   );
 }
 
@@ -1104,8 +1173,7 @@ export function mapPublicInstructorToFeaturedItem(
   if (!Number.isFinite(numericId) || numericId <= 0) return null;
 
   const name = mapPublicInstructorDisplayName(row);
-  const branch = String(row.branch ?? "").trim();
-  const school = String(row.school ?? "").trim();
+  const { categoryLabel, branch, location } = resolvePublicInstructorFeaturedCardLabels(row);
   const priceRange = String(priceLabel ?? "").trim();
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) || "";
@@ -1116,8 +1184,8 @@ export function mapPublicInstructorToFeaturedItem(
     slug: String(row.slug ?? "").trim() || String(numericId),
     imageUrl,
     href: getPublicInstructorDetailHref(row.slug, numericId),
-    bodyMainCategory: branch || school || "Bireysel Eğitmen",
-    bodyLocation: buildPublicInstructorLocation(row),
+    bodyMainCategory: categoryLabel,
+    bodyLocation: location,
     branch: branch || undefined,
     priceRange: priceRange || undefined,
   };

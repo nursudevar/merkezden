@@ -11,10 +11,57 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Building2, Clock3, Languages, MapPin, RotateCcw, Search, Users, UsersRound, WalletCards, type LucideIcon } from "lucide-react";
+import {
+  Accessibility,
+  BadgeCheck,
+  BarChart3,
+  Book,
+  BookOpen,
+  Building2,
+  Calendar,
+  Car,
+  Clock,
+  Clock3,
+  Coins,
+  CreditCard,
+  DoorOpen,
+  Dumbbell,
+  FilePlus2,
+  Files,
+  Gift,
+  GitBranch,
+  Globe,
+  GraduationCap,
+  House,
+  IdCard,
+  KeyRound,
+  Landmark,
+  Languages,
+  LayoutGrid,
+  Layers,
+  List,
+  ListChecks,
+  ListFilter,
+  MapPin,
+  Palette,
+  PartyPopper,
+  PawPrint,
+  Repeat,
+  RotateCcw,
+  School,
+  Search,
+  Sparkles,
+  Target,
+  Timer,
+  Users,
+  UsersRound,
+  WalletCards,
+  Warehouse,
+  type LucideIcon,
+} from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectMountGate } from "@/components/ui";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   CATEGORY_ALL_ILCELER_VALUE,
@@ -877,6 +924,7 @@ function getDisplayFeatureName(name: string): string {
 }
 
 const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
+  // Mevcut iconlu başlıklar — değiştirilmez.
   arama: Search,
   konum: MapPin,
   "okul turu": Building2,
@@ -889,6 +937,61 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "ortalama sinif mevcudu": UsersRound,
   "aylik fiyat araligi": WalletCards,
   "aylik ortalama fiyat araligi": WalletCards,
+  // Bundan sonrası yalnızca daha önce iconsuz olan başlıklar.
+  "fiyat araligi": WalletCards,
+  "ortalama fiyat araligi": WalletCards,
+  kategori: LayoutGrid,
+  kategoriler: LayoutGrid,
+  "lise turu": School,
+  "odeme secenekleri": CreditCard,
+  "odeme yontemleri": CreditCard,
+  "kurs turleri": Book,
+  "egitim turleri": BookOpen,
+  "mesleki egitim turleri": BookOpen,
+  "sanat turleri": Palette,
+  "spor turleri": Dumbbell,
+  "yabanci dil turleri": Globe,
+  "dil turleri": Globe,
+  "ozel egitim turleri": Accessibility,
+  "egitim ozellikleri": Sparkles,
+  "kurs ozellikleri": ListChecks,
+  "fiziki imkanlar": Landmark,
+  "fiziksel imkanlar": Landmark,
+  "okul imkanlari": DoorOpen,
+  "okul imkanlar": DoorOpen,
+  aktivite: PartyPopper,
+  aktiviteler: PartyPopper,
+  "egitim sistemi": Layers,
+  "tesis turu": Warehouse,
+  "hedef/fayda": Target,
+  "hedef fayda": Target,
+  "belge turleri": Files,
+  "ek belge ve egitimler": FilePlus2,
+  "src belgesi turleri": BadgeCheck,
+  "surucu belgesi siniflari": IdCard,
+  "surucu kursu imkanlari": KeyRound,
+  "arac tipleri": Car,
+  "arac tipi": Car,
+  "arac imkani": KeyRound,
+  "arac imkanlari": KeyRound,
+  "evcil hayvan turu": PawPrint,
+  "evcil hayvan turleri": PawPrint,
+  "hizmet turu": List,
+  "hizmet turleri": List,
+  "hizmet yeri": House,
+  "musait gunler": Calendar,
+  "calisma saatleri": Clock,
+  "ders suresi": Timer,
+  "ders verme sikligi": Repeat,
+  "egitim seviyesi": GraduationCap,
+  "ogrencinin egitim seviyesi": School,
+  "ders seviyesi": BarChart3,
+  "deneme dersi mevcuttur": Gift,
+  "deneme dersi": Gift,
+  "ucretsiz deneme dersi": Gift,
+  "ucret tipi": Coins,
+  brans: GitBranch,
+  branslar: GitBranch,
 };
 
 function normalizeCategoryFilterSectionTitleKey(title: string): string {
@@ -903,8 +1006,8 @@ function normalizeCategoryFilterSectionTitleKey(title: string): string {
     .trim();
 }
 
-function getCategoryFilterSectionIcon(title: string): LucideIcon | null {
-  return CATEGORY_FILTER_SECTION_ICON_MAP[normalizeCategoryFilterSectionTitleKey(title)] ?? null;
+function getCategoryFilterSectionIcon(title: string): LucideIcon {
+  return CATEGORY_FILTER_SECTION_ICON_MAP[normalizeCategoryFilterSectionTitleKey(title)] ?? ListFilter;
 }
 
 function CategoryFilterSectionTitle({ title }: { title: string }) {
@@ -929,11 +1032,20 @@ function CategoryFilterSectionTitle({ title }: { title: string }) {
 
   return (
     <h3 className="category-filter-section-title">
-      {Icon ? (
-        <Icon className="category-filter-section-title-icon" size={20} aria-hidden />
-      ) : null}
+      <Icon className="category-filter-section-title-icon" size={20} aria-hidden />
       <span>{title}</span>
     </h3>
+  );
+}
+
+function CategoryFilterSubsectionTitle({ title }: { title: string }) {
+  const Icon = getCategoryFilterSectionIcon(title);
+
+  return (
+    <h4 className="category-filter-subsection-title">
+      <Icon className="category-filter-section-title-icon" size={20} aria-hidden />
+      <span>{title}</span>
+    </h4>
   );
 }
 
@@ -4025,9 +4137,7 @@ function CategoryFilterSidebarView({
               className="category-filter-subsection"
               key={`belge-def-${section.definitionId}`}
             >
-              <h4 className="category-filter-subsection-title">
-                {section.name.toLocaleUpperCase("tr-TR")}
-              </h4>
+              <CategoryFilterSubsectionTitle title={section.name.toLocaleUpperCase("tr-TR")} />
               <div className={checkboxListClassName(sortedOptions.length)}>
                 {optionsToShow.map((option) => {
                   const isChecked = selectedKeys.has(option.key);
@@ -4095,6 +4205,15 @@ function CategoryFilterSidebarView({
     isAuthenticated === false &&
     !hasAdvancedFilters;
 
+  const locationIlLabel =
+    iller.find((row) => String(row.id) === displayIlId)?.ad ?? "İl seçin";
+  const locationIlceLabel = !displayIlId
+    ? "İlçe Seçin"
+    : ilceler.find((row) => String(row.id) === displayIlceId)?.ad ?? "Tüm İlçeler";
+  const locationMahalleLabel = !displayIlceId
+    ? "Mahalle Seçin"
+    : mahalleler.find((row) => String(row.id) === displayMahalleId)?.ad ?? "Tüm Mahalleler";
+
   return (
     <aside className="category-filter-sidebar">
       <div className="category-filter-sidebar-card">
@@ -4139,6 +4258,10 @@ function CategoryFilterSidebarView({
           <div className="category-filter-section">
             <CategoryFilterSectionTitle title="KONUM" />
             <div className="category-filter-section-inputs">
+                  <SelectMountGate
+                    label={locationIlLabel}
+                    disabled={iller.length === 0}
+                  >
                   <Select
                     value={displayIlId || undefined}
                     onValueChange={handleIlChange}
@@ -4159,6 +4282,11 @@ function CategoryFilterSidebarView({
                       ))}
                     </SelectContent>
                   </Select>
+                  </SelectMountGate>
+                  <SelectMountGate
+                    label={locationIlceLabel}
+                    disabled={!displayIlId}
+                  >
                   <Select
                     value={displayIlceId ? displayIlceId : CATEGORY_ALL_ILCELER_VALUE}
                     onValueChange={handleIlceChange}
@@ -4182,6 +4310,11 @@ function CategoryFilterSidebarView({
                       ))}
                     </SelectContent>
                   </Select>
+                  </SelectMountGate>
+                  <SelectMountGate
+                    label={locationMahalleLabel}
+                    disabled={!displayIlceId}
+                  >
                   <Select
                     value={displayMahalleId ? displayMahalleId : CATEGORY_ALL_MAHALLELER_VALUE}
                     onValueChange={handleMahalleChange}
@@ -4205,6 +4338,7 @@ function CategoryFilterSidebarView({
                       ))}
                     </SelectContent>
                   </Select>
+                  </SelectMountGate>
             </div>
           </div>
 
@@ -4275,7 +4409,7 @@ function CategoryFilterSidebarView({
 
           {hasInstructorFeatureMode ? (
             <div className="category-filter-section">
-              <h3 className="category-filter-section-title">KATEGORİ</h3>
+              <CategoryFilterSectionTitle title="KATEGORİ" />
               <div className="category-filter-section-inputs">
                 <Select
                   value={selectedCategory ? selectedCategory : CLEAR_INSTRUCTOR_CATEGORY_VALUE}
@@ -4983,7 +5117,7 @@ function CategoryFilterSidebarView({
           ) : (
             <>
               <div className="category-filter-section">
-                <h3 className="category-filter-section-title">KATEGORİLER</h3>
+                <CategoryFilterSectionTitle title="KATEGORİLER" />
                 <div className="category-filter-section-options">
                   {categories.map((cat) => (
                     <label

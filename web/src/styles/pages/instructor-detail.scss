@@ -129,8 +129,164 @@
   border: 1px solid rgba(109, 93, 252, 0.14);
 }
 
+.instructor-hero-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "photo info"
+    "photo actions";
+  align-items: start;
+  column-gap: 32px;
+  row-gap: 12px;
+}
+
+.instructor-hero-main--with-credentials {
+  grid-template-columns: auto minmax(0, 1fr) minmax(280px, 320px);
+  grid-template-areas:
+    "photo info credentials"
+    "photo actions credentials";
+}
+
+.instructor-photo-section {
+  grid-area: photo;
+}
+
+.instructor-info {
+  grid-area: info;
+  min-width: 0;
+}
+
+.instructor-hero-main > .instructor-actions {
+  grid-area: actions;
+  margin-top: 0;
+}
+
+.instructor-hero-credentials {
+  grid-area: credentials;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  min-width: 0;
+  text-align: left;
+}
+
+.instructor-hero-main--with-credentials .instructor-hero-credentials {
+  margin-left: 35px;
+}
+
+.instructor-hero-credential {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.instructor-hero-credential-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $bg-light-purple;
+  color: $purple-main;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.instructor-hero-credential-body {
+  min-width: 0;
+}
+
+.instructor-hero-credential-label {
+  font-size: $text-xs;
+  font-weight: $font-bold;
+  color: $text-zinc-600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.instructor-hero-credential-value {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $default-text-color;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.instructor-hero-credential-secondary {
+  margin-top: 2px;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: $text-zinc-600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+  .instructor-hero-main--with-credentials {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "photo info"
+      "photo actions"
+      "credentials credentials";
+  }
+
+  .instructor-hero-credentials {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px 24px;
+    justify-content: stretch;
+    width: 100%;
+    padding-top: 8px;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .instructor-hero-main,
+  .instructor-hero-main--with-credentials {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "photo"
+      "info"
+      "credentials"
+      "actions";
+    justify-items: center;
+    text-align: center;
+    row-gap: 16px;
+  }
+
+  .instructor-info {
+    width: 100%;
+  }
+
+  .instructor-hero-credentials {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 420px;
+    justify-self: center;
+    text-align: left;
+    padding-top: 0;
+  }
+
+  .instructor-hero-main > .instructor-actions {
+    width: 100%;
+  }
+}
+
 .instructor-sidebar--mobile {
   display: none;
+}
+
+.instructor-announcements-panel {
+  scroll-margin-top: 88px;
 }
 
 @media (max-width: 1024px) {

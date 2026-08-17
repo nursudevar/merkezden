@@ -19,16 +19,18 @@ import {
   ImageOff,
   GitCommitVertical,
   Mail,
+  Award,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   formatWorkingHoursRange,
   institutionTimeToInputHHMM,
 } from "@/lib/institutionHelpers";
-import type { PublicInstructorRow } from "@/lib/publicInstructorClient";
 import {
   fetchPublicInstructorByParamClient,
+  formatPublicInstructorDetailLocation,
   publicInstructorDisplayName,
+  type PublicInstructorRow,
 } from "@/lib/publicInstructorClient";
 import {
   buildInstructorProfileSummaryLines,
@@ -49,8 +51,24 @@ import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
 import { toLocationIdString } from "@/lib/turkiyeLocationsClient";
 
 type InstructorDetailTab = "about" | "features" | "announcements" | "gallery";
+type InstructorDetailSpecialTab = "announcements" | null;
 
 const EMPTY_TEXT = "Henüz içerik girilmedi.";
+
+function instructorHeroText(value: unknown): string {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const lower = text.toLocaleLowerCase("tr-TR");
+  if (lower === "-" || lower === "null" || lower === "undefined") return "";
+  return text;
+}
+
+function instructorHeroExperienceYears(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const years = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(years) || years <= 0) return null;
+  return years;
+}
 
 export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: string }) {
   const [row, setRow] = useState<PublicInstructorRow | null>(null);
@@ -58,6 +76,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const [error, setError] = useState<string | null>(null);
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<InstructorDetailTab>("about");
+  const [activeSpecialTab, setActiveSpecialTab] = useState<InstructorDetailSpecialTab>(null);
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [announcements, setAnnouncements] = useState<PublicInstructorAnnouncementItem[]>([]);
   const [profileLines, setProfileLines] = useState<PublicInstructorFeatureLine[]>([]);
@@ -140,14 +159,26 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
     });
   }, []);
 
-  const handleTabClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>, sectionId: string, tab: InstructorDetailTab) => {
+  const handleSectionTabClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>, sectionId: string, tab: Exclude<InstructorDetailTab, "announcements">) => {
       event.preventDefault();
+      setActiveSpecialTab(null);
       setActiveTab(tab);
       scrollToSection(sectionId);
     },
     [scrollToSection],
   );
+
+  const handleAnnouncementsTabClick = useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    setActiveSpecialTab("announcements");
+    setActiveTab("announcements");
+  }, []);
+
+  useEffect(() => {
+    if (activeSpecialTab !== "announcements") return;
+    scrollToSection("announcements");
+  }, [activeSpecialTab, scrollToSection]);
 
   const displayName = publicInstructorDisplayName(row);
   const shareKey = String(row?.slug ?? "").trim() || String(row?.id ?? slugOrId).trim();
@@ -157,9 +188,13 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
     return resolvePublicInstructorProfilePictureUrl(row.profile_picture);
   }, [row]);
 
-  const location = [row?.locationIlAd, row?.locationIlceAd].filter(Boolean).join(", ");
+  const location = formatPublicInstructorDetailLocation(row);
   const about = String(row?.about ?? row?.bio ?? "").trim();
-  const school = String(row?.school ?? "").trim();
+  const school = instructorHeroText(row?.school);
+  const department = instructorHeroText(row?.department);
+  const educationLevel = instructorHeroText(row?.education_level);
+  const experienceYears = instructorHeroExperienceYears(row?.experience_years);
+  const hasHeroCredentials = Boolean(school || educationLevel || experienceYears != null);
   const email = String(row?.email ?? "").trim();
   const phone = String(row?.phone ?? "").trim();
   const website = String(row?.website ?? "").trim();
@@ -353,6 +388,144 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
     return `${t.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
   }, []);
 
+  const renderAnnouncementsPanel = () => (
+    <section id="announcements" className="instructor-section instructor-announcements-panel">
+      <Card className="instructor-section-card instructor-announcements-card">
+        <CardContent>
+          <div className="instructor-features-head">
+            <h2 className="instructor-section-title">Duyurular</h2>
+          </div>
+          {hasAnnouncements ? (
+            <div className="instructor-announcements-list">
+              {announcements.map((item) => {
+                const trimmedLink = (item.linkUrl ?? "").trim();
+                const hasLink = trimmedLink.length > 0;
+                const absoluteLink = hasLink
+                  ? /^https?:\/\//i.test(trimmedLink)
+                    ? trimmedLink
+                    : `https://${trimmedLink}`
+                  : null;
+                const linkLabel = hasLink
+                  ? trimmedLink.replace(/^https?:\/\//i, "").replace(/^www\./i, "")
+                  : "";
+
+                return (
+                  <article
+                    key={item.id}
+                    className="instructor-announcement-item"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      setActiveAnnouncement({
+                        id: item.id,
+                        title: item.title,
+                        content: item.content,
+                        imageUrl: item.imageUrl,
+                        createdAt: item.createdAt,
+                        institutionName: displayName,
+                        linkUrl: item.linkUrl,
+                        announcementTag: item.announcementTag,
+                        locationLabel: item.locationLabel,
+                      })
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setActiveAnnouncement({
+                          id: item.id,
+                          title: item.title,
+                          content: item.content,
+                          imageUrl: item.imageUrl,
+                          createdAt: item.createdAt,
+                          institutionName: displayName,
+                          linkUrl: item.linkUrl,
+                          announcementTag: item.announcementTag,
+                          locationLabel: item.locationLabel,
+                        });
+                      }
+                    }}
+                    aria-label={`${item.title} duyurusunu aç`}
+                  >
+                    <div
+                      className={`instructor-announcement-thumb${
+                        item.imageUrl ? "" : " instructor-announcement-thumb--empty"
+                      }`}
+                      aria-hidden
+                    >
+                      {item.imageUrl ? (
+                        <Image
+                          src={item.imageUrl}
+                          alt=""
+                          fill
+                          className="instructor-announcement-thumb-image"
+                          sizes="72px"
+                          unoptimized
+                        />
+                      ) : (
+                        <ImageOff
+                          className="instructor-announcement-thumb-icon"
+                          size={28}
+                          strokeWidth={1.25}
+                        />
+                      )}
+                    </div>
+                    <div className="instructor-announcement-body">
+                      <div className="instructor-announcement-kicker">
+                        {displayName.toLocaleUpperCase("tr-TR")}
+                      </div>
+                      {(() => {
+                        const tag = String(item.announcementTag ?? "").trim();
+                        const tagClass = getAnnouncementTagBadgeClassName(tag);
+                        if (!tag || !tagClass) return null;
+                        return <span className={tagClass}>{tag}</span>;
+                      })()}
+                      <h3 className="instructor-announcement-title">{item.title}</h3>
+                      {item.content ? (
+                        <p className="instructor-announcement-desc">
+                          {buildAnnouncementExcerpt(item.content, 220)}
+                        </p>
+                      ) : null}
+                      <div className="instructor-announcement-meta">
+                        {item.createdAt ? (
+                          <span className="instructor-announcement-meta-item">
+                            <CalendarDays className="instructor-announcement-meta-icon" size={14} />
+                            <span>{formatAnnouncementDateTr(item.createdAt)}</span>
+                          </span>
+                        ) : null}
+                        {item.locationLabel ? (
+                          <span className="instructor-announcement-meta-item">
+                            <MapPin className="instructor-announcement-meta-icon" size={14} />
+                            <span>{item.locationLabel}</span>
+                          </span>
+                        ) : null}
+                        {hasLink && absoluteLink ? (
+                          <a
+                            href={absoluteLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="instructor-announcement-meta-item instructor-announcement-meta-link"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Globe className="instructor-announcement-meta-icon" size={14} />
+                            <span>{linkLabel}</span>
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="instructor-features-empty">
+              Bu eğitmene ait henüz duyuru bulunmuyor.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </section>
+  );
+
   if (loading) {
     return (
       <div className="instructor-detail-page">
@@ -392,7 +565,11 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
 
         <Card className="instructor-hero">
           <CardContent className="instructor-hero-content">
-            <div className="instructor-hero-main">
+            <div
+              className={`instructor-hero-main${
+                hasHeroCredentials ? " instructor-hero-main--with-credentials" : ""
+              }`}
+            >
               <div className="instructor-photo-section">
                 <div className="instructor-photo-wrapper">
                   {hasPhoto ? (
@@ -431,13 +608,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                       <span className="instructor-meta-badge instructor-meta-badge--title">{categoryName}</span>
                     </div>
                   ) : null}
-                  {school ? (
-                    <div className="instructor-meta-item">
-                      <span className="instructor-meta-badge instructor-meta-badge--title">
-                        {school}
-                      </span>
-                    </div>
-                  ) : null}
                   {location ? (
                     <div className="instructor-meta-item">
                       <MapPin size={18} aria-hidden />
@@ -451,9 +621,51 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                     </div>
                   ) : null}
                 </div>
-                <div className="instructor-actions">
-                  <InstructorShareButton slugOrId={shareKey} />
+              </div>
+
+              {hasHeroCredentials ? (
+                <div className="instructor-hero-credentials">
+                  {school ? (
+                    <div className="instructor-hero-credential">
+                      <div className="instructor-hero-credential-icon" aria-hidden>
+                        <GraduationCap size={18} />
+                      </div>
+                      <div className="instructor-hero-credential-body">
+                        <div className="instructor-hero-credential-label">Mezun Olunan Okul</div>
+                        <div className="instructor-hero-credential-value">{school}</div>
+                        {department ? (
+                          <div className="instructor-hero-credential-secondary">{department}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                  {educationLevel ? (
+                    <div className="instructor-hero-credential">
+                      <div className="instructor-hero-credential-icon" aria-hidden>
+                        <Award size={18} />
+                      </div>
+                      <div className="instructor-hero-credential-body">
+                        <div className="instructor-hero-credential-label">Eğitim Seviyesi</div>
+                        <div className="instructor-hero-credential-value">{educationLevel}</div>
+                      </div>
+                    </div>
+                  ) : null}
+                  {experienceYears != null ? (
+                    <div className="instructor-hero-credential">
+                      <div className="instructor-hero-credential-icon" aria-hidden>
+                        <Clock size={18} />
+                      </div>
+                      <div className="instructor-hero-credential-body">
+                        <div className="instructor-hero-credential-label">Deneyim</div>
+                        <div className="instructor-hero-credential-value">{experienceYears} yıl</div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
+              ) : null}
+
+              <div className="instructor-actions">
+                <InstructorShareButton slugOrId={shareKey} />
               </div>
             </div>
           </CardContent>
@@ -465,24 +677,37 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
           <div className="instructor-tabs-list">
             <a
               href="#about"
-              className={`instructor-tab-item${activeTab === "about" ? " instructor-tab-active" : ""}`}
-              onClick={(e) => handleTabClick(e, "about", "about")}
+              className={`instructor-tab-item${
+                activeTab === "about" && activeSpecialTab !== "announcements"
+                  ? " instructor-tab-active"
+                  : ""
+              }`}
+              onClick={(e) => handleSectionTabClick(e, "about", "about")}
             >
               <BookOpen size={20} aria-hidden />
               <span>Hakkında</span>
             </a>
             <a
               href="#features"
-              className={`instructor-tab-item${activeTab === "features" ? " instructor-tab-active" : ""}`}
-              onClick={(e) => handleTabClick(e, "features", "features")}
+              className={`instructor-tab-item${
+                activeTab === "features" && activeSpecialTab !== "announcements"
+                  ? " instructor-tab-active"
+                  : ""
+              }`}
+              onClick={(e) => handleSectionTabClick(e, "features", "features")}
             >
               <Sparkles size={20} aria-hidden />
               <span>Eğitmen Özellikleri</span>
             </a>
             <a
               href="#announcements"
-              className={`instructor-tab-item${activeTab === "announcements" ? " instructor-tab-active" : ""}`}
-              onClick={(e) => handleTabClick(e, "announcements", "announcements")}
+              className={`instructor-tab-item${
+                activeTab === "announcements" && activeSpecialTab === "announcements"
+                  ? " instructor-tab-active"
+                  : ""
+              }`}
+              onClick={handleAnnouncementsTabClick}
+              aria-current={activeSpecialTab === "announcements" ? "true" : undefined}
             >
               <Megaphone size={20} aria-hidden />
               <span>Duyurular</span>
@@ -490,8 +715,12 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
             {hasGallery ? (
               <a
                 href="#gallery"
-                className={`instructor-tab-item${activeTab === "gallery" ? " instructor-tab-active" : ""}`}
-                onClick={(e) => handleTabClick(e, "gallery", "gallery")}
+                className={`instructor-tab-item${
+                  activeTab === "gallery" && activeSpecialTab !== "announcements"
+                    ? " instructor-tab-active"
+                    : ""
+                }`}
+                onClick={(e) => handleSectionTabClick(e, "gallery", "gallery")}
               >
                 <ImageIcon size={20} aria-hidden />
                 <span>Galeri</span>
@@ -499,6 +728,8 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
             ) : null}
           </div>
         </div>
+
+        {activeSpecialTab === "announcements" ? renderAnnouncementsPanel() : null}
 
         <div className="instructor-content-grid">
           <div className="instructor-main-content">
@@ -515,137 +746,52 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
               </Card>
             </section>
 
-            <section id="announcements" className="instructor-section">
-              <Card className="instructor-section-card instructor-announcements-card">
+            <section id="features" className="instructor-section">
+              <Card className="instructor-section-card instructor-features-card">
                 <CardContent>
                   <div className="instructor-features-head">
-                    <h2 className="instructor-section-title">Duyurular</h2>
+                    <h2 className="instructor-section-title">Eğitmen Özellikleri</h2>
                   </div>
-                  {hasAnnouncements ? (
-                    <div className="instructor-announcements-list">
-                      {announcements.map((item) => {
-                        const trimmedLink = (item.linkUrl ?? "").trim();
-                        const hasLink = trimmedLink.length > 0;
-                        const absoluteLink = hasLink
-                          ? /^https?:\/\//i.test(trimmedLink)
-                            ? trimmedLink
-                            : `https://${trimmedLink}`
-                          : null;
-                        const linkLabel = hasLink
-                          ? trimmedLink.replace(/^https?:\/\//i, "").replace(/^www\./i, "")
-                          : "";
-
-                        return (
-                          <article
-                            key={item.id}
-                            className="instructor-announcement-item"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() =>
-                              setActiveAnnouncement({
-                                id: item.id,
-                                title: item.title,
-                                content: item.content,
-                                imageUrl: item.imageUrl,
-                                createdAt: item.createdAt,
-                                institutionName: displayName,
-                                linkUrl: item.linkUrl,
-                                announcementTag: item.announcementTag,
-                                locationLabel: item.locationLabel,
-                              })
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                setActiveAnnouncement({
-                                  id: item.id,
-                                  title: item.title,
-                                  content: item.content,
-                                  imageUrl: item.imageUrl,
-                                  createdAt: item.createdAt,
-                                  institutionName: displayName,
-                                  linkUrl: item.linkUrl,
-                                  announcementTag: item.announcementTag,
-                                  locationLabel: item.locationLabel,
-                                });
-                              }
-                            }}
-                            aria-label={`${item.title} duyurusunu aç`}
-                          >
-                            <div
-                              className={`instructor-announcement-thumb${
-                                item.imageUrl ? "" : " instructor-announcement-thumb--empty"
-                              }`}
-                              aria-hidden
-                            >
-                              {item.imageUrl ? (
-                                <Image
-                                  src={item.imageUrl}
-                                  alt=""
-                                  fill
-                                  className="instructor-announcement-thumb-image"
-                                  sizes="72px"
-                                  unoptimized
-                                />
-                              ) : (
-                                <ImageOff
-                                  className="instructor-announcement-thumb-icon"
-                                  size={28}
-                                  strokeWidth={1.25}
-                                />
-                              )}
-                            </div>
-                            <div className="instructor-announcement-body">
-                              <div className="instructor-announcement-kicker">
-                                {displayName.toLocaleUpperCase("tr-TR")}
-                              </div>
-                              {(() => {
-                                const tag = String(item.announcementTag ?? "").trim();
-                                const tagClass = getAnnouncementTagBadgeClassName(tag);
-                                if (!tag || !tagClass) return null;
-                                return <span className={tagClass}>{tag}</span>;
-                              })()}
-                              <h3 className="instructor-announcement-title">{item.title}</h3>
-                              {item.content ? (
-                                <p className="instructor-announcement-desc">
-                                  {buildAnnouncementExcerpt(item.content, 220)}
-                                </p>
-                              ) : null}
-                              <div className="instructor-announcement-meta">
-                                {item.createdAt ? (
-                                  <span className="instructor-announcement-meta-item">
-                                    <CalendarDays className="instructor-announcement-meta-icon" size={14} />
-                                    <span>{formatAnnouncementDateTr(item.createdAt)}</span>
+                  {hasFeaturesContent ? (
+                    <div className="instructor-features-groups">
+                      {mergedAcademicLines.length > 0 ? (
+                        <div className="instructor-features-group">
+                          <h3 className="instructor-features-group-title">Başlıca Özellikler</h3>
+                          <div className="instructor-features-academic-list">
+                            {mergedAcademicLines.map((line, lineIdx) => (
+                              <div
+                                key={`${line.label}-${lineIdx}`}
+                                className="instructor-features-academic-row"
+                              >
+                                <span className="instructor-features-academic-icon" aria-hidden>
+                                  <GitCommitVertical size={25} strokeWidth={2.2} />
+                                </span>
+                                <div className="instructor-features-academic-content">
+                                  <span className="instructor-features-academic-label">{line.label}</span>
+                                  <span className="instructor-features-academic-value">
+                                    {Array.isArray(line.value) ? line.value.join(", ") : line.value}
                                   </span>
-                                ) : null}
-                                {item.locationLabel ? (
-                                  <span className="instructor-announcement-meta-item">
-                                    <MapPin className="instructor-announcement-meta-icon" size={14} />
-                                    <span>{item.locationLabel}</span>
-                                  </span>
-                                ) : null}
-                                {hasLink && absoluteLink ? (
-                                  <a
-                                    href={absoluteLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="instructor-announcement-meta-item instructor-announcement-meta-link"
-                                    onClick={(event) => event.stopPropagation()}
-                                  >
-                                    <Globe className="instructor-announcement-meta-icon" size={14} />
-                                    <span>{linkLabel}</span>
-                                  </a>
-                                ) : null}
+                                </div>
                               </div>
-                            </div>
-                          </article>
-                        );
-                      })}
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {featureSections.map((section) => (
+                        <div key={section.id} className="instructor-features-group">
+                          <h3 className="instructor-features-group-title">{section.name}</h3>
+                          <div className="instructor-features-badges">
+                            {section.badges.map((badge) => (
+                              <span key={`${section.id}-${badge}`} className="instructor-features-badge">
+                                {badge}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
-                    <div className="instructor-features-empty">
-                      Bu eğitmene ait henüz duyuru bulunmuyor.
-                    </div>
+                    <div className="instructor-features-empty">{EMPTY_TEXT}</div>
                   )}
                 </CardContent>
               </Card>
@@ -737,57 +883,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
 
           {renderInstructorSidebar("instructor-sidebar instructor-sidebar--desktop")}
         </div>
-
-        <section id="features" className="instructor-section">
-          <Card className="instructor-section-card instructor-features-card">
-            <CardContent>
-              <div className="instructor-features-head">
-                <h2 className="instructor-section-title">Eğitmen Özellikleri</h2>
-              </div>
-              {hasFeaturesContent ? (
-                <div className="instructor-features-groups">
-                  {mergedAcademicLines.length > 0 ? (
-                    <div className="instructor-features-group">
-                      <h3 className="instructor-features-group-title">Başlıca Özellikler</h3>
-                      <div className="instructor-features-academic-list">
-                        {mergedAcademicLines.map((line, lineIdx) => (
-                          <div
-                            key={`${line.label}-${lineIdx}`}
-                            className="instructor-features-academic-row"
-                          >
-                            <span className="instructor-features-academic-icon" aria-hidden>
-                              <GitCommitVertical size={25} strokeWidth={2.2} />
-                            </span>
-                            <div className="instructor-features-academic-content">
-                              <span className="instructor-features-academic-label">{line.label}</span>
-                              <span className="instructor-features-academic-value">
-                                {Array.isArray(line.value) ? line.value.join(", ") : line.value}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {featureSections.map((section) => (
-                    <div key={section.id} className="instructor-features-group">
-                      <h3 className="instructor-features-group-title">{section.name}</h3>
-                      <div className="instructor-features-badges">
-                        {section.badges.map((badge) => (
-                          <span key={`${section.id}-${badge}`} className="instructor-features-badge">
-                            {badge}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="instructor-features-empty">{EMPTY_TEXT}</div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
 
         <AnnouncementDetailModal
           isOpen={Boolean(activeAnnouncement)}

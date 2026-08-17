@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { LocateFixed, Loader2, RotateCcw, Search as SearchIcon } from "lucide-react";
 import {
@@ -11,6 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectMountGate,
 } from "@/components/ui";
 import type { TurkiyeLocationOption } from "@/lib/turkiyeLocationsClient";
 import {
@@ -44,38 +44,6 @@ export type HaritadaAraFilterSidebarProps = {
   showResetFilters?: boolean;
   onResetFilters?: () => void;
 };
-
-/** SSR ile istemci useId çakışmasını önlemek için Select'i mount sonrası açar. */
-function SelectMountGate({
-  label,
-  disabled = false,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div
-        className="select-trigger-default category-filter-select"
-        aria-hidden
-        data-disabled={disabled ? "" : undefined}
-        style={disabled ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-      >
-        <span>{label}</span>
-      </div>
-    );
-  }
-
-  return children;
-}
 
 export function HaritadaAraFilterSidebar({
   iller,

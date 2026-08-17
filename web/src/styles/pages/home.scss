@@ -2858,6 +2858,11 @@ a.service-card {
   .featured-institution-body-category {
     padding: 3px 5px;
     font-size: 8px;
+    max-width: 100%;
+  }
+
+  .featured-institution-instructor-branch {
+    font-size: 10px;
   }
 
   .featured-institution-name {
@@ -3346,6 +3351,27 @@ a.search-result-card {
   font-weight: $font-semibold;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.featured-institution-card--instructor {
+  .featured-institution-instructor-branch {
+    margin: 0;
+    font-size: 11px;
+    font-weight: $font-medium;
+    color: $text-zinc-600;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .featured-institution-content {
+    gap: 6px;
+  }
 }
 
 .featured-institution-location,

@@ -1235,14 +1235,54 @@ $egitmen-select-arrow-neutral: url("data:image/svg+xml,%3Csvg xmlns='http://www.
   background: rgba(248, 250, 252, 1);
   padding: 12px;
   cursor: pointer;
+  box-sizing: border-box;
   @include transition;
+  transition-property: border-color, box-shadow, background-color;
 
   &:hover {
     border-color: rgba(124, 58, 237, 0.28);
   }
 
+  &:focus-within {
+    outline: none;
+    border-color: $purple-primary;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+
   input {
     display: none;
+  }
+}
+
+.egitmen-panel-dropzone--form {
+  width: 100%;
+
+  .egitmen-panel-dropzone-inner {
+    min-height: 84px;
+    gap: 4px;
+  }
+
+  .egitmen-panel-dropzone-title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.egitmen-panel-dropzone--selected {
+  border-style: solid;
+  border-color: rgba(109, 93, 252, 0.28);
+  background: $bg-white;
+}
+
+.egitmen-panel-dropzone--error {
+  border-color: #fca5a5;
+
+  &:hover,
+  &:focus-within {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
   }
 }
 

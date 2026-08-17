@@ -5,19 +5,23 @@ import { Shapes } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { InstructorProfileRow } from "@/lib/instructorProfileClient";
 import {
+  INSTRUCTOR_FEATURES_CATEGORY_REQUIRED,
   INSTRUCTOR_FEATURES_LOAD_ERROR,
   INSTRUCTOR_FEATURES_SAVE_SUCCESS,
   buildInstructorFeatureFormStateFromEntries,
   fetchInstructorFeatureCategoriesClient,
   fetchInstructorFeatureDefinitionsBundleClient,
   fetchInstructorFeatureEntriesClient,
+  fetchInstructorOwnedCategoryIdClient,
   getDisplayInstructorFeatureName,
   isInstructorBaslicaFeatureGroupName,
   isInstructorPanelHiddenFeature,
+  parseInstructorCategoryId,
   resolveInstructorCategoryDisplayName,
   resolveInstructorCategorySlug,
   resolveInstructorFeatureGroupsForActiveCategory,
   saveInstructorFeaturesClient,
+  stripInstructorCategorySpecificFeatureFormValues,
   validateInstructorFeatureForm,
   type InstructorFeatureCategoryRow,
   type InstructorFeatureChoiceRow,
@@ -77,7 +81,6 @@ export function InstructorFeaturesTab({
 }: Props) {
   const instructorId = Number(instructorRow.id);
   const hasValidInstructorId = Number.isFinite(instructorId) && instructorId > 0;
-  const canEditInstructorCategory = instructorRow.can_edit_category === true;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -132,14 +135,22 @@ export function InstructorFeaturesTab({
 
     const supabase = createSupabaseBrowserClient();
 
-    const [{ categories: cats, error: catError }, bundle, entriesResult] = await Promise.all([
-      fetchInstructorFeatureCategoriesClient(supabase),
-      fetchInstructorFeatureDefinitionsBundleClient(supabase),
-      fetchInstructorFeatureEntriesClient(authUserId, instructorId, supabase),
-    ]);
+    const [{ categories: cats, error: catError }, bundle, entriesResult, ownedCategory] =
+      await Promise.all([
+        fetchInstructorFeatureCategoriesClient(supabase),
+        fetchInstructorFeatureDefinitionsBundleClient(supabase),
+        fetchInstructorFeatureEntriesClient(authUserId, instructorId, supabase),
+        fetchInstructorOwnedCategoryIdClient(authUserId, instructorId, supabase),
+      ]);
 
-    if (catError || bundle.error || entriesResult.error) {
-      setLoadError(catError ?? bundle.error ?? entriesResult.error ?? INSTRUCTOR_FEATURES_LOAD_ERROR);
+    if (catError || bundle.error || entriesResult.error || ownedCategory.error) {
+      setLoadError(
+        catError ??
+          bundle.error ??
+          entriesResult.error ??
+          ownedCategory.error ??
+          INSTRUCTOR_FEATURES_LOAD_ERROR,
+      );
       setLoading(false);
       return;
     }
@@ -150,11 +161,13 @@ export function InstructorFeaturesTab({
     setFeatureChoices(bundle.choices);
     setFeatureEntries(entriesResult.entries);
 
-    const initialCategory =
-      instructorRow.category_id != null && Number.isFinite(Number(instructorRow.category_id))
-        ? String(instructorRow.category_id)
-        : "";
-    setCategoryId(initialCategory);
+    const loadedCategoryId = ownedCategory.categoryId;
+    setCategoryId(loadedCategoryId != null ? String(loadedCategoryId) : "");
+
+    const previousCategoryId = parseInstructorCategoryId(instructorRow.category_id);
+    if (previousCategoryId !== loadedCategoryId) {
+      onInstructorRowChange({ ...instructorRow, category_id: loadedCategoryId });
+    }
 
     applyFormFromEntries(
       bundle.definitions,
@@ -162,17 +175,11 @@ export function InstructorFeaturesTab({
       entriesResult.entryChoices,
     );
     setLoading(false);
-  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, instructorRow.category_id]);
+  }, [applyFormFromEntries, authUserId, hasValidInstructorId, instructorId, onInstructorRowChange]);
 
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
-
-  useEffect(() => {
-    if (instructorRow.category_id != null && Number.isFinite(Number(instructorRow.category_id))) {
-      setCategoryId(String(instructorRow.category_id));
-    }
-  }, [instructorRow.category_id]);
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -186,17 +193,15 @@ export function InstructorFeaturesTab({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
+  const selectedCategoryNumericId = parseInstructorCategoryId(categoryId);
+
   const instructorCategorySlug = useMemo(() => {
-    const parsedId = Number(String(categoryId ?? "").trim());
-    const effectiveCategoryId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : instructorRow.category_id;
-    return resolveInstructorCategorySlug(effectiveCategoryId, categories);
-  }, [categories, categoryId, instructorRow.category_id]);
+    return resolveInstructorCategorySlug(selectedCategoryNumericId, categories);
+  }, [categories, selectedCategoryNumericId]);
 
   const categoryDisplayName = useMemo(() => {
-    const parsedId = Number(String(categoryId ?? "").trim());
-    const effectiveCategoryId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : instructorRow.category_id;
-    return resolveInstructorCategoryDisplayName(effectiveCategoryId, categories);
-  }, [categories, categoryId, instructorRow.category_id]);
+    return resolveInstructorCategoryDisplayName(selectedCategoryNumericId, categories);
+  }, [categories, selectedCategoryNumericId]);
 
   const groupsWithFeatures = useMemo((): InstructorFeatureSelectionGroup[] => {
     const showStudentAge = isInstructorPanelStudentAgeCategorySlug(instructorCategorySlug);
@@ -327,16 +332,19 @@ export function InstructorFeaturesTab({
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const parsedCategoryId = Number(String(categoryId ?? "").trim());
-      const categoryIdToSave =
-        canEditInstructorCategory && Number.isFinite(parsedCategoryId) && parsedCategoryId > 0
-          ? parsedCategoryId
-          : undefined;
+      const categoryIdToSave = parseInstructorCategoryId(categoryId);
+      if (categoryIdToSave == null) {
+        flashSaveMessage(INSTRUCTOR_FEATURES_CATEGORY_REQUIRED);
+        setSaving(false);
+        return;
+      }
+
       const { error: saveError } = await saveInstructorFeaturesClient(
         {
           authUid: authUserId,
           instructorId,
           definitions: featureDefinitions,
+          groups: featureGroups,
           choices: featureChoices,
           entries: featureEntries,
           form,
@@ -355,14 +363,21 @@ export function InstructorFeaturesTab({
       const { data: updatedInstructor } = await supabase
         .from("instructors")
         .select(
-          "id, category_id, can_edit_category, is_approved, owner_auth_id, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
+          "id, category_id, is_approved, owner_auth_id, lesson_type, service_type, education_level, working_hours_start, working_hours_end",
         )
         .eq("id", instructorId)
         .eq("owner_auth_id", authUserId)
         .maybeSingle();
 
       if (updatedInstructor) {
+        const savedCategoryId = parseInstructorCategoryId(
+          (updatedInstructor as { category_id?: number | null }).category_id,
+        );
+        setCategoryId(savedCategoryId != null ? String(savedCategoryId) : "");
         onInstructorRowChange({ ...instructorRow, ...updatedInstructor });
+      } else {
+        setCategoryId(String(categoryIdToSave));
+        onInstructorRowChange({ ...instructorRow, category_id: categoryIdToSave });
       }
 
       const entriesResult = await fetchInstructorFeatureEntriesClient(authUserId, instructorId, supabase);
@@ -393,13 +408,7 @@ export function InstructorFeaturesTab({
     );
   }
 
-  if (groupsWithFeatures.length === 0) {
-    return (
-      <div className="egitmen-panel-features-empty">
-        <p className="egitmen-panel-features-empty-text">Aktif özellik grubu bulunamadı.</p>
-      </div>
-    );
-  }
+  const hasSelectedCategory = selectedCategoryNumericId != null;
 
   const selectionListProps = {
     getDisplayFeatureName: getDisplayInstructorFeatureName,
@@ -447,29 +456,22 @@ export function InstructorFeaturesTab({
       </h4>
       <div className="egitmen-panel-features-feature-input-wrap">
         <p className="egitmen-panel-features-feature-name">Kategori</p>
-        <div
-          className={`egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown${
-            canEditInstructorCategory ? "" : " egitmen-panel-features-type-picker-disabled"
-          }`}
-        >
+        <div className="egitmen-panel-features-category-dropdown egitmen-panel-features-single-select-dropdown">
           <button
             type="button"
             className={`egitmen-panel-features-feature-select egitmen-panel-features-feature-select--button${
               openInstructorCategoryPicker ? " egitmen-panel-features-feature-select--open" : ""
             }`}
-            disabled={!canEditInstructorCategory}
-            aria-disabled={!canEditInstructorCategory}
             onClick={() => {
-              if (!canEditInstructorCategory) return;
               setOpenInstructorCategoryPicker((prev) => !prev);
               setOpenInstructorSelectId(null);
             }}
-            aria-haspopup={canEditInstructorCategory ? "listbox" : undefined}
-            aria-expanded={canEditInstructorCategory ? openInstructorCategoryPicker : undefined}
+            aria-haspopup="listbox"
+            aria-expanded={openInstructorCategoryPicker}
           >
             <span className="egitmen-panel-features-feature-select-label">{categoryDisplayName}</span>
           </button>
-          {canEditInstructorCategory && openInstructorCategoryPicker ? (
+          {openInstructorCategoryPicker ? (
             <div className="egitmen-panel-features-feature-select-menu" role="listbox">
               {categories.map((category) => (
                 <button
@@ -486,8 +488,16 @@ export function InstructorFeaturesTab({
                     const nextCategoryId = String(category.id);
                     setOpenInstructorCategoryPicker(false);
                     if (nextCategoryId === categoryId) return;
+                    const nextSlug = resolveInstructorCategorySlug(category.id, categories);
                     setCategoryId(nextCategoryId);
-                    setForm(EMPTY_FORM);
+                    setForm((prev) =>
+                      stripInstructorCategorySpecificFeatureFormValues(
+                        prev,
+                        featureDefinitions,
+                        featureGroups,
+                        nextSlug,
+                      ),
+                    );
                     setOpenInstructorSelectId(null);
                     setStudentAgeRangeError(null);
                   }}
@@ -498,11 +508,11 @@ export function InstructorFeaturesTab({
             </div>
           ) : null}
         </div>
-        <p className="egitmen-panel-features-category-note">
-          {canEditInstructorCategory
-            ? "Bu hesap için kategori değişikliği geçici olarak açılmıştır."
-            : "Kategori kayıt sırasında belirlenir ve sonradan değiştirilemez."}
-        </p>
+        {!hasSelectedCategory ? (
+          <p className="egitmen-panel-features-category-note">
+            Kategoriye özel özellikleri görmek için önce bir kategori seçin.
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -511,6 +521,9 @@ export function InstructorFeaturesTab({
     <div className="egitmen-panel-features-content">
       <div className="egitmen-panel-features-groups">
         {categorySection}
+        {hasSelectedCategory && groupsWithFeatures.length === 0 ? (
+          <p className="egitmen-panel-features-empty-text">Aktif özellik grubu bulunamadı.</p>
+        ) : null}
         <InstructorFeatureSelectionGroupList groups={upperGroups} {...selectionListProps} />
         {!splitLayout || lowerGroups.length === 0 ? saveButton : null}
       </div>
@@ -581,6 +594,9 @@ export function InstructorFeaturesTab({
       <div className="egitmen-panel-features-content">
         <div className="egitmen-panel-features-groups">
           {categorySection}
+          {hasSelectedCategory && groupsWithFeatures.length === 0 ? (
+            <p className="egitmen-panel-features-empty-text">Aktif özellik grubu bulunamadı.</p>
+          ) : null}
           <InstructorFeatureSelectionGroupList groups={upperGroups} {...selectionListProps} />
           {lowerContent ? (
             <InstructorFeatureSelectionGroupList groups={lowerGroups} {...selectionListProps} />

@@ -259,7 +259,7 @@ export function instructorProfileFormsEqual(
 }
 
 const INSTRUCTOR_PROFILE_SAVE_SELECT =
-  "id, name, surname, email, phone, identity_or_tax_number, birth_date, reference, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path";
+  "id, name, surname, email, phone, identity_or_tax_number, birth_date, reference, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id";
 
 /** Panel: yalnızca oturum sahibinin instructors satırını günceller. */
 export async function updateInstructorProfileForAuthUserClient(

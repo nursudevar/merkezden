@@ -107,6 +107,10 @@
 }
 
 .category-filter-subsection-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   margin: 0;
   font-size: 12px;
   font-weight: $font-semibold;
@@ -200,6 +204,11 @@
     outline: none;
     border-color: $purple-main;
     box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 }
 
