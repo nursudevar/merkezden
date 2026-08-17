@@ -79,6 +79,32 @@
   }
 }
 
+.institution-compare-toggle--map-popup {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  color: $text-zinc-600;
+  backdrop-filter: none;
+
+  &:hover:not(:disabled) {
+    background-color: $bg-zinc-50;
+    transform: none;
+  }
+
+  &.institution-compare-toggle--selected {
+    color: $orange-primary;
+    background-color: $bg-white;
+    border-color: rgba($orange-primary, 0.55);
+  }
+}
+
 .institution-compare-bar {
   position: fixed;
   left: 0;
@@ -296,6 +322,32 @@
   &.instructor-compare-toggle--selected {
     color: $orange-primary;
     background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba($orange-primary, 0.55);
+  }
+}
+
+.instructor-compare-toggle--map-popup {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background-color: $bg-white;
+  border: 1px solid $border-light;
+  color: $text-zinc-600;
+  backdrop-filter: none;
+
+  &:hover:not(:disabled) {
+    background-color: $bg-zinc-50;
+    transform: none;
+  }
+
+  &.instructor-compare-toggle--selected {
+    color: $orange-primary;
+    background-color: $bg-white;
     border-color: rgba($orange-primary, 0.55);
   }
 }

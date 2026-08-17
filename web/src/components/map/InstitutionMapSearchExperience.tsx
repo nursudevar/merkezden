@@ -139,6 +139,13 @@ export function InstitutionMapSearchExperience({
           renderEmptyMap
           onBoundsChange={showViewportInstitutionList ? handleBoundsChange : undefined}
           focusTarget={focusTarget}
+          onToggleFavorite={onToggleFavorite}
+          favoriteIds={favoriteIds}
+          instructorFavoriteIds={instructorFavoriteIds}
+          favoritesEnabled={favoritesEnabled}
+          favoriteActionLoadingIds={favoriteActionLoadingIds}
+          instructorFavoriteActionLoadingIds={instructorFavoriteActionLoadingIds}
+          isAuthenticated={isAuthenticated}
         />
         {showViewportInstitutionList ? (
           <section className="map-modal-visible-institutions" aria-label={`${resultsTitle} listesi`}>

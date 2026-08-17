@@ -1,27 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet.markercluster";
-import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import LoginModal from "@/components/LoginModal";
+import { AppNoticeBar } from "@/components/AppNoticeBar";
+import {
+  InstitutionMapMarkerPopupActions,
+  type MapPopupFavoriteHandlers,
+} from "@/components/map/InstitutionMapMarkerPopupActions";
+import { useListingFavorites } from "@/hooks/useListingFavorites";
+import { NOT_INDIVIDUAL_FAVORITES_MESSAGE } from "@/lib/favorites/favoritesClient";
 import {
   getMapMarkerAccountType,
   getMapMarkerKey,
   type InstitutionMapMarker,
 } from "@/lib/institutionMapMarkers";
-import { instructorDetailHref } from "@/lib/instructorMapMarkers";
 import type { DistrictBoundaryGeoJson } from "@/lib/districtMapView";
 
-/** Inline SVG building — avoids broken Leaflet default PNG paths in Next.js bundler */
-const BUILDING_MARKER_SVG = `
-<div class="institution-map-pin-inner" aria-hidden="true">
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 22V9.5l6-4 6 4V22" />
-    <path d="M10 22v-5h4v5" />
-    <path d="M9 13h.01" /><path d="M15 13h.01" />
-    <path d="M9 17h.01" /><path d="M15 17h.01" />
+/** Lucide MapPin path as inline SVG — Leaflet divIcon cannot host the React icon. */
+const INSTITUTION_MAPPIN_SVG = `
+<div class="institution-map-mappin" aria-hidden="true">
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none">
+    <path fill="currentColor" d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+    <circle class="institution-map-mappin-hole" cx="12" cy="10" r="3"/>
   </svg>
 </div>
 `;
@@ -38,10 +42,10 @@ const INSTRUCTOR_MARKER_SVG = `
 function createBuildingMarkerIcon(): L.DivIcon {
   return L.divIcon({
     className: "institution-map-marker-leaflet",
-    html: BUILDING_MARKER_SVG,
-    iconSize: [40, 40],
-    iconAnchor: [20, 38],
-    tooltipAnchor: [0, -34],
+    html: INSTITUTION_MAPPIN_SVG,
+    iconSize: [32, 32],
+    iconAnchor: [16, 30],
+    tooltipAnchor: [0, -28],
   });
 }
 
@@ -96,13 +100,84 @@ function escapeTooltipHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function buildMarkerTooltipHtml(item: InstitutionMapMarker): string {
+const MARKER_POPUP_HOVER_CLOSE_MS = 200;
+
+function canHoverOpenMarkerPopup(): boolean {
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+function createMarkerPopupHoverController() {
+  let closeTimer: number | null = null;
+  const bindings = new Map<
+    L.Marker,
+    { element: HTMLElement; onEnter: () => void; onLeave: () => void }
+  >();
+
+  const clearCloseTimer = () => {
+    if (closeTimer == null) return;
+    window.clearTimeout(closeTimer);
+    closeTimer = null;
+  };
+
+  const unbindPopupElement = (marker: L.Marker) => {
+    const binding = bindings.get(marker);
+    if (!binding) return;
+    binding.element.removeEventListener("mouseenter", binding.onEnter);
+    binding.element.removeEventListener("mouseleave", binding.onLeave);
+    bindings.delete(marker);
+  };
+
+  const scheduleClose = (marker: L.Marker) => {
+    if (!canHoverOpenMarkerPopup()) return;
+    clearCloseTimer();
+    closeTimer = window.setTimeout(() => {
+      closeTimer = null;
+      marker.closePopup();
+    }, MARKER_POPUP_HOVER_CLOSE_MS);
+  };
+
+  return {
+    clearCloseTimer,
+    unbindPopupElement,
+    dispose() {
+      clearCloseTimer();
+      for (const marker of [...bindings.keys()]) {
+        unbindPopupElement(marker);
+      }
+    },
+    onMarkerMouseOver(marker: L.Marker) {
+      if (!canHoverOpenMarkerPopup()) return;
+      clearCloseTimer();
+      if (!marker.isPopupOpen()) {
+        marker.openPopup();
+      }
+    },
+    onMarkerMouseOut(marker: L.Marker) {
+      scheduleClose(marker);
+    },
+    bindPopupElement(marker: L.Marker, popupEl: HTMLElement) {
+      unbindPopupElement(marker);
+      if (!canHoverOpenMarkerPopup()) return;
+      const onEnter = () => {
+        clearCloseTimer();
+      };
+      const onLeave = () => {
+        scheduleClose(marker);
+      };
+      popupEl.addEventListener("mouseenter", onEnter);
+      popupEl.addEventListener("mouseleave", onLeave);
+      bindings.set(marker, { element: popupEl, onEnter, onLeave });
+    },
+  };
+}
+
+function buildMarkerPopupHtml(item: InstitutionMapMarker): string {
   const isInstructor = getMapMarkerAccountType(item) === "instructor";
   const kind = isInstructor ? `<p class="institution-locations-tooltip-kind">Eğitmen</p>` : "";
   const phone = item.official_phone
     ? `<p class="institution-locations-tooltip-meta">Tel: ${escapeTooltipHtml(item.official_phone)}</p>`
     : "";
-  const email = item.official_email
+  const email = !isInstructor && item.official_email
     ? `<p class="institution-locations-tooltip-meta">E-posta: ${escapeTooltipHtml(item.official_email)}</p>`
     : "";
   const category = isInstructor && item.categoryName
@@ -111,22 +186,21 @@ function buildMarkerTooltipHtml(item: InstitutionMapMarker): string {
   const branch = isInstructor && item.branch
     ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.branch)}</p>`
     : "";
-  return `<div class="institution-locations-tooltip">${kind}<p class="institution-locations-tooltip-title">${escapeTooltipHtml(item.institution_name)}</p><p class="institution-locations-tooltip-address">${escapeTooltipHtml(item.address)}</p>${category}${branch}${phone}${email}</div>`;
+  return `<div class="institution-locations-tooltip institution-locations-popup-card">${kind}<p class="institution-locations-tooltip-title">${escapeTooltipHtml(item.institution_name)}</p>${category}${branch}<p class="institution-locations-tooltip-address">${escapeTooltipHtml(item.address)}</p>${phone}${email}<div class="institution-locations-popup-actions-slot" data-map-popup-actions></div></div>`;
 }
 
-function buildInstructorPopupHtml(item: InstitutionMapMarker): string {
-  const href = instructorDetailHref(item);
-  const category = item.categoryName
-    ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.categoryName)}</p>`
-    : "";
-  const branch = item.branch
-    ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.branch)}</p>`
-    : "";
-  const approximate =
-    item.locationPrecision === "neighborhood" || item.locationPrecision === "district"
-      ? `<p class="institution-locations-tooltip-approx">Yaklaşık konum</p>`
-      : "";
-  return `<div class="institution-locations-tooltip"><p class="institution-locations-tooltip-kind">Eğitmen</p><p class="institution-locations-tooltip-title">${escapeTooltipHtml(item.institution_name)}</p>${category}${branch}<p class="institution-locations-tooltip-address">${escapeTooltipHtml(item.address)}</p>${approximate}<a class="institution-locations-popup-link" href="${escapeTooltipHtml(href)}">Profili gör</a></div>`;
+function buildMarkerPopupContent(item: InstitutionMapMarker): {
+  content: HTMLElement;
+  actionsSlot: HTMLElement;
+} | null {
+  const holder = document.createElement("div");
+  holder.innerHTML = buildMarkerPopupHtml(item);
+  const content = holder.firstElementChild;
+  const actionsSlot = content?.querySelector("[data-map-popup-actions]");
+  if (!(content instanceof HTMLElement) || !(actionsSlot instanceof HTMLElement)) {
+    return null;
+  }
+  return { content, actionsSlot };
 }
 
 function buildMarkerClusterSignature(markers: InstitutionMapMarker[]): string {
@@ -211,24 +285,29 @@ function MapAttributionPrefix() {
   return null;
 }
 
+type MapPopupPortalTarget = {
+  node: HTMLElement;
+  marker: InstitutionMapMarker;
+  popup: L.Popup;
+};
+
 function InstitutionMarkerClusterLayer({
   markers,
   markerSignature,
   buildingIcon,
   instructorIcon,
-  onNavigate,
+  favorites,
 }: {
   markers: InstitutionMapMarker[];
   markerSignature: string;
   buildingIcon: L.DivIcon;
   instructorIcon: L.DivIcon;
-  onNavigate: (slug: string) => void;
+  favorites: MapPopupFavoriteHandlers;
 }) {
   const map = useMap();
   const markersRef = useRef(markers);
   markersRef.current = markers;
-  const onNavigateRef = useRef(onNavigate);
-  onNavigateRef.current = onNavigate;
+  const [popupTarget, setPopupTarget] = useState<MapPopupPortalTarget | null>(null);
 
   useEffect(() => {
     if (!markerSignature || !isMapContainerLive(map)) return;
@@ -238,36 +317,51 @@ function InstitutionMarkerClusterLayer({
       showCoverageOnHover: false,
       iconCreateFunction: createClusterIcon,
     });
+    const popupHover = createMarkerPopupHoverController();
 
     const leafletMarkers = markersRef.current.map((item) => {
       const isInstructor = getMapMarkerAccountType(item) === "instructor";
       const marker = L.marker([item.latitude, item.longitude], {
         icon: isInstructor ? instructorIcon : buildingIcon,
       });
-      if (isInstructor) {
-        marker.bindPopup(buildInstructorPopupHtml(item), {
+      const popupContent = buildMarkerPopupContent(item);
+      if (popupContent) {
+        marker.bindPopup(popupContent.content, {
           closeButton: true,
           className: "institution-locations-popup-shell",
+          maxWidth: 280,
+          minWidth: 228,
+          autoPanPadding: [16, 16],
         });
-      } else {
-        marker.on("click", () => {
-          onNavigateRef.current(item.slug);
+        marker.on("popupopen", () => {
+          popupHover.clearCloseTimer();
+          const popup = marker.getPopup();
+          if (!popup) return;
+          const popupEl = popup.getElement();
+          if (popupEl) {
+            L.DomEvent.disableClickPropagation(popupEl);
+            L.DomEvent.disableScrollPropagation(popupEl);
+            popupHover.bindPopupElement(marker, popupEl);
+          }
+          setPopupTarget({
+            node: popupContent.actionsSlot,
+            marker: item,
+            popup,
+          });
+        });
+        marker.on("popupclose", () => {
+          popupHover.unbindPopupElement(marker);
+          setPopupTarget((current) =>
+            current && getMapMarkerKey(current.marker) === getMapMarkerKey(item) ? null : current,
+          );
+        });
+        marker.on("mouseover", () => {
+          popupHover.onMarkerMouseOver(marker);
+        });
+        marker.on("mouseout", () => {
+          popupHover.onMarkerMouseOut(marker);
         });
       }
-      marker.on("mouseover", () => {
-        if (!marker.getTooltip()) {
-          marker.bindTooltip(buildMarkerTooltipHtml(item), {
-            direction: "top",
-            offset: [0, -10],
-            opacity: 1,
-            className: "institution-locations-tooltip-shell",
-          });
-        }
-        marker.openTooltip();
-      });
-      marker.on("mouseout", () => {
-        marker.closeTooltip();
-      });
       return marker;
     });
 
@@ -275,6 +369,8 @@ function InstitutionMarkerClusterLayer({
     map.addLayer(cluster);
 
     return () => {
+      popupHover.dispose();
+      setPopupTarget(null);
       try {
         if (map.hasLayer(cluster)) {
           map.removeLayer(cluster);
@@ -286,7 +382,16 @@ function InstitutionMarkerClusterLayer({
     };
   }, [map, markerSignature, buildingIcon, instructorIcon]);
 
-  return null;
+  return popupTarget
+    ? createPortal(
+        <InstitutionMapMarkerPopupActions
+          marker={popupTarget.marker}
+          favorites={favorites}
+          popup={popupTarget.popup}
+        />,
+        popupTarget.node,
+      )
+    : null;
 }
 
 function MapBoundsReporter({
@@ -456,6 +561,17 @@ export type InstitutionLocationsMapProps = {
   renderEmptyMap?: boolean;
   onBoundsChange?: (bounds: InstitutionMapViewportBounds) => void;
   focusTarget?: InstitutionMapFocusTarget | null;
+  onToggleFavorite?: (
+    id: number,
+    e: React.MouseEvent,
+    accountType: "institution" | "instructor",
+  ) => void;
+  favoriteIds?: Set<number>;
+  instructorFavoriteIds?: Set<number>;
+  favoritesEnabled?: boolean;
+  favoriteActionLoadingIds?: Set<number>;
+  instructorFavoriteActionLoadingIds?: Set<number>;
+  isAuthenticated?: boolean;
 };
 
 export default function InstitutionLocationsMap({
@@ -465,10 +581,53 @@ export default function InstitutionLocationsMap({
   renderEmptyMap = false,
   onBoundsChange,
   focusTarget = null,
+  onToggleFavorite,
+  favoriteIds,
+  instructorFavoriteIds,
+  favoritesEnabled,
+  favoriteActionLoadingIds,
+  instructorFavoriteActionLoadingIds,
+  isAuthenticated,
 }: InstitutionLocationsMapProps) {
-  const router = useRouter();
   const mapInstanceId = useId().replace(/:/g, "");
-  const canRenderMap = !loading && (markers.length > 0 || renderEmptyMap);
+  const localFavorites = useListingFavorites();
+
+  const resolvedFavorites = useMemo<MapPopupFavoriteHandlers>(() => {
+    const authenticated = isAuthenticated ?? Boolean(localFavorites.user);
+    return {
+      favoriteIds: favoriteIds ?? localFavorites.favoriteIds,
+      instructorFavoriteIds: instructorFavoriteIds ?? localFavorites.favoriteInstructorIds,
+      favoritesEnabled: favoritesEnabled ?? localFavorites.favoritesEnabled,
+      isAuthenticated: authenticated,
+      favoriteActionLoadingIds: favoriteActionLoadingIds ?? localFavorites.favoriteActionLoadingIds,
+      instructorFavoriteActionLoadingIds:
+        instructorFavoriteActionLoadingIds ?? localFavorites.favoriteInstructorActionLoadingIds,
+      onToggleFavorite: (id, event, accountType) => {
+        if (!authenticated) {
+          localFavorites.setShowLoginModal(true);
+          return;
+        }
+        if (onToggleFavorite) {
+          onToggleFavorite(id, event, accountType);
+          return;
+        }
+        if (accountType === "instructor") {
+          void localFavorites.handleInstructorFavoriteToggle(id, event);
+          return;
+        }
+        void localFavorites.handleFavoriteToggle(id, event);
+      },
+    };
+  }, [
+    favoriteActionLoadingIds,
+    favoriteIds,
+    favoritesEnabled,
+    instructorFavoriteActionLoadingIds,
+    instructorFavoriteIds,
+    isAuthenticated,
+    localFavorites,
+    onToggleFavorite,
+  ]);
 
   const center = useMemo<[number, number]>(() => {
     if (markers.length > 0) {
@@ -480,12 +639,6 @@ export default function InstitutionLocationsMap({
   const buildingIcon = useMemo(() => createBuildingMarkerIcon(), []);
   const instructorIcon = useMemo(() => createInstructorMarkerIcon(), []);
   const markerSignature = useMemo(() => buildMarkerClusterSignature(markers), [markers]);
-  const handleMarkerNavigate = useCallback(
-    (slug: string) => {
-      router.push(getInstitutionDetailHref({ slug }));
-    },
-    [router],
-  );
 
   const wrapperClass =
     variant === "modal"
@@ -524,10 +677,19 @@ export default function InstitutionLocationsMap({
             markerSignature={markerSignature}
             buildingIcon={buildingIcon}
             instructorIcon={instructorIcon}
-            onNavigate={handleMarkerNavigate}
+            favorites={resolvedFavorites}
           />
         </MapContainer>
       )}
+      <LoginModal
+        isOpen={localFavorites.showLoginModal}
+        onClose={() => localFavorites.setShowLoginModal(false)}
+      />
+      <AppNoticeBar
+        message={localFavorites.favoritesError}
+        onDismiss={() => localFavorites.setFavoritesError(null)}
+        variant={localFavorites.favoritesError === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+      />
     </div>
   );
 }

@@ -865,6 +865,27 @@
     border: none !important;
   }
 
+  .institution-map-mappin {
+    width: 32px;
+    height: 32px;
+    display: block;
+    line-height: 0;
+    color: $purple-main;
+    background: transparent;
+    filter: drop-shadow(0 1px 3px rgba($purple-main, 0.35));
+    transition: filter 0.2s ease, transform 0.2s ease;
+
+    svg {
+      display: block;
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  .institution-map-mappin-hole {
+    fill: $bg-white;
+  }
+
   .institution-map-pin-inner {
     width: 36px;
     height: 36px;
@@ -883,6 +904,11 @@
       display: block;
       flex-shrink: 0;
     }
+  }
+
+  .leaflet-marker-icon.institution-map-marker-leaflet:hover .institution-map-mappin {
+    filter: drop-shadow(0 2px 5px rgba($purple-main, 0.45));
+    transform: translateY(-1px);
   }
 
   .leaflet-marker-icon.institution-map-marker-leaflet:hover .institution-map-pin-inner {
