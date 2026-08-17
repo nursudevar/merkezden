@@ -417,6 +417,64 @@
   color: #b42318;
 }
 
+.haritada-ara-category-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.haritada-ara-category-multiselect-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 0 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.haritada-ara-category-multiselect-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.haritada-ara-category-multiselect-trigger-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: $text-zinc-500;
+  @include transition;
+  transition-property: transform;
+}
+
+.haritada-ara-category-multiselect--open .haritada-ara-category-multiselect-trigger-icon {
+  transform: rotate(180deg);
+}
+
+.haritada-ara-category-multiselect-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: min(280px, 52vh);
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: $bg-white;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.haritada-ara-category-multiselect-option {
+  margin: 0;
+}
+
 .haritada-ara-reset-filters-section {
   margin-top: 4px;
   padding-top: 4px;
@@ -754,6 +812,44 @@
   gap: 7px;
 }
 
+.map-modal-institution-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.map-modal-account-type {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(71, 85, 105, 0.08);
+  color: $text-zinc-600;
+  font-size: 10px;
+  font-weight: $font-semibold;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.map-modal-account-type--instructor {
+  background: rgba($orange-primary, 0.12);
+  color: darken($orange-primary, 8%);
+}
+
+.map-modal-instructor-branch {
+  margin: 0;
+  color: $text-zinc-600;
+  font-size: 11px;
+  font-weight: $font-medium;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .map-modal-institution-category {
   width: fit-content;
   max-width: 100%;
@@ -951,11 +1047,25 @@
     }
   }
 
+  .institution-map-pin-inner--instructor {
+    color: #c05621;
+    background: linear-gradient(180deg, #fffaf5 0%, #ffefd6 100%);
+    box-shadow:
+      0 2px 10px rgba(192, 86, 33, 0.12),
+      0 0 0 1px rgba(192, 86, 33, 0.12);
+  }
+
   .leaflet-marker-icon.institution-map-marker-leaflet:hover .institution-map-pin-inner {
     box-shadow:
       0 4px 14px rgba(31, 39, 51, 0.14),
       0 0 0 1px rgba(31, 39, 51, 0.1);
     transform: translateY(-1px);
+  }
+
+  .leaflet-marker-icon.institution-map-marker-leaflet--instructor:hover .institution-map-pin-inner--instructor {
+    box-shadow:
+      0 4px 14px rgba(192, 86, 33, 0.18),
+      0 0 0 1px rgba(192, 86, 33, 0.16);
   }
 
   /* Cluster badges â€” muted slate, not bright purple */
@@ -1080,6 +1190,55 @@
   font-size: 11px;
   line-height: 1.4;
   color: $text-zinc-500;
+}
+
+.institution-locations-tooltip-kind {
+  margin: 0;
+  width: fit-content;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba($orange-primary, 0.12);
+  color: darken($orange-primary, 8%);
+  font-size: 10px;
+  font-weight: $font-semibold;
+  line-height: 1;
+}
+
+.institution-locations-tooltip-approx {
+  margin: 0;
+  font-size: 11px;
+  font-weight: $font-medium;
+  line-height: 1.3;
+  color: $text-zinc-500;
+}
+
+.institution-locations-popup-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: $purple-main;
+  color: $bg-white;
+  font-size: 11px;
+  font-weight: $font-semibold;
+  text-decoration: none;
+
+  &:hover {
+    background: $purple-dark;
+    color: $bg-white;
+  }
+}
+
+.leaflet-popup.institution-locations-popup-shell .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.leaflet-popup.institution-locations-popup-shell .leaflet-popup-content {
+  margin: 0;
 }
 
 @media (max-width: 1023px) {

@@ -6,7 +6,12 @@ import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet.markercluster";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
-import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import {
+  getMapMarkerAccountType,
+  getMapMarkerKey,
+  type InstitutionMapMarker,
+} from "@/lib/institutionMapMarkers";
+import { instructorDetailHref } from "@/lib/instructorMapMarkers";
 import type { DistrictBoundaryGeoJson } from "@/lib/districtMapView";
 
 /** Inline SVG building — avoids broken Leaflet default PNG paths in Next.js bundler */
@@ -21,10 +26,29 @@ const BUILDING_MARKER_SVG = `
 </div>
 `;
 
+const INSTRUCTOR_MARKER_SVG = `
+<div class="institution-map-pin-inner institution-map-pin-inner--instructor" aria-hidden="true">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+</div>
+`;
+
 function createBuildingMarkerIcon(): L.DivIcon {
   return L.divIcon({
     className: "institution-map-marker-leaflet",
     html: BUILDING_MARKER_SVG,
+    iconSize: [40, 40],
+    iconAnchor: [20, 38],
+    tooltipAnchor: [0, -34],
+  });
+}
+
+function createInstructorMarkerIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "institution-map-marker-leaflet institution-map-marker-leaflet--instructor",
+    html: INSTRUCTOR_MARKER_SVG,
     iconSize: [40, 40],
     iconAnchor: [20, 38],
     tooltipAnchor: [0, -34],
@@ -73,21 +97,47 @@ function escapeTooltipHtml(value: string): string {
 }
 
 function buildMarkerTooltipHtml(item: InstitutionMapMarker): string {
+  const isInstructor = getMapMarkerAccountType(item) === "instructor";
+  const kind = isInstructor ? `<p class="institution-locations-tooltip-kind">Eğitmen</p>` : "";
   const phone = item.official_phone
     ? `<p class="institution-locations-tooltip-meta">Tel: ${escapeTooltipHtml(item.official_phone)}</p>`
     : "";
   const email = item.official_email
     ? `<p class="institution-locations-tooltip-meta">E-posta: ${escapeTooltipHtml(item.official_email)}</p>`
     : "";
-  return `<div class="institution-locations-tooltip"><p class="institution-locations-tooltip-title">${escapeTooltipHtml(item.institution_name)}</p><p class="institution-locations-tooltip-address">${escapeTooltipHtml(item.address)}</p>${phone}${email}</div>`;
+  const category = isInstructor && item.categoryName
+    ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.categoryName)}</p>`
+    : "";
+  const branch = isInstructor && item.branch
+    ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.branch)}</p>`
+    : "";
+  return `<div class="institution-locations-tooltip">${kind}<p class="institution-locations-tooltip-title">${escapeTooltipHtml(item.institution_name)}</p><p class="institution-locations-tooltip-address">${escapeTooltipHtml(item.address)}</p>${category}${branch}${phone}${email}</div>`;
+}
+
+function buildInstructorPopupHtml(item: InstitutionMapMarker): string {
+  const href = instructorDetailHref(item);
+  const category = item.categoryName
+    ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.categoryName)}</p>`
+    : "";
+  const branch = item.branch
+    ? `<p class="institution-locations-tooltip-meta">${escapeTooltipHtml(item.branch)}</p>`
+    : "";
+  const approximate =
+    item.locationPrecision === "neighborhood" || item.locationPrecision === "district"
+      ? `<p class="institution-locations-tooltip-approx">Yaklaşık konum</p>`
+      : "";
+  return `<div class="institution-locations-tooltip"><p class="institution-locations-tooltip-kind">Eğitmen</p><p class="institution-locations-tooltip-title">${escapeTooltipHtml(item.institution_name)}</p>${category}${branch}<p class="institution-locations-tooltip-address">${escapeTooltipHtml(item.address)}</p>${approximate}<a class="institution-locations-popup-link" href="${escapeTooltipHtml(href)}">Profili gör</a></div>`;
 }
 
 function buildMarkerClusterSignature(markers: InstitutionMapMarker[]): string {
   if (markers.length === 0) return "";
   let hash = 2166136261;
   for (const marker of markers) {
-    hash ^= marker.id;
-    hash = Math.imul(hash, 16777619);
+    const key = getMapMarkerKey(marker);
+    for (let i = 0; i < key.length; i += 1) {
+      hash ^= key.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
   }
   return `${markers.length}:${hash >>> 0}`;
 }
@@ -165,11 +215,13 @@ function InstitutionMarkerClusterLayer({
   markers,
   markerSignature,
   buildingIcon,
+  instructorIcon,
   onNavigate,
 }: {
   markers: InstitutionMapMarker[];
   markerSignature: string;
   buildingIcon: L.DivIcon;
+  instructorIcon: L.DivIcon;
   onNavigate: (slug: string) => void;
 }) {
   const map = useMap();
@@ -188,10 +240,20 @@ function InstitutionMarkerClusterLayer({
     });
 
     const leafletMarkers = markersRef.current.map((item) => {
-      const marker = L.marker([item.latitude, item.longitude], { icon: buildingIcon });
-      marker.on("click", () => {
-        onNavigateRef.current(item.slug);
+      const isInstructor = getMapMarkerAccountType(item) === "instructor";
+      const marker = L.marker([item.latitude, item.longitude], {
+        icon: isInstructor ? instructorIcon : buildingIcon,
       });
+      if (isInstructor) {
+        marker.bindPopup(buildInstructorPopupHtml(item), {
+          closeButton: true,
+          className: "institution-locations-popup-shell",
+        });
+      } else {
+        marker.on("click", () => {
+          onNavigateRef.current(item.slug);
+        });
+      }
       marker.on("mouseover", () => {
         if (!marker.getTooltip()) {
           marker.bindTooltip(buildMarkerTooltipHtml(item), {
@@ -222,7 +284,7 @@ function InstitutionMarkerClusterLayer({
         /* map teardown */
       }
     };
-  }, [map, markerSignature, buildingIcon]);
+  }, [map, markerSignature, buildingIcon, instructorIcon]);
 
   return null;
 }
@@ -416,6 +478,7 @@ export default function InstitutionLocationsMap({
   }, [markers]);
 
   const buildingIcon = useMemo(() => createBuildingMarkerIcon(), []);
+  const instructorIcon = useMemo(() => createInstructorMarkerIcon(), []);
   const markerSignature = useMemo(() => buildMarkerClusterSignature(markers), [markers]);
   const handleMarkerNavigate = useCallback(
     (slug: string) => {
@@ -438,7 +501,7 @@ export default function InstitutionLocationsMap({
       {loading ? (
         <div className="institution-locations-map-state">Harita yükleniyor...</div>
       ) : markers.length === 0 && !renderEmptyMap ? (
-        <div className="institution-locations-map-state">Konum bilgisi olan kurum bulunamadı.</div>
+        <div className="institution-locations-map-state">Konum bilgisi olan sonuç bulunamadı.</div>
       ) : (
         <MapContainer
           key={`institution-locations-leaflet-${mapInstanceId}-${variant}`}
@@ -460,6 +523,7 @@ export default function InstitutionLocationsMap({
             markers={markers}
             markerSignature={markerSignature}
             buildingIcon={buildingIcon}
+            instructorIcon={instructorIcon}
             onNavigate={handleMarkerNavigate}
           />
         </MapContainer>

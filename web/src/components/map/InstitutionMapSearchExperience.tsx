@@ -1,20 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { Building2, Heart, MapPin, Phone } from "lucide-react";
-import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import { Building2, GraduationCap, Heart, MapPin, Phone } from "lucide-react";
+import {
+  getMapMarkerAccountType,
+  getMapMarkerKey,
+  type InstitutionMapMarker,
+} from "@/lib/institutionMapMarkers";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import { instructorDetailHref } from "@/lib/instructorMapMarkers";
+import type { MapHesapTipi } from "@/lib/mapSearchAccountType";
 import type {
   InstitutionMapFocusTarget,
   InstitutionMapViewportBounds,
 } from "@/components/map/InstitutionLocationsMap";
-import {
-  buildCategoryTabNames,
-  fetchActiveInstitutionCategories,
-} from "@/lib/categoryHelpers";
 import "@/styles/components/institution-locations-map.scss";
 
 const InstitutionLocationsMap = dynamic(
@@ -24,52 +26,6 @@ const InstitutionLocationsMap = dynamic(
 
 const VISIBLE_INSTITUTION_PAGE_SIZE = 15;
 
-const MAP_CATEGORY_FILTERS_FALLBACK = [
-  "Hepsi",
-  "Okul",
-  "Kurs & Sınava Hazırlık",
-  "Spor",
-  "Sanat",
-  "Yabancı Dil",
-  "Kişisel Gelişim",
-  "Mesleki Eğitim",
-  "Özel Eğitim",
-  "Sürücü Kursu",
-  "Patili Dostlar",
-] as const;
-
-function normalizeMapCategory(value: string): string {
-  return value
-    .trim()
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i")
-    .replace(/&/g, " ")
-    .replace(/[^a-z0-9\s]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function markerMatchesCategory(marker: InstitutionMapMarker, selectedCategory: string): boolean {
-  if (selectedCategory === "Hepsi") return true;
-  const selectedKey = normalizeMapCategory(selectedCategory);
-  const markerNameKey = normalizeMapCategory(marker.categoryName);
-  const markerSlugKey = normalizeMapCategory(marker.categorySlug);
-  if (markerNameKey === selectedKey || markerSlugKey === selectedKey) return true;
-  if (selectedKey === "kurs sinava hazirlik") {
-    return (
-      markerNameKey === "kurs sinav" ||
-      markerNameKey === "kurs ve sinav" ||
-      markerNameKey === "sinava hazirlik" ||
-      markerSlugKey === "kurs sinav" ||
-      markerSlugKey === "kurs ve sinav" ||
-      markerSlugKey === "sinava hazirlik"
-    );
-  }
-  return false;
-}
-
 function isMarkerInBounds(marker: InstitutionMapMarker, bounds: InstitutionMapViewportBounds): boolean {
   const lat = Number(marker.latitude);
   const lng = Number(marker.longitude);
@@ -78,17 +34,22 @@ function isMarkerInBounds(marker: InstitutionMapMarker, bounds: InstitutionMapVi
 }
 
 function dedupeMarkers(markers: InstitutionMapMarker[]): InstitutionMapMarker[] {
-  const byId = new Map<number, InstitutionMapMarker>();
+  const byKey = new Map<string, InstitutionMapMarker>();
   markers.forEach((marker) => {
-    if (Number.isFinite(marker.id) && !byId.has(marker.id)) {
-      byId.set(marker.id, marker);
-    }
+    const key = getMapMarkerKey(marker);
+    if (!byKey.has(key)) byKey.set(key, marker);
   });
-  return Array.from(byId.values());
+  return Array.from(byKey.values());
 }
 
 function formatVisibleCount(count: number): string {
   return count > 100 ? "100+" : String(count);
+}
+
+function visibleResultsTitle(hesapTipi: MapHesapTipi): string {
+  if (hesapTipi === "kurumlar") return "Görünen Kurumlar";
+  if (hesapTipi === "egitmenler") return "Görünen Eğitmenler";
+  return "Görünen Sonuçlar";
 }
 
 export type InstitutionMapSearchExperienceProps = {
@@ -96,74 +57,57 @@ export type InstitutionMapSearchExperienceProps = {
   loading?: boolean;
   mapKeyPrefix?: string;
   showViewportInstitutionList?: boolean;
-  onToggleFavorite?: (institutionId: number, e: React.MouseEvent) => void;
+  onToggleFavorite?: (
+    id: number,
+    e: React.MouseEvent,
+    accountType: "institution" | "instructor",
+  ) => void;
   favoriteIds?: Set<number>;
+  instructorFavoriteIds?: Set<number>;
   favoritesEnabled?: boolean;
   favoriteActionLoadingIds?: Set<number>;
+  instructorFavoriteActionLoadingIds?: Set<number>;
   isAuthenticated?: boolean;
-  /** `page`: tam sayfa yerleşimi. Varsayılan modal gövde sınıflarını kullanır. */
   layout?: "page" | "embedded";
   focusTarget?: InstitutionMapFocusTarget | null;
+  hesapTipi?: MapHesapTipi;
 };
 
 export function InstitutionMapSearchExperience({
   markers,
   loading = false,
-  mapKeyPrefix = "institution-map",
   showViewportInstitutionList = true,
   onToggleFavorite,
   favoriteIds,
+  instructorFavoriteIds,
   favoritesEnabled = false,
   favoriteActionLoadingIds,
+  instructorFavoriteActionLoadingIds,
   isAuthenticated = false,
   layout = "page",
   focusTarget = null,
+  hesapTipi = "hepsi",
 }: InstitutionMapSearchExperienceProps) {
-  const [selectedMapCategory, setSelectedMapCategory] = useState("Hepsi");
-  const [mapCategoryFilters, setMapCategoryFilters] = useState<string[]>([
-    ...MAP_CATEGORY_FILTERS_FALLBACK,
-  ]);
   const [mapBounds, setMapBounds] = useState<InstitutionMapViewportBounds | null>(null);
   const [visibleInstitutionCount, setVisibleInstitutionCount] = useState(VISIBLE_INSTITUTION_PAGE_SIZE);
-  const [brokenLogoIds, setBrokenLogoIds] = useState<Set<number>>(() => new Set());
+  const [brokenLogoKeys, setBrokenLogoKeys] = useState<Set<string>>(() => new Set());
 
-  const categoryMarkers = useMemo(
-    () => markers.filter((marker) => markerMatchesCategory(marker, selectedMapCategory)),
-    [markers, selectedMapCategory],
-  );
   const visibleMarkers = useMemo(() => {
     const inScope = mapBounds
-      ? categoryMarkers.filter((marker) => isMarkerInBounds(marker, mapBounds))
-      : categoryMarkers;
+      ? markers.filter((marker) => isMarkerInBounds(marker, mapBounds))
+      : markers;
     return dedupeMarkers(inScope);
-  }, [mapBounds, categoryMarkers]);
+  }, [mapBounds, markers]);
   const renderedVisibleMarkers = useMemo(
     () => visibleMarkers.slice(0, visibleInstitutionCount),
     [visibleInstitutionCount, visibleMarkers],
   );
   const hasMoreVisibleMarkers = visibleMarkers.length > visibleInstitutionCount;
-
-  const resetVisibleInstitutionCount = useCallback(() => {
-    setVisibleInstitutionCount(VISIBLE_INSTITUTION_PAGE_SIZE);
-  }, []);
+  const resultsTitle = visibleResultsTitle(hesapTipi);
 
   const handleBoundsChange = useCallback((bounds: InstitutionMapViewportBounds) => {
     setMapBounds(bounds);
     setVisibleInstitutionCount(VISIBLE_INSTITUTION_PAGE_SIZE);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      const categories = await fetchActiveInstitutionCategories();
-      if (cancelled) return;
-      setMapCategoryFilters(buildCategoryTabNames(categories, MAP_CATEGORY_FILTERS_FALLBACK));
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const bodyClassName = [
@@ -188,45 +132,20 @@ export function InstitutionMapSearchExperience({
         </h1>
       </div>
       <div className={bodyClassName}>
-        <div className="map-modal-category-filters" aria-label="Harita kategori filtreleri">
-          {mapCategoryFilters.map((category) => {
-            const isActive = selectedMapCategory === category;
-            return (
-              <button
-                key={category}
-                type="button"
-                className={`map-modal-category-chip${isActive ? " map-modal-category-chip--active" : ""}`}
-                aria-pressed={isActive}
-                onClick={() => {
-                  setSelectedMapCategory(category);
-                  setMapBounds(null);
-                  resetVisibleInstitutionCount();
-                }}
-              >
-                {category}
-              </button>
-            );
-          })}
-        </div>
-        {!loading && selectedMapCategory !== "Hepsi" && categoryMarkers.length === 0 ? (
-          <p className="map-modal-empty-message">
-            Bu kategoride haritada gösterilecek kurum bulunamadı.
-          </p>
-        ) : null}
         <InstitutionLocationsMap
           variant="modal"
-          markers={categoryMarkers}
+          markers={markers}
           loading={loading}
           renderEmptyMap
           onBoundsChange={showViewportInstitutionList ? handleBoundsChange : undefined}
           focusTarget={focusTarget}
         />
         {showViewportInstitutionList ? (
-          <section className="map-modal-visible-institutions" aria-label="Görünen kurumlar listesi">
+          <section className="map-modal-visible-institutions" aria-label={`${resultsTitle} listesi`}>
             <div className="map-modal-visible-institutions-header">
               <div>
                 <h2 className="map-modal-visible-institutions-title">
-                  Görünen Kurumlar <span>{formatVisibleCount(visibleMarkers.length)}</span>
+                  {resultsTitle} <span>{formatVisibleCount(visibleMarkers.length)}</span>
                 </h2>
                 <p className="map-modal-visible-institutions-subtitle">
                   Haritayı sürükledikçe liste güncellenir
@@ -234,23 +153,35 @@ export function InstitutionMapSearchExperience({
               </div>
             </div>
             {loading ? (
-              <div className="map-modal-visible-institutions-state">Kurumlar yükleniyor...</div>
+              <div className="map-modal-visible-institutions-state">Sonuçlar yükleniyor...</div>
             ) : visibleMarkers.length === 0 ? (
               <div className="map-modal-visible-institutions-state">
-                Bu harita alanında gösterilecek kurum bulunamadı.
+                Bu harita alanında gösterilecek sonuç bulunamadı.
               </div>
             ) : (
               <>
                 <div className="map-modal-visible-institutions-grid">
                   {renderedVisibleMarkers.map((marker) => {
-                    const isFavorite = Boolean(favoriteIds?.has(marker.id));
-                    const isActionLoading = Boolean(favoriteActionLoadingIds?.has(marker.id));
-                    const canRenderLogo = Boolean(marker.logoUrl) && !brokenLogoIds.has(marker.id);
-                    const detailHref = getInstitutionDetailHref({ slug: marker.slug });
+                    const accountType = getMapMarkerAccountType(marker);
+                    const isInstructor = accountType === "instructor";
+                    const markerKey = getMapMarkerKey(marker);
+                    const isFavorite = isInstructor
+                      ? Boolean(instructorFavoriteIds?.has(marker.id))
+                      : Boolean(favoriteIds?.has(marker.id));
+                    const isActionLoading = isInstructor
+                      ? Boolean(instructorFavoriteActionLoadingIds?.has(marker.id))
+                      : Boolean(favoriteActionLoadingIds?.has(marker.id));
+                    const canRenderLogo = Boolean(marker.logoUrl) && !brokenLogoKeys.has(markerKey);
+                    const detailHref = isInstructor
+                      ? instructorDetailHref(marker)
+                      : getInstitutionDetailHref({ slug: marker.slug });
                     const categoryLabel = marker.categoryName;
 
                     return (
-                      <article key={marker.id} className="map-modal-institution-card">
+                      <article
+                        key={markerKey}
+                        className={`map-modal-institution-card${isInstructor ? " map-modal-institution-card--instructor" : ""}`}
+                      >
                         <div className="map-modal-institution-card-media">
                           {canRenderLogo ? (
                             <Image
@@ -261,16 +192,16 @@ export function InstitutionMapSearchExperience({
                               sizes="96px"
                               unoptimized
                               onError={() =>
-                                setBrokenLogoIds((prev) => {
+                                setBrokenLogoKeys((prev) => {
                                   const next = new Set(prev);
-                                  next.add(marker.id);
+                                  next.add(markerKey);
                                   return next;
                                 })
                               }
                             />
                           ) : (
-                            <div className="map-modal-institution-card-placeholder" aria-label="Logo bulunmuyor">
-                              <Building2 size={24} />
+                            <div className="map-modal-institution-card-placeholder" aria-label="Görsel bulunmuyor">
+                              {isInstructor ? <GraduationCap size={24} /> : <Building2 size={24} />}
                             </div>
                           )}
                           <button
@@ -284,7 +215,7 @@ export function InstitutionMapSearchExperience({
                                 event.stopPropagation();
                                 return;
                               }
-                              onToggleFavorite(marker.id, event);
+                              onToggleFavorite(marker.id, event, accountType);
                             }}
                           >
                             <Heart
@@ -297,10 +228,20 @@ export function InstitutionMapSearchExperience({
                           </button>
                         </div>
                         <div className="map-modal-institution-card-content">
-                          {categoryLabel ? (
-                            <span className="map-modal-institution-category">{categoryLabel}</span>
-                          ) : null}
+                          <div className="map-modal-institution-card-labels">
+                            <span
+                              className={`map-modal-account-type${isInstructor ? " map-modal-account-type--instructor" : ""}`}
+                            >
+                              {isInstructor ? "Eğitmen" : "Kurum"}
+                            </span>
+                            {categoryLabel ? (
+                              <span className="map-modal-institution-category">{categoryLabel}</span>
+                            ) : null}
+                          </div>
                           <h3 className="map-modal-institution-name">{marker.institution_name}</h3>
+                          {isInstructor && marker.branch ? (
+                            <p className="map-modal-instructor-branch">{marker.branch}</p>
+                          ) : null}
                           <div className="map-modal-institution-location">
                             <MapPin size={14} aria-hidden />
                             <span>{marker.address}</span>
@@ -316,7 +257,7 @@ export function InstitutionMapSearchExperience({
                               </a>
                             ) : null}
                             <Link href={detailHref} className="map-modal-institution-detail">
-                              Detay
+                              {isInstructor ? "Profil" : "Detay"}
                             </Link>
                           </div>
                         </div>

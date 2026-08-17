@@ -8,14 +8,19 @@ import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
 import { HaritadaAraFilterSidebar } from "@/components/map/HaritadaAraFilterSidebar";
 import { InstitutionMapSearchExperience } from "@/components/map/InstitutionMapSearchExperience";
 import type { InstitutionMapFocusTarget } from "@/components/map/InstitutionLocationsMap";
-import { useAllInstitutionMapMarkers } from "@/hooks/useAllInstitutionMapMarkers";
+import { useHaritadaAraMapMarkers } from "@/hooks/useHaritadaAraMapMarkers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   FavoritesError,
   getMyFavoriteInstitutionIds,
+  getMyFavoriteInstructorIds,
   toggleFavorite,
+  toggleInstructorFavorite,
 } from "@/lib/favorites/favoritesClient";
-import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import {
+  getMapMarkerAccountType,
+  type InstitutionMapMarker,
+} from "@/lib/institutionMapMarkers";
 import { haversineDistanceKm, isValidLatLng } from "@/lib/geoDistance";
 import { resolveDistrictMapView, boundsFromMarkers } from "@/lib/districtMapView";
 import {
@@ -41,6 +46,23 @@ import {
   writeKurumTuruSlugsToParams,
   type KurumTuruSlug,
 } from "@/lib/institutionSchoolStatusFilter";
+import {
+  fetchActiveInstitutionCategories,
+  type ActiveInstitutionCategory,
+} from "@/lib/categoryHelpers";
+import { fetchInstructorFeatureCategoriesClient } from "@/lib/instructorFeaturesClient";
+import {
+  mergeMapSearchCategories,
+  markerMatchesSelectedCategories,
+  readMapCategorySlugsFromSearch,
+  sanitizeMapCategorySlugs,
+  writeMapCategorySlugsToParams,
+} from "@/lib/institutionMapCategoryFilter";
+import {
+  readMapHesapTipiFromSearch,
+  writeMapHesapTipiToParams,
+  type MapHesapTipi,
+} from "@/lib/mapSearchAccountType";
 
 function searchQueryEqual(a: string, b: string): boolean {
   const left = new URLSearchParams(a.startsWith("?") ? a.slice(1) : a);
@@ -91,15 +113,19 @@ export function HaritadaAraPageClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchKey = searchParams.toString();
-  const { markers, loading } = useAllInstitutionMapMarkers();
+  const { markers, loading } = useHaritadaAraMapMarkers();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
+  const [instructorFavoriteIds, setInstructorFavoriteIds] = useState<Set<number>>(() => new Set());
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoriteActionLoadingIds, setFavoriteActionLoadingIds] = useState<Set<number>>(
     () => new Set(),
   );
+  const [instructorFavoriteActionLoadingIds, setInstructorFavoriteActionLoadingIds] = useState<
+    Set<number>
+  >(() => new Set());
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isFilterOpenRef = useRef(false);
@@ -112,6 +138,9 @@ export function HaritadaAraPageClient() {
   const [selectedMahalleId, setSelectedMahalleId] = useState("");
   const [selectedKurumTuru, setSelectedKurumTuru] = useState<KurumTuruSlug[]>([]);
   const [kurumTuruAllowedIds, setKurumTuruAllowedIds] = useState<Set<number> | null>(null);
+  const [selectedHesapTipi, setSelectedHesapTipi] = useState<MapHesapTipi>("hepsi");
+  const [mapCategories, setMapCategories] = useState<ActiveInstitutionCategory[]>([]);
+  const [selectedCategorySlugs, setSelectedCategorySlugs] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearchQuery, setAppliedSearchQuery] = useState("");
   const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
@@ -132,8 +161,16 @@ export function HaritadaAraPageClient() {
   const writeGenerationRef = useRef(0);
   const markersRef = useRef(markers);
   const illerRef = useRef(iller);
+  const mapCategoriesRef = useRef(mapCategories);
   markersRef.current = markers;
   illerRef.current = iller;
+  mapCategoriesRef.current = mapCategories;
+
+  const mapCategoriesReady = mapCategories.length > 0;
+  const mapCategoriesKey = useMemo(
+    () => mapCategories.map((category) => category.slug).join("\0"),
+    [mapCategories],
+  );
 
   const selectedIlAd = iller.find((row) => String(row.id) === selectedIlId)?.ad ?? "";
   const selectedIlceAd = ilceler.find((row) => String(row.id) === selectedIlceId)?.ad ?? "";
@@ -145,10 +182,20 @@ export function HaritadaAraPageClient() {
     if (!locationDefaultsReady) return [];
     const searchKey = normalizeLocationKey(appliedSearchQuery);
     const filtered = markers.filter((marker) => {
+      const accountType = getMapMarkerAccountType(marker);
+      if (selectedHesapTipi === "kurumlar" && accountType !== "institution") return false;
+      if (selectedHesapTipi === "egitmenler" && accountType !== "instructor") return false;
       if (!markerMatchesLocationIds(marker, selectedIlIdNum, selectedIlceIdNum, selectedMahalleIdNum)) {
         return false;
       }
-      if (kurumTuruAllowedIds && !kurumTuruAllowedIds.has(marker.id)) {
+      if (
+        accountType === "institution" &&
+        kurumTuruAllowedIds &&
+        !kurumTuruAllowedIds.has(marker.id)
+      ) {
+        return false;
+      }
+      if (!markerMatchesSelectedCategories(marker, selectedCategorySlugs, mapCategories)) {
         return false;
       }
       if (!searchKey) return true;
@@ -160,6 +207,7 @@ export function HaritadaAraPageClient() {
           marker.institutionTypeName,
           marker.city,
           marker.district,
+          marker.branch ?? "",
         ].join(" "),
       );
       return haystack.includes(searchKey);
@@ -188,7 +236,10 @@ export function HaritadaAraPageClient() {
     selectedIlIdNum,
     selectedIlceIdNum,
     selectedMahalleIdNum,
+    selectedHesapTipi,
     kurumTuruAllowedIds,
+    selectedCategorySlugs,
+    mapCategories,
     appliedSearchQuery,
     nearbyActive,
     userLocation,
@@ -279,6 +330,30 @@ export function HaritadaAraPageClient() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const [institutionRows, instructorResult] = await Promise.all([
+          fetchActiveInstitutionCategories(),
+          fetchInstructorFeatureCategoriesClient(),
+        ]);
+        if (cancelled) return;
+        setMapCategories(
+          mergeMapSearchCategories(institutionRows, instructorResult.categories ?? []),
+        );
+      } catch (error) {
+        console.error("Harita kategorileri yüklenemedi:", error);
+        if (!cancelled) setMapCategories([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!locationDefaultsReady) return;
     let cancelled = false;
     void (async () => {
@@ -296,6 +371,14 @@ export function HaritadaAraPageClient() {
       setSearchQuery(q);
       setAppliedSearchQuery(q);
       setSelectedKurumTuru(readKurumTuruSlugsFromSearch(searchKey));
+      setSelectedHesapTipi(readMapHesapTipiFromSearch(searchKey));
+      const categorySlugs = readMapCategorySlugsFromSearch(searchKey);
+      const categories = mapCategoriesRef.current;
+      setSelectedCategorySlugs(
+        categories.length > 0
+          ? sanitizeMapCategorySlugs(categorySlugs, categories)
+          : categorySlugs,
+      );
       lastHydratedSearchKeyRef.current = searchKey;
       if (nextIlceId || nextMahalleId) {
         void focusMapForLocation(nextIlId, nextIlceId, nextMahalleId);
@@ -304,11 +387,13 @@ export function HaritadaAraPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [defaultIlId, focusMapForLocation, locationDefaultsReady, searchKey]);
+  }, [defaultIlId, focusMapForLocation, mapCategoriesKey, locationDefaultsReady, searchKey]);
 
   useEffect(() => {
     if (!locationDefaultsReady) return;
     if (lastHydratedSearchKeyRef.current !== searchKey) return;
+    const pendingCategorySlugs = readMapCategorySlugsFromSearch(searchKey);
+    if (pendingCategorySlugs.length > 0 && !mapCategoriesReady) return;
     const generation = ++writeGenerationRef.current;
     void (async () => {
       const nextSearch = await writeCategoryLocationToSearch(searchKey ? `?${searchKey}` : "", {
@@ -322,6 +407,8 @@ export function HaritadaAraPageClient() {
       if (trimmedQuery) params.set("q", trimmedQuery);
       else params.delete("q");
       writeKurumTuruSlugsToParams(params, selectedKurumTuru);
+      writeMapHesapTipiToParams(params, selectedHesapTipi);
+      writeMapCategorySlugsToParams(params, selectedCategorySlugs);
       const serialized = params.toString();
       if (searchQueryEqual(serialized, searchKey)) return;
       const nextUrl = serialized ? `${pathname}?${serialized}` : pathname;
@@ -333,10 +420,13 @@ export function HaritadaAraPageClient() {
     pathname,
     router,
     searchKey,
+    mapCategoriesReady,
     selectedIlId,
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
+    selectedHesapTipi,
+    selectedCategorySlugs,
   ]);
 
   useEffect(() => {
@@ -436,24 +526,31 @@ export function HaritadaAraPageClient() {
     let cancelled = false;
     if (!isAuthReady || !user) {
       setFavoriteIds(new Set());
+      setInstructorFavoriteIds(new Set());
       setFavoritesEnabled(false);
       setFavoritesLoading(false);
       setFavoriteActionLoadingIds(new Set());
+      setInstructorFavoriteActionLoadingIds(new Set());
       return;
     }
 
     setFavoritesLoading(true);
     void (async () => {
       try {
-        const ids = await getMyFavoriteInstitutionIds();
+        const [institutionIds, instructorIds] = await Promise.all([
+          getMyFavoriteInstitutionIds(),
+          getMyFavoriteInstructorIds(),
+        ]);
         if (cancelled) return;
         setFavoritesEnabled(true);
-        setFavoriteIds(new Set(ids));
+        setFavoriteIds(new Set(institutionIds));
+        setInstructorFavoriteIds(new Set(instructorIds));
       } catch (err) {
         if (cancelled) return;
         if (err instanceof FavoritesError && err.code === "NOT_INDIVIDUAL") {
           setFavoritesEnabled(false);
           setFavoriteIds(new Set());
+          setInstructorFavoriteIds(new Set());
         } else {
           setFavoritesEnabled(false);
         }
@@ -698,7 +795,9 @@ export function HaritadaAraPageClient() {
     if (searchQuery.trim() || appliedSearchQuery.trim()) return true;
     if (selectedIlceId) return true;
     if (selectedMahalleId) return true;
-    if (selectedKurumTuru.length > 0) return true;
+    if (selectedKurumTuru.length > 0 && selectedHesapTipi !== "egitmenler") return true;
+    if (selectedHesapTipi !== "hepsi") return true;
+    if (selectedCategorySlugs.length > 0) return true;
     if (nearbyActive) return true;
     if (defaultIlId && selectedIlId !== defaultIlId) return true;
     return false;
@@ -708,10 +807,20 @@ export function HaritadaAraPageClient() {
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
+    selectedHesapTipi,
+    selectedCategorySlugs,
     nearbyActive,
     selectedIlId,
     defaultIlId,
   ]);
+
+  const handleHesapTipiChange = useCallback(
+    (value: MapHesapTipi) => {
+      setSelectedHesapTipi(value);
+      closeDrawerAndScrollToResults();
+    },
+    [closeDrawerAndScrollToResults],
+  );
 
   const handleKurumTuruToggle = useCallback((slug: KurumTuruSlug) => {
     setSelectedKurumTuru((prev) =>
@@ -719,6 +828,25 @@ export function HaritadaAraPageClient() {
     );
     closeDrawerAndScrollToResults();
   }, [closeDrawerAndScrollToResults]);
+
+  const handleCategorySelectAll = useCallback(() => {
+    setSelectedCategorySlugs([]);
+    closeDrawerAndScrollToResults();
+  }, [closeDrawerAndScrollToResults]);
+
+  const handleCategoryToggle = useCallback(
+    (slug: string) => {
+      const normalizedSlug = slug.trim().toLowerCase();
+      setSelectedCategorySlugs((prev) => {
+        if (prev.includes(normalizedSlug)) {
+          return prev.filter((item) => item !== normalizedSlug);
+        }
+        return [...prev, normalizedSlug];
+      });
+      closeDrawerAndScrollToResults();
+    },
+    [closeDrawerAndScrollToResults],
+  );
 
   const handleResetFilters = useCallback(() => {
     nearbyRequestIdRef.current += 1;
@@ -733,6 +861,8 @@ export function HaritadaAraPageClient() {
     setMahalleler([]);
     setSelectedIlId(defaultIlId);
     setSelectedKurumTuru([]);
+    setSelectedHesapTipi("hepsi");
+    setSelectedCategorySlugs([]);
     clearNearbyMode();
     setMapFocus({
       lat: DEFAULT_MAP_CENTER.lat,
@@ -745,50 +875,100 @@ export function HaritadaAraPageClient() {
   }, [defaultIlId, clearNearbyMode, closeDrawerAndScrollToResults]);
 
   const handleFavoriteToggle = useCallback(
-    async (institutionId: number, e: React.MouseEvent) => {
+    async (
+      entityId: number,
+      e: React.MouseEvent,
+      accountType: "institution" | "instructor" = "institution",
+    ) => {
       e.preventDefault();
       e.stopPropagation();
 
       if (!user || !favoritesEnabled) return;
-      if (favoriteActionLoadingIds.has(institutionId)) return;
 
-      const wasFavorited = favoriteIds.has(institutionId);
+      if (accountType === "instructor") {
+        if (instructorFavoriteActionLoadingIds.has(entityId)) return;
+        const wasFavorited = instructorFavoriteIds.has(entityId);
+        setInstructorFavoriteActionLoadingIds((prev) => {
+          const next = new Set(prev);
+          next.add(entityId);
+          return next;
+        });
+        setInstructorFavoriteIds((prev) => {
+          const next = new Set(prev);
+          if (wasFavorited) next.delete(entityId);
+          else next.add(entityId);
+          return next;
+        });
+        try {
+          const res = await toggleInstructorFavorite(entityId);
+          setInstructorFavoriteIds((prev) => {
+            const next = new Set(prev);
+            if (res.isFavorited) next.add(entityId);
+            else next.delete(entityId);
+            return next;
+          });
+        } catch {
+          setInstructorFavoriteIds((prev) => {
+            const next = new Set(prev);
+            if (wasFavorited) next.add(entityId);
+            else next.delete(entityId);
+            return next;
+          });
+        } finally {
+          setInstructorFavoriteActionLoadingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(entityId);
+            return next;
+          });
+        }
+        return;
+      }
+
+      if (favoriteActionLoadingIds.has(entityId)) return;
+      const wasFavorited = favoriteIds.has(entityId);
       setFavoriteActionLoadingIds((prev) => {
         const next = new Set(prev);
-        next.add(institutionId);
+        next.add(entityId);
         return next;
       });
       setFavoriteIds((prev) => {
         const next = new Set(prev);
-        if (wasFavorited) next.delete(institutionId);
-        else next.add(institutionId);
+        if (wasFavorited) next.delete(entityId);
+        else next.add(entityId);
         return next;
       });
 
       try {
-        const res = await toggleFavorite(institutionId);
+        const res = await toggleFavorite(entityId);
         setFavoriteIds((prev) => {
           const next = new Set(prev);
-          if (res.isFavorited) next.add(institutionId);
-          else next.delete(institutionId);
+          if (res.isFavorited) next.add(entityId);
+          else next.delete(entityId);
           return next;
         });
       } catch {
         setFavoriteIds((prev) => {
           const next = new Set(prev);
-          if (wasFavorited) next.add(institutionId);
-          else next.delete(institutionId);
+          if (wasFavorited) next.add(entityId);
+          else next.delete(entityId);
           return next;
         });
       } finally {
         setFavoriteActionLoadingIds((prev) => {
           const next = new Set(prev);
-          next.delete(institutionId);
+          next.delete(entityId);
           return next;
         });
       }
     },
-    [user, favoritesEnabled, favoriteActionLoadingIds, favoriteIds],
+    [
+      user,
+      favoritesEnabled,
+      favoriteActionLoadingIds,
+      favoriteIds,
+      instructorFavoriteActionLoadingIds,
+      instructorFavoriteIds,
+    ],
   );
 
   const filterSidebarProps = {
@@ -799,6 +979,12 @@ export function HaritadaAraPageClient() {
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
+    selectedHesapTipi,
+    onHesapTipiChange: handleHesapTipiChange,
+    mapCategories,
+    selectedCategorySlugs,
+    onCategorySelectAll: handleCategorySelectAll,
+    onCategoryToggle: handleCategoryToggle,
     searchQuery,
     onSearchQueryChange: setSearchQuery,
     onSearchSubmit: handleSearchSubmit,
@@ -870,9 +1056,12 @@ export function HaritadaAraPageClient() {
               focusTarget={mapFocus}
               onToggleFavorite={handleFavoriteToggle}
               favoriteIds={favoriteIds}
+              instructorFavoriteIds={instructorFavoriteIds}
               favoritesEnabled={favoritesEnabled && !favoritesLoading}
               favoriteActionLoadingIds={favoriteActionLoadingIds}
+              instructorFavoriteActionLoadingIds={instructorFavoriteActionLoadingIds}
               isAuthenticated={Boolean(user)}
+              hesapTipi={selectedHesapTipi}
             />
           </div>
         </div>

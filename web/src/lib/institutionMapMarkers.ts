@@ -1,6 +1,10 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 
+export type MapAccountType = "institution" | "instructor";
+
+export type MapLocationPrecision = "address" | "neighborhood" | "district";
+
 export type InstitutionMapMarker = {
   id: number;
   slug: string;
@@ -20,7 +24,23 @@ export type InstitutionMapMarker = {
   ilId: number | null;
   ilceId: number | null;
   mahalleId: number | null;
+  accountType?: MapAccountType;
+  mapKey?: string;
+  branch?: string;
+  locationPrecision?: MapLocationPrecision;
 };
+
+export function getMapMarkerAccountType(marker: InstitutionMapMarker): MapAccountType {
+  return marker.accountType === "instructor" ? "instructor" : "institution";
+}
+
+export function getMapMarkerKey(marker: InstitutionMapMarker): string {
+  return marker.mapKey ?? `${getMapMarkerAccountType(marker)}:${marker.id}`;
+}
+
+export function isInstructorMapMarker(marker: InstitutionMapMarker): boolean {
+  return getMapMarkerAccountType(marker) === "instructor";
+}
 
 type InstitutionLocationRow = {
   institution_id: number;
@@ -167,6 +187,8 @@ function mergeLocationRowsWithListSources(
         ilId: toMarkerLocationId(source.ilId),
         ilceId: toMarkerLocationId(source.ilceId),
         mahalleId: toMarkerLocationId(source.mahalleId),
+        accountType: "institution",
+        mapKey: `institution:${source.id}`,
       };
       return marker;
     })
@@ -213,6 +235,8 @@ function mergeLocationRowsWithInstitutionRows(
         ilId: toMarkerLocationId(institution.il_id),
         ilceId: toMarkerLocationId(institution.ilce_id),
         mahalleId: toMarkerLocationId(institution.mahalle_id),
+        accountType: "institution",
+        mapKey: `institution:${institution.id}`,
       };
       return marker;
     })
