@@ -3866,6 +3866,136 @@ a.search-result-card {
   width: 100%;
 }
 
+.home-filter-tips {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 168px;
+
+  @media (max-width: 1023px) {
+    min-height: 0;
+  }
+}
+
+.home-filter-tips-card {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  padding: 20px 18px 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  background: linear-gradient(180deg, rgba(244, 234, 255, 0.72) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.home-filter-tips-body-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px 12px;
+  overflow: hidden;
+}
+
+.home-filter-tips-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 268px;
+  margin: 0 auto;
+  text-align: center;
+  animation: home-filter-tips-fade-in 0.45s ease;
+}
+
+@keyframes home-filter-tips-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-filter-tips-icon-wrap {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(109, 93, 252, 0.1);
+  color: $purple-main;
+}
+
+.home-filter-tips-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.home-filter-tips-kind {
+  font-size: 11px;
+  font-weight: $font-bold;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $purple-main;
+  line-height: 1.2;
+}
+
+.home-filter-tips-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: $font-bold;
+  color: $default-text-color;
+  line-height: 1.35;
+}
+
+.home-filter-tips-description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: $text-zinc-600;
+  max-width: 100%;
+}
+
+.home-filter-tips-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.home-filter-tips-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.22);
+  cursor: pointer;
+  @include transition;
+  transition-property: width, background-color;
+
+  &--active {
+    width: 18px;
+    background: $purple-main;
+  }
+}
+
 .cta-section--sidebar {
   margin: 0;
   height: 200px;

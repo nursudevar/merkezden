@@ -13,6 +13,7 @@ import { HomeDrivingSchoolsSection } from "@/components/featured/HomeDrivingScho
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
 import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
+import { HomeFilterTipsBox } from "@/components/home/HomeFilterTipsBox";
 import { HomeLocationSelect } from "@/components/home/HomeLocationSelect";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
@@ -1253,6 +1254,8 @@ export default function HomePageClient() {
               </div>
             </section>
           ) : null}
+
+          {showDefaultHomeContent && isAuthReady && user ? <HomeFilterTipsBox /> : null}
         </aside>
 
         <main className="main-content">

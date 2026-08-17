@@ -123,7 +123,7 @@ export function HomeFeaturedInstitutionsList({
         </div>
       </div>
       <div className="featured-institutions-body">
-        <div ref={featuredListRef} className="featured-institutions-list">
+        <div ref={featuredListRef} id="home-featured-grid" className="featured-institutions-list">
           {paginatedFeaturedAccounts.map((entry) => {
             if (entry.kind === "institution") {
               const institution = entry.institution;
