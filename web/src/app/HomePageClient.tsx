@@ -67,6 +67,8 @@ const HOME_HEADER_SEARCH_TYPEWRITER_PLACEHOLDERS = [
   "Meko AI ile istediğin kurumu Ara",
   "Okul, bölge veya özellik adını yazarak ara",
   "Ankara Çankaya'da kreş arıyorum",
+  "Yakınımdaki özel ders öğretmenini bul",
+  "İstanbul Kadıköy'de yüzme kursu arıyorum",
 ] as const;
 
 const schoolStatusOptions = [
@@ -167,14 +169,16 @@ function buildSidebarCategoryRows(
   const visibleCount = groupId === "school" ? 5 : HOME_SIDEBAR_CATEGORY_VISIBLE_COUNT;
   const entries = rawEntries.slice(0, visibleCount).map(resolveHomeSidebarDisplayEntry);
 
-  return entries.map(({ label, matchName }) => {
-    const matchedSub = findSubcategoryForDisplayName(subcategories, matchName);
-    return {
-      kind: "sub" as const,
-      label,
-      item: matchedSub ?? { id: -1, name: label },
-    };
-  });
+  return entries
+    .map(({ label, matchName }) => {
+      const matchedSub = findSubcategoryForDisplayName(subcategories, matchName);
+      return {
+        kind: "sub" as const,
+        label,
+        item: matchedSub ?? { id: -1, name: label },
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, "tr"));
 }
 
 function findSubcategoryForDisplayName(
@@ -419,6 +423,8 @@ export default function HomePageClient() {
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Set<string>>(new Set());
   /** Ana kategori «Tümü»: ilgili `institution_categories` altındaki tüm `institution_types.id` (OR). */
   const [selectedCategoryAllGroups, setSelectedCategoryAllGroups] = useState<Set<string>>(() => new Set());
+  /** Sol panel alt başlık seçimi — yalnızca UI vurgusu; filtre `selectedCategoryAllGroups` üzerinden parent kategoriye uygulanır. */
+  const [selectedSidebarSubcategoryKey, setSelectedSidebarSubcategoryKey] = useState<string | null>(null);
   /** Sadece mobil/tablet (<1024px) için sol filtre panelinin açık/kapalı durumu. Desktop'ta etkisiz. */
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   /**
@@ -477,6 +483,23 @@ export default function HomePageClient() {
     () => computeSidebarSelectedInstitutionTypeIds(selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards),
     [selectedCategoryItems, selectedCategoryAllGroups, mainCategoryCards]
   );
+
+  /** Seçili parent kategori — eğitmen listesi `instructor_categories` üzerinden filtrelenir. */
+  const selectedInstructorCategoryFilter = useMemo((): { name: string; slug: string | null } | null => {
+    if (selectedCategoryAllGroups.size === 0) return null;
+    const groupId = Array.from(selectedCategoryAllGroups)[0];
+    const group = sidebarCategoryGroups.find((g) => g.id === groupId);
+    if (!group) return null;
+    const matchedCard = mainCategoryCards.find((card) => {
+      const nameKey = normalizeCategoryKey(card.name);
+      const slugKey = normalizeCategoryKey(card.slug);
+      return group.matchKeys.some((k) => k === nameKey || k === slugKey);
+    });
+    return {
+      name: matchedCard?.name ?? group.title,
+      slug: matchedCard?.slug?.trim() || null,
+    };
+  }, [selectedCategoryAllGroups, mainCategoryCards]);
 
   const isDefaultHomeLocation =
     (!selectedIlId || !defaultIlId || selectedIlId === defaultIlId) &&
@@ -1180,33 +1203,27 @@ export default function HomePageClient() {
                           <div className="category-accordion-options">
                             {rows.map((row) => {
                               const item = row.item;
-                              const itemKey = `${group.id}-${item.id}`;
+                              const subcategoryKey = `${group.id}-${row.label}`;
                               const isSelected =
-                                item.id > 0 && selectedCategoryItems.has(itemKey);
+                                selectedCategoryAllGroups.has(group.id) &&
+                                selectedSidebarSubcategoryKey === subcategoryKey;
                               return (
                                 <button
-                                  key={`${group.id}-${row.label}`}
+                                  key={subcategoryKey}
                                   type="button"
                                   className={`category-option${isSelected ? " category-option-selected" : ""}`}
                                   {...(item.id > 0
                                     ? { "data-institution-type-id": item.id }
                                     : {})}
                                   onClick={() => {
-                                    if (item.id <= 0) return;
-                                    setSelectedCategoryAllGroups((prev) => {
-                                      const next = new Set(prev);
-                                      next.delete(group.id);
-                                      return next;
-                                    });
-                                    setSelectedCategoryItems((prev) => {
-                                      const next = new Set(prev);
-                                      if (isSelected) {
-                                        next.delete(itemKey);
-                                      } else {
-                                        next.add(itemKey);
-                                      }
-                                      return next;
-                                    });
+                                    if (isSelected) {
+                                      setSelectedCategoryAllGroups(new Set());
+                                      setSelectedSidebarSubcategoryKey(null);
+                                    } else {
+                                      setSelectedCategoryItems(new Set());
+                                      setSelectedCategoryAllGroups(new Set([group.id]));
+                                      setSelectedSidebarSubcategoryKey(subcategoryKey);
+                                    }
                                     scrollToResultsOnMobile();
                                   }}
                                 >
@@ -1289,10 +1306,6 @@ export default function HomePageClient() {
                       category={category}
                       categoryHref={categoryHref}
                       categoryLogoSrc={categoryLogoSrc}
-                      onCardClick={() => {
-                        if (!categoryHref) return;
-                        router.push(categoryHref);
-                      }}
                     />
                   );
                 })}
@@ -1342,6 +1355,7 @@ export default function HomePageClient() {
                   : undefined
               }
               institutionTypeIds={sidebarInstitutionTypeIds}
+              instructorCategoryFilter={selectedInstructorCategoryFilter}
               onClearSearch={() => setQuery("")}
               onClearAllFilters={() => {
                 setQuery("");
@@ -1352,6 +1366,7 @@ export default function HomePageClient() {
                 setSelectedPriceRange(null);
                 setSelectedCategoryItems(new Set());
                 setSelectedCategoryAllGroups(new Set());
+                setSelectedSidebarSubcategoryKey(null);
               }}
               onToggleFavorite={handleFavoriteToggle}
               favoriteIds={favoriteIds}
@@ -1492,6 +1507,7 @@ export default function HomePageClient() {
       <ExpandableChat
         size="lg"
         position="bottom-right"
+        toggleHintText="Sana nasıl yardımcı olabilirim?"
         icon={(
           <MekoChromaVideo
             src="/gifs/meko-soru.mp4"

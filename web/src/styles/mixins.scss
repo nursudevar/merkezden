@@ -3,12 +3,26 @@ $large-desktop-min: 1600px;
 $large-desktop-max: 1600px;
 $large-desktop-gutter: 64px;
 
+// Public site outer content edge — matches `.footer-container` (reference).
+$site-content-max: 1280px;
+$site-content-inline-padding: 24px;
+
 @mixin large-desktop-content-width {
   @media (min-width: $large-desktop-min) {
     width: calc(100% - #{$large-desktop-gutter});
     max-width: $large-desktop-max;
     box-sizing: border-box;
   }
+}
+
+/// Outer horizontal shell for header / page content.
+/// Base (<1600) matches `.footer-container` box model: content-box, no width:100%.
+/// ≥1600 uses shared large-desktop border-box expansion (same as footer via large-desktop.scss).
+@mixin site-content-container {
+  max-width: $site-content-max;
+  margin-inline: auto;
+  padding-inline: $site-content-inline-padding;
+  @include large-desktop-content-width;
 }
 
 @mixin flex-center {

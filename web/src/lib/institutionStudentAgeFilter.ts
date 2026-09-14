@@ -13,12 +13,9 @@ import {
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
 
-/** Slider / input sınırları */
+/** Min/max input sınırları */
 export const STUDENT_AGE_FILTER_MIN = STUDENT_AGE_INPUT_MIN;
 export const STUDENT_AGE_FILTER_MAX = STUDENT_AGE_INPUT_MAX;
-
-/** Tam genişliğe yayılan tick noktaları (sıkışmayı önler) */
-export const STUDENT_AGE_RANGE_TICKS = [0.5, 1, 10, 18, 40, 70, 99] as const;
 
 export type StudentAgeRangeValue = {
   min: number;

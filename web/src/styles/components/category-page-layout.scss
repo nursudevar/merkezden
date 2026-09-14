@@ -36,6 +36,39 @@
   }
 }
 
+/*
+ * Outer site edge = `.footer-container` via `@mixin site-content-container`.
+ * Nested hero/layout container'lar bu shell içinde ekstra yatay constraint uygulamaz.
+ */
+.category-page-shell {
+  @include site-content-container;
+
+  > * {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
+
+  .category-hero-container,
+  .category-page-layout-container {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .category-breadcrumb-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 .category-page-layout {
   width: 100%;
   padding: 16px 0 60px;
@@ -56,18 +89,22 @@
   padding: 0 30px;
   display: grid;
   grid-template-columns: 340px 1fr;
-  gap: 32px;
+  column-gap: 32px;
+  /* SEO intro satırı ile alt grid arası — önceki layout padding-top ile uyumlu */
+  row-gap: 16px;
   align-items: start;
   min-width: 0;
 
   @media (max-width: 1023px) {
     grid-template-columns: 1fr;
-    gap: 0;
+    column-gap: 0;
+    row-gap: 12px;
     padding: 0 20px;
   }
 
   @media (max-width: 480px) {
     padding: 0 16px;
+    row-gap: 8px;
   }
 }
 

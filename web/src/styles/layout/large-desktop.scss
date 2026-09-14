@@ -1,38 +1,36 @@
 // Shared large-desktop content width (≥1600px).
 // Import after base container max-width rules so this override wins in cascade.
+// Selectors that use `@mixin site-content-container` are omitted — mixin already
+// includes `@include large-desktop-content-width`.
 @import '../mixins';
 
 @media (min-width: $large-desktop-min) {
-  .header-container,
   .footer-container,
   .homepage-footer-extension-inner,
-  .main-layout,
   .category-page-layout-container,
   .category-breadcrumb-container,
   .category-hero-container,
-  .home-patili-dostlar-row,
-  .content-layout,
-  .purple-featured-inner,
   .auth-content-wrapper,
-  .about-page,
-  .announcements-page,
-  .blog-listing-page,
-  .contact-page-main,
-  .nasil-calisir-page-container,
-  .uyelik-layout,
   .panel-page-container,
   .egitmen-panel-page-container,
   .admin-page-container,
   .profile-page-container,
-  .institution-detail-container,
-  .institution-compare-container,
-  .instructor-detail-container,
   .public-instructors-page,
-  .featured-institutions-page,
-  .category-page-content,
-  .haritada-ara-page .category-page-layout-container {
+  .category-page-content {
     width: calc(100% - #{$large-desktop-gutter});
     max-width: $large-desktop-max;
     box-sizing: border-box;
+  }
+
+  /* Shell zaten large-desktop genişliğinde; nested container'lar ikinci kez daralmasın */
+  .category-page-shell .category-hero-container,
+  .category-page-shell .category-page-layout-container,
+  .category-page-shell .category-breadcrumb-container {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
   }
 }

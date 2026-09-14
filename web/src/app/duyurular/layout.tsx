@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Duyurular ve Güncel Haberler | Merkezden",
+  title: "Eğitim Kurumları ve Eğitmenlerden Güncel Duyurular | Merkezden",
   description:
-    "Merkezden'deki eğitim, kurs, etkinlik ve kurum duyurularını takip edin.",
+    "Eğitim kurumları ve eğitmenlerden güncel duyuruları, etkinlikleri, kayıt dönemlerini ve bilgilendirmeleri Merkezden'de takip edin.",
 };
 
 export default function DuyurularLayout({ children }: { children: React.ReactNode }) {

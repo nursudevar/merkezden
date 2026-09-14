@@ -5,9 +5,10 @@
 import type { StudentAgeFilterTextPayload } from "@/lib/institutionStudentAgeFilter";
 
 export type SchoolCategoryFilterPayload = {
-  institutionTypeId: number | null;
-  /** Yalnızca Alt Kategori = Lise (53) iken kullanılır. */
-  highSchoolType: string | null;
+  /** Okul Türü çoklu seçim (OR). Boş = filtre yok. */
+  institutionTypeIds: number[];
+  /** Lise Türü çoklu seçim (OR). Yalnızca Lise okul türü seçiliyken dolu olur. */
+  highSchoolTypes: string[];
   /** Başlıca Özellikler single_select: definitionId → seçilen choice id (string). */
   commonSingle: Record<number, string>;
   /** Başlıca Özellikler multi_select: definitionId → seçilen choice id listesi. */
@@ -21,8 +22,8 @@ export type SchoolCategoryFilterPayload = {
 };
 
 export const EMPTY_SCHOOL_CATEGORY_FILTERS: SchoolCategoryFilterPayload = {
-  institutionTypeId: null,
-  highSchoolType: null,
+  institutionTypeIds: [],
+  highSchoolTypes: [],
   commonSingle: {},
   commonMulti: {},
   commonRange: {},

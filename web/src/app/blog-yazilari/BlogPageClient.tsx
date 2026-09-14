@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Grid3x3, List } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
+import BlogSearch from "@/components/blog/BlogSearch";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import {
   fetchPublishedBlogPosts,
@@ -13,6 +14,7 @@ import {
   mergeDisplayBlogPosts,
   type DisplayBlogPost,
 } from "@/lib/blog/blogClient";
+import { matchesBlogSearch } from "@/lib/blog/blogSearch";
 import { allBlogPosts } from "@/lib/data/blog";
 import {
   buildCategoryTabNames,
@@ -21,6 +23,7 @@ import {
 import "@/styles/main.scss";
 import "@/styles/pages/home.scss";
 import "@/styles/pages/blog.scss";
+import CategorySeoIntro from "@/components/category/CategorySeoIntro";
 
 const mockDisplayPosts = allBlogPosts.map(mapMockPostToDisplay);
 const BLOG_CATEGORY_TABS_FALLBACK = [
@@ -73,7 +76,11 @@ function toListingPost(post: DisplayBlogPost): ListingPost {
   };
 }
 
-function BlogPageContent() {
+function BlogPageContent({
+  blogSearchQuery,
+}: {
+  blogSearchQuery: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [displayPosts, setDisplayPosts] = useState<DisplayBlogPost[]>(() =>
@@ -166,71 +173,98 @@ function BlogPageContent() {
   };
 
   const filteredPosts = useMemo(() => {
-    if (selectedCategory === "Hepsi") {
-      return displayPosts;
-    }
-    return displayPosts.filter((post) => categoryMatches(post.categoryName, selectedCategory));
-  }, [displayPosts, selectedCategory]);
+    const byCategory =
+      selectedCategory === "Hepsi"
+        ? displayPosts
+        : displayPosts.filter((post) => categoryMatches(post.categoryName, selectedCategory));
+
+    const query = blogSearchQuery.trim();
+    if (!query) return byCategory;
+
+    return byCategory.filter((post) =>
+      matchesBlogSearch(
+        {
+          title: post.title,
+          content: post.content,
+          excerpt: post.excerpt,
+          authorName: post.authorName,
+        },
+        query,
+      ),
+    );
+  }, [displayPosts, selectedCategory, blogSearchQuery]);
 
   const listingPosts = useMemo(
     () => filteredPosts.map(toListingPost),
     [filteredPosts],
   );
 
+  const emptyStateMessage = blogSearchQuery.trim()
+    ? "Aramanızla eşleşen blog yazısı bulunamadı."
+    : "Bu kategoride henüz yazı bulunmamaktadır.";
+
   return (
-    <div className="page-container">
-      <HeaderClientWrapper />
+    <>
+      <div className="blog-featured-section">
+        <BlogSubmitCtaBanner />
+      </div>
 
-      <main className="main-content">
-        <div className="blog-listing-page">
-          <CategoryTabs
-            categories={allCategories}
-            selectedCategory={selectedCategory}
-            onCategoryChange={handleCategoryChange}
-          />
+      <CategoryTabs
+        categories={allCategories}
+        selectedCategory={selectedCategory}
+        onCategoryChange={handleCategoryChange}
+      />
 
-          {loading ? (
-            <p className="blog-listing-loading">Blog yazıları yükleniyor…</p>
-          ) : null}
-          {loadError ? (
-            <p className="blog-listing-loading">Güncel yazılar yüklenemedi. Örnek içerikler gösteriliyor.</p>
-          ) : null}
+      {loading ? (
+        <p className="blog-listing-loading">Blog yazıları yükleniyor…</p>
+      ) : null}
+      {loadError ? (
+        <p className="blog-listing-loading">Güncel yazılar yüklenemedi. Örnek içerikler gösteriliyor.</p>
+      ) : null}
 
-          <div className="blog-featured-section">
-            <BlogSubmitCtaBanner />
-          </div>
-
-          <div className="blog-posts-section">
-            <div className="blog-posts-section-toolbar">
-              <ViewToggle view={viewMode} onViewChange={handleViewChange} />
-            </div>
-
-            {viewMode === "grid" ? (
-              <PostGrid posts={listingPosts} />
-            ) : (
-              <PostList posts={listingPosts} />
-            )}
-          </div>
+      <div className="blog-posts-section">
+        <div className="blog-posts-section-toolbar">
+          <ViewToggle view={viewMode} onViewChange={handleViewChange} />
         </div>
-      </main>
-    </div>
+
+        {viewMode === "grid" ? (
+          <PostGrid posts={listingPosts} emptyMessage={emptyStateMessage} />
+        ) : (
+          <PostList posts={listingPosts} emptyMessage={emptyStateMessage} />
+        )}
+      </div>
+    </>
   );
 }
 
 export default function BlogPageClient() {
+  const [blogSearchQuery, setBlogSearchQuery] = useState("");
+
   return (
-    <Suspense fallback={
-      <div className="page-container">
-        <HeaderClientWrapper />
-        <main className="main-content">
-          <div className="blog-listing-page">
-            <p className="blog-listing-loading">Blog yazıları yükleniyor…</p>
-          </div>
-        </main>
-      </div>
-    }>
-      <BlogPageContent />
-    </Suspense>
+    <div className="page-container">
+      <HeaderClientWrapper
+        headerCenter={
+          <BlogSearch
+            value={blogSearchQuery}
+            onChange={setBlogSearchQuery}
+            className="blog-header-search"
+          />
+        }
+      />
+      <main className="main-content">
+        <div className="blog-listing-page">
+          <Suspense
+            fallback={
+              <p className="blog-listing-loading">Blog yazıları yükleniyor…</p>
+            }
+          >
+            <BlogPageContent blogSearchQuery={blogSearchQuery} />
+          </Suspense>
+          {/* useSearchParams Suspense dışında — first server HTML'de SEO H1 + body */}
+          <CategorySeoIntro />
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -334,13 +368,14 @@ type ListingPost = {
 
 type PostGridProps = {
   posts: ListingPost[];
+  emptyMessage: string;
 };
 
-function PostGrid({ posts }: PostGridProps) {
+function PostGrid({ posts, emptyMessage }: PostGridProps) {
   if (posts.length === 0) {
     return (
       <div className="blog-empty-state">
-        <p>Bu kategoride henüz yazı bulunmamaktadır.</p>
+        <p>{emptyMessage}</p>
       </div>
     );
   }
@@ -362,13 +397,14 @@ function PostGrid({ posts }: PostGridProps) {
 
 type PostListProps = {
   posts: ListingPost[];
+  emptyMessage: string;
 };
 
-function PostList({ posts }: PostListProps) {
+function PostList({ posts, emptyMessage }: PostListProps) {
   if (posts.length === 0) {
     return (
       <div className="blog-empty-state">
-        <p>Bu kategoride henüz yazı bulunmamaktadır.</p>
+        <p>{emptyMessage}</p>
       </div>
     );
   }

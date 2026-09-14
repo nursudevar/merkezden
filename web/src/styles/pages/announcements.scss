@@ -2,13 +2,9 @@
 @import '../mixins';
 
 .announcements-page {
-  max-width: 1280px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 8px 30px 56px;
-  /* header-container ile aynı box model (content-box): max-width padding dışı,
-     böylece logo / Hesabım kenarları ile içerik hizası eşitlenir. */
-  @include large-desktop-content-width;
+  @include site-content-container;
+  /* Dikey spacing sayfaya özel; yatay gutter mixin (footer referansı). */
+  padding-block: 8px 56px;
 
   /* Breadcrumb, üst layout ve Tüm Duyurular aynı sol/sağ kenarı paylaşsın */
   > * {
@@ -32,6 +28,11 @@
     margin: 0;
     padding: 0;
   }
+}
+
+.announcements-page > .category-seo-intro {
+  margin-top: 32px;
+  margin-bottom: 0;
 }
 
 .announcements-page-layout {
@@ -210,7 +211,7 @@
 
 .announcements-list-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   width: 100%;
   min-width: 0;
@@ -218,27 +219,31 @@
 
 @media (max-width: 1024px) {
   .announcements-page {
-    padding: 8px 24px 48px;
+    padding-block: 8px 48px;
+  }
+
+  .announcements-list-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
   .announcements-page {
-    padding: 8px 20px 42px;
+    padding-block: 8px 42px;
   }
 
   .announcements-list-section {
     margin-top: 24px;
   }
-
-  .announcements-list-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 640px) {
   .announcements-page {
-    padding: 4px 16px 36px;
+    padding-block: 4px 36px;
+  }
+
+  .announcements-list-grid {
+    grid-template-columns: 1fr;
   }
 
   /* Global breadcrumb mobil padding'i bu sayfada çift inset oluşturmasın */

@@ -11,6 +11,7 @@ import CategoryFilterSidebar, {
 } from "./CategoryFilterSidebar";
 import CategoryHero from "./CategoryHero";
 import CategoryResultsList from "./CategoryResultsList";
+import CategorySeoIntro from "./CategorySeoIntro";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
@@ -36,8 +37,8 @@ function hasMeaningfulSelectionChange(
   next: SchoolCategoryFilterPayload,
 ): boolean {
   if (prev == null) return false;
-  if (prev.institutionTypeId !== next.institutionTypeId) return true;
-  if (prev.highSchoolType !== next.highSchoolType) return true;
+  if (JSON.stringify(prev.institutionTypeIds) !== JSON.stringify(next.institutionTypeIds)) return true;
+  if (JSON.stringify(prev.highSchoolTypes) !== JSON.stringify(next.highSchoolTypes)) return true;
   if (JSON.stringify(prev.commonSingle) !== JSON.stringify(next.commonSingle)) return true;
   if (JSON.stringify(prev.commonMulti) !== JSON.stringify(next.commonMulti)) return true;
   if (JSON.stringify(prev.groupSelections) !== JSON.stringify(next.groupSelections)) return true;
@@ -184,6 +185,9 @@ export default function CategoryPageLayout({
   const layoutContent = (
     <div className="category-page-layout">
       <div className="category-page-layout-container">
+        {/* Ana content container genişliğini paylaşır (filtre sol + sonuç sağ kenarı). */}
+        <CategorySeoIntro />
+
         <aside className="category-page-layout-sidebar">
           <CategoryFilterSidebar
             config={filterConfig}
@@ -194,7 +198,7 @@ export default function CategoryPageLayout({
         </aside>
 
         <div className="category-page-layout-results">
-          <HomeHeroSearchBanner />
+          <HomeHeroSearchBanner titleAs="div" />
 
           <button
             className="category-page-layout-filter-toggle"
@@ -265,8 +269,10 @@ export default function CategoryPageLayout({
 
   const pageBody = (
     <>
-      {heroSection}
-      {layoutContent}
+      <div className="category-page-shell">
+        {heroSection}
+        {layoutContent}
+      </div>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <AppNoticeBar
         message={favoritesError}

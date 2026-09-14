@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -73,6 +73,8 @@ interface HeaderWithSearchClientProps {
   searchTypewriterPlaceholders?: readonly string[];
   searchButtonText?: string;
   showSearchButton?: boolean;
+  /** Opsiyonel orta alan (ör. yalnızca blog sayfası BlogSearch). */
+  headerCenter?: ReactNode;
 }
 
 export function HeaderWithSearchClient({
@@ -89,6 +91,7 @@ export function HeaderWithSearchClient({
   searchTypewriterPlaceholders,
   searchButtonText,
   showSearchButton = true,
+  headerCenter,
 }: HeaderWithSearchClientProps) {
   const welcomeName =
     userType === "institution"
@@ -289,16 +292,18 @@ export function HeaderWithSearchClient({
               )}
             </div>
           </div>
-          {onSearchChange && (
-            <div className="header-search">
-              <SearchBar
-                value={searchValue}
-                onChange={onSearchChange}
-                placeholder={searchPlaceholder || "Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum"}
-                typewriterPlaceholders={searchTypewriterPlaceholders}
-                buttonText={searchButtonText || "ARA"}
-                showButton={showSearchButton}
-              />
+          {(headerCenter || onSearchChange) && (
+            <div className={`header-search${headerCenter ? " header-search--blog" : ""}`}>
+              {headerCenter ?? (
+                <SearchBar
+                  value={searchValue}
+                  onChange={onSearchChange!}
+                  placeholder={searchPlaceholder || "Örnek: Kadıköy'de çocuğum için yüzme kursu arıyorum"}
+                  typewriterPlaceholders={searchTypewriterPlaceholders}
+                  buttonText={searchButtonText || "ARA"}
+                  showButton={showSearchButton}
+                />
+              )}
             </div>
           )}
           <div className="header-actions">
@@ -462,6 +467,7 @@ interface HeaderClientProps {
   initialInstitutionSlug?: string | null;
   initialIndividualName?: string | null;
   initialInstructorName?: string | null;
+  headerCenter?: ReactNode;
 }
 
 export function HeaderClient({
@@ -472,6 +478,7 @@ export function HeaderClient({
   initialInstitutionSlug,
   initialIndividualName,
   initialInstructorName,
+  headerCenter,
 }: HeaderClientProps) {
   return (
     <HeaderWithSearchClient
@@ -482,6 +489,7 @@ export function HeaderClient({
       institutionSlug={initialInstitutionSlug}
       individualName={initialIndividualName}
       instructorName={initialInstructorName}
+      headerCenter={headerCenter}
     />
   );
 }
@@ -670,7 +678,11 @@ export function HeaderWithSearch({
   );
 }
 
-export function HeaderClientWrapper() {
+export function HeaderClientWrapper({
+  headerCenter,
+}: {
+  headerCenter?: ReactNode;
+} = {}) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<AppUserType | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -828,6 +840,7 @@ export function HeaderClientWrapper() {
       initialInstitutionSlug={displayUserType === "institution" ? institutionSlug : null}
       initialIndividualName={displayUserType === "individual" ? individualName : null}
       initialInstructorName={displayUserType === "instructor" ? instructorName : null}
+      headerCenter={headerCenter}
     />
   );
 }

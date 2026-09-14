@@ -17,16 +17,15 @@ $header-layout-desktop: 860px;
 }
 
 .header-container {
-  max-width: 1280px;
-    margin: 0 auto;
-  padding: 14px 30px;
-    @include flex-col;
+  @include site-content-container;
+  padding-block: 14px;
+  @include flex-col;
   gap: 16px;
 
-    @media (min-width: $header-layout-desktop) {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
+  @media (min-width: $header-layout-desktop) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: 24px;
   }
 }
@@ -49,7 +48,6 @@ $header-layout-desktop: 860px;
 .header-brand {
   flex-shrink: 1;
   min-width: 0;
-  margin-left: 20px;
 }
 
 .header-title-link {
@@ -106,6 +104,16 @@ $header-layout-desktop: 860px;
 
   @media (min-width: 1024px) {
     max-width: 600px;
+  }
+
+  &.header-search--blog {
+    @media (min-width: $header-layout-desktop) {
+      max-width: min(420px, 34vw);
+    }
+
+    @media (min-width: 1100px) {
+      max-width: 480px;
+    }
   }
 }
 

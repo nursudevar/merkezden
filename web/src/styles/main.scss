@@ -14,6 +14,7 @@
 @import 'components/label';
 @import 'components/category-breadcrumb';
 @import 'components/category-hero';
+@import 'components/category-seo-intro';
 @import 'components/category-search-bar';
 @import 'components/category-filter-sidebar';
 @import 'components/category-results-card';
@@ -130,12 +131,10 @@ button,
 }
 
 .main-layout {
-  max-width: 1280px;
-  margin: 0 auto;
+  @include site-content-container;
   display: flex;
   flex-direction: column;
   gap: 32px;
-  padding: 0px 30px 0;
 
   @media (min-width: 1024px) {
     flex-direction: row;

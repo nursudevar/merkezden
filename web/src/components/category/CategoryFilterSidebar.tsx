@@ -116,6 +116,7 @@ import {
 } from "@/lib/instructorFeaturesClient";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import { CategoryFilterMultiSelect } from "./CategoryFilterMultiSelect";
 import {
   HIGH_SCHOOL_TYPE_OPTIONS,
   LISE_INSTITUTION_TYPE_ID,
@@ -877,8 +878,6 @@ function buildPatiliBaslicaCommonField(
 
   return null;
 }
-const CLEAR_SUBCATEGORY_VALUE = "__clear_subcategory__";
-const CLEAR_HIGH_SCHOOL_TYPE_VALUE = "__clear_high_school_type__";
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
 const CLEAR_INSTRUCTOR_CATEGORY_VALUE = "__all_categories__";
 
@@ -2110,8 +2109,8 @@ function useCategoryFilterSidebarModel({
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<number>>(new Set());
 
   const [subcategoryTypes, setSubcategoryTypes] = useState<Array<{ id: number; name: string }>>([]);
-  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>("");
-  const [selectedHighSchoolType, setSelectedHighSchoolType] = useState<string>("");
+  const [selectedSubcategoryIds, setSelectedSubcategoryIds] = useState<Set<string>>(new Set());
+  const [selectedHighSchoolTypes, setSelectedHighSchoolTypes] = useState<Set<string>>(new Set());
 
   const [commonFields, setCommonFields] = useState<CommonField[]>([]);
   /** Patili Dostlar: category_slug=patili-dostlar Başlıca Özellikler tanımları (definition bazlı). */
@@ -2296,8 +2295,8 @@ function useCategoryFilterSidebarModel({
   );
 
   const resetCategoryFeatureFilters = useCallback(() => {
-    setSelectedSubcategoryId("");
-    setSelectedHighSchoolType("");
+    setSelectedSubcategoryIds(new Set());
+    setSelectedHighSchoolTypes(new Set());
     setSelectedCommonSingle({});
     setSelectedCommonMulti({});
     setSelectedCommonRange({});
@@ -2657,8 +2656,8 @@ function useCategoryFilterSidebarModel({
   useEffect(() => {
     if (!hasDynamicFeatureMode || !showSchoolSubcategoryFilters) {
       setSubcategoryTypes([]);
-      setSelectedSubcategoryId("");
-      setSelectedHighSchoolType("");
+      setSelectedSubcategoryIds(new Set());
+      setSelectedHighSchoolTypes(new Set());
       return;
     }
 
@@ -2722,10 +2721,38 @@ function useCategoryFilterSidebarModel({
   }, [effectiveSlug, hasDynamicFeatureMode, showSchoolSubcategoryFilters]);
 
   useEffect(() => {
-    if (selectedSubcategoryId !== String(LISE_INSTITUTION_TYPE_ID)) {
-      setSelectedHighSchoolType("");
+    if (!selectedSubcategoryIds.has(String(LISE_INSTITUTION_TYPE_ID))) {
+      setSelectedHighSchoolTypes(new Set());
     }
-  }, [selectedSubcategoryId]);
+  }, [selectedSubcategoryIds]);
+
+  const toggleSchoolSubcategory = useCallback((typeId: number) => {
+    const key = String(typeId);
+    setSelectedSubcategoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleHighSchoolType = useCallback((slug: string) => {
+    setSelectedHighSchoolTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  }, []);
+
+  const selectedSubcategoryIdsKey = useMemo(
+    () => Array.from(selectedSubcategoryIds).sort().join(","),
+    [selectedSubcategoryIds],
+  );
+  const selectedHighSchoolTypesKey = useMemo(
+    () => Array.from(selectedHighSchoolTypes).sort().join(","),
+    [selectedHighSchoolTypes],
+  );
 
   // "Başlıca Özellikler" feature group + definitions + choices (slug'tan bağımsız).
   // Patili: global Başlıca'nın tamamı açılmaz; yalnız Eğitim Dili alınır.
@@ -3130,13 +3157,15 @@ function useCategoryFilterSidebarModel({
     const emitPayload = onSchoolFilterPayloadChangeRef.current;
     if (!emitPayload || !hasDynamicFeatureMode) return;
 
-    const rawSub = selectedSubcategoryId.trim();
-    const institutionTypeId =
-      rawSub && Number.isFinite(Number(rawSub)) && Number(rawSub) > 0 ? Number(rawSub) : null;
+    const institutionTypeIds = Array.from(selectedSubcategoryIds)
+      .map((raw) => Number(String(raw).trim()))
+      .filter((id) => Number.isFinite(id) && id > 0);
 
-    const rawHighSchool = selectedHighSchoolType.trim();
-    const highSchoolType =
-      institutionTypeId === LISE_INSTITUTION_TYPE_ID && rawHighSchool ? rawHighSchool : null;
+    const highSchoolTypes = institutionTypeIds.includes(LISE_INSTITUTION_TYPE_ID)
+      ? Array.from(selectedHighSchoolTypes)
+          .map((slug) => String(slug ?? "").trim())
+          .filter(Boolean)
+      : [];
 
     const commonSingle: Record<number, string> = {};
     for (const [k, v] of Object.entries(selectedCommonSingle)) {
@@ -3175,8 +3204,8 @@ function useCategoryFilterSidebarModel({
     }
 
     emitPayload({
-      institutionTypeId,
-      highSchoolType,
+      institutionTypeIds,
+      highSchoolTypes,
       commonSingle,
       commonMulti,
       commonRange,
@@ -3188,8 +3217,8 @@ function useCategoryFilterSidebarModel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     hasDynamicFeatureMode,
-    selectedSubcategoryId,
-    selectedHighSchoolType,
+    selectedSubcategoryIdsKey,
+    selectedHighSchoolTypesKey,
     commonSingleKey,
     commonMultiKey,
     commonRangeKey,
@@ -3281,8 +3310,8 @@ function useCategoryFilterSidebarModel({
       if (defaultIlId && displayIlId && displayIlId !== defaultIlId) return true;
     }
     if (String(selectedCategory ?? "").trim()) return true;
-    if (String(selectedSubcategoryId ?? "").trim()) return true;
-    if (String(selectedHighSchoolType ?? "").trim()) return true;
+    if (selectedSubcategoryIds.size > 0) return true;
+    if (selectedHighSchoolTypes.size > 0) return true;
     if (priceRange != null) return true;
     if (isStudentAgeFilterTextActive(selectedStudentAgeRange)) return true;
     for (const v of Object.values(selectedCommonSingle)) {
@@ -3316,8 +3345,8 @@ function useCategoryFilterSidebarModel({
     defaultIlId,
     usesInstitutionLocationFilters,
     selectedCategory,
-    selectedSubcategoryId,
-    selectedHighSchoolType,
+    selectedSubcategoryIds,
+    selectedHighSchoolTypes,
     priceRange,
     selectedCommonSingle,
     selectedCommonMulti,
@@ -3395,10 +3424,10 @@ function useCategoryFilterSidebarModel({
     selectedFeatureOptionsByGroup,
     expandedGroupIds,
     subcategoryTypes,
-    selectedSubcategoryId,
-    setSelectedSubcategoryId,
-    selectedHighSchoolType,
-    setSelectedHighSchoolType,
+    selectedSubcategoryIds,
+    selectedHighSchoolTypes,
+    toggleSchoolSubcategory,
+    toggleHighSchoolType,
     showSchoolSubcategoryFilters,
     showKursSinavaHazirlikInstitutionFilters,
     showSporInstitutionFilters,
@@ -3567,10 +3596,10 @@ function CategoryFilterSidebarView({
     selectedFeatureOptionsByGroup,
     expandedGroupIds,
     subcategoryTypes,
-    selectedSubcategoryId,
-    setSelectedSubcategoryId,
-    selectedHighSchoolType,
-    setSelectedHighSchoolType,
+    selectedSubcategoryIds,
+    selectedHighSchoolTypes,
+    toggleSchoolSubcategory,
+    toggleHighSchoolType,
     showSchoolSubcategoryFilters,
     showKursSinavaHazirlikInstitutionFilters,
     showSporInstitutionFilters,
@@ -4213,6 +4242,15 @@ function CategoryFilterSidebarView({
   const locationMahalleLabel = !displayIlceId
     ? "Mahalle Seçin"
     : mahalleler.find((row) => String(row.id) === displayMahalleId)?.ad ?? "Tüm Mahalleler";
+  const instructorCategorySelectLabel = (() => {
+    if (instructorCategoriesLoading) return "Kategoriler yükleniyor...";
+    const slug = String(selectedCategory ?? "").trim();
+    if (!slug) return "Tüm Kategoriler";
+    const match = instructorCategories.find(
+      (category) => String(category.slug ?? "").trim() === slug,
+    );
+    return String(match?.name ?? "").trim() || "Kategori Seçin";
+  })();
 
   return (
     <aside className="category-filter-sidebar">
@@ -4263,7 +4301,7 @@ function CategoryFilterSidebarView({
                     disabled={iller.length === 0}
                   >
                   <Select
-                    value={displayIlId || undefined}
+                    value={displayIlId || ""}
                     onValueChange={handleIlChange}
                     disabled={iller.length === 0}
                   >
@@ -4346,63 +4384,45 @@ function CategoryFilterSidebarView({
             <div className="category-filter-section">
               <CategoryFilterSectionTitle title="OKUL TÜRÜ" />
               <div className="category-filter-section-inputs">
-                <Select
-                  value={selectedSubcategoryId ? selectedSubcategoryId : CLEAR_SUBCATEGORY_VALUE}
-                  onValueChange={(value) =>
-                    setSelectedSubcategoryId(value === CLEAR_SUBCATEGORY_VALUE ? "" : value)
-                  }
-                >
-                  <SelectTrigger className="category-filter-select">
-                    <SelectValue placeholder="Okul türü seç" />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="select-content home-location-dropdown"
-                    side="bottom"
-                    avoidCollisions={false}
-                  >
-                    <SelectItem value={CLEAR_SUBCATEGORY_VALUE} className="select-item">
-                      Okul türü seç
-                    </SelectItem>
-                    {subcategoryTypes.map((type) => (
-                      <SelectItem key={type.id} value={String(type.id)} className="select-item">
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CategoryFilterMultiSelect
+                  options={sortCheckboxOptionsByLabel(subcategoryTypes, (t) => t.name).map(
+                    (type) => ({
+                      value: String(type.id),
+                      label: type.name,
+                    }),
+                  )}
+                  selectedValues={Array.from(selectedSubcategoryIds)}
+                  onToggleValue={(value) => {
+                    const id = Number(value);
+                    if (Number.isFinite(id) && id > 0) toggleSchoolSubcategory(id);
+                  }}
+                  placeholder="Okul türü seç"
+                  ariaLabel="Okul türü seçimi"
+                  selectedCountNoun="tür"
+                />
               </div>
             </div>
           ) : null}
 
           {showSchoolSubcategoryFilters &&
-          selectedSubcategoryId === String(LISE_INSTITUTION_TYPE_ID) ? (
+          selectedSubcategoryIds.has(String(LISE_INSTITUTION_TYPE_ID)) ? (
             <div className="category-filter-section">
               <CategoryFilterSectionTitle title="LİSE TÜRÜ" />
               <div className="category-filter-section-inputs">
-                <Select
-                  value={selectedHighSchoolType ? selectedHighSchoolType : CLEAR_HIGH_SCHOOL_TYPE_VALUE}
-                  onValueChange={(value) =>
-                    setSelectedHighSchoolType(value === CLEAR_HIGH_SCHOOL_TYPE_VALUE ? "" : value)
-                  }
-                >
-                  <SelectTrigger className="category-filter-select">
-                    <SelectValue placeholder="Lise türü seç" />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="select-content home-location-dropdown"
-                    side="bottom"
-                    avoidCollisions={false}
-                  >
-                    <SelectItem value={CLEAR_HIGH_SCHOOL_TYPE_VALUE} className="select-item">
-                      Lise türü seç
-                    </SelectItem>
-                    {HIGH_SCHOOL_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.slug} value={option.slug} className="select-item">
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CategoryFilterMultiSelect
+                  options={sortCheckboxOptionsByLabel(
+                    [...HIGH_SCHOOL_TYPE_OPTIONS],
+                    (o) => o.label,
+                  ).map((option) => ({
+                    value: option.slug,
+                    label: option.label,
+                  }))}
+                  selectedValues={Array.from(selectedHighSchoolTypes)}
+                  onToggleValue={toggleHighSchoolType}
+                  placeholder="Lise türü seç"
+                  ariaLabel="Lise türü seçimi"
+                  selectedCountNoun="tür"
+                />
               </div>
             </div>
           ) : null}
@@ -4411,6 +4431,10 @@ function CategoryFilterSidebarView({
             <div className="category-filter-section">
               <CategoryFilterSectionTitle title="KATEGORİ" />
               <div className="category-filter-section-inputs">
+                <SelectMountGate
+                  label={instructorCategorySelectLabel}
+                  disabled={instructorCategoriesLoading}
+                >
                 <Select
                   value={selectedCategory ? selectedCategory : CLEAR_INSTRUCTOR_CATEGORY_VALUE}
                   onValueChange={(value) =>
@@ -4446,6 +4470,7 @@ function CategoryFilterSidebarView({
                     })}
                   </SelectContent>
                 </Select>
+                </SelectMountGate>
                 {instructorCategoriesError ? (
                   <p className="category-filter-section-empty">{instructorCategoriesError}</p>
                 ) : null}
@@ -5194,7 +5219,9 @@ export default function CategoryFilterSidebar({
  * haline döner ve sonuçlar filtrelenmemiş şekilde listelenir.
  */
 export function CategoryFilterResetButton() {
-  const ctxModel = useContext(SchoolCategoryFilterPanelContext);
+  const schoolCtxModel = useContext(SchoolCategoryFilterPanelContext);
+  const instructorCtxModel = useContext(InstructorCategoryFilterPanelContext);
+  const ctxModel = instructorCtxModel ?? schoolCtxModel;
   if (!ctxModel) return null;
   if (!ctxModel.hasActiveFilters) return null;
   return (

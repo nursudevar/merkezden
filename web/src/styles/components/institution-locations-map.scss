@@ -180,13 +180,7 @@
   box-sizing: border-box;
 
   .category-page-layout-container {
-    width: 100%;
-    max-width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 30px;
-    padding-right: 30px;
-    box-sizing: border-box;
+    @include site-content-container;
     grid-template-columns: 260px minmax(0, 1fr);
     gap: 24px;
     align-items: start;
@@ -194,13 +188,6 @@
     @media (max-width: 1023px) {
       grid-template-columns: minmax(0, 1fr);
       gap: 0;
-      padding-left: 20px;
-      padding-right: 20px;
-    }
-
-    @media (max-width: 480px) {
-      padding-left: 16px;
-      padding-right: 16px;
     }
   }
 

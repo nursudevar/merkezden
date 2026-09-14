@@ -619,9 +619,8 @@ function isFilterIdSetEmpty(allowedIds: Set<number> | null): boolean {
 function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undefined): boolean {
   if (!payload) return false;
   if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
-  if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
-    return true;
-  if (payload.highSchoolType != null && String(payload.highSchoolType).trim()) return true;
+  if ((payload.institutionTypeIds ?? []).some((id) => Number.isFinite(id) && id > 0)) return true;
+  if ((payload.highSchoolTypes ?? []).some((slug) => String(slug ?? "").trim())) return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
     return true;
   if (Object.keys(payload.commonMulti).some((k) => (payload.commonMulti[Number(k)] ?? []).length > 0))

@@ -115,14 +115,12 @@ type HomeMainCategoryCardProps = {
   category: HomeMainCategoryCardData;
   categoryHref: string | null;
   categoryLogoSrc: string | null;
-  onCardClick: () => void;
 };
 
 export function HomeMainCategoryCard({
   category,
   categoryHref,
   categoryLogoSrc,
-  onCardClick,
 }: HomeMainCategoryCardProps) {
   const titleText = category.name.toLocaleUpperCase("tr-TR");
 
@@ -175,11 +173,8 @@ export function HomeMainCategoryCard({
     isVocationalCategory,
   ]);
 
-  return (
-    <article
-      className={`home-main-category-card ${categoryHref ? "home-main-category-card--clickable" : ""}`}
-      onClick={onCardClick}
-    >
+  const categoryNavContent = (
+    <>
       {categoryLogoSrc ? (
         <span className="home-main-category-card-icon" aria-hidden>
           <Image
@@ -207,14 +202,20 @@ export function HomeMainCategoryCard({
           </ul>
         </div>
       ) : null}
+    </>
+  );
+
+  return (
+    <article className="home-main-category-card">
       {categoryHref ? (
-        <Link
-          href={categoryHref}
-          className="home-main-category-card-more-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-        >
+        <Link href={categoryHref} className="home-main-category-card-nav">
+          {categoryNavContent}
+        </Link>
+      ) : (
+        <div className="home-main-category-card-nav">{categoryNavContent}</div>
+      )}
+      {categoryHref ? (
+        <Link href={categoryHref} className="home-main-category-card-more-btn">
           Daha Fazla Gör
         </Link>
       ) : null}

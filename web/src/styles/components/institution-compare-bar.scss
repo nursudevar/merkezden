@@ -218,6 +218,38 @@
   }
 }
 
+.institution-compare-bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.institution-compare-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid $border-light;
+  background: $bg-white;
+  color: $text-zinc-700;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  @include transition;
+  transition-property: background, border-color, color;
+
+  &:hover {
+    background: $bg-zinc-50;
+    border-color: rgba(15, 23, 42, 0.16);
+    color: $default-text-color;
+  }
+}
+
 .institution-compare-bar-cta {
   display: inline-flex;
   align-items: center;
@@ -368,7 +400,7 @@
     width: 100%;
   }
 
-  .institution-compare-bar-cta {
+  .institution-compare-bar-actions {
     margin-left: auto;
   }
 }

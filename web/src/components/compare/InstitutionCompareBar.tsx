@@ -7,7 +7,7 @@ import { useInstitutionCompare } from "./InstitutionCompareProvider";
 
 export function InstitutionCompareBar() {
   const pathname = usePathname();
-  const { items, remove } = useInstitutionCompare();
+  const { items, remove, clear } = useInstitutionCompare();
 
   if (pathname === "/karsilastir/kurumlar") return null;
   if (items.length === 0) return null;
@@ -50,15 +50,24 @@ export function InstitutionCompareBar() {
           ))}
         </ul>
 
-        {canCompare ? (
-          <Link href={href} className="institution-compare-bar-cta">
-            Karşılaştır
-          </Link>
-        ) : (
-          <button type="button" className="institution-compare-bar-cta" disabled>
-            Karşılaştır
+        <div className="institution-compare-bar-actions">
+          <button
+            type="button"
+            className="institution-compare-bar-clear"
+            onClick={clear}
+          >
+            Temizle
           </button>
-        )}
+          {canCompare ? (
+            <Link href={href} className="institution-compare-bar-cta">
+              Karşılaştır
+            </Link>
+          ) : (
+            <button type="button" className="institution-compare-bar-cta" disabled>
+              Karşılaştır
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

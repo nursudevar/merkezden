@@ -139,6 +139,35 @@
     font-size: 14px;
     padding: 0 16px;
     box-sizing: border-box;
+    border: 2.5px solid rgba($purple-main, 0.48);
+    box-shadow:
+      0 4px 16px rgba($purple-main, 0.1),
+      0 2px 8px rgba($orange-primary, 0.08);
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      box-shadow:
+        0 18px 36px rgba($purple-main, 0.08),
+        0 10px 24px rgba($orange-primary, 0.08),
+        0 4px 12px rgba($purple-light, 0.08);
+    }
+
+    &:active {
+      box-shadow:
+        0 12px 24px rgba($purple-main, 0.10),
+        0 6px 16px rgba($orange-primary, 0.10);
+    }
+  }
+
+  .search-bar-input-shell:hover .search-bar-input,
+  .search-bar-input-shell:focus-within .search-bar-input {
+    outline: none;
+    box-shadow:
+      0 18px 36px rgba($purple-main, 0.18),
+      0 10px 24px rgba($orange-primary, 0.16),
+      0 4px 12px rgba($purple-light, 0.12);
   }
 
   .search-bar-input--with-icon {
@@ -167,6 +196,26 @@
     font-size: $text-sm;
     line-height: 1;
     box-sizing: border-box;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-search {
+    .search-bar-input {
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+      &:hover,
+      &:focus,
+      &:focus-visible,
+      &:active {
+        transform: none;
+      }
+    }
+
+    .search-bar-input-shell:hover .search-bar-input,
+    .search-bar-input-shell:focus-within .search-bar-input {
+      transform: none;
+    }
   }
 }
 
@@ -349,6 +398,8 @@
 
   @media (min-width: 1024px) {
     width: 320px;
+    /* Sol sütunu ana içerikle hizala; CTA dikey ortalanabilsin */
+    align-self: stretch;
   }
 }
 
@@ -567,10 +618,9 @@
 }
 
 .home-patili-dostlar-row {
-  max-width: 1280px;
-  margin: 30px auto 60px auto;
-  padding: 0 30px;
+  width: 100%;
   box-sizing: border-box;
+  margin: 30px 0 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -582,13 +632,8 @@
     gap: 32px;
   }
 
-  @media (max-width: 1023px) {
-    padding: 0 20px;
-  }
-
   @media (max-width: 640px) {
-    padding: 0 16px;
-    margin: 24px auto;
+    margin: 24px 0;
   }
 }
 
@@ -1562,99 +1607,6 @@
   flex-shrink: 0;
 }
 
-.price-filter-slider {
-  padding: 0 8px;
-  padding-top: 12px;
-  padding-bottom: 4px;
-}
-
-.price-slider {
-  position: relative;
-  display: flex;
-  width: 100%;
-  touch-action: none;
-  align-items: center;
-  user-select: none;
-  height: 32px;
-}
-
-.price-slider[data-disabled] {
-  opacity: 0.5;
-}
-
-.price-slider[data-orientation="vertical"] {
-  height: 100%;
-  min-height: 176px;
-  width: auto;
-  flex-direction: column;
-}
-
-.price-slider-track {
-  position: relative;
-  flex-grow: 1;
-  overflow: visible;
-  border-radius: 9999px;
-  height: 6px;
-  width: 100%;
-  background: linear-gradient(to right, $purple-main, $purple-light, $purple-dark);
-  box-shadow: 0 1px 3px rgba($purple-main, 0.2);
-}
-
-.price-slider[data-orientation="vertical"] .price-slider-track {
-  height: 100%;
-  width: 6px;
-}
-
-.price-slider-range {
-  position: absolute;
-  background: linear-gradient(to right, $purple-main, $purple-light);
-  border-radius: 9999px;
-  box-shadow: 0 0 4px rgba($purple-main, 0.3);
-}
-
-.price-slider-thumb {
-  display: block;
-  width: 15px;
-  height: 15px;
-  border: 2px solid $bg-white;
-  background: linear-gradient(135deg, $purple-main, $purple-light);
-  box-shadow: 0 4px 10px rgba($purple-main, 0.28), 0 0 0 1px rgba($purple-main, 0.16);
-  border-radius: 50%;
-  @include transition;
-  cursor: grab;
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.price-slider-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.15);
-  box-shadow: 0 5px 12px rgba($purple-main, 0.32), 0 0 0 3px rgba($purple-main, 0.1);
-}
-
-.price-slider-thumb:hover {
-  transform: scale(1.08);
-  box-shadow: 0 5px 12px rgba($purple-main, 0.32), 0 0 0 3px rgba($purple-main, 0.1);
-}
-
-.price-slider-thumb:focus-visible {
-  outline: none;
-  box-shadow: 0 5px 12px rgba($purple-main, 0.32), 0 0 0 4px rgba($purple-main, 0.14);
-}
-
-.price-slider-thumb[data-disabled] {
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-.price-slider:hover .price-slider-track {
-  box-shadow: 0 2px 6px rgba($purple-main, 0.3);
-}
-
-.price-slider:focus-within .price-slider-track {
-  box-shadow: 0 2px 6px rgba($purple-main, 0.3);
-}
-
 /* Öğrenci Yaşı aralığı — turuncu tema (home sidebar’da mor fiyat stillerini ezer) */
 .age-range-slider-filter {
   .price-range-slider-input,
@@ -1671,83 +1623,6 @@
       box-shadow: 0 0 0 2px rgba(255, 152, 7, 0.16);
     }
   }
-
-  .price-slider-track {
-    background: linear-gradient(90deg, rgba(255, 152, 7, 0.18), rgba(255, 179, 71, 0.24));
-    box-shadow: inset 0 1px 2px rgba(17, 24, 39, 0.06);
-  }
-
-  .price-slider-range {
-    background: linear-gradient(90deg, #f59e0b 0%, $orange-primary 55%, #ffb347 100%);
-    box-shadow: 0 4px 12px rgba(255, 152, 7, 0.28);
-  }
-
-  .price-slider-thumb {
-    background: linear-gradient(135deg, #f59e0b, $orange-primary);
-    box-shadow: 0 4px 10px rgba(255, 152, 7, 0.3), 0 0 0 1px rgba(255, 152, 7, 0.18);
-
-    &:hover,
-    &:active,
-    &:focus-visible {
-      box-shadow: 0 5px 12px rgba(255, 152, 7, 0.36), 0 0 0 3px rgba(255, 152, 7, 0.14);
-    }
-  }
-
-  .price-slider:hover .price-slider-track,
-  .price-slider:focus-within .price-slider-track {
-    box-shadow: 0 2px 6px rgba(255, 152, 7, 0.22);
-  }
-
-  .price-range-slider-tick {
-    width: 28px;
-  }
-
-  .price-range-slider-tick-marker {
-    background: rgba(255, 152, 7, 0.4);
-  }
-
-  .price-range-slider-tick:hover {
-    color: darken($orange-primary, 8%);
-
-    .price-range-slider-tick-marker {
-      background: rgba(255, 152, 7, 0.65);
-    }
-  }
-
-  .price-range-slider-tick--active {
-    color: rgba(240, 127, 17, 0.85);
-
-    .price-range-slider-tick-marker {
-      background: rgba(255, 152, 7, 0.58);
-    }
-  }
-
-  .price-range-slider-tick--endpoint {
-    color: darken($orange-primary, 6%);
-
-    .price-range-slider-tick-label {
-      color: rgba(230, 126, 10, 0.95);
-    }
-  }
-
-  .price-range-slider-tick-label {
-    font-size: 11px;
-  }
-
-  .price-range-slider-control {
-    padding-bottom: 24px;
-  }
-}
-
-.price-filter-labels {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: $text-xs;
-  font-weight: $font-semibold;
-  color: $text-placeholder;
-  padding: 4px 8px 0;
-  margin-top: 4px;
 }
 
 .filter-option {
@@ -2316,13 +2191,80 @@ a.service-card {
   }
 }
 
+/// Ana kategori kartları ile paylaşılan renkli conic border.
+/// `$animated: false` → aynı gradient, dönüş/animasyon yok (Sürücü Kursları banner).
+@mixin home-main-category-conic-border(
+  $inner-radius,
+  $hover-inner-radius,
+  $fill-background,
+  $animated: true
+) {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -45%;
+    z-index: -2;
+    background: conic-gradient(
+      from 0deg,
+      #6d5dfc 0%,
+      #7f56d9 22%,
+      #e879f9 42%,
+      #ff9807 68%,
+      #ffb347 82%,
+      #6d5dfc 100%
+    );
+    @if $animated {
+      animation: home-main-category-border-spin 2s linear infinite;
+    } @else {
+      animation: none;
+    }
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: $inner-radius;
+    background: $fill-background;
+    pointer-events: none;
+    @if $animated {
+      transition: inset 0.25s ease, border-radius 0.25s ease;
+    } @else {
+      transition: none;
+    }
+  }
+
+  @if $animated {
+    &:hover::before {
+      animation-duration: 7s;
+    }
+
+    &:hover::after {
+      inset: 1.5px;
+      border-radius: $hover-inner-radius;
+    }
+
+    @media (max-width: 768px) {
+      &::before {
+        animation-duration: 18s;
+      }
+
+      &:hover::before {
+        animation-duration: 10s;
+      }
+    }
+  }
+}
+
 .home-main-category-card {
   position: relative;
   isolation: isolate;
   background: #ffffff;
   border-radius: 16px;
   border: none;
-  padding: 0px 16px 8px;
+  padding: 0 0 8px;
   min-height: 168px;
   max-height: 200px;
   display: flex;
@@ -2339,6 +2281,7 @@ a.service-card {
   transition:
     transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  @include home-main-category-conic-border(15px, 14.5px, #ffffff);
 
   &:hover {
     transform: translateY(-6px);
@@ -2355,58 +2298,10 @@ a.service-card {
       0 6px 16px rgba($orange-primary, 0.12);
   }
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: -45%;
-    z-index: -2;
-    background: conic-gradient(
-      from 0deg,
-      #6d5dfc 0%,
-      #7f56d9 22%,
-      #e879f9 42%,
-      #ff9807 68%,
-      #ffb347 82%,
-      #6d5dfc 100%
-    );
-    animation: home-main-category-border-spin 2s linear infinite;
-    pointer-events: none;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    z-index: -1;
-    border-radius: 15px;
-    background: #ffffff;
-    pointer-events: none;
-    transition: inset 0.25s ease, border-radius 0.25s ease;
-  }
-
-  &:hover::before {
-    animation-duration: 7s;
-  }
-
-  &:hover::after {
-    inset: 1.5px;
-    border-radius: 14.5px;
-  }
-
   @media (max-width: 1180px) {
     min-height: 162px;
     max-height: 194px;
-    padding: 12px 12px 10px;
-  }
-
-  @media (max-width: 768px) {
-    &::before {
-      animation-duration: 18s;
-    }
-
-    &:hover::before {
-      animation-duration: 10s;
-    }
+    padding: 0 0 10px;
   }
 }
 
@@ -2462,7 +2357,25 @@ a.service-card {
   }
 }
 
-.home-main-category-card--clickable {
+.home-main-category-card-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 16px;
+  box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
+
+  @media (max-width: 1180px) {
+    padding: 12px 12px 0;
+  }
+}
+
+.home-main-category-card--clickable,
+a.home-main-category-card-nav {
   cursor: pointer;
 }
 
@@ -2481,6 +2394,7 @@ a.service-card {
   height: 100%;
   max-width: 116px;
   object-fit: contain;
+  pointer-events: none;
 }
 
 .home-main-category-card-title {
@@ -3890,6 +3804,13 @@ a.search-result-card {
 
 .filter-sidebar-cta {
   width: 100%;
+
+  @media (min-width: 1024px) {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
 }
 
 .home-filter-tips {
@@ -4024,10 +3945,10 @@ a.search-result-card {
 
 .cta-section--sidebar {
   margin: 0;
-  height: 200px;
-  min-height: 200px;
-  max-height: 200px;
+  width: 100%;
   box-sizing: border-box;
+  /* <1024: kompakt; desktop ölçekleme aşağıda */
+  min-height: 200px;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -4037,6 +3958,7 @@ a.search-result-card {
   text-align: center;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   border-radius: 24px;
   overflow: hidden;
 
@@ -4073,6 +3995,29 @@ a.search-result-card {
     font-size: 12px;
     white-space: normal;
     line-height: 1.35;
+  }
+
+  @media (min-width: 1024px) {
+    min-height: 350px;
+    padding: 28px 20px;
+    gap: 16px;
+
+    .cta-section-title {
+      font-size: 21px;
+      line-height: 1.25;
+    }
+
+    .cta-section-subtitle {
+      font-size: 12.5px;
+      line-height: 1.45;
+      -webkit-line-clamp: 3;
+    }
+
+    .cta-section-button {
+      padding: 11px 16px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
   }
 }
 
@@ -4571,9 +4516,8 @@ a.search-result-card {
 }
 
 .content-layout {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0px 30px 40px 30px;
+  @include site-content-container;
+  padding-bottom: 40px;
 }
 
 .content-layout-inner {
@@ -4584,9 +4528,6 @@ a.search-result-card {
 
 
 .content-layout-inner .home-patili-dostlar-row {
-  max-width: none;
-  padding-left: 0;
-  padding-right: 0;
   margin-top: 40px;
 }
 
@@ -5096,18 +5037,9 @@ a.home-individual-instructor-item {
   }
 }
 
-@keyframes home-driving-schools-title-color-flow {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  100% {
-    background-position: 200% 50%;
-  }
-}
-
 .home-driving-schools-section {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5116,7 +5048,7 @@ a.home-individual-instructor-item {
   border-radius: 24px;
   min-height: 240px;
   height: auto;
-  background-image: url("/images/surucu-kursu-lg-bg.png");
+  background-image: url("/images/merkezden-lg-gray-bg.png");
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -5124,11 +5056,21 @@ a.home-individual-instructor-item {
   overflow: hidden;
   margin: 10px 0;
   box-sizing: border-box;
+  @include home-main-category-conic-border(
+    23px,
+    22.5px,
+    url("/images/surucu-kursu-bg-light-2.png") center / cover no-repeat,
+    false
+  );
 
   @media (max-width: 639px) {
     min-height: 220px;
     padding: 22px 16px;
     border-radius: 16px;
+
+    &::after {
+      border-radius: 15px;
+    }
   }
 }
 
@@ -5174,26 +5116,7 @@ a.home-individual-instructor-item {
   margin: 0 0 8px;
   line-height: 1.2;
   text-align: center;
-  background-image: linear-gradient(
-    90deg,
-    #ffffff 0%,
-    #ffffff 35%,
-    #ff6eb4 40%,
-    #38bdf8 45%,
-    #fde047 50%,
-    #c084fc 55%,
-    #2dd4bf 60%,
-    #ffffff 65%,
-    #ffffff 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: home-driving-schools-title-color-flow 4.5s linear infinite;
-  filter: drop-shadow(0 2px 12px rgba(8, 4, 28, 0.55));
-  will-change: background-position;
+  color: #2b2f37;
 }
 
 .driver-courses-subtitle {
@@ -5201,10 +5124,9 @@ a.home-individual-instructor-item {
   font-size: 18px;
   font-weight: $font-medium;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.92);
+  color: #2b2f37;
   max-width: 40ch;
   text-align: center;
-  text-shadow: 0 1px 6px rgba(20, 12, 48, 0.3);
 }
 
 .driver-courses-link {
@@ -5221,18 +5143,18 @@ a.home-individual-instructor-item {
   text-decoration: none;
   text-transform: none;
   cursor: pointer;
-  border: 1px solid $purple-main;
-  background-color: $bg-white;
+  border: 1px solid rgba($purple-main, 0.6);
+  background-color: transparent;
   color: $purple-main;
   box-shadow: none;
   @include transition;
-  transition-property: transform, box-shadow, background-color, color, border-color;
+  transition-property: transform, background-color, color, border-color;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.95);
-    color: $purple-dark;
-    border-color: $purple-dark;
-    box-shadow: 0 4px 12px rgba(109, 93, 252, 0.25);
+    background-color: rgba($purple-main, 0.07);
+    border-color: rgba($purple-main, 0.85);
+    color: $purple-main;
+    box-shadow: none;
     opacity: 1;
     text-decoration: none;
   }
@@ -5379,9 +5301,8 @@ a.home-individual-instructor-item {
 
 .purple-featured-inner {
   position: relative;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 200px 30px 30px;
+  @include site-content-container;
+  padding-block: 200px 30px;
 }
 
 .purple-featured-heading {
@@ -5566,7 +5487,7 @@ a.home-individual-instructor-item {
 
 @media (max-width: 1023px) {
   .purple-featured-inner {
-    padding: 150px 20px 32px;
+    padding-block: 150px 32px;
   }
 
   .purple-featured-scroller {
@@ -5593,7 +5514,7 @@ a.home-individual-instructor-item {
   }
 
   .purple-featured-inner {
-    padding: 126px 14px 24px;
+    padding-block: 126px 24px;
   }
 
   .purple-featured-card {

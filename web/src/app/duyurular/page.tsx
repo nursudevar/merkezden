@@ -33,6 +33,7 @@ import {
   resolveCategoryLocationFromSearch,
 } from "@/components/category/categoryLocationFilter";
 import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
+import CategorySeoIntro from "@/components/category/CategorySeoIntro";
 import {
   fetchIller,
   fetchIlcelerByIlId,
@@ -410,20 +411,18 @@ function AnnouncementCategoryTabs({
 
 export default function AnnouncementsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="page-container">
-          <HeaderClientWrapper />
-          <main className="main-content">
-            <div className="announcements-page">
-              <p>Yükleniyor...</p>
-            </div>
-          </main>
+    <div className="page-container">
+      <HeaderClientWrapper />
+      <main className="main-content">
+        <div className="announcements-page">
+          <Suspense fallback={<p>Yükleniyor...</p>}>
+            <AnnouncementsPageContent />
+          </Suspense>
+          {/* useSearchParams Suspense dışında — first server HTML'de SEO H1 + body */}
+          <CategorySeoIntro />
         </div>
-      }
-    >
-      <AnnouncementsPageContent />
-    </Suspense>
+      </main>
+    </div>
   );
 }
 
@@ -656,11 +655,7 @@ function AnnouncementsPageContent() {
       : null;
 
   return (
-    <div className="page-container">
-      <HeaderClientWrapper />
-
-      <main className="main-content">
-        <div className="announcements-page">
+    <>
           <div className="category-hero-breadcrumb-wrapper announcements-page-breadcrumb">
             <CategoryBreadcrumb
               categoryLabel="DUYURULAR"
@@ -895,14 +890,12 @@ function AnnouncementsPageContent() {
               </div>
             </section>
           ) : null}
-        </div>
-      </main>
 
       <AnnouncementDetailModal
         isOpen={Boolean(activeAnnouncementForModal)}
         onClose={closeAnnouncement}
         announcement={activeAnnouncementForModal}
       />
-    </div>
+    </>
   );
 }

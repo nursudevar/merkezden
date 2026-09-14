@@ -17,13 +17,7 @@
 }
 
 .institution-detail-container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 16px;
-
-  @media (max-width: 640px) {
-    padding: 0 16px;
-  }
+  @include site-content-container;
 }
 
 // Breadcrumb

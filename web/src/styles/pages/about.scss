@@ -3,10 +3,8 @@
 @import '../typography';
 
 .about-page {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 30px;
-  box-sizing: border-box;
+  @include site-content-container;
+  padding-block: 30px;
 }
 
 .about-hero {

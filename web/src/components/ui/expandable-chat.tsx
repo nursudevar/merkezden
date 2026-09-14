@@ -31,6 +31,8 @@ interface ExpandableChatProps extends React.HTMLAttributes<HTMLDivElement> {
   position?: ChatPosition;
   size?: ChatSize;
   icon?: React.ReactNode;
+  /** Toggle üstünde dönen bilgilendirme balonu metni (yalnızca kapalıyken). */
+  toggleHintText?: string;
 }
 
 const ExpandableChat: React.FC<ExpandableChatProps> = ({
@@ -38,6 +40,7 @@ const ExpandableChat: React.FC<ExpandableChatProps> = ({
   position = "bottom-right",
   size = "md",
   icon,
+  toggleHintText,
   children,
   ...props
 }) => {
@@ -77,6 +80,7 @@ const ExpandableChat: React.FC<ExpandableChatProps> = ({
         icon={icon}
         isOpen={isOpen}
         toggleChat={toggleChat}
+        toggleHintText={toggleHintText}
       />
     </div>
   );
@@ -117,6 +121,7 @@ interface ExpandableChatToggleProps
   icon?: React.ReactNode;
   isOpen: boolean;
   toggleChat: () => void;
+  toggleHintText?: string;
 }
 
 const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
@@ -124,6 +129,7 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
   icon,
   isOpen,
   toggleChat,
+  toggleHintText,
   ...props
 }) => {
   const [burstId, setBurstId] = useState(0);
@@ -173,6 +179,11 @@ const ExpandableChatToggle: React.FC<ExpandableChatToggleProps> = ({
 
   return (
     <div className="expandable-chat-toggle-wrapper">
+      {toggleHintText && !isOpen ? (
+        <div className="expandable-chat-toggle-hint" aria-hidden="true">
+          <p className="expandable-chat-toggle-hint-text">{toggleHintText}</p>
+        </div>
+      ) : null}
       <div className="expandable-chat-particles" aria-hidden>
         {particles.map((particle) => (
           <motion.span

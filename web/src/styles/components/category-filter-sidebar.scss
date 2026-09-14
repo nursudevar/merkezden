@@ -212,6 +212,65 @@
   }
 }
 
+/* Haritada Ara kategori multi-select ile aynı UX (Okul Türü / Lise Türü). */
+.category-filter-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.category-filter-multiselect-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 0 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.category-filter-multiselect-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-filter-multiselect-trigger-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: $text-zinc-500;
+  @include transition;
+  transition-property: transform;
+}
+
+.category-filter-multiselect--open .category-filter-multiselect-trigger-icon {
+  transform: rotate(180deg);
+}
+
+.category-filter-multiselect-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: min(280px, 52vh);
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: $bg-white;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-filter-multiselect-option {
+  margin: 0;
+}
+
 .category-filter-section-options {
   display: flex;
   flex-direction: column;
@@ -322,7 +381,7 @@
 .price-range-slider-filter {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
   min-width: 0;
 
   + .category-filter-section-checkboxes {
@@ -384,210 +443,6 @@
   }
 }
 
-.price-range-slider-control {
-  position: relative;
-  padding: 6px 10px 20px;
-}
-
-.price-slider {
-  position: relative;
-  display: flex;
-  width: 100%;
-  touch-action: none;
-  align-items: center;
-  user-select: none;
-  height: 34px;
-}
-
-.price-slider[data-disabled] {
-  opacity: 0.5;
-}
-
-.price-slider-track {
-  position: relative;
-  flex-grow: 1;
-  overflow: visible;
-  border-radius: 999px;
-  height: 4px;
-  width: 100%;
-  background: linear-gradient(90deg, rgba(109, 93, 252, 0.16), rgba(192, 132, 252, 0.2));
-  box-shadow: inset 0 1px 2px rgba(17, 24, 39, 0.08);
-}
-
-.price-slider-range {
-  position: absolute;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, $purple-main 0%, $purple-light 70%, #f59e0b 120%);
-  box-shadow: 0 4px 12px rgba(109, 93, 252, 0.24);
-}
-
-.price-slider-thumb {
-  display: block;
-  width: 11px;
-  height: 11px;
-  border: 2px solid $bg-white;
-  background: linear-gradient(135deg, $purple-main, $purple-light);
-  box-shadow: 0 4px 10px rgba(109, 93, 252, 0.28), 0 0 0 1px rgba(109, 93, 252, 0.16);
-  border-radius: 50%;
-  cursor: grab;
-  flex-shrink: 0;
-  z-index: 10;
-  @include transition;
-  transition-property: transform, box-shadow;
-}
-
-.price-slider-thumb:hover {
-  transform: scale(1.08);
-  box-shadow: 0 5px 12px rgba(109, 93, 252, 0.32), 0 0 0 3px rgba(109, 93, 252, 0.1);
-}
-
-.price-slider-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.12);
-}
-
-.price-slider-thumb:focus-visible {
-  outline: none;
-  box-shadow: 0 5px 12px rgba(109, 93, 252, 0.32), 0 0 0 4px rgba(109, 93, 252, 0.14);
-}
-
-.price-range-slider-ticks {
-  position: absolute;
-  inset: 6px 10px auto;
-  height: 54px;
-  pointer-events: none;
-}
-
-.price-range-slider-tick {
-  position: absolute;
-  top: 0;
-  width: 48px;
-  height: 52px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-weight: $font-semibold;
-  line-height: 1;
-  color: $text-zinc-600;
-  cursor: pointer;
-  transform: translateX(-50%);
-  pointer-events: auto;
-  @include transition;
-  transition-property: color;
-
-  &:first-child {
-    transform: translateX(0);
-
-    .price-range-slider-tick-marker,
-    .price-range-slider-tick-label {
-      left: 0;
-      transform: translateX(0);
-    }
-
-    .price-range-slider-tick-marker {
-      transform: translateY(-50%);
-    }
-  }
-
-  &:last-child {
-    transform: translateX(-100%);
-
-    .price-range-slider-tick-marker,
-    .price-range-slider-tick-label {
-      left: auto;
-      right: 0;
-      transform: translateX(0);
-    }
-
-    .price-range-slider-tick-marker {
-      transform: translateY(-50%);
-    }
-  }
-
-  &:hover {
-    color: $purple-main;
-
-    .price-range-slider-tick-marker {
-      background: rgba(109, 93, 252, 0.58);
-      transform: translate(-50%, -50%) scaleY(1.15);
-    }
-  }
-
-  &:first-child:hover,
-  &:last-child:hover {
-    .price-range-slider-tick-marker {
-      transform: translateY(-50%) scaleY(1.15);
-    }
-  }
-
-  &:focus-visible {
-    outline: none;
-    color: $purple-main;
-
-    .price-range-slider-tick-marker {
-      background: rgba(109, 93, 252, 0.68);
-    }
-  }
-
-  &:first-child:focus-visible,
-  &:last-child:focus-visible {
-    .price-range-slider-tick-marker {
-      transform: translateY(-50%);
-    }
-  }
-}
-
-.price-range-slider-tick-marker {
-  position: absolute;
-  top: 17px;
-  left: 50%;
-  width: 2px;
-  height: 12px;
-  border-radius: 999px;
-  background: rgba(109, 93, 252, 0.34);
-  transform: translate(-50%, -50%);
-  @include transition;
-  transition-property: background-color, opacity, transform;
-}
-
-.price-range-slider-tick-label {
-  position: absolute;
-  top: 38px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  font-weight: $font-semibold;
-  white-space: nowrap;
-  color: rgba(71, 85, 105, 0.72);
-}
-
-.price-range-slider-tick--active {
-  color: rgba(109, 93, 252, 0.72);
-
-  .price-range-slider-tick-marker {
-    background: rgba(109, 93, 252, 0.54);
-  }
-}
-
-.price-range-slider-tick--endpoint {
-  color: $purple-main;
-
-  .price-range-slider-tick-marker {
-    opacity: 0;
-  }
-
-  .price-range-slider-tick-label {
-    color: rgba(109, 93, 252, 0.9);
-  }
-}
-
-@media (max-width: 420px) {
-  .price-range-slider-tick-label {
-    font-size: 9.5px;
-  }
-}
-
 /* Öğrenci Yaşı — turuncu tema (fiyat filtresinin mor stilini bozmaz) */
 .age-range-slider-filter {
   .age-range-slider-input,
@@ -603,80 +458,6 @@
       border-color: $orange-primary;
       box-shadow: 0 0 0 2px rgba(255, 152, 7, 0.16);
     }
-  }
-
-  .age-range-slider,
-  .price-slider {
-    .price-slider-track {
-      background: linear-gradient(90deg, rgba(255, 152, 7, 0.16), rgba(255, 179, 71, 0.22));
-    }
-
-    .price-slider-range {
-      background: linear-gradient(90deg, #f59e0b 0%, $orange-primary 55%, #ffb347 100%);
-      box-shadow: 0 4px 12px rgba(255, 152, 7, 0.28);
-    }
-
-    .price-slider-thumb {
-      background: linear-gradient(135deg, #f59e0b, $orange-primary);
-      box-shadow: 0 4px 10px rgba(255, 152, 7, 0.3), 0 0 0 1px rgba(255, 152, 7, 0.18);
-
-      &:hover {
-        box-shadow: 0 5px 12px rgba(255, 152, 7, 0.36), 0 0 0 3px rgba(255, 152, 7, 0.12);
-      }
-
-      &:focus-visible {
-        box-shadow: 0 5px 12px rgba(255, 152, 7, 0.36), 0 0 0 4px rgba(255, 152, 7, 0.16);
-      }
-    }
-  }
-
-  .price-range-slider-tick-marker {
-    background: rgba(255, 152, 7, 0.38);
-  }
-
-  .price-range-slider-tick:hover {
-    color: darken($orange-primary, 8%);
-
-    .price-range-slider-tick-marker {
-      background: rgba(255, 152, 7, 0.62);
-    }
-  }
-
-  .price-range-slider-tick:focus-visible {
-    color: darken($orange-primary, 8%);
-
-    .price-range-slider-tick-marker {
-      background: rgba(255, 152, 7, 0.72);
-    }
-  }
-
-  .price-range-slider-tick--active {
-    color: rgba(240, 127, 17, 0.85);
-
-    .price-range-slider-tick-marker {
-      background: rgba(255, 152, 7, 0.58);
-    }
-  }
-
-  .price-range-slider-tick--endpoint {
-    color: darken($orange-primary, 6%);
-
-    .price-range-slider-tick-label {
-      color: rgba(230, 126, 10, 0.95);
-    }
-  }
-
-  .price-range-slider-tick {
-    width: 28px;
-  }
-
-  .price-range-slider-tick-label {
-    font-size: 11px;
-    letter-spacing: 0;
-  }
-
-  .price-range-slider-control {
-    padding-bottom: 24px;
   }
 }
 

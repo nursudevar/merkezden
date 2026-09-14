@@ -34,7 +34,7 @@ import {
   resolveStudentAgeFilterFromPayload,
 } from "@/lib/institutionStudentAgeFilter";
 import { isLegacyStudentAgeMultiSelectFeature } from "@/lib/studentAgeRangeFeature";
-import { getHighSchoolTypeLabel } from "@/lib/schoolInstitutionTypes";
+import { getHighSchoolTypeLabel, LISE_INSTITUTION_TYPE_ID } from "@/lib/schoolInstitutionTypes";
 
 export type CategoryResultItem = {
   id: string;
@@ -117,8 +117,9 @@ const IN_CHUNK = 120;
 /** PostgREST varsayılan max_rows (1000) */
 const QUERY_PAGE_SIZE = 1000;
 const MAX_QUERY_PAGES = 50;
-/** CategoryResultsList INITIAL_VISIBLE_COUNT ile eşleşmeli */
-const INITIAL_CATEGORY_VISIBLE = 20;
+/** CategoryResultsList sayfa boyutu ile eşleşmeli */
+export const CATEGORY_RESULTS_PAGE_SIZE = 30;
+const INITIAL_CATEGORY_VISIBLE = CATEGORY_RESULTS_PAGE_SIZE;
 /** Kart + harita meta; about/sosyal alanlar hariç */
 const LIGHT_INSTITUTION_SELECT =
   "id, slug, institution_name, subheading, address, district, city, official_phone, official_email, logo, source, high_school_type, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
@@ -275,13 +276,20 @@ async function fetchAllCategoryInstitutionIds(
   targetName: string,
   location: InstitutionLocationFilter,
   searchTerm: string,
-  institutionTypeId?: number | null,
-  highSchoolType?: string | null,
+  institutionTypeIds?: number[] | null,
+  highSchoolTypes?: string[] | null,
 ): Promise<number[]> {
   const ids: number[] = [];
   const relatedSearch = searchTerm
     ? await resolveInstitutionIdsByProfileSearch(supabase, searchTerm)
     : { institutionIds: [], institutionTypeIds: [] };
+
+  const typeIds = (institutionTypeIds ?? []).filter(
+    (id) => Number.isFinite(id) && id > 0,
+  );
+  const hsTypes = (highSchoolTypes ?? [])
+    .map((slug) => String(slug ?? "").trim())
+    .filter(Boolean);
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -303,16 +311,25 @@ async function fetchAllCategoryInstitutionIds(
         relatedSearch.institutionTypeIds,
       );
     }
-    if (
-      institutionTypeId != null &&
-      Number.isFinite(institutionTypeId) &&
-      institutionTypeId > 0
-    ) {
-      query = query.eq("institution_type_id", institutionTypeId);
-    }
-    const trimmedHighSchoolType = String(highSchoolType ?? "").trim();
-    if (trimmedHighSchoolType) {
-      query = query.eq("high_school_type", trimmedHighSchoolType);
+
+    if (typeIds.length > 0) {
+      const hasLise = typeIds.includes(LISE_INSTITUTION_TYPE_ID);
+      const nonLiseIds = typeIds.filter((id) => id !== LISE_INSTITUTION_TYPE_ID);
+
+      if (hasLise && hsTypes.length > 0) {
+        if (nonLiseIds.length > 0) {
+          // Grup içi OR + Lise alt türü: (diğer türler) OR (Lise AND high_school_type IN ...)
+          query = query.or(
+            `institution_type_id.in.(${nonLiseIds.join(",")}),and(institution_type_id.eq.${LISE_INSTITUTION_TYPE_ID},high_school_type.in.(${hsTypes.join(",")}))`,
+          );
+        } else {
+          query = query
+            .eq("institution_type_id", LISE_INSTITUTION_TYPE_ID)
+            .in("high_school_type", hsTypes);
+        }
+      } else {
+        query = query.in("institution_type_id", typeIds);
+      }
     }
 
     const { data, error } = await query.order("id", { ascending: true }).range(from, to);
@@ -485,9 +502,8 @@ function parseOptionalNumber(raw: string): number | null {
 function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undefined): boolean {
   if (!payload) return false;
   if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
-  if (payload.institutionTypeId != null && Number.isFinite(payload.institutionTypeId) && payload.institutionTypeId > 0)
-    return true;
-  if (payload.highSchoolType != null && String(payload.highSchoolType).trim()) return true;
+  if ((payload.institutionTypeIds ?? []).some((id) => Number.isFinite(id) && id > 0)) return true;
+  if ((payload.highSchoolTypes ?? []).some((slug) => String(slug ?? "").trim())) return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
     return true;
   if (Object.keys(payload.commonMulti).some((k) => (payload.commonMulti[Number(k)] ?? []).length > 0))
@@ -1141,8 +1157,8 @@ export function useCategoryInstitutions(
           listingName,
           listingLocation,
           searchTerm,
-          payload.institutionTypeId,
-          payload.highSchoolType,
+          payload.institutionTypeIds,
+          payload.highSchoolTypes,
         );
         if (cancelled) return;
 

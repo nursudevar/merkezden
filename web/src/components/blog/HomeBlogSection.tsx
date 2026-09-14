@@ -63,7 +63,7 @@ export function HomeBlogSection() {
   return (
     <section className="blog-section">
       <div className="blog-section-header">
-        <h2 className="blog-section-title">Blog Yazıları</h2>
+        <h2 className="blog-section-title">Eğitim Rehberi</h2>
         <p className="blog-section-subtitle">Uzmanlardan öneriler ve faydalı bilgiler</p>
       </div>
 

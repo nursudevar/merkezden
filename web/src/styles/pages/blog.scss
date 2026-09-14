@@ -3,21 +3,33 @@
 @import '../typography';
 
 .blog-listing-page {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 30px 0px;
-  box-sizing: border-box;
+  @include site-content-container;
+  /* Dikey spacing sayfaya özel; yatay gutter mixin (footer referansı). */
+  padding-block: 30px 56px;
+
+  > .category-seo-intro {
+    margin-top: 32px;
+    margin-bottom: 0;
+  }
+
+  > * {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
 
   @media (max-width: 1024px) {
-    padding: 50px 24px;
+    padding-block: 50px 48px;
   }
 
   @media (max-width: 768px) {
-    padding: 40px 20px;
+    padding-block: 40px 42px;
   }
 
   @media (max-width: 640px) {
-    padding: 30px 16px;
+    padding-block: 30px 36px;
   }
 }
 
@@ -126,6 +138,101 @@
 
   @media (max-width: 640px) {
     margin-bottom: 20px;
+  }
+}
+
+.blog-search {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto 28px;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    margin-bottom: 20px;
+  }
+
+  &.blog-header-search {
+    max-width: 100%;
+    margin: 0;
+  }
+}
+
+.blog-search-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.blog-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 46px;
+  pointer-events: none;
+  object-fit: contain;
+  z-index: 1;
+  animation: blog-search-icon-float 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.blog-search-input {
+  width: 100%;
+  height: 46px;
+  min-height: 46px;
+  box-sizing: border-box;
+  @include rounded-full;
+  border: 2.5px solid rgba($purple-main, 0.48);
+  background: linear-gradient(to right, $bg-white, rgba(255, 255, 255, 0.95));
+  padding: 0 16px 0 50px;
+  font-size: 14px;
+  color: $text-zinc-800;
+  box-shadow:
+    0 4px 16px rgba($purple-main, 0.1),
+    0 2px 8px rgba($orange-primary, 0.08);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+
+  &:hover,
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 18px 36px rgba($purple-main, 0.18),
+      0 10px 24px rgba($orange-primary, 0.16),
+      0 4px 12px rgba($purple-light, 0.12);
+  }
+
+  &:active {
+    box-shadow:
+      0 12px 24px rgba($purple-main, 0.1),
+      0 6px 16px rgba($orange-primary, 0.1);
+  }
+}
+
+@keyframes blog-search-icon-float {
+  0%,
+  100% {
+    transform: translateY(calc(-50% - 2px));
+  }
+
+  50% {
+    transform: translateY(calc(-50% + 2px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blog-search-icon {
+    animation: none;
+  }
+
+  .blog-search-input {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
 }
 
@@ -293,8 +400,17 @@
 .blog-posts-section {
   margin-top: 48px;
 
+  /* Boş sonuçta sayfa yüksekliği korunsun; grid/list kartlarını stretch ettirme */
+  > .blog-empty-state {
+    min-height: 480px;
+  }
+
   @media (max-width: 640px) {
     margin-top: 32px;
+
+    > .blog-empty-state {
+      min-height: 360px;
+    }
   }
 }
 
@@ -354,7 +470,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
   min-width: 0;
   width: 100%;
 
@@ -481,9 +597,13 @@
 }
 
 .blog-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 60px 20px;
   color: $text-zinc-500;
+  box-sizing: border-box;
 
   p {
     font-size: $text-base;

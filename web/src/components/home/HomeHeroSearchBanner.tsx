@@ -51,18 +51,25 @@ function splitBannerTitleParts(title: string): { leadingWhite: string | null; gr
   };
 }
 
-function HeroBannerTitle({ title }: { title: string }) {
+function HeroBannerTitle({
+  title,
+  titleAs = "h1",
+}: {
+  title: string;
+  titleAs?: "h1" | "p" | "div";
+}) {
   const { leadingWhite, gradient } = splitBannerTitleParts(title);
+  const TitleTag = titleAs;
 
   return (
-    <h1 className="hero-search-title">
+    <TitleTag className="hero-search-title">
       {leadingWhite ? (
         <>
           <span className="hero-search-title-white">{leadingWhite}</span>{" "}
         </>
       ) : null}
       {gradient ? <span className="hero-search-title-purple">{gradient}</span> : null}
-    </h1>
+    </TitleTag>
   );
 }
 
@@ -90,11 +97,13 @@ function HeroBannerSlideContent({
   isActive = true,
   isTabHidden = false,
   prefersReducedMotion = false,
+  titleAs = "h1",
 }: {
   banner: HeroBannerSlide;
   isActive?: boolean;
   isTabHidden?: boolean;
   prefersReducedMotion?: boolean;
+  titleAs?: "h1" | "p" | "div";
 }) {
   const title = banner.title.trim();
   const description = banner.description.trim();
@@ -166,7 +175,7 @@ function HeroBannerSlideContent({
         </div>
         <div className="hero-search-overlay"></div>
         <div className="hero-search-content">
-          <HeroBannerTitle title={displayTitle} />
+          <HeroBannerTitle title={displayTitle} titleAs={titleAs} />
           {displayDescription ? (
             <p className="hero-search-subtitle">{displayDescription}</p>
           ) : null}
@@ -184,7 +193,7 @@ function HeroBannerSlideContent({
       />
       <div className="hero-search-overlay"></div>
       <div className="hero-search-content">
-        <HeroBannerTitle title={displayTitle} />
+        <HeroBannerTitle title={displayTitle} titleAs={titleAs} />
         {displayDescription ? (
           <p className="hero-search-subtitle">{displayDescription}</p>
         ) : null}
@@ -193,7 +202,14 @@ function HeroBannerSlideContent({
   );
 }
 
-export function HomeHeroSearchBanner() {
+type HeroTitleAs = "h1" | "p" | "div";
+
+interface HomeHeroSearchBannerProps {
+  /** Semantic title tag. Use non-h1 on pages that already have a page H1. */
+  titleAs?: HeroTitleAs;
+}
+
+export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerProps = {}) {
   const [dbBanners, setDbBanners] = useState<PublicHomepageBanner[]>(() => cachedActiveBanners);
   const [hasFetched, setHasFetched] = useState(hasCachedFetch);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -426,6 +442,7 @@ export function HomeHeroSearchBanner() {
                   isActive={index === safeActiveIndex}
                   isTabHidden={isTabHidden}
                   prefersReducedMotion={prefersReducedMotion}
+                  titleAs={titleAs}
                 />
               </div>
             ))}
@@ -435,6 +452,7 @@ export function HomeHeroSearchBanner() {
             banner={displayBanner}
             isTabHidden={isTabHidden}
             prefersReducedMotion={prefersReducedMotion}
+            titleAs={titleAs}
           />
         )}
       </div>

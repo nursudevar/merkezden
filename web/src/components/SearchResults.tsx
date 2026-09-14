@@ -30,6 +30,7 @@ import {
   getPublicInstructorDetailHref,
   mapPublicInstructorDisplayName,
   buildPublicInstructorLocation,
+  resolveInstructorCategoryIdBySlugOrName,
 } from "@/lib/publicInstructorSearch";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import {
@@ -82,6 +83,8 @@ interface SearchResultsProps {
   priceRangeSelections?: string[];
   /** `institution_types.id` — birden fazla seçimde OR; diğer filtrelerle AND */
   institutionTypeIds?: number[];
+  /** Ana sayfa parent kategori seçimi — eğitmenler `instructor_categories.id` ile filtrelenir. */
+  instructorCategoryFilter?: { name: string; slug?: string | null } | null;
   onResultClick?: () => void;
   onClearSearch?: () => void;
   /** Sonuç başlığında «Temizle» butonu için: ana sayfadaki tüm aktif filtreleri sıfırlar. */
@@ -246,6 +249,7 @@ export default function SearchResults({
   priceRangeFilter,
   priceRangeSelections,
   institutionTypeIds,
+  instructorCategoryFilter,
   onResultClick,
   onClearSearch,
   onClearAllFilters,
@@ -304,6 +308,9 @@ export default function SearchResults({
   const priceMin = priceRangeFilter?.min ?? 0;
   const priceMax = priceRangeFilter?.max ?? 0;
   const institutionTypeIdList = institutionTypeIds ?? [];
+  const instructorCategoryFilterKey = instructorCategoryFilter
+    ? `${instructorCategoryFilter.name}|${instructorCategoryFilter.slug ?? ""}`
+    : "";
   const hasActiveFilter =
     trimmedQuery.length > 0 ||
     ilId != null ||
@@ -447,19 +454,33 @@ export default function SearchResults({
             }
           }
 
+          let instructorCategoryId: number | null = null;
+          if (instructorCategoryFilter) {
+            instructorCategoryId = await resolveInstructorCategoryIdBySlugOrName(supabase, {
+              slug: instructorCategoryFilter.slug,
+              name: instructorCategoryFilter.name,
+            });
+          }
+
+          const instructorFetchPromise =
+            instructorCategoryFilter && instructorCategoryId == null
+              ? Promise.resolve([])
+              : fetchPublicInstructorsForListing(supabase, {
+                  searchTerm: trimmedQuery || undefined,
+                  ilId,
+                  ilceId,
+                  mahalleId,
+                  categoryId: instructorCategoryFilter ? instructorCategoryId : undefined,
+                  priceRange:
+                    priceFilterIsActive && !priceSelectionFilterIsActive
+                      ? { min: priceMin, max: priceMax }
+                      : undefined,
+                  allowedInstructorIds: studentAgeInstructorIds,
+                });
+
           const [{ data, error }, instructorRows] = await Promise.all([
             baseQuery,
-            fetchPublicInstructorsForListing(supabase, {
-              searchTerm: trimmedQuery || undefined,
-              ilId,
-              ilceId,
-              mahalleId,
-              priceRange:
-                priceFilterIsActive && !priceSelectionFilterIsActive
-                  ? { min: priceMin, max: priceMax }
-                  : undefined,
-              allowedInstructorIds: studentAgeInstructorIds,
-            }),
+            instructorFetchPromise,
           ]);
 
           if (error) {
@@ -585,7 +606,7 @@ export default function SearchResults({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasActiveFilter, trimmedQuery, ilId, ilceId, mahalleId, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(",")]);
+  }, [hasActiveFilter, trimmedQuery, ilId, ilceId, mahalleId, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(","), instructorCategoryFilterKey]);
 
   if (!hasActiveFilter) {
     return null;

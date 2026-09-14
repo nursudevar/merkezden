@@ -7,7 +7,7 @@ import { useInstructorCompare } from "./InstructorCompareProvider";
 
 export function InstructorCompareBar() {
   const pathname = usePathname();
-  const { items, remove } = useInstructorCompare();
+  const { items, remove, clear } = useInstructorCompare();
 
   if (pathname === "/karsilastir/egitmenler") return null;
   if (items.length === 0) return null;
@@ -54,15 +54,24 @@ export function InstructorCompareBar() {
           ))}
         </ul>
 
-        {canCompare ? (
-          <Link href={href} className="institution-compare-bar-cta">
-            Karşılaştır
-          </Link>
-        ) : (
-          <button type="button" className="institution-compare-bar-cta" disabled>
-            Karşılaştır
+        <div className="institution-compare-bar-actions">
+          <button
+            type="button"
+            className="institution-compare-bar-clear"
+            onClick={clear}
+          >
+            Temizle
           </button>
-        )}
+          {canCompare ? (
+            <Link href={href} className="institution-compare-bar-cta">
+              Karşılaştır
+            </Link>
+          ) : (
+            <button type="button" className="institution-compare-bar-cta" disabled>
+              Karşılaştır
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { AllInstructorsPageClient } from "./AllInstructorsPageClient";
 
 export const metadata: Metadata = {
-  title: "Tüm Eğitmenler | Merkezden",
-  description: "Merkezden üzerindeki bireysel eğitmenleri listeleyin ve profillerini inceleyin.",
+  title: "Eğitmenler ve Özel Ders Seçenekleri | Merkezden",
+  description:
+    "Farklı alanlarda hizmet veren eğitmenleri Merkezden'de keşfedin. Uzmanlık, eğitim ve profil bilgilerini inceleyerek size uygun seçenekleri bulun.",
 };
 
 export default function InstructorsListPage() {
