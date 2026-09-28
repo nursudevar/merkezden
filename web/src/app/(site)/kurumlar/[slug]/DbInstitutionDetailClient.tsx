@@ -978,7 +978,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     <Clock size={18} />
                   </div>
                   <div>
-                    <div className="institution-contact-label">ÇALIŞMA SAATLERİ</div>
+                    <div className="institution-contact-label">EĞİTİM SAATLERİ</div>
                     <div className="institution-contact-value">{workingHoursText}</div>
                   </div>
                 </div>

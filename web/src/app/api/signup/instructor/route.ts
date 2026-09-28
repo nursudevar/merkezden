@@ -226,8 +226,6 @@ export async function POST(request: Request) {
   const birthDate = String(formData.get("birthDate") ?? "").trim();
   const phoneRaw = String(formData.get("phone") ?? "").trim();
   const categoryId = Number(String(formData.get("categoryId") ?? "").trim());
-  const referenceRaw = String(formData.get("reference") ?? "");
-  const reference = referenceRaw.trim() || null;
   const identityOrTaxNumber = String(formData.get("identityOrTaxNumber") ?? "").trim();
   const school = String(formData.get("school") ?? "").trim();
   const department = String(formData.get("department") ?? "").trim();
@@ -301,7 +299,7 @@ export async function POST(request: Request) {
 
   logInstructorSignupStep(
     "validate_details",
-    `hasDiplomaFile=true;diplomaSize=${diplomaFile.size};hasReference=${Boolean(reference)};referenceLength=${reference ? reference.length : 0}`,
+    `hasDiplomaFile=true;diplomaSize=${diplomaFile.size}`,
   );
 
   const { data: emailExists, error: emailCheckError } = await authSupabase.rpc(
@@ -331,7 +329,6 @@ export async function POST(request: Request) {
     birth_date: birthDate,
     phone,
     identity_or_tax_number: identityOrTaxNumber,
-    reference,
     category_id: categoryId,
     school,
     department,
@@ -465,7 +462,6 @@ export async function POST(request: Request) {
       .from("instructors")
       .update({
         identity_or_tax_number: identityOrTaxNumber,
-        reference,
         phone,
         il_id: ilId,
         ilce_id: ilceId,
@@ -478,7 +474,7 @@ export async function POST(request: Request) {
       })
       .eq("id", instructorId)
       .eq("owner_auth_id", authUserId)
-      .select("id, diploma_document_path, information_accuracy_confirmed, information_accuracy_confirmed_at, reference")
+      .select("id, diploma_document_path, information_accuracy_confirmed, information_accuracy_confirmed_at")
       .maybeSingle();
 
     if (
@@ -500,7 +496,7 @@ export async function POST(request: Request) {
 
     logInstructorSignupStep(
       "instructor_update_complete",
-      `instructorId=${instructorId};hasDiplomaPath=${Boolean(updatedRow.diploma_document_path)};confirmed=${updatedRow.information_accuracy_confirmed === true};hasReference=${updatedRow.reference != null};hasConfirmedAt=${Boolean(updatedRow.information_accuracy_confirmed_at)}`,
+      `instructorId=${instructorId};hasDiplomaPath=${Boolean(updatedRow.diploma_document_path)};confirmed=${updatedRow.information_accuracy_confirmed === true};hasConfirmedAt=${Boolean(updatedRow.information_accuracy_confirmed_at)}`,
     );
     logInstructorSignupStep("final_success", `instructorId=${instructorId}`);
 

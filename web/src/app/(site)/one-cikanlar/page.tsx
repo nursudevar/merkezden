@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import LoginModal from "@/components/LoginModal";
 import { AppNoticeBar } from "@/components/AppNoticeBar";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { FavoritesError, getMyFavoriteInstitutionIds, NOT_INDIVIDUAL_FAVORITES_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
+import { FavoritesError, getMyFavoriteInstitutionIds, SELF_FAVORITE_MESSAGE, toggleFavorite } from "@/lib/favorites/favoritesClient";
 import {
   type FeaturedInstitution,
   FEATURED_PAGE_CATEGORY_SECTIONS,
@@ -116,12 +116,10 @@ export default function OneCikanlarPage() {
         if (cancelled) return;
         setFavoritesEnabled(true);
         setFavoriteIds(new Set(ids));
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        if (err instanceof FavoritesError && err.code === "NOT_INDIVIDUAL") {
-          setFavoritesEnabled(false);
-          setFavoriteIds(new Set());
-        }
+        setFavoritesEnabled(false);
+        setFavoriteIds(new Set());
       } finally {
         if (!cancelled) setFavoritesLoading(false);
       }
@@ -142,7 +140,7 @@ export default function OneCikanlarPage() {
         return;
       }
       if (!favoritesEnabled) {
-        setNoticeMessage(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
+        setNoticeMessage("Favoriler kullanılamıyor. Lütfen tekrar deneyin.");
         return;
       }
       if (favoriteActionLoadingIds.has(institutionId)) return;
@@ -168,14 +166,18 @@ export default function OneCikanlarPage() {
           else next.delete(institutionId);
           return next;
         });
-      } catch {
+      } catch (err) {
         setFavoriteIds((prev) => {
           const next = new Set(prev);
           if (wasFavorited) next.add(institutionId);
           else next.delete(institutionId);
           return next;
         });
-        window.alert("Favori işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+        const msg =
+          err instanceof FavoritesError
+            ? err.message
+            : "Favori işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+        setNoticeMessage(msg);
       } finally {
         setFavoriteActionLoadingIds((prev) => {
           const next = new Set(prev);
@@ -256,7 +258,7 @@ export default function OneCikanlarPage() {
       <AppNoticeBar
         message={noticeMessage}
         onDismiss={() => setNoticeMessage(null)}
-        variant={noticeMessage === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+        variant={noticeMessage === SELF_FAVORITE_MESSAGE ? "warning" : "error"}
       />
     </div>
   );

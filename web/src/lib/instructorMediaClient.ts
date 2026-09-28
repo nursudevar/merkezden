@@ -25,8 +25,6 @@ export const INSTRUCTOR_MEDIA_DELETE_ERROR = "Dosya silinirken bir hata oluştu.
 export const INSTRUCTOR_MEDIA_PROFILE_SUCCESS = "Profil fotoğrafı başarıyla güncellendi.";
 export const INSTRUCTOR_MEDIA_CV_SUCCESS = "CV başarıyla güncellendi.";
 export const INSTRUCTOR_MEDIA_GALLERY_DELETE_SUCCESS = "Görsel başarıyla silindi.";
-export const INSTRUCTOR_MEDIA_CV_NOT_FOUND_ERROR =
-  "CV dosyası bulunamadı. Lütfen CV'yi yeniden yükleyin.";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ALLOWED_CV_TYPES = new Set([
@@ -479,97 +477,6 @@ export function instructorPrivateDocumentDisplayName(pathOrName: string): string
   const segment = raw.split("/").pop() ?? raw;
   const withoutTimestamp = segment.match(/^\d+-(.+)$/);
   return withoutTimestamp ? withoutTimestamp[1] : segment;
-}
-
-function isStorageObjectNotFoundError(error: { message?: string } | null): boolean {
-  const msg = String(error?.message ?? "").toLowerCase();
-  return msg.includes("not found") || msg.includes("object not found");
-}
-
-export async function getInstructorCvViewUrlClient(
-  cvUrlOrPath: string,
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<{ url: string | null; isBlobUrl: boolean; error: string | null }> {
-  const path = resolveInstructorCvStoragePath(cvUrlOrPath);
-  if (!path) {
-    return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_CV_NOT_FOUND_ERROR };
-  }
-
-  const supabase = supabaseArg ?? createSupabaseBrowserClient();
-
-  const { data, error } = await supabase.storage
-    .from(INSTRUCTOR_CV_FILES_BUCKET)
-    .createSignedUrl(path, 60 * 10);
-
-  if (!error && data?.signedUrl) {
-    return { url: data.signedUrl, isBlobUrl: false, error: null };
-  }
-
-  if (error) {
-    console.error("[instructor-media] cv signed url:", error, { path, raw: cvUrlOrPath });
-  }
-
-  if (!isStorageObjectNotFoundError(error)) {
-    return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from(INSTRUCTOR_CV_FILES_BUCKET)
-    .download(path);
-
-  if (!downloadError && fileData) {
-    const objectUrl = URL.createObjectURL(fileData);
-    return { url: objectUrl, isBlobUrl: true, error: null };
-  }
-
-  if (downloadError) {
-    console.error("[instructor-media] cv download:", downloadError, { path, raw: cvUrlOrPath });
-  }
-
-  return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_CV_NOT_FOUND_ERROR };
-}
-
-export async function getInstructorDiplomaViewUrlClient(
-  diplomaPath: string,
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<{ url: string | null; isBlobUrl: boolean; error: string | null }> {
-  const path = resolveInstructorDiplomaStoragePath(diplomaPath);
-  if (!path) {
-    return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-
-  const supabase = supabaseArg ?? createSupabaseBrowserClient();
-
-  const { data, error } = await supabase.storage
-    .from(INSTRUCTOR_DIPLOMA_FILES_BUCKET)
-    .createSignedUrl(path, 60 * 10);
-
-  if (!error && data?.signedUrl) {
-    return { url: data.signedUrl, isBlobUrl: false, error: null };
-  }
-
-  if (error) {
-    console.error("[instructor-media] diploma signed url:", error, { path, raw: diplomaPath });
-  }
-
-  if (!isStorageObjectNotFoundError(error)) {
-    return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
-  }
-
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from(INSTRUCTOR_DIPLOMA_FILES_BUCKET)
-    .download(path);
-
-  if (!downloadError && fileData) {
-    const objectUrl = URL.createObjectURL(fileData);
-    return { url: objectUrl, isBlobUrl: true, error: null };
-  }
-
-  if (downloadError) {
-    console.error("[instructor-media] diploma download:", downloadError, { path, raw: diplomaPath });
-  }
-
-  return { url: null, isBlobUrl: false, error: INSTRUCTOR_MEDIA_UPLOAD_ERROR };
 }
 
 /** Duyuru görseli — instructor_announcements.image_url / image_path için */

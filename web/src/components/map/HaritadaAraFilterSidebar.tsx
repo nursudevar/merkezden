@@ -19,10 +19,6 @@ import {
 } from "@/lib/institutionSchoolStatusFilter";
 import type { ActiveInstitutionCategory } from "@/lib/categoryHelpers";
 import { HaritadaAraCategoryMultiSelect } from "@/components/map/HaritadaAraCategoryMultiSelect";
-import {
-  MAP_HESAP_TIPI_OPTIONS,
-  type MapHesapTipi,
-} from "@/lib/mapSearchAccountType";
 
 const ALL_CITIES_VALUE = "__all_cities__";
 const ALL_DISTRICTS_VALUE = "__all_districts__";
@@ -36,8 +32,6 @@ export type HaritadaAraFilterSidebarProps = {
   selectedIlceId: string;
   selectedMahalleId: string;
   selectedKurumTuru: readonly KurumTuruSlug[];
-  selectedHesapTipi: MapHesapTipi;
-  onHesapTipiChange: (value: MapHesapTipi) => void;
   mapCategories: readonly ActiveInstitutionCategory[];
   selectedCategorySlugs: readonly string[];
   onCategorySelectAll: () => void;
@@ -65,8 +59,6 @@ export function HaritadaAraFilterSidebar({
   selectedIlceId,
   selectedMahalleId,
   selectedKurumTuru,
-  selectedHesapTipi,
-  onHesapTipiChange,
   mapCategories,
   selectedCategorySlugs,
   onCategorySelectAll,
@@ -273,63 +265,29 @@ export function HaritadaAraFilterSidebar({
           </div>
 
           <div className="category-filter-section">
-            <h3 className="category-filter-section-title">HESAP TİPİ</h3>
-            <div className="category-filter-section-inputs">
-              <SelectMountGate
-                label={
-                  MAP_HESAP_TIPI_OPTIONS.find((option) => option.slug === selectedHesapTipi)?.label ??
-                  "Hepsi"
-                }
-              >
-                <Select
-                  value={selectedHesapTipi}
-                  onValueChange={(value) => onHesapTipiChange(value as MapHesapTipi)}
-                >
-                  <SelectTrigger className="category-filter-select">
-                    <SelectValue placeholder="Hepsi" />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="select-content home-location-dropdown"
-                    side="bottom"
-                    avoidCollisions={false}
+            <h3 className="category-filter-section-title">KURUM TÜRÜ</h3>
+            <div className="category-filter-section-checkboxes">
+              {KURUM_TURU_OPTIONS.map((option) => {
+                const isChecked = selectedKurumTuru.includes(option.slug);
+                return (
+                  <label
+                    key={option.slug}
+                    className={`category-filter-checkbox-option${
+                      isChecked ? " category-filter-checkbox-option--selected" : ""
+                    }`}
                   >
-                    {MAP_HESAP_TIPI_OPTIONS.map((option) => (
-                      <SelectItem key={option.slug} value={option.slug} className="select-item">
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </SelectMountGate>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => onKurumTuruToggle(option.slug)}
+                      className="category-filter-checkbox-input"
+                    />
+                    <span className="category-filter-checkbox-label">{option.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
-
-          {selectedHesapTipi === "egitmenler" ? null : (
-            <div className="category-filter-section">
-              <h3 className="category-filter-section-title">KURUM TÜRÜ</h3>
-              <div className="category-filter-section-checkboxes">
-                {KURUM_TURU_OPTIONS.map((option) => {
-                  const isChecked = selectedKurumTuru.includes(option.slug);
-                  return (
-                    <label
-                      key={option.slug}
-                      className={`category-filter-checkbox-option${
-                        isChecked ? " category-filter-checkbox-option--selected" : ""
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => onKurumTuruToggle(option.slug)}
-                        className="category-filter-checkbox-input"
-                      />
-                      <span className="category-filter-checkbox-label">{option.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div className="category-filter-section">
             <h3 className="category-filter-section-title">KATEGORİ</h3>

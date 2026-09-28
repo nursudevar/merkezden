@@ -12,7 +12,7 @@ import {
   type MapPopupFavoriteHandlers,
 } from "@/components/map/InstitutionMapMarkerPopupActions";
 import { useListingFavorites } from "@/hooks/useListingFavorites";
-import { NOT_INDIVIDUAL_FAVORITES_MESSAGE } from "@/lib/favorites/favoritesClient";
+import { SELF_FAVORITE_MESSAGE } from "@/lib/favorites/favoritesClient";
 import {
   getMapMarkerAccountType,
   getMapMarkerKey,
@@ -688,7 +688,7 @@ export default function InstitutionLocationsMap({
       <AppNoticeBar
         message={localFavorites.favoritesError}
         onDismiss={() => localFavorites.setFavoritesError(null)}
-        variant={localFavorites.favoritesError === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+        variant={localFavorites.favoritesError === SELF_FAVORITE_MESSAGE ? "warning" : "error"}
       />
     </div>
   );

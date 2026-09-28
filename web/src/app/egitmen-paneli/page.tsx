@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Clock,
   CloudUpload,
+  Heart,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -43,6 +44,7 @@ import {
   isAdminActingAsTargetId,
 } from "@/components/AdminActingAsBanner";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
+import { FavoritesSection } from "@/components/favorites/FavoritesSection";
 import { UserBlogPostsPanel } from "@/components/blog/UserBlogPostsPanel";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { Button, Input } from "@/components/ui";
@@ -70,6 +72,7 @@ type InstructorPanelTabId =
   | "features"
   | "media"
   | "announcements"
+  | "favorites"
   | "my-blogs"
   | "settings";
 
@@ -79,6 +82,7 @@ const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
   { id: "features", label: "Eğitmen Özellikleri" },
   { id: "media", label: "Fotoğraflar / CV" },
   { id: "announcements", label: "Duyurular" },
+  { id: "favorites", label: "Favoriler" },
   { id: "my-blogs", label: "Blog Yazılarım" },
   { id: "settings", label: "Ayarlar" },
 ];
@@ -130,7 +134,7 @@ const INSTRUCTOR_OVERVIEW_FIELD_META: Record<
   diploma_document_path: { label: "Diploma / Belge", tab: "profile" },
   bio: { label: "Kısa Biyografi", tab: "profile" },
   about: { label: "Hakkında", tab: "profile" },
-  working_hours: { label: "Çalışma Saatleri", tab: "profile" },
+  working_hours: { label: "Eğitim Saatleri", tab: "profile" },
   profile_picture: { label: "Profil Fotoğrafı", tab: "media" },
   cv_url: { label: "CV", tab: "media" },
 };
@@ -625,6 +629,7 @@ function InstructorPanelPage() {
     features: <Shapes className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     media: <Images className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     announcements: <Megaphone className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
+    favorites: <Heart className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     "my-blogs": <FileText className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
     settings: <Settings className="egitmen-panel-sidebar-nav-icon" aria-hidden />,
   };
@@ -693,6 +698,7 @@ function InstructorPanelPage() {
   const isFeatures = activeTab === "features";
   const isMedia = activeTab === "media";
   const isAnnouncements = activeTab === "announcements";
+  const isFavorites = activeTab === "favorites";
   const isMyBlogs = activeTab === "my-blogs";
   const isSettings = activeTab === "settings";
 
@@ -918,7 +924,7 @@ function InstructorPanelPage() {
               </>
             ) : (
               <>
-                {!isAnnouncements && !isMyBlogs ? (
+                {!isAnnouncements && !isMyBlogs && !isFavorites ? (
                 <div className="egitmen-panel-main-card-header">
                   <div className="egitmen-panel-main-card-header-left">
                     {isProfile ? <User className="egitmen-panel-main-card-icon" aria-hidden /> : null}
@@ -1052,18 +1058,6 @@ function InstructorPanelPage() {
                                   {profileFieldErrors.birth_date}
                                 </span>
                               ) : null}
-                            </div>
-                          </div>
-                          <div className="egitmen-panel-form-row egitmen-panel-form-row--full">
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Referans</label>
-                              <Input
-                                className="egitmen-panel-form-input"
-                                value={profileForm.reference}
-                                onChange={(e) =>
-                                  handleProfileFieldChange("reference", e.target.value)
-                                }
-                              />
                             </div>
                           </div>
                         </section>
@@ -1400,14 +1394,14 @@ function InstructorPanelPage() {
                         </section>
 
                         <section className="egitmen-panel-form-section">
-                          <h3 className="egitmen-panel-form-section-title">Çalışma Saatleri</h3>
+                          <h3 className="egitmen-panel-form-section-title">Eğitim Saatleri</h3>
                           <div className="egitmen-panel-form-row">
                             <div className="egitmen-panel-form-field">
                               <label
                                 className="egitmen-panel-form-label"
                                 htmlFor="egitmen-working-hours-start"
                               >
-                                Çalışma Saati Başlangıç
+                                Eğitim Saati Başlangıç
                               </label>
                               <WorkingHoursTimePicker
                                 id="egitmen-working-hours-start"
@@ -1415,7 +1409,7 @@ function InstructorPanelPage() {
                                 onChange={(next) =>
                                   handleProfileFieldChange("working_hours_start", next)
                                 }
-                                ariaLabel="Çalışma saati başlangıç"
+                                ariaLabel="Eğitim saati başlangıç"
                                 placeholder="--:--"
                               />
                             </div>
@@ -1424,7 +1418,7 @@ function InstructorPanelPage() {
                                 className="egitmen-panel-form-label"
                                 htmlFor="egitmen-working-hours-end"
                               >
-                                Çalışma Saati Bitiş
+                                Eğitim Saati Bitiş
                               </label>
                               <WorkingHoursTimePicker
                                 id="egitmen-working-hours-end"
@@ -1432,7 +1426,7 @@ function InstructorPanelPage() {
                                 onChange={(next) =>
                                   handleProfileFieldChange("working_hours_end", next)
                                 }
-                                ariaLabel="Çalışma saati bitiş"
+                                ariaLabel="Eğitim saati bitiş"
                                 placeholder="--:--"
                               />
                             </div>
@@ -1489,6 +1483,12 @@ function InstructorPanelPage() {
                 {isSettings ? (
                   <div className="egitmen-panel-tab-content">
                     <ChangePasswordCard className="change-password-card--embedded" />
+                  </div>
+                ) : null}
+
+                {isFavorites ? (
+                  <div className="egitmen-panel-tab-content">
+                    <FavoritesSection />
                   </div>
                 ) : null}
 

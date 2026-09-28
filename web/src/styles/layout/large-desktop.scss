@@ -15,8 +15,7 @@
   .egitmen-panel-page-container,
   .admin-page-container,
   .profile-page-container,
-  .public-instructors-page,
-  .category-page-content {
+  .public-instructors-page {
     width: calc(100% - #{$large-desktop-gutter});
     max-width: $large-desktop-max;
     box-sizing: border-box;

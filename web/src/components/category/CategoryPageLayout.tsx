@@ -25,7 +25,7 @@ import { useCategoryInstitutionMapMarkers } from "@/hooks/useCategoryInstitution
 import { useListingFavorites } from "@/hooks/useListingFavorites";
 import LoginModal from "@/components/LoginModal";
 import { AppNoticeBar } from "@/components/AppNoticeBar";
-import { NOT_INDIVIDUAL_FAVORITES_MESSAGE } from "@/lib/favorites/favoritesClient";
+import { SELF_FAVORITE_MESSAGE } from "@/lib/favorites/favoritesClient";
 
 /**
  * Drawer (mobil/tablet filtre modalı) açıkken yeni gelen payload'da gerçek bir
@@ -277,7 +277,7 @@ export default function CategoryPageLayout({
       <AppNoticeBar
         message={favoritesError}
         onDismiss={() => setFavoritesError(null)}
-        variant={favoritesError === NOT_INDIVIDUAL_FAVORITES_MESSAGE ? "warning" : "error"}
+        variant={favoritesError === SELF_FAVORITE_MESSAGE ? "warning" : "error"}
       />
     </>
   );

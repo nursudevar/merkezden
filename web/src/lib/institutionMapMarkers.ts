@@ -38,10 +38,6 @@ export function getMapMarkerKey(marker: InstitutionMapMarker): string {
   return marker.mapKey ?? `${getMapMarkerAccountType(marker)}:${marker.id}`;
 }
 
-export function isInstructorMapMarker(marker: InstitutionMapMarker): boolean {
-  return getMapMarkerAccountType(marker) === "instructor";
-}
-
 type InstitutionLocationRow = {
   institution_id: number;
   latitude: number | null;
@@ -372,25 +368,5 @@ export async function fetchInstitutionMapMarkersForListSources(
 
   return dedupeMarkersByInstitutionId(
     mergeLocationRowsWithListSources(locationRows, sourcesById),
-  );
-}
-
-/** Kategori listesi: yalnızca verilen kurumlar için konum birleştirme (institution re-fetch) */
-export async function fetchInstitutionMapMarkersForSources(
-  sources: InstitutionMapMarkerSource[],
-): Promise<InstitutionMapMarker[]> {
-  const validSources = sources.filter(
-    (s) => Number.isFinite(s.id) && String(s.slug ?? "").trim() && String(s.name ?? "").trim(),
-  );
-  if (validSources.length === 0) return [];
-
-  const institutionIds = validSources.map((source) => source.id);
-  const [locationRows, institutionsById] = await Promise.all([
-    fetchSuccessLocationsForIds(institutionIds),
-    fetchInstitutionRowsByIds(institutionIds),
-  ]);
-
-  return dedupeMarkersByInstitutionId(
-    mergeLocationRowsWithInstitutionRows(locationRows, institutionsById),
   );
 }

@@ -398,18 +398,6 @@ export async function fetchHomeFeaturedAccountsFromFeaturedAccounts(
   return result;
 }
 
-/** @deprecated fetchHomeFeaturedAccountsFromFeaturedAccounts kullanın */
-export async function fetchHomeFeaturedInstitutionsFromAccounts(
-  supabase: SupabaseBrowser,
-): Promise<FeaturedInstitution[]> {
-  const accounts = await fetchHomeFeaturedAccountsFromFeaturedAccounts(supabase);
-  return accounts
-    .filter((item): item is { kind: "institution"; institution: FeaturedInstitution } =>
-      item.kind === "institution",
-    )
-    .map((item) => item.institution);
-}
-
 export async function fetchHomeFeaturedPinnedInstructorRow(
   supabase: SupabaseBrowser,
 ): Promise<PublicInstructorListRow | null> {

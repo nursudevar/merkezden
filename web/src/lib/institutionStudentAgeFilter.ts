@@ -53,37 +53,6 @@ export function formatStudentAgeFilterValue(value: number): string {
 
 export { formatStudentAgeDisplay };
 
-/**
- * Kullanıcı aralığını normalize eder (slider / tam aralık UI).
- * Tek uç girildiyse nokta sorgusu (min=max); eksik uç 0.5/99 ile doldurulmaz.
- */
-export function normalizeStudentAgeUserRange(input: {
-  min?: number | null;
-  max?: number | null;
-}): { min: number; max: number } | null {
-  const hasMin = input.min != null && Number.isFinite(Number(input.min));
-  const hasMax = input.max != null && Number.isFinite(Number(input.max));
-  if (!hasMin && !hasMax) return null;
-
-  let min: number;
-  let max: number;
-  if (hasMin && hasMax) {
-    min = Number(input.min);
-    max = Number(input.max);
-  } else if (hasMin) {
-    min = Number(input.min);
-    max = min;
-  } else {
-    max = Number(input.max);
-    min = max;
-  }
-
-  const lo = Math.min(min, max);
-  const hi = Math.max(min, max);
-  if (lo <= STUDENT_AGE_FILTER_MIN && hi >= STUDENT_AGE_FILTER_MAX) return null;
-  return { min: lo, max: hi };
-}
-
 /** Payload string'lerinden filtre sorgusu; boş uçlar korunur. */
 export function parseStudentAgeFilterQueryFromStrings(
   minRaw: string | null | undefined,
@@ -113,17 +82,6 @@ export function isStudentAgeFilterTextActive(
   return Boolean(String(payload.min ?? "").trim() || String(payload.max ?? "").trim());
 }
 
-/**
- * Payload uygulaması: `Number(value.replace(",", "."))`, parseInt yok.
- * Ara durum ("1.") → null.
- */
-export function parseStudentAgeFilterNumber(raw: string): number | null {
-  const trimmed = String(raw ?? "").trim();
-  if (!trimmed || /[.,]$/.test(trimmed)) return null;
-  const value = Number(trimmed.replace(",", "."));
-  return Number.isFinite(value) ? value : null;
-}
-
 export function studentAgeFilterQueryFromTextPayload(
   payload: StudentAgeFilterTextPayload | null | undefined,
 ): StudentAgeFilterQuery | null {
@@ -151,16 +109,6 @@ export function resolveStudentAgeFilterFromPayload(
     return extractStudentAgeFilterQueryFromRangePayload(rangePayload, definitions);
   }
   return null;
-}
-
-/** Filtre payload string'lerinden slider değeri (tek uç → nokta sorgusu). */
-export function parseStudentAgeFilterRangeFromStrings(
-  minRaw: string | null | undefined,
-  maxRaw: string | null | undefined,
-): StudentAgeRangeValue {
-  const query = parseStudentAgeFilterQueryFromStrings(minRaw, maxRaw);
-  if (!query) return null;
-  return normalizeStudentAgeUserRange(query);
 }
 
 export function studentAgeFilterQueryFromUserRange(
@@ -209,16 +157,6 @@ export function storedStudentAgeMatchesFilter(
   return storedMin <= selectedMax! && selectedMax! <= storedMax;
 }
 
-/** @deprecated storedStudentAgeMatchesFilter kullanın. */
-export function storedStudentAgeRangeMatchesUserQuery(
-  stored: { min: number; max: number },
-  userQuery: { min?: number | null; max?: number | null } | null | undefined,
-): boolean {
-  const filter = studentAgeFilterQueryFromUserRange(userQuery);
-  if (!filter) return false;
-  return storedStudentAgeMatchesFilter(stored, filter);
-}
-
 /** storedMin <= selectedMax AND storedMax >= selectedMin (ondalık, yuvarlamasız) */
 export function studentAgeRangesIntersect(
   stored: { min: number; max: number },
@@ -253,16 +191,6 @@ export function extractStudentAgeFilterQueryFromRangePayload(
   }
 
   return null;
-}
-
-/** @deprecated extractStudentAgeFilterQueryFromRangePayload kullanın. */
-export function extractStudentAgeUserRangeFromRangePayload(
-  rangePayload: Record<number, { min?: string; max?: string } | undefined>,
-  definitions: Array<{ id: number; slug?: string | null }>,
-): StudentAgeRangeValue {
-  const query = extractStudentAgeFilterQueryFromRangePayload(rangePayload, definitions);
-  if (!query) return null;
-  return normalizeStudentAgeUserRange(query);
 }
 
 export function isStudentAgeFilterDefinitionId(
@@ -390,12 +318,4 @@ export async function resolveInstructorIdsByStudentAgeFilter(
     },
     userFilter,
   );
-}
-
-/** @deprecated Choice-id filtre kaldırıldı. */
-export async function resolveInstitutionIdsByStudentAgeChoiceIds(
-  _supabase: SupabaseBrowser,
-  _choiceIds: number[],
-): Promise<number[]> {
-  return [];
 }

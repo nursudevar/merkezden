@@ -440,10 +440,3 @@ export async function fetchInstructorMapMarkers(): Promise<InstitutionMapMarker[
 export function instructorDetailHref(marker: InstitutionMapMarker): string {
   return getPublicInstructorDetailHref(marker.slug, marker.id);
 }
-
-export function isApproximateInstructorLocation(marker: InstitutionMapMarker): boolean {
-  return (
-    marker.accountType === "instructor" &&
-    (marker.locationPrecision === "neighborhood" || marker.locationPrecision === "district")
-  );
-}

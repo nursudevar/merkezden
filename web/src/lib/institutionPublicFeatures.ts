@@ -106,7 +106,14 @@ export function getDisplayFeatureName(name: string): string {
     return "Aylık Fiyat Aralığı";
   }
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") return "Eğitim Saatleri";
+  if (
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri" ||
+    key === "calisma saatleri"
+  ) {
+    return "Eğitim Saatleri";
+  }
   if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") return "Sınıf Mevcudu";
   return trimmed;
 }

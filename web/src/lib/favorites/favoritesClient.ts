@@ -15,7 +15,7 @@ import {
 } from '@/lib/publicInstructorSearch';
 import { PUBLIC_INSTRUCTORS_TABLE } from '@/lib/publicInstructorClient';
 
-export type AppUserType = 'individual' | 'institution';
+export type AppUserType = 'individual' | 'institution' | 'instructor';
 
 export interface AppUserRow {
   id: number;
@@ -36,6 +36,7 @@ export interface FavoriteInstitution {
   categoryName: string | null;
   address: string | null;
   about: string | null;
+  slug: string | null;
 }
 
 export interface FavoriteInstructor {
@@ -68,6 +69,7 @@ type FavoriteInstitutionRow = {
   address: string | null;
   about: string | null;
   is_approved?: boolean | null;
+  slug?: string | null;
 };
 
 type FavoritesJoinRow = {
@@ -82,8 +84,7 @@ type FavoriteInstructorIdRow = {
 type FavoritesErrorCode =
   | 'AUTH_REQUIRED'
   | 'APP_USER_NOT_FOUND'
-  | 'NOT_INDIVIDUAL'
-  | 'INDIVIDUAL_PROFILE_NOT_FOUND'
+  | 'SELF_FAVORITE'
   | 'FAVORITES_FETCH_FAILED'
   | 'FAVORITE_INSERT_FAILED'
   | 'FAVORITE_DELETE_FAILED';
@@ -96,8 +97,7 @@ export class FavoritesError extends Error {
   }
 }
 
-export const NOT_INDIVIDUAL_FAVORITES_MESSAGE =
-  'Favoriler yalnızca bireysel hesaplarda kullanılabilir.';
+export const SELF_FAVORITE_MESSAGE = 'Kendi profilinizi favorilere ekleyemezsiniz.';
 
 function logSupabaseError(scope: string, error: unknown) {
   if (error == null) {
@@ -131,6 +131,13 @@ function isFavoritesPermissionError(error: unknown): boolean {
     message.includes('permission denied') ||
     message.includes('row-level security')
   );
+}
+
+function parseAppUserType(value: unknown): AppUserType | null {
+  if (value === 'individual' || value === 'institution' || value === 'instructor') {
+    return value;
+  }
+  return null;
 }
 
 async function fetchCategoryNamesByTypeIds(
@@ -178,6 +185,7 @@ export async function getCurrentAuthUser(): Promise<SupabaseAuthUser | null> {
   return data.user ?? null;
 }
 
+/** auth → public.users → users.id (individual / institution / instructor). */
 async function getCurrentAppUserRequired(): Promise<AppUserRow> {
   const authUser = await getCurrentAuthUser();
   if (!authUser) {
@@ -200,74 +208,66 @@ async function getCurrentAppUserRequired(): Promise<AppUserRow> {
     throw new FavoritesError('APP_USER_NOT_FOUND', 'Kullanıcı kaydı bulunamadı.');
   }
 
-  const user_type = data.user_type === 'individual' || data.user_type === 'institution' ? data.user_type : null;
-  return { id: data.id, user_type, auth_user_id: data.auth_user_id };
+  return {
+    id: Number(data.id),
+    user_type: parseAppUserType(data.user_type),
+    auth_user_id: String(data.auth_user_id ?? authUser.id),
+  };
 }
 
-async function getCurrentIndividualProfileIdRequired(): Promise<number> {
-  const appUser = await getCurrentAppUserRequired();
-  if (appUser.user_type !== 'individual') {
-    throw new FavoritesError('NOT_INDIVIDUAL', NOT_INDIVIDUAL_FAVORITES_MESSAGE);
-  }
-
-  const supabase = createSupabaseBrowserClient();
-
-  const { data, error } = await supabase
-    .from('individual_profiles')
-    .select('id')
-    .eq('user_id', appUser.id)
-    .maybeSingle();
-
-  if (error) {
-    logSupabaseError('[getCurrentIndividualProfileId]', error);
-    throw new FavoritesError(
-      'INDIVIDUAL_PROFILE_NOT_FOUND',
-      'Bireysel profil bulunamadı. Lütfen profil bilgilerinizi kontrol edin.'
-    );
-  }
-  if (!data?.id) {
-    throw new FavoritesError(
-      'INDIVIDUAL_PROFILE_NOT_FOUND',
-      'Bireysel profil bulunamadı. Lütfen profil bilgilerinizi kontrol edin.'
-    );
-  }
-
-  return Number(data.id);
-}
-
-async function tryGetCurrentIndividualProfileId(): Promise<number | null> {
+async function tryGetCurrentUserId(): Promise<number | null> {
   const authUser = await getCurrentAuthUser();
   if (!authUser) return null;
 
   const supabase = createSupabaseBrowserClient();
-
-  const { data: u, error: uErr } = await supabase
+  const { data, error } = await supabase
     .from('users')
-    .select('id, user_type')
+    .select('id')
     .eq('auth_user_id', authUser.id)
     .maybeSingle();
 
-  if (uErr) {
-    logSupabaseError('[tryGetCurrentIndividualProfileId][users]', uErr);
+  if (error) {
+    logSupabaseError('[tryGetCurrentUserId]', error);
     return null;
   }
-  if (!u?.id) return null;
-  if (u.user_type !== 'individual') return null;
 
-  const { data: p, error: pErr } = await supabase
-    .from('individual_profiles')
-    .select('id')
-    .eq('user_id', u.id)
-    .maybeSingle();
+  const userId = Number(data?.id);
+  return Number.isFinite(userId) && userId > 0 ? userId : null;
+}
 
-  if (pErr) {
-    logSupabaseError('[tryGetCurrentIndividualProfileId][individual_profiles]', pErr);
-    return null;
+async function assertNotSelfFavorite(
+  appUser: AppUserRow,
+  target: { institutionId?: number; instructorId?: number },
+): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+
+  if (appUser.user_type === 'institution' && target.institutionId != null) {
+    const { data, error } = await supabase
+      .from('institutions')
+      .select('id')
+      .eq('owner_auth_id', appUser.auth_user_id)
+      .maybeSingle();
+
+    if (error) {
+      logSupabaseError('[assertNotSelfFavorite][institution]', error);
+    } else if (Number(data?.id) === Number(target.institutionId)) {
+      throw new FavoritesError('SELF_FAVORITE', SELF_FAVORITE_MESSAGE);
+    }
   }
-  if (!p?.id) return null;
 
-  const profileId = Number(p.id);
-  return Number.isFinite(profileId) && profileId > 0 ? profileId : null;
+  if (appUser.user_type === 'instructor' && target.instructorId != null) {
+    const { data, error } = await supabase
+      .from('instructors')
+      .select('id')
+      .eq('owner_auth_id', appUser.auth_user_id)
+      .maybeSingle();
+
+    if (error) {
+      logSupabaseError('[assertNotSelfFavorite][instructor]', error);
+    } else if (Number(data?.id) === Number(target.instructorId)) {
+      throw new FavoritesError('SELF_FAVORITE', SELF_FAVORITE_MESSAGE);
+    }
+  }
 }
 
 export async function getMyFavoriteInstitutionIds(): Promise<number[]> {
@@ -277,25 +277,23 @@ export async function getMyFavoriteInstitutionIds(): Promise<number[]> {
   } = await supabase.auth.getSession();
   if (!session) return [];
 
-  const individualProfileId = await tryGetCurrentIndividualProfileId();
-  if (!individualProfileId) return [];
+  const userId = await tryGetCurrentUserId();
+  if (!userId) return [];
 
   const { data, error } = await supabase
     .from('user_favorites')
     .select('institution_id')
-    .eq('individual_profile_id', individualProfileId);
+    .eq('user_id', userId);
 
   if (error) {
     return [];
   }
 
-  const ids = (data ?? [])
+  return (data ?? [])
     .map((row: { institution_id: number | string | null }) => row?.institution_id)
     .filter((v): v is number | string => v !== null && v !== undefined)
     .map((v) => Number(v))
     .filter((v) => Number.isFinite(v));
-
-  return ids;
 }
 
 export async function getMyFavoriteInstructorIds(): Promise<number[]> {
@@ -305,35 +303,33 @@ export async function getMyFavoriteInstructorIds(): Promise<number[]> {
   } = await supabase.auth.getSession();
   if (!session) return [];
 
-  const individualProfileId = await tryGetCurrentIndividualProfileId();
-  if (!individualProfileId) return [];
+  const userId = await tryGetCurrentUserId();
+  if (!userId) return [];
 
   const { data, error } = await supabase
     .from('user_favorites')
     .select('instructor_id')
-    .eq('individual_profile_id', individualProfileId);
+    .eq('user_id', userId);
 
   if (error) {
     return [];
   }
 
-  const ids = (data ?? [])
+  return (data ?? [])
     .map((row: { instructor_id: number | string | null }) => row?.instructor_id)
     .filter((v): v is number | string => v !== null && v !== undefined)
     .map((v) => Number(v))
     .filter((v) => Number.isFinite(v));
-
-  return ids;
 }
 
 export async function isInstitutionFavorited(institutionId: number): Promise<boolean> {
-  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const appUser = await getCurrentAppUserRequired();
   const supabase = createSupabaseBrowserClient();
 
   const { data, error } = await supabase
     .from('user_favorites')
     .select('id')
-    .eq('individual_profile_id', individualProfileId)
+    .eq('user_id', appUser.id)
     .eq('institution_id', institutionId)
     .maybeSingle();
 
@@ -346,13 +342,13 @@ export async function isInstitutionFavorited(institutionId: number): Promise<boo
 }
 
 export async function isInstructorFavorited(instructorId: number): Promise<boolean> {
-  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const appUser = await getCurrentAppUserRequired();
   const supabase = createSupabaseBrowserClient();
 
   const { data, error } = await supabase
     .from('user_favorites')
     .select('id')
-    .eq('individual_profile_id', individualProfileId)
+    .eq('user_id', appUser.id)
     .eq('instructor_id', instructorId)
     .maybeSingle();
 
@@ -371,8 +367,8 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
   } = await supabase.auth.getSession();
   if (!session) return [];
 
-  const individualProfileId = await tryGetCurrentIndividualProfileId();
-  if (!individualProfileId) return [];
+  const userId = await tryGetCurrentUserId();
+  if (!userId) return [];
 
   const { data, error } = await supabase
     .from('user_favorites')
@@ -392,11 +388,12 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
         address,
         about,
         institution_type_id,
-        is_approved
+        is_approved,
+        slug
       )
     `
     )
-    .eq('individual_profile_id', individualProfileId)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -416,7 +413,7 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
     .filter((id) => Number.isFinite(id) && id > 0);
   const categoryByTypeId = await fetchCategoryNamesByTypeIds(supabase, typeIds);
 
-  const institutions = institutionRows
+  return institutionRows
     .map((i) => {
       const typeId = Number(i.institution_type_id);
       const categoryName =
@@ -435,11 +432,10 @@ export async function getMyFavoriteInstitutions(): Promise<FavoriteInstitution[]
         categoryName,
         address: i.address ?? null,
         about: i.about ?? null,
+        slug: String(i.slug ?? "").trim() || null,
       };
     })
     .filter((i: FavoriteInstitution) => Number.isFinite(i.id));
-
-  return institutions;
 }
 
 export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> {
@@ -449,13 +445,13 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
   } = await supabase.auth.getSession();
   if (!session) return [];
 
-  const individualProfileId = await tryGetCurrentIndividualProfileId();
-  if (!individualProfileId) return [];
+  const userId = await tryGetCurrentUserId();
+  if (!userId) return [];
 
   const { data: favoriteRows, error: favoritesError } = await supabase
     .from('user_favorites')
     .select('instructor_id')
-    .eq('individual_profile_id', individualProfileId)
+    .eq('user_id', userId)
     .not('instructor_id', 'is', null);
 
   if (favoritesError) {
@@ -519,18 +515,18 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
 }
 
 export async function addFavorite(institutionId: number): Promise<void> {
-  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const appUser = await getCurrentAppUserRequired();
+  await assertNotSelfFavorite(appUser, { institutionId });
   const supabase = createSupabaseBrowserClient();
 
   const { error } = await supabase.from('user_favorites').insert({
-    individual_profile_id: individualProfileId,
+    user_id: appUser.id,
     institution_id: institutionId,
     instructor_id: null,
   });
 
   if (!error) return;
 
-  // Unique constraint already exists; treat duplicate as success.
   const code = (error as { code?: string } | null)?.code;
   if (code === '23505') {
     return;
@@ -541,11 +537,12 @@ export async function addFavorite(institutionId: number): Promise<void> {
 }
 
 export async function addInstructorFavorite(instructorId: number): Promise<void> {
-  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const appUser = await getCurrentAppUserRequired();
+  await assertNotSelfFavorite(appUser, { instructorId });
   const supabase = createSupabaseBrowserClient();
 
   const { error } = await supabase.from('user_favorites').insert({
-    individual_profile_id: individualProfileId,
+    user_id: appUser.id,
     institution_id: null,
     instructor_id: instructorId,
   });
@@ -562,13 +559,13 @@ export async function addInstructorFavorite(instructorId: number): Promise<void>
 }
 
 export async function removeFavorite(institutionId: number): Promise<void> {
-  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const appUser = await getCurrentAppUserRequired();
   const supabase = createSupabaseBrowserClient();
 
   const { error } = await supabase
     .from('user_favorites')
     .delete()
-    .eq('individual_profile_id', individualProfileId)
+    .eq('user_id', appUser.id)
     .eq('institution_id', institutionId);
 
   if (error) {
@@ -578,13 +575,13 @@ export async function removeFavorite(institutionId: number): Promise<void> {
 }
 
 export async function removeInstructorFavorite(instructorId: number): Promise<void> {
-  const individualProfileId = await getCurrentIndividualProfileIdRequired();
+  const appUser = await getCurrentAppUserRequired();
   const supabase = createSupabaseBrowserClient();
 
   const { error } = await supabase
     .from('user_favorites')
     .delete()
-    .eq('individual_profile_id', individualProfileId)
+    .eq('user_id', appUser.id)
     .eq('instructor_id', instructorId);
 
   if (error) {

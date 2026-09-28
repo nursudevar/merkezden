@@ -640,6 +640,9 @@
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 
   @media (max-width: 720px) {
     min-width: 0;

@@ -231,19 +231,6 @@ function CorporateFormCard() {
           />
         </div>
 
-        <div className="signup-field">
-          <label htmlFor="uyelik-corporate-reference" className="signup-label">
-            Referansiniz
-          </label>
-          <input
-            id="uyelik-corporate-reference"
-            type="text"
-            className="signup-input"
-            placeholder="Referans kisiyi veya kurumu yazin"
-            readOnly
-          />
-        </div>
-
         <label className="signup-checkbox">
           <input type="checkbox" />
           <span>

@@ -509,8 +509,6 @@ export async function POST(request: Request) {
   const authorizedPersonPhoneRaw = String(formData.get("authorizedPersonPhone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const referenceRaw = String(formData.get("reference") ?? "");
-  const reference = referenceRaw.trim() || null;
   const institutionName = String(formData.get("institutionName") ?? "").trim();
   const legalStructure = String(formData.get("legalStructure") ?? "").trim();
   const categoryId = parsePositiveId(formData.get("categoryId"));
@@ -781,7 +779,6 @@ export async function POST(request: Request) {
     company_name: institutionName,
     institution_name: institutionName,
     full_name: institutionName,
-    reference,
   };
 
   logInstitutionSignupStep(
@@ -1110,7 +1107,6 @@ export async function POST(request: Request) {
         authorized_person_role: authorizedPersonRole,
         authorized_person_phone: authorizedPersonPhone,
         official_email: email,
-        reference,
         institution_name: institutionName,
         legal_structure: legalStructure,
         category_id: categoryId,

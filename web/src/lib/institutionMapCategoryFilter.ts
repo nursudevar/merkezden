@@ -41,15 +41,6 @@ export function mapCategoryCanonicalKeys(name: string, slug = ""): string[] {
   return [...keys];
 }
 
-export function markerMatchesCategoryName(
-  marker: InstitutionMapMarker,
-  selectedCategory: string,
-): boolean {
-  const selectedKey = normalizeMapCategory(selectedCategory);
-  if (!selectedKey) return false;
-  return mapCategoryCanonicalKeys(marker.categoryName, marker.categorySlug).includes(selectedKey);
-}
-
 export function markerMatchesSelectedCategories(
   marker: InstitutionMapMarker,
   selectedSlugs: readonly string[],

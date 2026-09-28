@@ -365,7 +365,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                 <Clock size={18} aria-hidden />
               </div>
               <div>
-                <div className="instructor-contact-label">ÇALIŞMA SAATLERİ</div>
+                <div className="instructor-contact-label">EĞİTİM SAATLERİ</div>
                 <div className="instructor-contact-value">{workingHoursText}</div>
               </div>
             </div>

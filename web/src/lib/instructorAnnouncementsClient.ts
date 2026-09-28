@@ -33,7 +33,6 @@ export const INSTRUCTOR_ANNOUNCEMENT_ERROR = "Duyuru işlemi sırasında bir hat
 export const INSTRUCTOR_ANNOUNCEMENT_CREATE_SUCCESS = "Duyuru başarıyla eklendi.";
 export const INSTRUCTOR_ANNOUNCEMENT_UPDATE_SUCCESS = "Duyuru başarıyla güncellendi.";
 export const INSTRUCTOR_ANNOUNCEMENT_DELETE_SUCCESS = "Duyuru başarıyla silindi.";
-export const INSTRUCTOR_ANNOUNCEMENT_INSTRUCTOR_NOT_FOUND = "Eğitmen profiliniz bulunamadı.";
 export const INSTRUCTOR_ANNOUNCEMENT_LINK_URL_ERROR = "Lütfen geçerli bir bağlantı adresi girin.";
 
 export function formatInstructorAnnouncementDate(iso: string | null | undefined): string {

@@ -51,10 +51,6 @@ export function kurumTuruSlugToSchoolStatus(slug: KurumTuruSlug): SchoolStatus {
   return slug === "ozel" ? "private" : "public";
 }
 
-export function schoolStatusToKurumTuruSlug(status: SchoolStatus): KurumTuruSlug {
-  return status === "private" ? "ozel" : "devlet";
-}
-
 export function parseKurumTuruSlug(raw: string): KurumTuruSlug | null {
   const normalized = String(raw ?? "").trim().toLowerCase();
   if (normalized === "devlet") return "devlet";

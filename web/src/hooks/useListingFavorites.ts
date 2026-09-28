@@ -7,7 +7,6 @@ import {
   FavoritesError,
   getMyFavoriteInstitutionIds,
   getMyFavoriteInstructorIds,
-  NOT_INDIVIDUAL_FAVORITES_MESSAGE,
   toggleFavorite,
   toggleInstructorFavorite,
 } from "@/lib/favorites/favoritesClient";
@@ -35,7 +34,7 @@ export function useListingFavorites() {
       return;
     }
     if (!favoritesEnabled) {
-      setFavoritesError(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
+      setFavoritesError("Favoriler kullanılamıyor. Lütfen tekrar deneyin.");
       return;
     }
     if (favoriteActionLoadingIds.has(institutionId)) return;
@@ -92,7 +91,7 @@ export function useListingFavorites() {
       return;
     }
     if (!favoritesEnabled) {
-      setFavoritesError(NOT_INDIVIDUAL_FAVORITES_MESSAGE);
+      setFavoritesError("Favoriler kullanılamıyor. Lütfen tekrar deneyin.");
       return;
     }
     if (favoriteInstructorActionLoadingIds.has(instructorId)) return;
@@ -194,16 +193,10 @@ export function useListingFavorites() {
         setFavoriteInstructorIds(new Set(instructorIds));
       } catch (err) {
         if (cancelled) return;
-        if (err instanceof FavoritesError && err.code === "NOT_INDIVIDUAL") {
-          setFavoritesEnabled(false);
-          setFavoriteIds(new Set());
-          setFavoriteInstructorIds(new Set());
-        } else {
-          const msg =
-            err instanceof FavoritesError ? err.message : "Favoriler yüklenemedi. Lütfen tekrar deneyin.";
-          setFavoritesError(msg);
-          setFavoritesEnabled(false);
-        }
+        const msg =
+          err instanceof FavoritesError ? err.message : "Favoriler yüklenemedi. Lütfen tekrar deneyin.";
+        setFavoritesError(msg);
+        setFavoritesEnabled(false);
       } finally {
         if (!cancelled) setFavoritesLoading(false);
       }

@@ -750,6 +750,7 @@ function resolveDirectInstructorFeatureKey(
         key.includes("working_hours") ||
         key === "okul_saatleri" ||
         key === "calisma_saatleri" ||
+        key === "egitim_saatleri" ||
         key === "saat",
     )
   ) {
@@ -1133,26 +1134,6 @@ export async function fetchInstructorFeatureFilterSchemaDataClient(
     choices: (choicesRes.data as InstructorFeatureChoiceRow[] | null) ?? [],
     error: null,
   };
-}
-
-export async function fetchInstructorFeatureFilterSchemaClient(
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-  selectedCategorySlug?: string | null,
-): Promise<{
-  fields: InstructorFilterField[];
-  error: string | null;
-}> {
-  const data = await fetchInstructorFeatureFilterSchemaDataClient(supabaseArg);
-  if (data.error) return { fields: [], error: data.error };
-
-  const fields = buildInstructorFilterFieldsForListingCategory(
-    data.groups,
-    data.definitions,
-    data.choices,
-    selectedCategorySlug,
-  );
-
-  return { fields, error: null };
 }
 
 export function buildInstructorFilterFieldsFromSchema(

@@ -87,23 +87,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Admin kullanıcılar silinemez." }, { status: 403 });
   }
 
-  const { data: profileRow } = await supabase
-    .from("individual_profiles")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const profileId = Number(profileRow?.id);
-  if (Number.isFinite(profileId)) {
-    const { error: favoritesError } = await supabase
-      .from("user_favorites")
-      .delete()
-      .eq("individual_profile_id", profileId);
-
-    if (favoritesError) {
-      return NextResponse.json({ error: "Kullanıcı favorileri silinemedi." }, { status: 500 });
-    }
-  }
+  // user_favorites.user_id → users.id ON DELETE CASCADE; favoriler users silinince kalkar.
 
   const { error: profileDeleteError } = await supabase
     .from("individual_profiles")

@@ -20,7 +20,6 @@ import {
   Building2,
   Calendar,
   Car,
-  Clock,
   Clock3,
   Coins,
   CreditCard,
@@ -275,7 +274,7 @@ const PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "fiziki imkanlar",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "egitim dili",
   "ucret tipi",
   "odeme secenekleri",
@@ -309,7 +308,7 @@ const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "ders seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -329,7 +328,7 @@ const YABANCI_DIL_INSTRUCTOR_FILTER_ORDER = [
   "ders seviyesi",
   "ogrencinin egitim seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -346,7 +345,7 @@ const SANAT_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "ders seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -365,7 +364,7 @@ const SPOR_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "ders seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -388,7 +387,7 @@ const KISISEL_GELISIM_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "ders seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -410,7 +409,7 @@ const MESLEKI_EGITIM_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "ders seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -433,7 +432,7 @@ const OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER = [
   "ders seviyesi",
   "ogrencinin egitim seviyesi",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
@@ -452,7 +451,7 @@ const SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER = [
   "arac tipleri",
   "arac imkani",
   "musait gunler",
-  "calisma saatleri",
+  "egitim saatleri",
   "ders verme sikligi",
   "ders suresi",
   "egitim dili",
@@ -553,7 +552,7 @@ function normalizeSurucuKursuFilterOrderKey(name: string): string {
 }
 
 function normalizeInstructorFilterOrderKey(name: string): string {
-  return name
+  const key = name
     .trim()
     .toLocaleLowerCase("tr-TR")
     .normalize("NFD")
@@ -567,6 +566,15 @@ function normalizeInstructorFilterOrderKey(name: string): string {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
+    return "egitim saatleri";
+  }
+  return key;
 }
 
 function orderKursSinavaHazirlikInstructorFields(
@@ -917,7 +925,14 @@ function getDisplayFeatureName(name: string): string {
     return "Aylık Fiyat Aralığı";
   }
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") return "Eğitim Saatleri";
+  if (
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri" ||
+    key === "calisma saatleri"
+  ) {
+    return "Eğitim Saatleri";
+  }
   if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") return "Sınıf Mevcudu";
   return trimmed;
 }
@@ -932,6 +947,8 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "egitim dili": Languages,
   "egitim saatleri": Clock3,
   "kurum saatleri": Clock3,
+  "okul saatleri": Clock3,
+  "calisma saatleri": Clock3,
   "sinif mevcudu": UsersRound,
   "ortalama sinif mevcudu": UsersRound,
   "aylik fiyat araligi": WalletCards,
@@ -979,7 +996,6 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "hizmet turleri": List,
   "hizmet yeri": House,
   "musait gunler": Calendar,
-  "calisma saatleri": Clock,
   "ders suresi": Timer,
   "ders verme sikligi": Repeat,
   "egitim seviyesi": GraduationCap,
@@ -1078,7 +1094,12 @@ function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonFiel
 
   const isKurumSaatleriField = (field: CommonField) => {
     const key = normalizeCommonFieldNameKey(field.name);
-    return key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri";
+    return (
+      key === "okul saatleri" ||
+      key === "kurum saatleri" ||
+      key === "egitim saatleri" ||
+      key === "calisma saatleri"
+    );
   };
 
   const isOrtalamaSinifMevcuduField = (field: CommonField) => {
@@ -1163,7 +1184,12 @@ function normalizeOkulInstitutionFilterOrderKey(name: string): string {
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1236,7 +1262,12 @@ function normalizeKursSinavaHazirlikInstitutionFilterOrderKey(name: string): str
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1322,7 +1353,12 @@ function normalizeSporInstitutionFilterOrderKey(name: string): string {
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1408,7 +1444,12 @@ function normalizeSanatInstitutionFilterOrderKey(name: string): string {
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1492,7 +1533,12 @@ function normalizeYabanciDilInstitutionFilterOrderKey(name: string): string {
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1578,7 +1624,12 @@ function normalizeKisiselGelisimInstitutionFilterOrderKey(name: string): string 
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1664,7 +1715,12 @@ function normalizeMeslekiEgitimInstitutionFilterOrderKey(name: string): string {
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1752,7 +1808,12 @@ function normalizeOzelEgitimInstitutionFilterOrderKey(name: string): string {
     return "odeme secenekleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -1855,7 +1916,12 @@ function normalizeSurucuKursuInstitutionFilterOrderKey(name: string): string {
     return "odeme yontemleri";
   }
   if (key.includes("sinif mevcudu")) return "sinif mevcudu";
-  if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+  if (
+    key === "calisma saatleri" ||
+    key === "okul saatleri" ||
+    key === "kurum saatleri" ||
+    key === "egitim saatleri"
+  ) {
     return "egitim saatleri";
   }
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
@@ -3102,22 +3168,6 @@ function useCategoryFilterSidebarModel({
     setSelectedStudentAgeRange(value);
   };
 
-  /** Öğrenci yaşı aralığı legacy commonRange kaydı (artık kullanılmıyor). */
-  const setCommonAgeRange = (definitionId: number, value: StudentAgeFilterTextPayload | null) => {
-    setSelectedCommonRange((prev) => {
-      const next = { ...prev };
-      if (!value) {
-        delete next[definitionId];
-        return next;
-      }
-      next[definitionId] = {
-        min: value.min,
-        max: value.max,
-      };
-      return next;
-    });
-  };
-
   const onSchoolFilterPayloadChangeRef = useRef(onSchoolFilterPayloadChange);
   onSchoolFilterPayloadChangeRef.current = onSchoolFilterPayloadChange;
   const onInstructorFilterPayloadChangeRef = useRef(onInstructorFilterPayloadChange);
@@ -3456,7 +3506,6 @@ function useCategoryFilterSidebarModel({
     setCommonRange,
     setCommonPriceRange,
     setPatiliPriceRange,
-    setCommonAgeRange,
     setStudentAgeRange,
     selectedStudentAgeRange,
     renderedFeatureGroups,
@@ -3628,7 +3677,6 @@ function CategoryFilterSidebarView({
     setCommonRange,
     setCommonPriceRange,
     setPatiliPriceRange,
-    setCommonAgeRange,
     setStudentAgeRange,
     selectedStudentAgeRange,
     renderedFeatureGroups,

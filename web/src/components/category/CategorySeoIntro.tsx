@@ -14,7 +14,7 @@ import {
   type CategorySeoTextPart,
 } from "@/lib/seo/categorySeoContent";
 
-const TOGGLE_MORE_LABEL = "Daha Fazla Göster";
+const TOGGLE_MORE_LABEL = "daha fazla göster";
 const TOGGLE_LESS_LABEL = "Daha Az Göster";
 const TOGGLE_SUFFIX = ` ${TOGGLE_MORE_LABEL}`;
 const LINE_COUNT = 3;

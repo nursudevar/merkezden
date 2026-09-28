@@ -17,7 +17,7 @@ import {
 export const INSTRUCTORS_TABLE = "instructors" as const;
 
 export const INSTRUCTOR_PROFILE_ROW_SELECT =
-  "id, user_id, owner_auth_id, name, surname, email, phone, identity_or_tax_number, birth_date, reference, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id, can_edit_category";
+  "id, user_id, owner_auth_id, name, surname, email, phone, identity_or_tax_number, birth_date, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id, can_edit_category";
 
 export type InstructorProfileRow = {
   id: number;
@@ -29,7 +29,6 @@ export type InstructorProfileRow = {
   phone?: string | null;
   identity_or_tax_number?: string | null;
   birth_date?: string | null;
-  reference?: string | null;
   school?: string | null;
   department?: string | null;
   bio?: string | null;
@@ -67,7 +66,6 @@ export type InstructorProfileFormState = {
   phone: string;
   identity_or_tax_number: string;
   birth_date: string;
-  reference: string;
   branch: string;
   experience_years: string;
   education_level: string;
@@ -117,7 +115,6 @@ export const EMPTY_INSTRUCTOR_PROFILE_FORM: InstructorProfileFormState = {
   phone: "",
   identity_or_tax_number: "",
   birth_date: "",
-  reference: "",
   branch: "",
   experience_years: "",
   education_level: "",
@@ -157,7 +154,6 @@ export function mapInstructorRowToFormState(row: InstructorProfileRow): Instruct
     phone: String(row.phone ?? "").trim(),
     identity_or_tax_number: String(row.identity_or_tax_number ?? "").trim(),
     birth_date: formatBirthDateForInput(row.birth_date),
-    reference: String(row.reference ?? "").trim(),
     branch: String(row.branch ?? "").trim(),
     experience_years:
       exp != null && Number.isFinite(Number(exp)) ? String(Number(exp)) : "",
@@ -197,7 +193,6 @@ export function buildInstructorProfileUpdatePayload(form: InstructorProfileFormS
     phone: form.phone.trim() || null,
     identity_or_tax_number: form.identity_or_tax_number.trim() || null,
     birth_date: form.birth_date.trim(),
-    reference: form.reference.trim() || null,
     branch: form.branch.trim() || null,
     experience_years,
     education_level: form.education_level.trim() || null,
@@ -259,7 +254,7 @@ export function instructorProfileFormsEqual(
 }
 
 const INSTRUCTOR_PROFILE_SAVE_SELECT =
-  "id, name, surname, email, phone, identity_or_tax_number, birth_date, reference, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id";
+  "id, name, surname, email, phone, identity_or_tax_number, birth_date, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id";
 
 /** Panel: yalnızca oturum sahibinin instructors satırını günceller. */
 export async function updateInstructorProfileForAuthUserClient(

@@ -5,7 +5,7 @@ import { HaritadaAraPageClient } from "./HaritadaAraPageClient";
 export const metadata: Metadata = {
   title: "Haritada Ara | Merkezden",
   description:
-    "Ankara'daki eğitim kurumlarını harita üzerinde keşfedin. Kategori filtreleri ve görünen kurum listesi ile arayın.",
+    "Ankara'daki eğitim kurumlarını ve eğitmenleri harita üzerinde keşfedin. Kategori filtreleri ve görünen sonuç listesi ile arayın.",
 };
 
 export default function HaritadaAraPage() {

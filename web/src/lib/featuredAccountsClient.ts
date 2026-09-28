@@ -524,10 +524,3 @@ export async function deactivateFeaturedAccountById(
   }
   return { error: null };
 }
-
-export async function deactivateFeaturedInstitution(
-  supabase: SupabaseBrowser,
-  institutionId: number,
-): Promise<{ error: string | null }> {
-  return toggleFeaturedInstitution(supabase, institutionId, true);
-}

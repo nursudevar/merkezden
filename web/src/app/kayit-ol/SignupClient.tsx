@@ -53,7 +53,6 @@ type InstructorFormData = {
   birthDate: string;
   phone: string;
   password: string;
-  reference: string;
   categoryId: string;
   /** TC Kimlik No (11 hane) — DB: instructors.identity_or_tax_number */
   nationalId: string;
@@ -78,7 +77,6 @@ type IndividualSignupFormData = {
   /** Görüntü: `+90 555 123 45 67` — DB: `normalizeTurkishMobilePhone` */
   phone: string;
   password: string;
-  reference: string;
   acceptTerms: boolean;
 };
 
@@ -89,7 +87,6 @@ type InstitutionSignupFormData = {
   phone: string;
   email: string;
   password: string;
-  reference: string;
   /** 2. adım — DB: institutions.institution_name */
   companyName: string;
   /** 2. adım hukuki yapı — DB: institutions.legal_structure (type / institution_type_id değil) */
@@ -497,7 +494,6 @@ export default function SignupClient() {
     email: "",
     phone: "+90",
     password: "",
-    reference: "",
     acceptTerms: false,
   });
   const [institutionFormData, setInstitutionFormData] = useState<InstitutionSignupFormData>({
@@ -506,7 +502,6 @@ export default function SignupClient() {
     phone: "+90",
     email: "",
     password: "",
-    reference: "",
     companyName: "",
     legalStructure: "",
     categoryId: "",
@@ -543,7 +538,6 @@ export default function SignupClient() {
     birthDate: "",
     phone: "+90",
     password: "",
-    reference: "",
     categoryId: "",
     nationalId: "",
     ilId: "",
@@ -824,7 +818,6 @@ export default function SignupClient() {
     setLoading(true);
 
     const { email, password } = individualFormData;
-    const reference = individualFormData.reference.trim();
 
     try {
       const { data: emailExists, error: emailCheckError } = await supabase.rpc(
@@ -850,7 +843,6 @@ export default function SignupClient() {
         user_type: "individual",
         company_name: null,
         institution_name: null,
-        reference: reference || null,
         first_name: individualFormData.firstName,
         last_name: individualFormData.lastName,
         full_name: `${individualFormData.firstName} ${individualFormData.lastName}`.trim(),
@@ -892,7 +884,6 @@ export default function SignupClient() {
             .from("individual_profiles")
             .update({
               phone: normalizedIndividualPhone,
-              reference: individualFormData.reference.trim() || null,
             })
             .eq("user_id", userRow.id);
 
@@ -1091,7 +1082,6 @@ export default function SignupClient() {
       completeForm.set("authorizedPersonPhone", institutionFormData.phone);
       completeForm.set("email", institutionFormData.email.trim());
       completeForm.set("password", institutionFormData.password);
-      completeForm.set("reference", institutionFormData.reference.trim());
       completeForm.set("institutionName", institutionFormData.companyName.trim());
       completeForm.set("legalStructure", institutionFormData.legalStructure.trim());
       completeForm.set("categoryId", institutionFormData.categoryId.trim());
@@ -1573,7 +1563,6 @@ export default function SignupClient() {
       completeForm.set("birthDate", instructorFormData.birthDate);
       completeForm.set("phone", instructorFormData.phone);
       completeForm.set("categoryId", instructorFormData.categoryId.trim());
-      completeForm.set("reference", instructorFormData.reference.trim());
       completeForm.set("identityOrTaxNumber", instructorFormData.nationalId.trim());
       completeForm.set("ilId", instructorFormData.ilId);
       completeForm.set("ilceId", instructorFormData.ilceId);
@@ -1587,7 +1576,7 @@ export default function SignupClient() {
       logInstructorSignup({
         step: "instructor_details_update",
         message: "sending instructor signup request",
-        details: `hasDiplomaFile=${Boolean(diplomaFile)};diplomaSize=${diplomaFile.size};hasReference=${Boolean(instructorFormData.reference.trim())}`,
+        details: `hasDiplomaFile=${Boolean(diplomaFile)};diplomaSize=${diplomaFile.size}`,
         hint: "auth signup and instructor id lookup happen on the server",
       });
 
@@ -1918,21 +1907,6 @@ export default function SignupClient() {
                     {instructorErrors.categoryId}
                   </p>
                 ) : null}
-              </div>
-
-              <div className="signup-field">
-                <label htmlFor="signup-instructor-reference" className="signup-label">
-                  Referans
-                </label>
-                <input
-                  type="text"
-                  id="signup-instructor-reference"
-                  name="reference"
-                  className="signup-input"
-                  placeholder="Referans kişi veya kurumu yazın"
-                  value={instructorFormData.reference}
-                  onChange={handleInstructorChange}
-                />
               </div>
 
               {!instructorDetailsOpen ? (
@@ -2274,22 +2248,7 @@ export default function SignupClient() {
                       onToggle={() => setShowPassword((prev) => !prev)}
                     />
                   </div>
-                </div>
-
-                <div className="signup-field">
-                  <label htmlFor="signup-individual-reference" className="signup-label">
-                    Referans
-                  </label>
-                  <input
-                    type="text"
-                    id="signup-individual-reference"
-                    name="reference"
-                    className="signup-input"
-                    placeholder="Referans kişi veya kurumu yazın"
-                    value={individualFormData.reference}
-                    onChange={handleChange}
-                  />
-                </div>
+                  </div>
                 </>
               ) : (
                 <>
@@ -2434,21 +2393,6 @@ export default function SignupClient() {
                       {institutionErrors.password}
                     </p>
                   ) : null}
-                </div>
-
-                <div className="signup-field">
-                  <label htmlFor="signup-reference" className="signup-label">
-                    Referans
-                  </label>
-                  <input
-                    type="text"
-                    id="signup-reference"
-                    name="reference"
-                    className="signup-input"
-                    placeholder="Referans kişiyi veya kurumu yazın"
-                    value={institutionFormData.reference}
-                    onChange={handleChange}
-                  />
                 </div>
 
                 {institutionDetailsOpen ? (

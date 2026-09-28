@@ -319,16 +319,6 @@ export async function fetchPublicInstructorsListClient(options?: {
 }
 
 /** Detay — slug veya sayısal id */
-export async function fetchPublicInstructorBySlugClient(
-  slug: string,
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<{
-  row: PublicInstructorRow | null;
-  error: { message: string } | null;
-}> {
-  return fetchPublicInstructorByParamClient(slug, supabaseArg);
-}
-
 export async function fetchPublicInstructorByParamClient(
   param: string,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,

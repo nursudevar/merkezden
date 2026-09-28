@@ -119,9 +119,6 @@ export function parseStudentAgeDecimalInput(
   return { kind: "ok", value };
 }
 
-/** @deprecated Use parseStudentAgeDecimalInput */
-export const parseNonNegativeIntegerAgeInput = parseStudentAgeDecimalInput;
-
 /**
  * Input onChange: boş veya yazılabilir ondalık metin (negatif / harf engelli).
  * Ara durumlar ("1.") serbest bırakılır; nihai doğrulama validate ile yapılır.
@@ -135,9 +132,6 @@ export function sanitizeStudentAgeDecimalInput(raw: string): string | null {
   if (!/^\d*\.?\d*$/.test(normalized)) return null;
   return normalized;
 }
-
-/** @deprecated Use sanitizeStudentAgeDecimalInput */
-export const sanitizeNonNegativeIntegerAgeInput = sanitizeStudentAgeDecimalInput;
 
 /**
  * İkisi de boş → geçerli.

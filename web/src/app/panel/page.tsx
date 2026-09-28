@@ -32,6 +32,7 @@ import {
   FileText,
   List,
   Tags,
+  Heart,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -84,6 +85,7 @@ import {
 } from "@/components/AdminActingAsBanner";
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
+import { FavoritesSection } from "@/components/favorites/FavoritesSection";
 import {
   InstitutionExtraBranchesSection,
   type InstitutionExtraBranchesSectionHandle,
@@ -116,6 +118,7 @@ type PanelTabId =
   | "institutions"
   | "media-management"
   | "announcements"
+  | "favorites"
   | "settings"
   | "subscription";
 
@@ -157,6 +160,11 @@ const PANEL_TABS: { id: PanelTabId; label: string; placeholder: string }[] = [
     id: "announcements",
     label: "Duyurular",
     placeholder: "Duyurular ve içerikler burada yönetilecek.",
+  },
+  {
+    id: "favorites",
+    label: "Favoriler",
+    placeholder: "Favori kurumlar ve eğitmenler burada görünecek.",
   },
   {
     id: "settings",
@@ -1821,6 +1829,7 @@ interface InstitutionDetailPreparedData {
     institutions: <Building className="panel-sidebar-nav-icon" aria-hidden />,
     "media-management": <Images className="panel-sidebar-nav-icon" aria-hidden />,
     announcements: <Megaphone className="panel-sidebar-nav-icon" aria-hidden />,
+    favorites: <Heart className="panel-sidebar-nav-icon" aria-hidden />,
     settings: <Settings className="panel-sidebar-nav-icon" aria-hidden />,
     subscription: <CreditCard className="panel-sidebar-nav-icon" aria-hidden />,
   };
@@ -2091,6 +2100,7 @@ interface InstitutionDetailPreparedData {
   const isInstitutionsTab = activeTab === "institutions";
   const isMediaManagementTab = activeTab === "media-management";
   const isAnnouncementsTab = activeTab === "announcements";
+  const isFavoritesTab = activeTab === "favorites";
   const isSettingsTab = activeTab === "settings";
   const isSubscriptionTab = activeTab === "subscription";
   const isOverviewTab = activeTab === "overview";
@@ -2638,7 +2648,12 @@ interface InstitutionDetailPreparedData {
     if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") {
       return "Kurum Türü";
     }
-    if (key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
+    if (
+      key === "okul saatleri" ||
+      key === "kurum saatleri" ||
+      key === "egitim saatleri" ||
+      key === "calisma saatleri"
+    ) {
       return "Eğitim Saatleri";
     }
     if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") {
@@ -3260,6 +3275,10 @@ interface InstitutionDetailPreparedData {
                   </div>
                 </div>
               </>
+            ) : isFavoritesTab ? (
+              <div className="panel-institution-card-content">
+                <FavoritesSection />
+              </div>
             ) : (
               <>
             <div className="panel-main-card-header">
@@ -3552,7 +3571,7 @@ interface InstitutionDetailPreparedData {
                         className="panel-institution-form-label"
                         htmlFor="panel-working-hours-start"
                       >
-                        ÇALIŞMA SAATLERİ - BAŞLANGIÇ
+                        EĞİTİM SAATLERİ - BAŞLANGIÇ
                       </label>
                       <WorkingHoursTimePicker
                         id="panel-working-hours-start"
@@ -3561,7 +3580,7 @@ interface InstitutionDetailPreparedData {
                           handleInstitutionFormChange("workingHoursStart", next)
                         }
                         disabled={!isEditingInstitutionProfile}
-                        ariaLabel="Çalışma saatleri başlangıç"
+                        ariaLabel="Eğitim saatleri başlangıç"
                         placeholder="Başlangıç"
                       />
                     </div>
@@ -3570,7 +3589,7 @@ interface InstitutionDetailPreparedData {
                         className="panel-institution-form-label"
                         htmlFor="panel-working-hours-end"
                       >
-                        ÇALIŞMA SAATLERİ - BİTİŞ
+                        EĞİTİM SAATLERİ - BİTİŞ
                       </label>
                       <WorkingHoursTimePicker
                         id="panel-working-hours-end"
@@ -3579,7 +3598,7 @@ interface InstitutionDetailPreparedData {
                           handleInstitutionFormChange("workingHoursEnd", next)
                         }
                         disabled={!isEditingInstitutionProfile}
-                        ariaLabel="Çalışma saatleri bitiş"
+                        ariaLabel="Eğitim saatleri bitiş"
                         placeholder="Bitiş"
                       />
                     </div>

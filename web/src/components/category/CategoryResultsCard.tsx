@@ -69,6 +69,7 @@ export default function CategoryResultsCard({
   const instructorTitleText = String(instructorTitle ?? "").trim();
   const instructorBranchText = String(instructorBranch ?? "").trim();
   const instructorPriceText = String(priceRange ?? "").trim();
+  const locationText = String(location ?? "").trim();
   const numericInstitutionId =
     typeof institutionId === "number" && Number.isInteger(institutionId) && institutionId > 0
       ? institutionId
@@ -106,14 +107,14 @@ export default function CategoryResultsCard({
                 alt={name}
                 fill
                 className="category-results-card-logo-image"
-                sizes="80px"
+                sizes="(max-width: 640px) 60px, 40vw"
                 unoptimized
               />
             ) : (
-              logoInitial
+              <span className="category-results-card-logo-fallback">{logoInitial}</span>
             )}
           </div>
-          {!isInstructor ? (
+          {!isInstructor && badges.length > 0 ? (
             <div className="category-results-card-badges">
               {badges.map((badge, index) => (
                 <span key={index} className="category-results-card-badge">
@@ -142,6 +143,12 @@ export default function CategoryResultsCard({
               {subcategoryLabel}
             </span>
           ) : null}
+          {locationText ? (
+            <div className="category-results-card-location">
+              <MapPin size={14} />
+              <span>{locationText}</span>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -155,11 +162,6 @@ export default function CategoryResultsCard({
         {!isInstructor && descriptionText ? (
           <p className="category-results-card-description">{descriptionText}</p>
         ) : null}
-
-        <div className="category-results-card-location">
-          <MapPin size={14} />
-          <span>{location}</span>
-        </div>
         {isInstructor && instructorPriceText ? (
           <p className="category-results-card-price">{instructorPriceText}</p>
         ) : null}

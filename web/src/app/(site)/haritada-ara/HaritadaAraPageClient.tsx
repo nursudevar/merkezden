@@ -58,11 +58,6 @@ import {
   sanitizeMapCategorySlugs,
   writeMapCategorySlugsToParams,
 } from "@/lib/institutionMapCategoryFilter";
-import {
-  readMapHesapTipiFromSearch,
-  writeMapHesapTipiToParams,
-  type MapHesapTipi,
-} from "@/lib/mapSearchAccountType";
 
 function searchQueryEqual(a: string, b: string): boolean {
   const left = new URLSearchParams(a.startsWith("?") ? a.slice(1) : a);
@@ -138,7 +133,6 @@ export function HaritadaAraPageClient() {
   const [selectedMahalleId, setSelectedMahalleId] = useState("");
   const [selectedKurumTuru, setSelectedKurumTuru] = useState<KurumTuruSlug[]>([]);
   const [kurumTuruAllowedIds, setKurumTuruAllowedIds] = useState<Set<number> | null>(null);
-  const [selectedHesapTipi, setSelectedHesapTipi] = useState<MapHesapTipi>("hepsi");
   const [mapCategories, setMapCategories] = useState<ActiveInstitutionCategory[]>([]);
   const [selectedCategorySlugs, setSelectedCategorySlugs] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,8 +177,6 @@ export function HaritadaAraPageClient() {
     const searchKey = normalizeLocationKey(appliedSearchQuery);
     const filtered = markers.filter((marker) => {
       const accountType = getMapMarkerAccountType(marker);
-      if (selectedHesapTipi === "kurumlar" && accountType !== "institution") return false;
-      if (selectedHesapTipi === "egitmenler" && accountType !== "instructor") return false;
       if (!markerMatchesLocationIds(marker, selectedIlIdNum, selectedIlceIdNum, selectedMahalleIdNum)) {
         return false;
       }
@@ -236,7 +228,6 @@ export function HaritadaAraPageClient() {
     selectedIlIdNum,
     selectedIlceIdNum,
     selectedMahalleIdNum,
-    selectedHesapTipi,
     kurumTuruAllowedIds,
     selectedCategorySlugs,
     mapCategories,
@@ -371,7 +362,6 @@ export function HaritadaAraPageClient() {
       setSearchQuery(q);
       setAppliedSearchQuery(q);
       setSelectedKurumTuru(readKurumTuruSlugsFromSearch(searchKey));
-      setSelectedHesapTipi(readMapHesapTipiFromSearch(searchKey));
       const categorySlugs = readMapCategorySlugsFromSearch(searchKey);
       const categories = mapCategoriesRef.current;
       setSelectedCategorySlugs(
@@ -407,7 +397,6 @@ export function HaritadaAraPageClient() {
       if (trimmedQuery) params.set("q", trimmedQuery);
       else params.delete("q");
       writeKurumTuruSlugsToParams(params, selectedKurumTuru);
-      writeMapHesapTipiToParams(params, selectedHesapTipi);
       writeMapCategorySlugsToParams(params, selectedCategorySlugs);
       const serialized = params.toString();
       if (searchQueryEqual(serialized, searchKey)) return;
@@ -425,7 +414,6 @@ export function HaritadaAraPageClient() {
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
-    selectedHesapTipi,
     selectedCategorySlugs,
   ]);
 
@@ -545,15 +533,11 @@ export function HaritadaAraPageClient() {
         setFavoritesEnabled(true);
         setFavoriteIds(new Set(institutionIds));
         setInstructorFavoriteIds(new Set(instructorIds));
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        if (err instanceof FavoritesError && err.code === "NOT_INDIVIDUAL") {
-          setFavoritesEnabled(false);
-          setFavoriteIds(new Set());
-          setInstructorFavoriteIds(new Set());
-        } else {
-          setFavoritesEnabled(false);
-        }
+        setFavoritesEnabled(false);
+        setFavoriteIds(new Set());
+        setInstructorFavoriteIds(new Set());
       } finally {
         if (!cancelled) setFavoritesLoading(false);
       }
@@ -795,8 +779,7 @@ export function HaritadaAraPageClient() {
     if (searchQuery.trim() || appliedSearchQuery.trim()) return true;
     if (selectedIlceId) return true;
     if (selectedMahalleId) return true;
-    if (selectedKurumTuru.length > 0 && selectedHesapTipi !== "egitmenler") return true;
-    if (selectedHesapTipi !== "hepsi") return true;
+    if (selectedKurumTuru.length > 0) return true;
     if (selectedCategorySlugs.length > 0) return true;
     if (nearbyActive) return true;
     if (defaultIlId && selectedIlId !== defaultIlId) return true;
@@ -807,20 +790,11 @@ export function HaritadaAraPageClient() {
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
-    selectedHesapTipi,
     selectedCategorySlugs,
     nearbyActive,
     selectedIlId,
     defaultIlId,
   ]);
-
-  const handleHesapTipiChange = useCallback(
-    (value: MapHesapTipi) => {
-      setSelectedHesapTipi(value);
-      closeDrawerAndScrollToResults();
-    },
-    [closeDrawerAndScrollToResults],
-  );
 
   const handleKurumTuruToggle = useCallback((slug: KurumTuruSlug) => {
     setSelectedKurumTuru((prev) =>
@@ -861,7 +835,6 @@ export function HaritadaAraPageClient() {
     setMahalleler([]);
     setSelectedIlId(defaultIlId);
     setSelectedKurumTuru([]);
-    setSelectedHesapTipi("hepsi");
     setSelectedCategorySlugs([]);
     clearNearbyMode();
     setMapFocus({
@@ -907,13 +880,16 @@ export function HaritadaAraPageClient() {
             else next.delete(entityId);
             return next;
           });
-        } catch {
+        } catch (err) {
           setInstructorFavoriteIds((prev) => {
             const next = new Set(prev);
             if (wasFavorited) next.add(entityId);
             else next.delete(entityId);
             return next;
           });
+          if (err instanceof FavoritesError) {
+            window.alert(err.message);
+          }
         } finally {
           setInstructorFavoriteActionLoadingIds((prev) => {
             const next = new Set(prev);
@@ -946,13 +922,16 @@ export function HaritadaAraPageClient() {
           else next.delete(entityId);
           return next;
         });
-      } catch {
+      } catch (err) {
         setFavoriteIds((prev) => {
           const next = new Set(prev);
           if (wasFavorited) next.add(entityId);
           else next.delete(entityId);
           return next;
         });
+        if (err instanceof FavoritesError) {
+          window.alert(err.message);
+        }
       } finally {
         setFavoriteActionLoadingIds((prev) => {
           const next = new Set(prev);
@@ -979,8 +958,6 @@ export function HaritadaAraPageClient() {
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
-    selectedHesapTipi,
-    onHesapTipiChange: handleHesapTipiChange,
     mapCategories,
     selectedCategorySlugs,
     onCategorySelectAll: handleCategorySelectAll,
@@ -1050,9 +1027,6 @@ export function HaritadaAraPageClient() {
             <InstitutionMapSearchExperience
               markers={filteredMarkers}
               loading={loading || !locationDefaultsReady}
-              mapKeyPrefix="haritada-ara"
-              layout="page"
-              showViewportInstitutionList
               focusTarget={mapFocus}
               onToggleFavorite={handleFavoriteToggle}
               favoriteIds={favoriteIds}
@@ -1061,7 +1035,6 @@ export function HaritadaAraPageClient() {
               favoriteActionLoadingIds={favoriteActionLoadingIds}
               instructorFavoriteActionLoadingIds={instructorFavoriteActionLoadingIds}
               isAuthenticated={Boolean(user)}
-              hesapTipi={selectedHesapTipi}
             />
           </div>
         </div>
