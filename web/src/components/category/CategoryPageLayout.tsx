@@ -29,8 +29,9 @@ import { SELF_FAVORITE_MESSAGE } from "@/lib/favorites/favoritesClient";
 
 /**
  * Drawer (mobil/tablet filtre modalı) açıkken yeni gelen payload'da gerçek bir
- * "seçim" olup olmadığını anla. Range input'ları her tuş vuruşunda emit
- * edebileceği için yazma deneyimini bozmamak adına bilerek hariç tutuluyor.
+ * "seçim" olup olmadığını anla. Range / fiyat / saat input'ları her tuş
+ * vuruşunda emit edebileceği için yazma deneyimini bozmamak adına bilerek
+ * hariç tutuluyor (commonRange, priceMin/priceMax, workingHours*).
  */
 function hasMeaningfulSelectionChange(
   prev: SchoolCategoryFilterPayload | null,
@@ -194,6 +195,7 @@ export default function CategoryPageLayout({
             categorySlug={categorySlug}
             mapMarkers={categorySlug ? categoryMapMarkers : undefined}
             mapLoading={categoryMapLoading}
+            instanceId="desktop"
           />
         </aside>
 
@@ -224,6 +226,7 @@ export default function CategoryPageLayout({
                 categorySlug={categorySlug}
                 mapMarkers={categorySlug ? categoryMapMarkers : undefined}
                 mapLoading={categoryMapLoading}
+                instanceId="drawer"
               />
             </div>
           </div>

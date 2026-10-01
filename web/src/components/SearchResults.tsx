@@ -16,7 +16,6 @@ import {
 } from "@/lib/institutionSchoolStatusFilter";
 import {
   resolveInstitutionIdsByPriceRange,
-  resolveInstitutionIdsByPriceRangeSelections,
 } from "@/lib/institutionPriceRangeFilter";
 import {
   isStudentAgeFilterTextActive,
@@ -77,10 +76,8 @@ interface SearchResultsProps {
   studentAgeRange?: StudentAgeFilterTextPayload | null;
   /** Hizmet tipi: yüz yüze / online / bireysel / grup; birden fazla seçimde OR mantığı */
   serviceTypeFilters?: ("face" | "online" | "individual" | "group")[];
-  /** Aylık fiyat aralığı (TL). `defaultMin`/`defaultMax` ile verilen tam aralıktan sapıldığında devreye girer. */
-  priceRangeFilter?: { min: number; max: number; defaultMin: number; defaultMax: number };
-  /** DB fiyat aralığı seçenek etiketleri (ör. 1000-5000). Birden fazla seçimde OR mantığı. */
-  priceRangeSelections?: string[];
+  /** Aylık fiyat aralığı (TL). `min`/`max` bağımsız; null = o uç boş. */
+  priceRangeFilter?: { min: number | null; max: number | null };
   /** `institution_types.id` — birden fazla seçimde OR; diğer filtrelerle AND */
   institutionTypeIds?: number[];
   /** Ana sayfa parent kategori seçimi — eğitmenler `instructor_categories.id` ile filtrelenir. */
@@ -247,7 +244,6 @@ export default function SearchResults({
   studentAgeRange,
   serviceTypeFilters,
   priceRangeFilter,
-  priceRangeSelections,
   institutionTypeIds,
   instructorCategoryFilter,
   onResultClick,
@@ -296,17 +292,17 @@ export default function SearchResults({
     ? `${studentAgeRange.min}|${studentAgeRange.max}`
     : "";
   const serviceTypes = serviceTypeFilters ?? [];
-  const priceSelectionLabels = priceRangeSelections ?? [];
-  const priceSelectionFilterIsActive = priceSelectionLabels.length > 0;
-  const priceFilterIsActive =
-    priceSelectionFilterIsActive ||
-    Boolean(
-      priceRangeFilter &&
-        (priceRangeFilter.min > priceRangeFilter.defaultMin ||
-          priceRangeFilter.max < priceRangeFilter.defaultMax),
-    );
-  const priceMin = priceRangeFilter?.min ?? 0;
-  const priceMax = priceRangeFilter?.max ?? 0;
+  const priceMinBound =
+    priceRangeFilter?.min != null && Number.isFinite(priceRangeFilter.min)
+      ? Number(priceRangeFilter.min)
+      : null;
+  const priceMaxBound =
+    priceRangeFilter?.max != null && Number.isFinite(priceRangeFilter.max)
+      ? Number(priceRangeFilter.max)
+      : null;
+  const priceFilterIsActive = priceMinBound != null || priceMaxBound != null;
+  const priceMin = priceMinBound;
+  const priceMax = priceMaxBound;
   const institutionTypeIdList = institutionTypeIds ?? [];
   const instructorCategoryFilterKey = instructorCategoryFilter
     ? `${instructorCategoryFilter.name}|${instructorCategoryFilter.slug ?? ""}`
@@ -403,12 +399,10 @@ export default function SearchResults({
           }
 
           if (priceFilterIsActive) {
-            const priceIds = priceSelectionFilterIsActive
-              ? await resolveInstitutionIdsByPriceRangeSelections(supabase, priceSelectionLabels)
-              : await resolveInstitutionIdsByPriceRange(supabase, {
-                  min: priceMin,
-                  max: priceMax,
-                });
+            const priceIds = await resolveInstitutionIdsByPriceRange(supabase, {
+              min: priceMin,
+              max: priceMax,
+            });
             if (priceIds.length === 0) {
               setResults([]);
               setVisibleCount(pageSizeRef.current);
@@ -471,10 +465,13 @@ export default function SearchResults({
                   ilceId,
                   mahalleId,
                   categoryId: instructorCategoryFilter ? instructorCategoryId : undefined,
-                  priceRange:
-                    priceFilterIsActive && !priceSelectionFilterIsActive
-                      ? { min: priceMin, max: priceMax }
-                      : undefined,
+                  priceRange: priceFilterIsActive
+                    ? {
+                        // Eğitmen overlap için eksik uçlar açık aralık; input state'ine yazılmaz.
+                        min: priceMin ?? 0,
+                        max: priceMax ?? Number.POSITIVE_INFINITY,
+                      }
+                    : undefined,
                   allowedInstructorIds: studentAgeInstructorIds,
                 });
 
@@ -606,7 +603,7 @@ export default function SearchResults({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasActiveFilter, trimmedQuery, ilId, ilceId, mahalleId, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, serviceTypes.join(","), priceFilterIsActive, priceSelectionFilterIsActive, priceSelectionLabels.join(","), priceMin, priceMax, institutionTypeIdList.join(","), instructorCategoryFilterKey]);
+  }, [hasActiveFilter, trimmedQuery, ilId, ilceId, mahalleId, schoolStatuses.join(","), studentAgeFilterActive, studentAgeRangeKey, serviceTypes.join(","), priceFilterIsActive, priceMin, priceMax, institutionTypeIdList.join(","), instructorCategoryFilterKey]);
 
   if (!hasActiveFilter) {
     return null;

@@ -2473,6 +2473,35 @@ $panel-select-arrow-purple: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   letter-spacing: 0.5px;
 }
 
+.panel-working-hours-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+
+  .working-hours-picker {
+    flex: 1 1 140px;
+    min-width: 0;
+    max-width: 220px;
+  }
+
+  .panel-institution-form-input {
+    flex: 1 1 140px;
+    min-width: 0;
+    max-width: 220px;
+  }
+}
+
+.panel-working-hours-range-sep {
+  flex-shrink: 0;
+  color: $text-zinc-500;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  line-height: 1;
+  user-select: none;
+}
+
 .panel-institution-form-input {
   width: 100%;
   height: 44px;

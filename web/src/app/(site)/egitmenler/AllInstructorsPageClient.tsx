@@ -401,7 +401,11 @@ export function AllInstructorsPageClient() {
       }
 
       if (priceRange) {
-        if (!instructorPriceLabelOverlapsUserRange(item.priceLabel, priceRange)) return false;
+        const overlapRange = {
+          min: priceRange.min ?? 0,
+          max: priceRange.max ?? Number.POSITIVE_INFINITY,
+        };
+        if (!instructorPriceLabelOverlapsUserRange(item.priceLabel, overlapRange)) return false;
       }
 
       return true;

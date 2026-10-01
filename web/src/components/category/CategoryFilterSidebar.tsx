@@ -78,20 +78,11 @@ import {
   type TurkiyeLocationOption,
 } from "@/lib/turkiyeLocationsClient";
 import {
-  INSTITUTION_PRICE_RANGE_DEFINITION_ID,
-  INSTITUTION_PRICE_FILTER_MAX,
-  INSTITUTION_PRICE_FILTER_MIN,
-  isInstitutionPriceRangeFieldName,
-  orderPriceRangeChoicesFromCanonical,
-  parseInstructorPriceRangeBound,
-  rangesOverlap,
-  sortPriceRangeChoicesByMin,
-} from "@/lib/institutionPriceRangeFilter";
-import {
   PriceRangeSliderFilter,
   type PriceRangeSliderValue,
 } from "@/components/filters/PriceRangeSliderFilter";
 import { AgeRangeSliderFilter } from "@/components/filters/AgeRangeSliderFilter";
+import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
 import {
   isStudentAgeFilterTextActive,
   type StudentAgeFilterTextPayload,
@@ -142,6 +133,11 @@ interface CategoryFilterSidebarProps {
   /** CategoryPageLayout tarafından sağlanır; yalnızca sidebar yerleşimi için kullanılır. */
   mapMarkers?: InstitutionMapMarker[];
   mapLoading?: boolean;
+  /**
+   * Desktop aside + mobile drawer aynı anda mount edildiğinde input id çakışmasını önler.
+   * Örn. `"desktop"` | `"drawer"`.
+   */
+  instanceId?: string;
 }
 
 export interface FilterState {
@@ -256,6 +252,10 @@ function sortCheckboxOptionsByLabel<T>(options: T[], getLabel: (option: T) => st
   );
 }
 const COMMON_GROUP_NAME_KEY = "başlıca özellikler";
+/** Kolon-based Eğitim Saatleri filtre section order adı (feature değil). */
+const WORKING_HOURS_FILTER_ORDER_NAME = "Eğitim Saatleri";
+/** Kolon-based Aylık Fiyat Aralığı filtre section order adı (feature değil). */
+const PRICE_RANGE_FILTER_ORDER_NAME = "Aylık Fiyat Aralığı";
 const PATILI_DOSTLAR_CATEGORY_SLUG = "patili-dostlar";
 const KURS_SINAVA_HAZIRLIK_CATEGORY_SLUG = "kurs-sinava-hazirlik";
 const YABANCI_DIL_CATEGORY_SLUG = "yabanci-dil";
@@ -827,29 +827,6 @@ function categoryUsesGlobalBaslicaCommonFields(categorySlug: string): boolean {
   return String(categorySlug ?? "").trim() !== PATILI_DOSTLAR_CATEGORY_SLUG;
 }
 
-function resolveOverlappingPriceChoiceIds(
-  choices: Array<{ id: number; name: string }>,
-  userRange: { min: number; max: number },
-): string[] {
-  const normalized = {
-    min: Math.max(
-      INSTITUTION_PRICE_FILTER_MIN,
-      Math.min(userRange.min, userRange.max),
-    ),
-    max: Math.min(
-      INSTITUTION_PRICE_FILTER_MAX,
-      Math.max(userRange.min, userRange.max),
-    ),
-  };
-
-  return choices
-    .filter((choice) => {
-      const choiceRange = parseInstructorPriceRangeBound(choice.name);
-      return choiceRange != null && rangesOverlap(choiceRange, normalized);
-    })
-    .map((choice) => String(choice.id));
-}
-
 function buildPatiliBaslicaCommonField(
   def: FeatureDefinitionRow,
   choicesByDefinition: Map<number, FeatureChoiceRow[]>,
@@ -859,9 +836,19 @@ function buildPatiliBaslicaCommonField(
   const defChoices = (choicesByDefinition.get(def.id) ?? [])
     .map((c) => ({ id: c.id, name: String(c.name ?? "").trim() }))
     .filter((c) => Boolean(c.name));
-  const orderedChoices = isInstitutionPriceRangeFieldName(displayName)
-    ? orderPriceRangeChoicesFromCanonical(defChoices)
-    : defChoices;
+  const orderedChoices = defChoices;
+
+  {
+    const priceKey = normalizeCommonFieldNameKey(displayName);
+    if (
+      priceKey.includes("aylik fiyat araligi") ||
+      priceKey.includes("aylik ortalama fiyat") ||
+      priceKey === "fiyat araligi" ||
+      priceKey.includes("ortalama fiyat araligi")
+    ) {
+      return null;
+    }
+  }
 
   if (inputType === "single_select") {
     if (orderedChoices.length === 0) return null;
@@ -925,14 +912,6 @@ function getDisplayFeatureName(name: string): string {
     return "Aylık Fiyat Aralığı";
   }
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "Kurum Türü";
-  if (
-    key === "okul saatleri" ||
-    key === "kurum saatleri" ||
-    key === "egitim saatleri" ||
-    key === "calisma saatleri"
-  ) {
-    return "Eğitim Saatleri";
-  }
   if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") return "Sınıf Mevcudu";
   return trimmed;
 }
@@ -1076,67 +1055,8 @@ function normalizeCommonFieldNameKey(name: string): string {
     .trim();
 }
 
-/** Sınıf Mevcudu + Aylık Fiyat Aralığı → Eğitim Saatleri'nin hemen altına. */
-function isPriceRangeCommonField(field: CommonField): boolean {
-  if (field.kind !== "single_select" && field.kind !== "multi_select") return false;
-  return (
-    field.definitionId === INSTITUTION_PRICE_RANGE_DEFINITION_ID ||
-    isInstitutionPriceRangeFieldName(field.name)
-  );
-}
-
 function isStudentAgeCommonField(field: { kind: string }): boolean {
   return field.kind === "student_age_range";
-}
-
-function reorderCommonFieldsAfterOkulSaatleri(fields: CommonField[]): CommonField[] {
-  if (fields.length === 0) return fields;
-
-  const isKurumSaatleriField = (field: CommonField) => {
-    const key = normalizeCommonFieldNameKey(field.name);
-    return (
-      key === "okul saatleri" ||
-      key === "kurum saatleri" ||
-      key === "egitim saatleri" ||
-      key === "calisma saatleri"
-    );
-  };
-
-  const isOrtalamaSinifMevcuduField = (field: CommonField) => {
-    const key = normalizeCommonFieldNameKey(field.name);
-    return key.includes("sinif mevcudu");
-  };
-
-  const isAylikFiyatAraligiField = (field: CommonField) => {
-    const key = normalizeCommonFieldNameKey(field.name);
-    return (
-      key.includes("aylik ortalama fiyat") ||
-      key.includes("aylik fiyat araligi") ||
-      key.includes("fiyat araligi") ||
-      key.includes("ortalama fiyat araligi")
-    );
-  };
-
-  const kurumSaatleriIndex = fields.findIndex(isKurumSaatleriField);
-  if (kurumSaatleriIndex === -1) return fields;
-
-  const ortalamaSinifField = fields.find(isOrtalamaSinifMevcuduField);
-  const fiyatAraligiField = fields.find(isAylikFiyatAraligiField);
-  const fieldsToMove = [ortalamaSinifField, fiyatAraligiField].filter(
-    (field): field is CommonField => field != null,
-  );
-  if (fieldsToMove.length === 0) return fields;
-
-  const moveIds = new Set(fieldsToMove.map((field) => field.definitionId));
-  const withoutMoved = fields.filter((field) => !moveIds.has(field.definitionId));
-  const anchorIndex = withoutMoved.findIndex(isKurumSaatleriField);
-  if (anchorIndex === -1) return fields;
-
-  return [
-    ...withoutMoved.slice(0, anchorIndex + 1),
-    ...fieldsToMove,
-    ...withoutMoved.slice(anchorIndex + 1),
-  ];
 }
 
 /** Ortak Başlıca “Yabancı Diller” — Dil Türleri / Yabancı Dil Türleri hariç. */
@@ -1206,20 +1126,30 @@ function getOkulInstitutionFilterSectionTitle(name: string): string {
 
 type OkulDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
-  | { kind: "group"; group: FeatureFilterGroup; originalIndex: number };
+  | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
+
+function getOkulSectionOrderName(section: OkulDynamicFilterSection): string {
+  if (section.kind === "common") return section.field.name;
+  if (section.kind === "group") return section.group.name;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
+}
 
 function orderOkulInstitutionFilterSections(
   sections: OkulDynamicFilterSection[],
 ): OkulDynamicFilterSection[] {
   return [...sections].sort((a, b) => {
-    const aName = a.kind === "common" ? a.field.name : a.group.name;
-    const bName = b.kind === "common" ? b.field.name : b.group.name;
     const aRank =
-      OKUL_INSTITUTION_FILTER_ORDER_INDEX.get(normalizeOkulInstitutionFilterOrderKey(aName)) ??
-      Number.MAX_SAFE_INTEGER;
+      OKUL_INSTITUTION_FILTER_ORDER_INDEX.get(
+        normalizeOkulInstitutionFilterOrderKey(getOkulSectionOrderName(a)),
+      ) ?? Number.MAX_SAFE_INTEGER;
     const bRank =
-      OKUL_INSTITUTION_FILTER_ORDER_INDEX.get(normalizeOkulInstitutionFilterOrderKey(bName)) ??
-      Number.MAX_SAFE_INTEGER;
+      OKUL_INSTITUTION_FILTER_ORDER_INDEX.get(
+        normalizeOkulInstitutionFilterOrderKey(getOkulSectionOrderName(b)),
+      ) ?? Number.MAX_SAFE_INTEGER;
     if (aRank !== bRank) return aRank - bRank;
     return a.originalIndex - b.originalIndex;
   });
@@ -1289,12 +1219,17 @@ function getKursSinavaHazirlikInstitutionFilterSectionTitle(name: string): strin
 type KursSinavaHazirlikDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getKursSinavaHazirlikSectionOrderName(section: KursSinavaHazirlikDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderKursSinavaHazirlikInstitutionFilterSections(
@@ -1382,12 +1317,17 @@ function getSporInstitutionFilterSectionTitle(name: string): string {
 type SporDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getSporSectionOrderName(section: SporDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderSporInstitutionFilterSections(
@@ -1471,12 +1411,17 @@ function getSanatInstitutionFilterSectionTitle(name: string): string {
 type SanatDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getSanatSectionOrderName(section: SanatDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderSanatInstitutionFilterSections(
@@ -1562,12 +1507,17 @@ function getYabanciDilInstitutionFilterSectionTitle(name: string): string {
 type YabanciDilDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getYabanciDilSectionOrderName(section: YabanciDilDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderYabanciDilInstitutionFilterSections(
@@ -1653,12 +1603,17 @@ function getKisiselGelisimInstitutionFilterSectionTitle(name: string): string {
 type KisiselGelisimDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getKisiselGelisimSectionOrderName(section: KisiselGelisimDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderKisiselGelisimInstitutionFilterSections(
@@ -1746,12 +1701,17 @@ function getMeslekiEgitimInstitutionFilterSectionTitle(name: string): string {
 type MeslekiEgitimDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getMeslekiEgitimSectionOrderName(section: MeslekiEgitimDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderMeslekiEgitimInstitutionFilterSections(
@@ -1839,12 +1799,17 @@ function getOzelEgitimInstitutionFilterSectionTitle(name: string): string {
 type OzelEgitimDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "student_age"; originalIndex: number };
+  | { kind: "student_age"; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getOzelEgitimSectionOrderName(section: OzelEgitimDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
-  return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
+  return WORKING_HOURS_FILTER_ORDER_NAME;
 }
 
 function orderOzelEgitimInstitutionFilterSections(
@@ -1945,11 +1910,15 @@ function getSurucuKursuInstitutionFilterSectionTitle(name: string): string {
 type SurucuKursuDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
-  | { kind: "belge_turleri"; group: FeatureFilterGroup; originalIndex: number };
+  | { kind: "belge_turleri"; group: FeatureFilterGroup; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getSurucuKursuSectionOrderName(section: SurucuKursuDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "belge_turleri") return "Belge Türleri";
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
   return section.group.name;
 }
 
@@ -2051,10 +2020,14 @@ function getPatiliDostlarInstitutionFilterSectionTitle(name: string): string {
 
 type PatiliDostlarDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
-  | { kind: "group"; group: FeatureFilterGroup; originalIndex: number };
+  | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
+  | { kind: "working_hours"; originalIndex: number }
+  | { kind: "price_range"; originalIndex: number };
 
 function getPatiliDostlarSectionOrderName(section: PatiliDostlarDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
+  if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
+  if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
   return section.group.name;
 }
 
@@ -2181,10 +2154,6 @@ function useCategoryFilterSidebarModel({
   const [commonFields, setCommonFields] = useState<CommonField[]>([]);
   /** Patili Dostlar: category_slug=patili-dostlar Başlıca Özellikler tanımları (definition bazlı). */
   const [patiliBaslicaFields, setPatiliBaslicaFields] = useState<CommonField[]>([]);
-  /** Patili fiyat slider UI state (choice eşlemesi selectedCommonMulti üzerinden gider). */
-  const [patiliPriceSliderRange, setPatiliPriceSliderRange] = useState<
-    Record<number, PriceRangeSliderValue>
-  >({});
   const [selectedCommonSingle, setSelectedCommonSingle] = useState<Record<number, string>>({});
   const [selectedCommonMulti, setSelectedCommonMulti] = useState<Record<number, Set<string>>>({});
   const [selectedCommonRange, setSelectedCommonRange] = useState<
@@ -2193,6 +2162,19 @@ function useCategoryFilterSidebarModel({
   const [expandedCommonMultiIds, setExpandedCommonMultiIds] = useState<Set<number>>(new Set());
   const [selectedStudentAgeRange, setSelectedStudentAgeRange] =
     useState<StudentAgeFilterTextPayload | null>(null);
+  const [workingHoursStart, setWorkingHoursStart] = useState("");
+  const [workingHoursEnd, setWorkingHoursEnd] = useState("");
+  /** Ham rakam string; boş = o sınır yok. Bir alan diğerini asla temizlemez. */
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+
+  const handlePriceMinChange = useCallback((rawValue: string) => {
+    setPriceMin(String(rawValue ?? "").replace(/[^\d]/g, ""));
+  }, []);
+
+  const handlePriceMaxChange = useCallback((rawValue: string) => {
+    setPriceMax(String(rawValue ?? "").replace(/[^\d]/g, ""));
+  }, []);
 
   const [instructorFieldsLoading, setInstructorFieldsLoading] = useState(false);
   const [instructorFieldsError, setInstructorFieldsError] = useState<string | null>(null);
@@ -2366,8 +2348,11 @@ function useCategoryFilterSidebarModel({
     setSelectedCommonSingle({});
     setSelectedCommonMulti({});
     setSelectedCommonRange({});
-    setPatiliPriceSliderRange({});
     setSelectedStudentAgeRange(null);
+    setWorkingHoursStart("");
+    setWorkingHoursEnd("");
+    setPriceMin("");
+    setPriceMax("");
     setSelectedFeatureOptionsByGroup({});
     setExpandedGroupIds(new Set());
     setExpandedCommonMultiIds(new Set());
@@ -2384,8 +2369,7 @@ function useCategoryFilterSidebarModel({
     if (!hasDynamicFeatureMode) {
       setFeatureGroups([]);
       setPatiliBaslicaFields([]);
-      setPatiliPriceSliderRange({});
-      setFeatureGroupsError(null);
+            setFeatureGroupsError(null);
       setFeatureGroupsLoading(false);
       return;
     }
@@ -2394,8 +2378,7 @@ function useCategoryFilterSidebarModel({
     setFeatureGroupsLoading(true);
     setFeatureGroupsError(null);
     setPatiliBaslicaFields([]);
-    setPatiliPriceSliderRange({});
-
+    
     (async () => {
       const supabase = createSupabaseBrowserClient();
 
@@ -2924,10 +2907,7 @@ function useCategoryFilterSidebarModel({
         const defChoices = (choicesByDef.get(def.id) ?? [])
           .map((c) => ({ id: c.id, name: String(c.name ?? "").trim() }))
           .filter((c) => Boolean(c.name));
-        const orderedChoices =
-          def.id === INSTITUTION_PRICE_RANGE_DEFINITION_ID || isInstitutionPriceRangeFieldName(displayName)
-            ? orderPriceRangeChoicesFromCanonical(defChoices)
-            : defChoices;
+        const orderedChoices = defChoices;
 
         if (
           isLegacyStudentAgeMultiSelectFeature({
@@ -2949,6 +2929,30 @@ function useCategoryFilterSidebarModel({
           isHiddenYabanciDillerInstitutionFilter(displayName)
         ) {
           return;
+        }
+
+        {
+          const hoursKey = normalizeCommonFieldNameKey(displayName);
+          if (
+            hoursKey === "egitim saatleri" ||
+            hoursKey === "okul saatleri" ||
+            hoursKey === "kurum saatleri" ||
+            hoursKey === "calisma saatleri"
+          ) {
+            return;
+          }
+        }
+
+        {
+          const priceKey = normalizeCommonFieldNameKey(displayName);
+          if (
+            priceKey.includes("aylik fiyat araligi") ||
+            priceKey.includes("aylik ortalama fiyat") ||
+            priceKey === "fiyat araligi" ||
+            priceKey.includes("ortalama fiyat araligi")
+          ) {
+            return;
+          }
         }
 
         if (inputType === "single_select") {
@@ -2982,7 +2986,7 @@ function useCategoryFilterSidebarModel({
       setCommonFields(
         isPatiliDostlarCategory
           ? fields.filter((field) => normalizeCommonFieldNameKey(field.name) === "egitim dili")
-          : reorderCommonFieldsAfterOkulSaatleri(fields),
+          : fields,
       );
     })();
 
@@ -3104,65 +3108,6 @@ function useCategoryFilterSidebarModel({
     });
   };
 
-  const setCommonPriceRange = (definitionId: number, value: PriceRangeSliderValue) => {
-    setSelectedCommonRange((prev) => {
-      const next = { ...prev };
-      if (!value) {
-        delete next[definitionId];
-        return next;
-      }
-      next[definitionId] = {
-        min: String(value.min),
-        max: String(value.max),
-      };
-      return next;
-    });
-    setSelectedCommonSingle((prev) => {
-      if (!(definitionId in prev)) return prev;
-      const next = { ...prev };
-      delete next[definitionId];
-      return next;
-    });
-    setSelectedCommonMulti((prev) => {
-      if (!(definitionId in prev)) return prev;
-      const next = { ...prev };
-      delete next[definitionId];
-      return next;
-    });
-  };
-
-  const setPatiliPriceRange = (
-    definitionId: number,
-    choices: Array<{ id: number; name: string }>,
-    value: PriceRangeSliderValue,
-  ) => {
-    setPatiliPriceSliderRange((prev) => {
-      const next = { ...prev };
-      if (!value) {
-        delete next[definitionId];
-      } else {
-        next[definitionId] = value;
-      }
-      return next;
-    });
-
-    setSelectedCommonMulti((prev) => {
-      const next = { ...prev };
-      if (!value) {
-        delete next[definitionId];
-        return next;
-      }
-
-      const overlappingIds = resolveOverlappingPriceChoiceIds(choices, value);
-      if (overlappingIds.length === 0) {
-        delete next[definitionId];
-      } else {
-        next[definitionId] = new Set(overlappingIds);
-      }
-      return next;
-    });
-  };
-
   /** Öğrenci yaşı: bağımsız ham metin (ana sayfa ile aynı). */
   const setStudentAgeRange = (value: StudentAgeFilterTextPayload | null) => {
     setSelectedStudentAgeRange(value);
@@ -3181,6 +3126,14 @@ function useCategoryFilterSidebarModel({
         ? `${selectedStudentAgeRange.min}|${selectedStudentAgeRange.max}`
         : "",
     [selectedStudentAgeRange],
+  );
+  const workingHoursKey = useMemo(
+    () => `${String(workingHoursStart ?? "").trim()}|${String(workingHoursEnd ?? "").trim()}`,
+    [workingHoursStart, workingHoursEnd],
+  );
+  const priceRangeKey = useMemo(
+    () => `${String(priceMin ?? "").trim()}|${String(priceMax ?? "").trim()}`,
+    [priceMin, priceMax],
   );
 
   const commonMultiKey = useMemo(() => {
@@ -3261,6 +3214,10 @@ function useCategoryFilterSidebarModel({
       commonRange,
       groupSelections,
       studentAgeRange: selectedStudentAgeRange,
+      workingHoursStart: String(workingHoursStart ?? "").trim(),
+      workingHoursEnd: String(workingHoursEnd ?? "").trim(),
+      priceMin: String(priceMin ?? "").trim(),
+      priceMax: String(priceMax ?? "").trim(),
     });
     // Bağımlılık olarak state'lerin kararlı JSON anahtarları kullanılıyor;
     // state objelerinin kendileri referans-yenileme tetiklediği için eklenmedi.
@@ -3273,6 +3230,8 @@ function useCategoryFilterSidebarModel({
     commonMultiKey,
     commonRangeKey,
     studentAgeRangeKey,
+    workingHoursKey,
+    priceRangeKey,
     featureGroupSelectionsKey,
   ]);
 
@@ -3364,15 +3323,14 @@ function useCategoryFilterSidebarModel({
     if (selectedHighSchoolTypes.size > 0) return true;
     if (priceRange != null) return true;
     if (isStudentAgeFilterTextActive(selectedStudentAgeRange)) return true;
+    if (String(workingHoursStart ?? "").trim() || String(workingHoursEnd ?? "").trim()) return true;
+    if (String(priceMin ?? "").trim() || String(priceMax ?? "").trim()) return true;
     for (const v of Object.values(selectedCommonSingle)) {
       const s = String(v ?? "").trim();
       if (s && s !== CLEAR_SINGLE_SELECT_VALUE) return true;
     }
     for (const set of Object.values(selectedCommonMulti)) {
       if ((set?.size ?? 0) > 0) return true;
-    }
-    for (const range of Object.values(patiliPriceSliderRange)) {
-      if (range != null) return true;
     }
     for (const r of Object.values(selectedCommonRange)) {
       if (String(r?.min ?? "").trim() !== "" || String(r?.max ?? "").trim() !== "") return true;
@@ -3401,8 +3359,11 @@ function useCategoryFilterSidebarModel({
     selectedCommonSingle,
     selectedCommonMulti,
     selectedCommonRange,
-    patiliPriceSliderRange,
     selectedStudentAgeRange,
+    workingHoursStart,
+    workingHoursEnd,
+    priceMin,
+    priceMax,
     selectedFeatureOptionsByGroup,
     hasInstructorFeatureMode,
     selectedInstructorBoolean,
@@ -3492,7 +3453,6 @@ function useCategoryFilterSidebarModel({
     patiliBaslicaFields,
     isPatiliDostlarCategory,
     usesGlobalBaslicaCommonFields,
-    patiliPriceSliderRange,
     selectedCommonSingle,
     setSelectedCommonSingle,
     selectedCommonMulti,
@@ -3504,10 +3464,16 @@ function useCategoryFilterSidebarModel({
     toggleCommonMulti,
     toggleCommonMultiExpanded,
     setCommonRange,
-    setCommonPriceRange,
-    setPatiliPriceRange,
     setStudentAgeRange,
     selectedStudentAgeRange,
+    workingHoursStart,
+    workingHoursEnd,
+    setWorkingHoursStart,
+    setWorkingHoursEnd,
+    priceMin,
+    priceMax,
+    handlePriceMinChange,
+    handlePriceMaxChange,
     renderedFeatureGroups,
     instructorFields: visibleInstructorFields,
     instructorFieldsLoading,
@@ -3618,10 +3584,12 @@ function CategoryFilterSidebarView({
   model,
   mapMarkers,
   mapLoading = false,
+  instanceId = "default",
 }: {
   model: CategoryFilterSidebarModel;
   mapMarkers?: InstitutionMapMarker[];
   mapLoading?: boolean;
+  instanceId?: string;
 }) {
   const {
     categories,
@@ -3663,7 +3631,6 @@ function CategoryFilterSidebarView({
     patiliBaslicaFields,
     isPatiliDostlarCategory,
     usesGlobalBaslicaCommonFields,
-    patiliPriceSliderRange,
     selectedCommonSingle,
     setSelectedCommonSingle,
     selectedCommonMulti,
@@ -3675,10 +3642,16 @@ function CategoryFilterSidebarView({
     toggleCommonMulti,
     toggleCommonMultiExpanded,
     setCommonRange,
-    setCommonPriceRange,
-    setPatiliPriceRange,
     setStudentAgeRange,
     selectedStudentAgeRange,
+    workingHoursStart,
+    workingHoursEnd,
+    setWorkingHoursStart,
+    setWorkingHoursEnd,
+    priceMin,
+    priceMax,
+    handlePriceMinChange,
+    handlePriceMaxChange,
     renderedFeatureGroups,
     instructorFields,
     instructorFieldsLoading,
@@ -3752,17 +3725,7 @@ function CategoryFilterSidebarView({
     </div>
   );
 
-  const getCommonRangeSliderValue = (definitionId: number): PriceRangeSliderValue => {
-    const current = selectedCommonRange[definitionId];
-    if (!current) return null;
-    const min = Number(String(current.min ?? "").trim());
-    const max = Number(String(current.max ?? "").trim());
-    if (!Number.isFinite(min) && !Number.isFinite(max)) return null;
-    return {
-      min: Number.isFinite(min) ? min : INSTITUTION_PRICE_FILTER_MIN,
-      max: Number.isFinite(max) ? max : INSTITUTION_PRICE_FILTER_MAX,
-    };
-  };
+;
 
   const getCommonAgeRangeSliderValue = (): StudentAgeFilterTextPayload | null => {
     if (!selectedStudentAgeRange) return null;
@@ -3783,6 +3746,71 @@ function CategoryFilterSidebarView({
     </div>
   );
 
+  const renderWorkingHoursFilterSection = (keySuffix: string) => (
+    <div className="category-filter-section" key={`working-hours-${keySuffix}`}>
+      <CategoryFilterSectionTitle title="EĞİTİM SAATLERİ" />
+      <div className="category-filter-working-hours-range">
+        <WorkingHoursTimePicker
+          value={workingHoursStart}
+          onChange={setWorkingHoursStart}
+          ariaLabel="Eğitim saatleri başlangıç"
+          placeholder="Başlangıç"
+        />
+        <span className="category-filter-price-separator" aria-hidden>
+          —
+        </span>
+        <WorkingHoursTimePicker
+          value={workingHoursEnd}
+          onChange={setWorkingHoursEnd}
+          ariaLabel="Eğitim saatleri bitiş"
+          placeholder="Bitiş"
+        />
+      </div>
+    </div>
+  );
+
+  const renderPriceRangeFilterSection = (keySuffix: string) => {
+    const minId = `category-price-min-${keySuffix}-${instanceId}`;
+    const maxId = `category-price-max-${keySuffix}-${instanceId}`;
+    return (
+      <div className="category-filter-section" key={`price-range-${keySuffix}-${instanceId}`}>
+        <CategoryFilterSectionTitle title="AYLIK FİYAT ARALIĞI" />
+        <div className="price-range-slider-inputs category-filter-price-inputs">
+          <label className="price-range-slider-field" htmlFor={minId}>
+            <span className="price-range-slider-label">Minimum Fiyat</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              name={minId}
+              id={minId}
+              value={priceMin}
+              onChange={(e) => handlePriceMinChange(e.target.value)}
+              placeholder="Min"
+              aria-label="Aylık fiyat minimum"
+              className="price-range-slider-input category-filter-price-input"
+            />
+          </label>
+          <label className="price-range-slider-field" htmlFor={maxId}>
+            <span className="price-range-slider-label">Maksimum Fiyat</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              name={maxId}
+              id={maxId}
+              value={priceMax}
+              onChange={(e) => handlePriceMaxChange(e.target.value)}
+              placeholder="Max"
+              aria-label="Aylık fiyat maksimum"
+              className="price-range-slider-input category-filter-price-input"
+            />
+          </label>
+        </div>
+      </div>
+    );
+  };
+
   const schoolOrderedDynamicSections = useMemo(() => {
     if (!showSchoolSubcategoryFilters) return [] as OkulDynamicFilterSection[];
     const sections: OkulDynamicFilterSection[] = [];
@@ -3791,6 +3819,14 @@ function CategoryFilterSidebarView({
     });
     renderedFeatureGroups.forEach((group, index) => {
       sections.push({ kind: "group", group, originalIndex: commonFields.length + index });
+    });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length) + 1,
     });
     return orderOkulInstitutionFilterSections(sections);
   }, [showSchoolSubcategoryFilters, commonFields, renderedFeatureGroups]);
@@ -3810,6 +3846,14 @@ function CategoryFilterSidebarView({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
     });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
+    });
     return orderKursSinavaHazirlikInstitutionFilterSections(sections);
   }, [showKursSinavaHazirlikInstitutionFilters, commonFields, renderedFeatureGroups]);
 
@@ -3827,6 +3871,14 @@ function CategoryFilterSidebarView({
     sections.push({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
+    });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
     });
     return orderSporInstitutionFilterSections(sections);
   }, [showSporInstitutionFilters, commonFields, renderedFeatureGroups]);
@@ -3846,6 +3898,14 @@ function CategoryFilterSidebarView({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
     });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
+    });
     return orderSanatInstitutionFilterSections(sections);
   }, [showSanatInstitutionFilters, commonFields, renderedFeatureGroups]);
 
@@ -3863,6 +3923,14 @@ function CategoryFilterSidebarView({
     sections.push({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
+    });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
     });
     return orderYabanciDilInstitutionFilterSections(sections);
   }, [showYabanciDilInstitutionFilters, commonFields, renderedFeatureGroups]);
@@ -3882,6 +3950,14 @@ function CategoryFilterSidebarView({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
     });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
+    });
     return orderKisiselGelisimInstitutionFilterSections(sections);
   }, [showKisiselGelisimInstitutionFilters, commonFields, renderedFeatureGroups]);
 
@@ -3900,6 +3976,14 @@ function CategoryFilterSidebarView({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
     });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
+    });
     return orderMeslekiEgitimInstitutionFilterSections(sections);
   }, [showMeslekiEgitimInstitutionFilters, commonFields, renderedFeatureGroups]);
 
@@ -3917,6 +4001,14 @@ function CategoryFilterSidebarView({
     sections.push({
       kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
+    });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length + 1) + 1,
     });
     return orderOzelEgitimInstitutionFilterSections(sections);
   }, [showOzelEgitimInstitutionFilters, commonFields, renderedFeatureGroups]);
@@ -3938,6 +4030,14 @@ function CategoryFilterSidebarView({
       if (group.options.length > 0) {
         sections.push({ kind: "group", group, originalIndex });
       }
+    });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (commonFields.length + renderedFeatureGroups.length) + 1,
     });
     return orderSurucuKursuInstitutionFilterSections(sections);
   }, [showSurucuKursuInstitutionFilters, commonFields, renderedFeatureGroups]);
@@ -3971,6 +4071,14 @@ function CategoryFilterSidebarView({
         originalIndex: patiliBaslicaFields.length + commonFields.length + index,
       });
     });
+    sections.push({
+      kind: "working_hours",
+      originalIndex: patiliBaslicaFields.length + commonFields.length + renderedFeatureGroups.length,
+    });
+    sections.push({
+      kind: "price_range",
+      originalIndex: (patiliBaslicaFields.length + commonFields.length + renderedFeatureGroups.length) + 1,
+    });
     return orderPatiliDostlarInstitutionFilterSections(sections);
   }, [
     showPatiliDostlarInstitutionFilters,
@@ -3981,18 +4089,6 @@ function CategoryFilterSidebarView({
 
   const renderInstitutionCommonField = (field: CommonField, title: string) => {
     if (field.kind === "single_select") {
-      if (isPriceRangeCommonField(field)) {
-        return (
-          <div className="category-filter-section" key={`common-${field.definitionId}`}>
-            <CategoryFilterSectionTitle title={title} />
-            <PriceRangeSliderFilter
-              value={getCommonRangeSliderValue(field.definitionId)}
-              onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
-              className="category-filter-price-slider"
-            />
-          </div>
-        );
-      }
       const selectedValue = selectedCommonSingle[field.definitionId] ?? "";
       const selectValue = selectedValue ? String(selectedValue) : CLEAR_SINGLE_SELECT_VALUE;
       return (
@@ -4032,21 +4128,6 @@ function CategoryFilterSidebarView({
     }
 
     if (field.kind === "number_range") {
-      if (
-        field.definitionId === INSTITUTION_PRICE_RANGE_DEFINITION_ID ||
-        isInstitutionPriceRangeFieldName(field.name)
-      ) {
-        return (
-          <div className="category-filter-section" key={`common-${field.definitionId}`}>
-            <CategoryFilterSectionTitle title={title} />
-            <PriceRangeSliderFilter
-              value={getCommonRangeSliderValue(field.definitionId)}
-              onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
-              className="category-filter-price-slider"
-            />
-          </div>
-        );
-      }
       const value = selectedCommonRange[field.definitionId] ?? { min: "", max: "" };
       return (
         <div className="category-filter-section" key={`common-${field.definitionId}`}>
@@ -4079,23 +4160,9 @@ function CategoryFilterSidebarView({
     }
 
     if (field.kind === "multi_select") {
-      if (isPriceRangeCommonField(field)) {
-        return (
-          <div className="category-filter-section" key={`common-${field.definitionId}`}>
-            <CategoryFilterSectionTitle title={title} />
-            <PriceRangeSliderFilter
-              value={getCommonRangeSliderValue(field.definitionId)}
-              onChange={(nextRange) => setCommonPriceRange(field.definitionId, nextRange)}
-              className="category-filter-price-slider"
-            />
-          </div>
-        );
-      }
       const selectedSet = selectedCommonMulti[field.definitionId] ?? new Set<string>();
       const isExpanded = expandedCommonMultiIds.has(field.definitionId);
-      const sortedChoices = isPriceRangeCommonField(field)
-        ? sortPriceRangeChoicesByMin(field.choices)
-        : sortCheckboxOptionsByLabel(field.choices, (c) => c.name);
+      const sortedChoices = sortCheckboxOptionsByLabel(field.choices, (c) => c.name);
       const visibleChoices = isExpanded
         ? sortedChoices
         : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
@@ -4980,8 +5047,14 @@ function CategoryFilterSidebarView({
               ) : null}
 
               {showSchoolSubcategoryFilters
-                ? schoolOrderedDynamicSections.map((section) =>
-                    section.kind === "common"
+                ? schoolOrderedDynamicSections.map((section) => {
+                    if (section.kind === "price_range") {
+                      return renderPriceRangeFilterSection("okul");
+                    }
+                    if (section.kind === "working_hours") {
+                      return renderWorkingHoursFilterSection("okul");
+                    }
+                    return section.kind === "common"
                       ? renderInstitutionCommonField(
                           section.field,
                           getOkulInstitutionFilterSectionTitle(section.field.name),
@@ -4989,12 +5062,18 @@ function CategoryFilterSidebarView({
                       : renderInstitutionFeatureGroup(
                           section.group,
                           getOkulInstitutionFilterSectionTitle(section.group.name),
-                        ),
-                  )
+                        );
+                  })
                 : showKursSinavaHazirlikInstitutionFilters
                   ? kursOrderedDynamicSections.map((section) => {
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("kurs-sinava-hazirlik");
+                      }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("kurs-sinava-hazirlik");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("kurs-sinava-hazirlik");
                       }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
@@ -5012,6 +5091,12 @@ function CategoryFilterSidebarView({
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("spor");
                       }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("spor");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("spor");
+                      }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
                           section.field,
@@ -5027,6 +5112,12 @@ function CategoryFilterSidebarView({
                   ? sanatOrderedDynamicSections.map((section) => {
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("sanat");
+                      }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("sanat");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("sanat");
                       }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
@@ -5044,6 +5135,12 @@ function CategoryFilterSidebarView({
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("yabanci-dil");
                       }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("yabanci-dil");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("yabanci-dil");
+                      }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
                           section.field,
@@ -5059,6 +5156,12 @@ function CategoryFilterSidebarView({
                   ? kisiselGelisimOrderedDynamicSections.map((section) => {
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("kisisel-gelisim");
+                      }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("kisisel-gelisim");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("kisisel-gelisim");
                       }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
@@ -5076,6 +5179,12 @@ function CategoryFilterSidebarView({
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("mesleki-egitim");
                       }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("mesleki-egitim");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("mesleki-egitim");
+                      }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
                           section.field,
@@ -5092,6 +5201,12 @@ function CategoryFilterSidebarView({
                       if (section.kind === "student_age") {
                         return renderStudentAgeFilterSection("ozel-egitim");
                       }
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("ozel-egitim");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("ozel-egitim");
+                      }
                       if (section.kind === "common") {
                         return renderInstitutionCommonField(
                           section.field,
@@ -5105,6 +5220,12 @@ function CategoryFilterSidebarView({
                     })
                 : showSurucuKursuInstitutionFilters
                   ? surucuKursuOrderedDynamicSections.map((section) => {
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("surucu-kursu");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("surucu-kursu");
+                      }
                       if (section.kind === "belge_turleri") {
                         return renderSurucuKursuBelgeTurleriSection(section.group);
                       }
@@ -5121,6 +5242,12 @@ function CategoryFilterSidebarView({
                     })
                 : showPatiliDostlarInstitutionFilters
                   ? patiliDostlarOrderedDynamicSections.map((section) => {
+                      if (section.kind === "price_range") {
+                        return renderPriceRangeFilterSection("patili-dostlar");
+                      }
+                      if (section.kind === "working_hours") {
+                        return renderWorkingHoursFilterSection("patili-dostlar");
+                      }
                       if (section.kind === "group") {
                         return renderInstitutionFeatureGroup(
                           section.group,
@@ -5129,35 +5256,20 @@ function CategoryFilterSidebarView({
                       }
                       const field = section.field;
                       const title = getPatiliDostlarInstitutionFilterSectionTitle(field.name);
-                      if (
-                        field.kind === "multi_select" &&
-                        isInstitutionPriceRangeFieldName(field.name)
-                      ) {
-                        const sliderValue = patiliPriceSliderRange[field.definitionId] ?? null;
-                        return (
-                          <div
-                            className="category-filter-section"
-                            key={`patili-baslica-${field.definitionId}`}
-                          >
-                            <CategoryFilterSectionTitle title={title} />
-                            <PriceRangeSliderFilter
-                              value={sliderValue}
-                              onChange={(nextRange) =>
-                                setPatiliPriceRange(field.definitionId, field.choices, nextRange)
-                              }
-                              className="category-filter-price-slider"
-                            />
-                          </div>
-                        );
-                      }
                       return renderInstitutionCommonField(field, title);
                     })
                 : hasDynamicFeatureMode && usesGlobalBaslicaCommonFields
-                  ? commonFields.map((field) =>
-                      renderInstitutionCommonField(
-                        field,
-                        field.name.toLocaleUpperCase("tr-TR"),
-                      ),
+                  ? (
+                      <>
+                        {commonFields.map((field) =>
+                          renderInstitutionCommonField(
+                            field,
+                            field.name.toLocaleUpperCase("tr-TR"),
+                          ),
+                        )}
+                        {renderWorkingHoursFilterSection("generic")}
+                        {renderPriceRangeFilterSection("generic")}
+                      </>
                     )
                   : null}
 
@@ -5241,6 +5353,7 @@ export default function CategoryFilterSidebar({
   filterSchemaSource = "institution",
   mapMarkers,
   mapLoading,
+  instanceId = "default",
 }: CategoryFilterSidebarProps) {
   const schoolCtxModel = useContext(SchoolCategoryFilterPanelContext);
   const instructorCtxModel = useContext(InstructorCategoryFilterPanelContext);
@@ -5257,6 +5370,7 @@ export default function CategoryFilterSidebar({
       model={model}
       mapMarkers={mapMarkers}
       mapLoading={mapLoading}
+      instanceId={instanceId}
     />
   );
 }

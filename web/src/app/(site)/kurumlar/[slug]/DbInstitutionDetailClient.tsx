@@ -6,26 +6,28 @@ import { Card, CardContent } from "@/components/ui";
 import {
   MapPin,
   CheckCircle2,
-  Image as ImageIcon,
   BookOpen,
   Phone,
   Globe,
-  Clock,
   X,
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
   Play,
-  GitCommitVertical,
   Sparkles,
   Megaphone,
   CalendarDays,
   ImageOff,
   Layers,
+  Facebook,
+  Instagram,
+  Linkedin,
+  Twitter,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionHelpers";
+import { formatInstitutionPriceRangeDisplay } from "@/lib/institutionPriceRangeFilter";
 import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 import {
   loadInstitutionExtraBranchesClient,
@@ -52,6 +54,7 @@ import {
   lookupLocationAds,
 } from "@/lib/turkiyeLocationsClient";
 import { getHighSchoolTypeLabel } from "@/lib/schoolInstitutionTypes";
+import { STUDENT_AGE_RANGE_LABEL } from "@/lib/studentAgeRangeFeature";
 import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
 import { getCategoryHref } from "@/lib/categoryHelpers";
 import { toLocationIdString } from "@/lib/turkiyeLocationsClient";
@@ -86,6 +89,8 @@ type DbInstitutionRow = {
   is_approved: boolean | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
+  min_fiyat?: number | null;
+  max_fiyat?: number | null;
   il_id?: number | null;
   ilce_id?: number | null;
   mahalle_id?: number | null;
@@ -127,6 +132,15 @@ function isUnauthorizedSupabaseError(err: unknown) {
   );
 }
 
+function getAcademicFeatureText(lines: AcademicFeatureLine[], label: string): string {
+  const line = lines.find((item) => item.label === label);
+  if (!line) return "";
+  if (Array.isArray(line.value)) {
+    return line.value.map((item) => item.trim()).filter(Boolean).join(", ");
+  }
+  return String(line.value ?? "").trim();
+}
+
 export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [row, setRow] = useState<DbInstitutionRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,7 +158,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
   const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "gallery" | "features" | "extra-branches" | "announcements"
+    "overview" | "features" | "extra-branches" | "announcements"
   >("overview");
   const [publicExtraBranches, setPublicExtraBranches] = useState<PublicInstitutionExtraBranch[]>(
     [],
@@ -169,7 +183,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, il_id, ilce_id, mahalle_id, category:institution_categories(name, slug), institution_type:institution_types(name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, min_fiyat, max_fiyat, il_id, ilce_id, mahalle_id, category:institution_categories(name, slug), institution_type:institution_types(name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
         .eq("is_approved", true)
@@ -216,7 +230,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     (
       event: React.MouseEvent<HTMLAnchorElement>,
       sectionId: string,
-      tab: "overview" | "gallery" | "features" | "extra-branches",
+      tab: "overview" | "features" | "extra-branches",
     ) => {
       event.preventDefault();
       setActiveTab(tab);
@@ -355,8 +369,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const categoryListingHref = getCategoryHref(categoryName, institutionCategorySlug) ?? "";
   const schoolLevelLabel = (institutionTypeRow?.name ?? "").trim();
   const highSchoolLabel = getHighSchoolTypeLabel(row?.high_school_type);
-  const institutionTypeBadgeText =
-    [schoolLevelLabel, highSchoolLabel].filter(Boolean).join(" · ") || categoryName;
+  const institutionTypeText = [schoolLevelLabel, highSchoolLabel].filter(Boolean).join(" · ");
   const subheading = (row?.subheading ?? "").trim();
   const about = (row?.about ?? "").trim();
   const address = (row?.address ?? "").trim();
@@ -392,12 +405,58 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [academicLines, setAcademicLines] = useState<AcademicFeatureLine[]>([]);
   const hasPublicExtraBranches = publicExtraBranches.length > 0;
   const hasGallery = mediaItems.length > 0;
-  const hasFeatures = publicFeatureSections.length > 0 || academicLines.length > 0;
-  const hasSidebar = Boolean(
-    hasLogo || address || phone || website || socialLinks.length > 0 || workingHoursText,
-  );
+  const hasFeatureSections = publicFeatureSections.length > 0;
+  const hasContactBar = Boolean(address || phone || website || socialLinks.length > 0);
+  const galleryThumbImages = galleryImages.slice(1, 5);
+  const institutionTypeForOverview =
+    institutionTypeText || getAcademicFeatureText(academicLines, "Kurum Türü");
+  const educationTypeText = getAcademicFeatureText(academicLines, "Eğitim Türü");
+  const educationLanguageText = getAcademicFeatureText(academicLines, "Eğitim Dili");
+  const serviceTypeText = getAcademicFeatureText(academicLines, "Hizmet Tipi");
+  const studentAgeText = getAcademicFeatureText(academicLines, STUDENT_AGE_RANGE_LABEL);
+  const classSizeText = getAcademicFeatureText(academicLines, "Sınıf Mevcudu");
+  const monthlyPriceText = formatInstitutionPriceRangeDisplay(row?.min_fiyat, row?.max_fiyat);
+  const generalInfoRows = [
+    categoryName ? { label: "Kategori", value: categoryName } : null,
+    institutionTypeForOverview ? { label: "Kurum Türü", value: institutionTypeForOverview } : null,
+    educationTypeText ? { label: "Eğitim Türü", value: educationTypeText } : null,
+    educationLanguageText ? { label: "Eğitim Dili", value: educationLanguageText } : null,
+    workingHoursText ? { label: "Eğitim Saatleri", value: workingHoursText } : null,
+    serviceTypeText ? { label: "Hizmet Tipi", value: serviceTypeText } : null,
+    studentAgeText ? { label: STUDENT_AGE_RANGE_LABEL, value: studentAgeText } : null,
+    classSizeText ? { label: "Sınıf Mevcudu", value: classSizeText } : null,
+    monthlyPriceText ? { label: "Aylık Fiyat Aralığı", value: monthlyPriceText } : null,
+  ].filter((rowItem): rowItem is { label: string; value: string } => Boolean(rowItem));
+  const hasGeneralInfo = generalInfoRows.length > 0;
+  const topRowClassName = [
+    "institution-top-row",
+    !hasGallery && hasGeneralInfo ? "institution-top-row--no-gallery" : "",
+    hasGallery && !hasGeneralInfo ? "institution-top-row--no-facts" : "",
+    !hasGallery && !hasGeneralInfo ? "institution-top-row--card-only" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const hasAnnouncementsTab =
     Boolean(announcementsError) || institutionAnnouncements.length > 0;
+  const hasAbout = Boolean(about);
+  const hasAnyNavTab =
+    hasAbout || hasFeatureSections || hasPublicExtraBranches || hasAnnouncementsTab;
+
+  useEffect(() => {
+    const isVisibleTab =
+      (activeTab === "overview" && hasAbout) ||
+      (activeTab === "features" && hasFeatureSections) ||
+      (activeTab === "extra-branches" && hasPublicExtraBranches) ||
+      (activeTab === "announcements" && hasAnnouncementsTab);
+    if (isVisibleTab) return;
+    setActiveTab("overview");
+  }, [
+    activeTab,
+    hasAbout,
+    hasFeatureSections,
+    hasPublicExtraBranches,
+    hasAnnouncementsTab,
+  ]);
 
   useEffect(() => {
     if (!row?.id) {
@@ -670,17 +729,17 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           currentLabel={name}
         />
 
-        <Card className="institution-hero">
-          <CardContent className="institution-hero-content">
-            <div className="institution-hero-main">
+        <div className={topRowClassName}>
+          <Card className="institution-profile-card">
+            <CardContent className="institution-profile-card-content">
               {hasLogo ? (
                 <div className="institution-logo-section">
                   <div className="institution-logo-wrapper">
                     <Image
                       src={logoUrl}
                       alt={name}
-                      width={160}
-                      height={160}
+                      width={120}
+                      height={120}
                       className="institution-logo"
                       unoptimized
                       onError={() => setLogoLoadFailed(true)}
@@ -691,48 +750,197 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
               <div className="institution-info">
                 <div className="institution-title-row">
                   <h1 className="institution-name">{name}</h1>
+                  <ShareButton slug={String(row.slug ?? "").trim()} />
                 </div>
                 {subheading ? <p className="institution-description">{subheading}</p> : null}
+                {row.is_approved === true ? (
+                  <div className="institution-meta-item institution-meta-verified institution-meta-badge institution-meta-badge--verified">
+                    <CheckCircle2 size={18} />
+                    <span>Onaylı Kurum</span>
+                  </div>
+                ) : null}
                 <div className="institution-meta">
+                  {categoryName ? (
+                    <div className="institution-meta-item">
+                      <span className="institution-meta-badge institution-meta-badge--category">
+                        {categoryName}
+                      </span>
+                    </div>
+                  ) : null}
+                  {institutionTypeText ? (
+                    <div className="institution-meta-item">
+                      <span className="institution-meta-badge">{institutionTypeText}</span>
+                    </div>
+                  ) : null}
                   {hasLocation ? (
                     <div className="institution-meta-item">
                       <MapPin size={18} />
                       <span>{location}</span>
                     </div>
                   ) : null}
-                  {institutionTypeBadgeText ? (
-                    <div className="institution-meta-item">
-                      <span className="institution-meta-badge institution-meta-badge--category">
-                        {institutionTypeBadgeText}
-                      </span>
-                    </div>
-                  ) : null}
-                  {row.is_approved === true ? (
-                    <div className="institution-meta-item institution-meta-verified institution-meta-badge institution-meta-badge--verified">
-                      <CheckCircle2 size={18} />
-                      <span>Onaylı Kurum</span>
-                    </div>
-                  ) : null}
-                  {hasPublicExtraBranches
-                    ? publicExtraBranches.map((branch) => (
-                        <div key={branch.categoryId} className="institution-meta-item">
-                          <span className="institution-meta-badge institution-meta-badge--subcategory">
-                            {branch.categoryName}
-                          </span>
-                        </div>
-                      ))
-                    : null}
-                </div>
-                <div className="institution-actions">
-                  <ShareButton slug={String(row.slug ?? "").trim()} />
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
+          {hasGallery ? (
+            <section id="gallery" className="institution-top-gallery">
+              <Card className="institution-top-gallery-card">
+                <CardContent className="institution-top-gallery-content">
+                  <div className="institution-top-gallery-header">
+                    <h2 className="institution-top-gallery-title">Kurum Galerisi</h2>
+                    <button
+                      type="button"
+                      className="institution-section-link institution-gallery-view-all-btn"
+                      onClick={() => setIsGalleryModalOpen(true)}
+                    >
+                      tümünü gör
+                    </button>
+                  </div>
+                  {galleryImages.length > 0 ? (
+                    <div className="institution-top-gallery-media">
+                      {galleryImages[0] ? (
+                        <div
+                          className="institution-top-gallery-main"
+                          onClick={() => {
+                            if (!galleryImages[0]) return;
+                            setIsGalleryModalOpen(true);
+                          }}
+                        >
+                          <Image
+                            src={galleryImages[0]}
+                            alt={`${name} galeri görseli`}
+                            fill
+                            className="institution-gallery-image"
+                            sizes="(max-width: 1024px) 100vw, 48vw"
+                            unoptimized
+                          />
+                        </div>
+                      ) : null}
+                      {galleryThumbImages.length > 0 ? (
+                        <div className="institution-top-gallery-thumbs">
+                          {galleryThumbImages.map((imageUrl, thumbIndex) => (
+                            <div
+                              key={`${imageUrl}-${thumbIndex}`}
+                              className="institution-top-gallery-thumb"
+                              onClick={() => setIsGalleryModalOpen(true)}
+                            >
+                              <Image
+                                src={imageUrl}
+                                alt={`${name} galeri görseli`}
+                                fill
+                                className="institution-gallery-image"
+                                sizes="(max-width: 1024px) 25vw, 12vw"
+                                unoptimized
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </section>
+          ) : null}
+
+          {hasGeneralInfo ? (
+            <Card className="institution-overview-card">
+              <CardContent className="institution-overview-card-content">
+                <h2 className="institution-overview-title">Genel Bilgiler</h2>
+                <dl className="institution-overview-list">
+                  {generalInfoRows.map((infoRow) => (
+                    <div key={infoRow.label} className="institution-overview-row">
+                      <dt className="institution-overview-label">{infoRow.label}</dt>
+                      <dd className="institution-overview-value">{infoRow.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+
+        {hasContactBar ? (
+          <div className="institution-contact-bar">
+            {address ? (
+              <div className="institution-contact-bar-item institution-contact-bar-item--address">
+                <span className="institution-contact-bar-icon" aria-hidden>
+                  <MapPin size={16} />
+                </span>
+                <div className="institution-contact-bar-copy">
+                  <div className="institution-contact-bar-label">ADRES</div>
+                  <div className="institution-contact-bar-value">{address}</div>
+                </div>
+              </div>
+            ) : null}
+            {phone ? (
+              <div className="institution-contact-bar-item institution-contact-bar-item--phone">
+                <span className="institution-contact-bar-icon" aria-hidden>
+                  <Phone size={16} />
+                </span>
+                <div className="institution-contact-bar-copy">
+                  <div className="institution-contact-bar-label">TELEFON</div>
+                  <a
+                    href={`tel:${phone.replace(/[^\d+]/g, "")}`}
+                    className="institution-contact-bar-value institution-contact-bar-link"
+                  >
+                    {phone}
+                  </a>
+                </div>
+              </div>
+            ) : null}
+            {website ? (
+              <div className="institution-contact-bar-item institution-contact-bar-item--website">
+                <span className="institution-contact-bar-icon" aria-hidden>
+                  <Globe size={16} />
+                </span>
+                <div className="institution-contact-bar-copy">
+                  <div className="institution-contact-bar-label">WEB SİTESİ</div>
+                  <a
+                    href={website.startsWith("http") ? website : `https://${website}`}
+                    className="institution-contact-bar-value institution-contact-bar-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {website}
+                  </a>
+                </div>
+              </div>
+            ) : null}
+            {socialLinks.length > 0 ? (
+              <div className="institution-contact-bar-social">
+                {socialLinks.map((item) => {
+                  const SocialIcon =
+                    item.label === "Facebook"
+                      ? Facebook
+                      : item.label === "Instagram"
+                        ? Instagram
+                        : item.label === "Linkedin"
+                          ? Linkedin
+                          : Twitter;
+                  return (
+                    <a
+                      key={item.label}
+                      href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
+                      className="institution-contact-bar-social-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={item.label}
+                    >
+                      <SocialIcon size={16} />
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {hasAnyNavTab ? (
         <div className="institution-tabs-sticky">
           <div className="institution-tabs-list">
+            {hasAbout ? (
             <a
               href="#overview"
               className={`institution-tab-item${activeTab === "overview" ? " institution-tab-active" : ""}`}
@@ -741,17 +949,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
               <BookOpen size={20} />
               <span>Genel Bakış</span>
             </a>
-            {hasGallery ? (
-              <a
-                href="#gallery"
-                className={`institution-tab-item${activeTab === "gallery" ? " institution-tab-active" : ""}`}
-                onClick={(event) => handleAnchorTabClick(event, "gallery", "gallery")}
-              >
-                <ImageIcon size={20} />
-                <span>Galeri</span>
-              </a>
             ) : null}
-            {hasFeatures ? (
+            {hasFeatureSections ? (
               <a
                 href="#features"
                 className={`institution-tab-item${activeTab === "features" ? " institution-tab-active" : ""}`}
@@ -786,18 +985,12 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             ) : null}
           </div>
         </div>
+        ) : null}
 
         {activeTab !== "announcements" ? (
         <>
-        {about || hasGallery || hasSidebar ? (
-        <div
-          className={`institution-content-grid${
-            about || hasGallery ? "" : " institution-content-grid--full"
-          }`}
-        >
-          {about || hasGallery ? (
-          <div className="institution-main-content">
-            {about ? (
+        {about ? (
+        <div className="institution-main-content">
             <section id="overview" className="institution-section">
               <h2 className="institution-section-title">Hakkımızda</h2>
               <Card className="institution-section-card">
@@ -810,260 +1003,77 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                 </CardContent>
               </Card>
             </section>
-            ) : null}
-
-            {hasGallery ? (
-            <section id="gallery" className="institution-section">
-              <div className="institution-section-header">
-                <h2 className="institution-section-title">Kurum Galerisi</h2>
-                <button
-                  type="button"
-                  className="institution-section-link institution-gallery-view-all-btn"
-                  onClick={() => setIsGalleryModalOpen(true)}
-                >
-                  tümünü gör
-                </button>
-              </div>
-              {galleryImages.length > 0 ? (
-              <div className="institution-gallery-grid">
-                <div
-                  className="institution-gallery-item institution-gallery-main"
-                  onClick={() => {
-                    if (!galleryImages[0]) return;
-                    setIsGalleryModalOpen(true);
-                  }}
-                >
-                  {galleryImages[0] ? (
-                    <Image
-                      src={galleryImages[0]}
-                      alt={`${name} galeri görseli`}
-                      fill
-                      className="institution-gallery-image"
-                      sizes="(max-width: 768px) 100vw, 66vw"
-                      unoptimized
-                    />
-                  ) : null}
-                </div>
-                {galleryImages[1] ? (
-                <div
-                  className="institution-gallery-item"
-                  onClick={() => {
-                    setIsGalleryModalOpen(true);
-                  }}
-                >
-                  <Image
-                    src={galleryImages[1]}
-                    alt={`${name} galeri görseli`}
-                    fill
-                    className="institution-gallery-image"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    unoptimized
-                  />
-                </div>
-                ) : null}
-                {galleryImages[2] ? (
-                <div
-                  className="institution-gallery-item"
-                  onClick={() => {
-                    setIsGalleryModalOpen(true);
-                  }}
-                >
-                  <Image
-                    src={galleryImages[2]}
-                    alt={`${name} galeri görseli`}
-                    fill
-                    className="institution-gallery-image"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    unoptimized
-                  />
-                </div>
-                ) : null}
-              </div>
-              ) : null}
-            </section>
-            ) : null}
-
-          </div>
-          ) : null}
-
-          {hasSidebar ? (
-          <aside className="institution-sidebar">
-            <div className="institution-sidebar-header">
-              <Phone size={20} />
-              <span>İletişim Bilgileri</span>
-            </div>
-            <div className="institution-sidebar-body">
-              {hasLogo ? (
-              <div className="institution-map-preview">
-                <Image
-                  src={logoUrl}
-                  alt={name}
-                  fill
-                  className="institution-map-image"
-                  sizes="(max-width: 1024px) 100vw, 33vw"
-                  unoptimized
-                  onError={() => setLogoLoadFailed(true)}
-                />
-              </div>
-              ) : null}
-              <div className="institution-contact-list">
-                {address ? (
-                <div className="institution-contact-item">
-                  <div className="institution-contact-icon">
-                    <MapPin size={18} />
-                  </div>
-                  <div>
-                    <div className="institution-contact-label">ADRES</div>
-                    <div className="institution-contact-value">{address}</div>
-                  </div>
-                </div>
-                ) : null}
-                {phone ? (
-                <div className="institution-contact-item">
-                  <div className="institution-contact-icon">
-                    <Phone size={18} />
-                  </div>
-                  <div>
-                    <div className="institution-contact-label">TELEFON</div>
-                    <div className="institution-contact-value">{phone}</div>
-                  </div>
-                </div>
-                ) : null}
-                {website ? (
-                <div className="institution-contact-item">
-                  <div className="institution-contact-icon">
-                    <Globe size={18} />
-                  </div>
-                  <div>
-                    <div className="institution-contact-label">WEB SİTESİ</div>
-                    <a
-                      href={website.startsWith("http") ? website : `https://${website}`}
-                      className="institution-contact-value institution-contact-link"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {website}
-                    </a>
-                  </div>
-                </div>
-                ) : null}
-                {socialLinks.length > 0 ? (
-                  <div className="institution-contact-item">
-                    <div className="institution-contact-icon">
-                      <Globe size={18} />
-                    </div>
-                    <div>
-                      <div className="institution-contact-label">SOSYAL MEDYA</div>
-                      <div className="institution-contact-value">
-                        {socialLinks.map((item, index) => (
-                          <span key={item.label}>
-                            {index > 0 ? " • " : ""}
-                            <a
-                              href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
-                              className="institution-contact-link"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {item.label}
-                            </a>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-                {workingHoursText ? (
-                <div className="institution-contact-item">
-                  <div className="institution-contact-icon">
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <div className="institution-contact-label">EĞİTİM SAATLERİ</div>
-                    <div className="institution-contact-value">{workingHoursText}</div>
-                  </div>
-                </div>
-                ) : null}
-              </div>
-            </div>
-          </aside>
-          ) : null}
         </div>
         ) : null}
 
-        {hasFeatures ? (
+        {hasFeatureSections ? (
         <section id="features" className="institution-section">
-          <Card className="institution-section-card institution-features-card">
-            <CardContent>
-              <div className="institution-features-head">
-                <h2 className="institution-section-title">Kurum Özellikleri</h2>
-              </div>
-              <div className="institution-features-groups">
-                  {academicLines.length > 0 ? (
-                    <div className="institution-features-group">
-                      <h3 className="institution-features-group-title">Başlıca Özellikler</h3>
-                      <div className="institution-features-academic-list">
-                        {academicLines.map((line, lineIdx) => (
-                          <div key={`${line.label}-${lineIdx}`} className="institution-features-academic-row">
-                            <span className="institution-features-academic-icon" aria-hidden>
-                              <GitCommitVertical size={25} strokeWidth={2.2} />
-                            </span>
-                            <div className="institution-features-academic-content">
-                              <span className="institution-features-academic-label">{line.label}</span>
-                              <span className="institution-features-academic-value">
-                                {Array.isArray(line.value) ? line.value.join(", ") : line.value}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {publicFeatureSections.map((section) => (
-                    <div key={section.id} className="institution-features-group">
-                      <h3 className="institution-features-group-title">{section.name}</h3>
-                      <div className="institution-features-badges">
-                        {section.badges.map((badge) => (
-                          <span key={`${section.id}-${badge}`} className="institution-features-badge">
-                            {badge}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+          <h2 className="institution-section-title">Kurum Özellikleri</h2>
+          <div className="institution-feature-groups-grid">
+            {publicFeatureSections.map((section) => (
+              <article key={section.id} className="institution-feature-group-card">
+                <h3 className="institution-feature-group-card-title">{section.name}</h3>
+                <ul
+                  className={`institution-feature-group-card-list${
+                    section.badges.length >= 17
+                      ? " institution-feature-group-card-list--three-columns"
+                      : section.badges.length >= 9
+                        ? " institution-feature-group-card-list--two-columns"
+                        : ""
+                  }`}
+                >
+                  {section.badges.map((badge) => (
+                    <li key={`${section.id}-${badge}`} className="institution-feature-group-card-item">
+                      <CheckCircle2
+                        size={16}
+                        className="institution-feature-group-card-check"
+                        aria-hidden
+                      />
+                      <span className="institution-feature-group-card-text">{badge}</span>
+                    </li>
                   ))}
-              </div>
-            </CardContent>
-          </Card>
+                </ul>
+              </article>
+            ))}
+          </div>
         </section>
         ) : null}
 
         {hasPublicExtraBranches ? (
           <section id="extra-branches" className="institution-section">
-            <Card className="institution-section-card institution-features-card institution-extra-branches-card">
-              <CardContent>
-                <div className="institution-features-head">
-                  <h2 className="institution-section-title">Ek Branşlar</h2>
-                </div>
-                <div className="institution-features-groups">
-                  {publicExtraBranches.map((branch) => (
-                    <div key={branch.categoryId} className="institution-features-group">
-                      <h3 className="institution-features-group-title">{branch.categoryName}</h3>
-                      {branch.selectedTypeNames.length > 0 ? (
-                        <div className="institution-features-badges">
-                          {branch.selectedTypeNames.map((typeName) => (
-                            <span
-                              key={`${branch.categoryId}-${typeName}`}
-                              className="institution-features-badge"
-                            >
-                              {typeName}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <h2 className="institution-section-title">Ek Branşlar</h2>
+            <div className="institution-feature-groups-grid">
+              {publicExtraBranches.map((branch) => (
+                <article key={branch.categoryId} className="institution-feature-group-card">
+                  <h3 className="institution-feature-group-card-title">{branch.categoryName}</h3>
+                  {branch.selectedTypeNames.length > 0 ? (
+                    <ul
+                      className={`institution-feature-group-card-list${
+                        branch.selectedTypeNames.length >= 17
+                          ? " institution-feature-group-card-list--three-columns"
+                          : branch.selectedTypeNames.length >= 9
+                            ? " institution-feature-group-card-list--two-columns"
+                            : ""
+                      }`}
+                    >
+                      {branch.selectedTypeNames.map((typeName) => (
+                        <li
+                          key={`${branch.categoryId}-${typeName}`}
+                          className="institution-feature-group-card-item"
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="institution-feature-group-card-check"
+                            aria-hidden
+                          />
+                          <span className="institution-feature-group-card-text">{typeName}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </article>
+              ))}
+            </div>
           </section>
         ) : null}
         </>

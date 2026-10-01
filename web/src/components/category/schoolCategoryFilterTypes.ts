@@ -19,6 +19,14 @@ export type SchoolCategoryFilterPayload = {
   groupSelections: Record<number, string[]>;
   /** Öğrenci yaşı (ham metin); ana sayfa ile aynı davranış. */
   studentAgeRange: StudentAgeFilterTextPayload | null;
+  /** Eğitim Saatleri başlangıç (HH:mm). Boş = filtre yok. */
+  workingHoursStart?: string;
+  /** Eğitim Saatleri bitiş (HH:mm). Boş = filtre yok. */
+  workingHoursEnd?: string;
+  /** Aylık fiyat min (ham metin). Boş = filtre yok. */
+  priceMin?: string;
+  /** Aylık fiyat max (ham metin). Boş = filtre yok. */
+  priceMax?: string;
 };
 
 export const EMPTY_SCHOOL_CATEGORY_FILTERS: SchoolCategoryFilterPayload = {
@@ -29,4 +37,8 @@ export const EMPTY_SCHOOL_CATEGORY_FILTERS: SchoolCategoryFilterPayload = {
   commonRange: {},
   groupSelections: {},
   studentAgeRange: null,
+  workingHoursStart: "",
+  workingHoursEnd: "",
+  priceMin: "",
+  priceMax: "",
 };

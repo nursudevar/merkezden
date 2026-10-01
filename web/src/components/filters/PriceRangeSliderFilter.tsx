@@ -1,36 +1,58 @@
 "use client";
 
-import { useMemo } from "react";
 import { Input } from "@/components/ui";
 import {
   INSTITUTION_PRICE_FILTER_MAX,
   INSTITUTION_PRICE_FILTER_MIN,
-  formatPriceFilterValue,
 } from "@/lib/institutionPriceRangeFilter";
 
+/**
+ * Kısmi aralık destekler:
+ * - null → her iki uç boş (filtre yok)
+ * - { min: 50, max: null } → yalnız min
+ * - { min: null, max: 10000 } → yalnız max
+ * - { min: 50, max: 10000 } → ikisi
+ *
+ * INSTITUTION_PRICE_FILTER_MIN/MAX input state'ine otomatik yazılmaz;
+ * yalnızca isteğe bağlı clamp üst/alt sınırı olarak kullanılabilir.
+ */
 export type PriceRangeSliderValue = {
-  min: number;
-  max: number;
+  min: number | null;
+  max: number | null;
 } | null;
 
 type PriceRangeSliderFilterProps = {
   value: PriceRangeSliderValue;
   onChange: (value: PriceRangeSliderValue) => void;
+  /** Teknik alt sınır (input'a default basılmaz). */
   min?: number;
+  /** Teknik üst sınır (input'a default basılmaz). */
   max?: number;
   step?: number;
   className?: string;
 };
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 function parseInputValue(value: string): number | null {
   const digits = String(value ?? "").replace(/[^\d]/g, "");
   if (!digits) return null;
   const parsed = Number(digits);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function clampToBounds(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
+}
+
+function emitPartial(
+  nextMin: number | null,
+  nextMax: number | null,
+  onChange: (value: PriceRangeSliderValue) => void,
+) {
+  if (nextMin == null && nextMax == null) {
+    onChange(null);
+    return;
+  }
+  onChange({ min: nextMin, max: nextMax });
 }
 
 export function PriceRangeSliderFilter({
@@ -40,44 +62,25 @@ export function PriceRangeSliderFilter({
   max = INSTITUTION_PRICE_FILTER_MAX,
   className = "",
 }: PriceRangeSliderFilterProps) {
-  const normalizedValue = useMemo(() => {
-    if (!value) return null;
-    const nextMin = clamp(Math.min(value.min, value.max), min, max);
-    const nextMax = clamp(Math.max(value.min, value.max), min, max);
-    return { min: nextMin, max: nextMax };
-  }, [max, min, value]);
-
-  const minInput = normalizedValue ? formatPriceFilterValue(normalizedValue.min) : "";
-  const maxInput = normalizedValue ? formatPriceFilterValue(normalizedValue.max) : "";
-
-  const commitRange = (nextMin: number, nextMax: number) => {
-    const clampedMin = clamp(Math.min(nextMin, nextMax), min, max);
-    const clampedMax = clamp(Math.max(nextMin, nextMax), min, max);
-    if (clampedMin === min && clampedMax === max) {
-      onChange(null);
-      return;
-    }
-    onChange({ min: clampedMin, max: clampedMax });
-  };
+  const minDigits = value?.min != null && Number.isFinite(value.min) ? String(value.min) : "";
+  const maxDigits = value?.max != null && Number.isFinite(value.max) ? String(value.max) : "";
 
   const handleMinInputChange = (rawValue: string) => {
     const parsed = parseInputValue(rawValue);
-    const currentMax = parseInputValue(maxInput) ?? normalizedValue?.max ?? max;
-    if (parsed == null) {
-      onChange(null);
-      return;
-    }
-    commitRange(parsed, currentMax);
+    const nextMin =
+      parsed == null ? null : clampToBounds(parsed, min, max);
+    const currentMax =
+      value?.max != null && Number.isFinite(value.max) ? value.max : null;
+    emitPartial(nextMin, currentMax, onChange);
   };
 
   const handleMaxInputChange = (rawValue: string) => {
     const parsed = parseInputValue(rawValue);
-    const currentMin = parseInputValue(minInput) ?? normalizedValue?.min ?? min;
-    if (parsed == null) {
-      onChange(null);
-      return;
-    }
-    commitRange(currentMin, parsed);
+    const nextMax =
+      parsed == null ? null : clampToBounds(parsed, min, max);
+    const currentMin =
+      value?.min != null && Number.isFinite(value.min) ? value.min : null;
+    emitPartial(currentMin, nextMax, onChange);
   };
 
   return (
@@ -88,9 +91,10 @@ export function PriceRangeSliderFilter({
           <Input
             type="text"
             inputMode="numeric"
-            value={minInput}
+            autoComplete="off"
+            value={minDigits}
             onChange={(event) => handleMinInputChange(event.target.value)}
-            placeholder={formatPriceFilterValue(min)}
+            placeholder="Min"
             className="price-range-slider-input"
           />
         </label>
@@ -99,9 +103,10 @@ export function PriceRangeSliderFilter({
           <Input
             type="text"
             inputMode="numeric"
-            value={maxInput}
+            autoComplete="off"
+            value={maxDigits}
             onChange={(event) => handleMaxInputChange(event.target.value)}
-            placeholder={formatPriceFilterValue(max)}
+            placeholder="Max"
             className="price-range-slider-input"
           />
         </label>

@@ -4,7 +4,6 @@ import type { Dispatch, SetStateAction } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
 import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import { isAverageClassSizeInstitutionFeature } from "@/lib/institutionHelpers";
-import { isInstitutionPriceRangeFieldName } from "@/lib/institutionPriceRangeFilter";
 import {
   isLegacyStudentAgeMultiSelectFeature,
   isStudentAgeMaxFeature,
@@ -51,21 +50,6 @@ function sortInstitutionPanelFeatureChoices(
   const filtered = choices.filter(
     (choice) => choice.feature_definition_id === feature.id && choice.is_active,
   );
-  if (
-    isInstitutionPriceRangeFieldName(feature.name) ||
-    isInstitutionPriceRangeFieldName(feature.slug ?? "")
-  ) {
-    return [...filtered].sort((a, b) => {
-      const orderA = Number.isFinite(Number(a.display_order))
-        ? Number(a.display_order)
-        : Number.MAX_SAFE_INTEGER;
-      const orderB = Number.isFinite(Number(b.display_order))
-        ? Number(b.display_order)
-        : Number.MAX_SAFE_INTEGER;
-      if (orderA !== orderB) return orderA - orderB;
-      return a.id - b.id;
-    });
-  }
   return sortPanelOptionItemsByLabel(filtered, (choice) => choice.name?.trim() || "");
 }
 

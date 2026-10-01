@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import {
+  inputHHMMToDbTimeOrNull,
+  resolveInstitutionLogoPublicUrl,
+} from "@/lib/institutionHelpers";
 import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import { resolveCategoryListingIlId } from "@/components/category/categoryLocationFilter";
 import { parseLocationId } from "@/lib/turkiyeLocationsClient";
 import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
+import {
+  parsePriceInputToIntOrNull,
+  resolveInstitutionIdsByPriceRange,
+} from "@/lib/institutionPriceRangeFilter";
 import {
   applyInstructorListingFilters,
   buildInstructorListingFiltersFromSchoolPayload,
@@ -407,83 +414,6 @@ function buildLocation(district?: string | null, city?: string | null): string {
   return parts.join(", ");
 }
 
-function normalizeFeatureKey(text: string): string {
-  return text
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i")
-    .replace(/[^a-z0-9\s]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isFiyatAraligiDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFeatureKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return (
-    t.includes("fiyat araligi") ||
-    t.includes("aylik ortalama fiyat") ||
-    t.includes("aylik fiyat araligi") ||
-    t.includes("ortalama fiyat") ||
-    t.includes("price range") ||
-    t.includes("monthly price") ||
-    t === "fiyat" ||
-    t.startsWith("fiyat ") ||
-    t.endsWith(" fiyat") ||
-    t.includes(" fiyat ") ||
-    t.includes("ucret")
-  );
-}
-
-function parsePriceRangeFromText(raw: string): { min: number; max: number } | null {
-  const text = String(raw ?? "").trim();
-  if (!text) return null;
-  const lower = text.toLocaleLowerCase("tr-TR");
-  const norm = normalizeFeatureKey(text);
-
-  const isFree =
-    lower.includes("ücretsiz") || norm.includes("ucretsiz") || lower === "0" || lower === "0 tl" || lower === "0₺";
-  if (isFree) return { min: 0, max: 0 };
-
-  const compact = text.replace(/\s+/g, "");
-  const numericTokens = compact.match(/\d+(?:[.,]\d+)?/g) ?? [];
-  const numbers = numericTokens
-    .map((tok) => Number(tok.replace(/[.,]/g, "")))
-    .filter((n) => Number.isFinite(n));
-  if (numbers.length === 0) return null;
-
-  const isUpperOpen =
-    /\+/.test(text) ||
-    /üzeri/i.test(text) ||
-    norm.includes("uzeri") ||
-    norm.includes("ve ustu") ||
-    norm.includes("ustu") ||
-    norm.includes("yukari") ||
-    norm.includes("more");
-  const isLowerOpen =
-    /alt[ıi]/i.test(text) ||
-    norm.includes("alti") ||
-    norm.includes("altinda") ||
-    norm.includes("kadar") ||
-    norm.includes("less") ||
-    norm.includes("under");
-
-  if (numbers.length >= 2) {
-    const min = Math.min(numbers[0], numbers[1]);
-    const max = Math.max(numbers[0], numbers[1]);
-    return { min, max };
-  }
-
-  const single = numbers[0];
-  if (isUpperOpen) return { min: single, max: Number.POSITIVE_INFINITY };
-  if (isLowerOpen) return { min: 0, max: single };
-  return { min: single, max: single };
-}
-
-function rangesOverlap(a: { min: number; max: number }, b: { min: number; max: number }): boolean {
-  return a.min <= b.max && b.min <= a.max;
-}
-
 function intersectSets(a: Set<number>, b: Set<number>): Set<number> {
   const out = new Set<number>();
   for (const id of a) {
@@ -499,9 +429,26 @@ function parseOptionalNumber(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function isWorkingHoursFilterActive(payload: SchoolCategoryFilterPayload | undefined): boolean {
+  if (!payload) return false;
+  return (
+    String(payload.workingHoursStart ?? "").trim() !== "" ||
+    String(payload.workingHoursEnd ?? "").trim() !== ""
+  );
+}
+
+function isPriceFilterActive(payload: SchoolCategoryFilterPayload | undefined): boolean {
+  if (!payload) return false;
+  return (
+    String(payload.priceMin ?? "").trim() !== "" || String(payload.priceMax ?? "").trim() !== ""
+  );
+}
+
 function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undefined): boolean {
   if (!payload) return false;
   if (isStudentAgeFilterTextActive(payload.studentAgeRange)) return true;
+  if (isWorkingHoursFilterActive(payload)) return true;
+  if (isPriceFilterActive(payload)) return true;
   if ((payload.institutionTypeIds ?? []).some((id) => Number.isFinite(id) && id > 0)) return true;
   if ((payload.highSchoolTypes ?? []).some((slug) => String(slug ?? "").trim())) return true;
   if (Object.keys(payload.commonSingle).some((k) => String(payload.commonSingle[Number(k)] ?? "").trim()))
@@ -518,6 +465,34 @@ function hasAnySchoolPayloadFilters(payload: SchoolCategoryFilterPayload | undef
   if (Object.keys(payload.groupSelections).some((k) => (payload.groupSelections[Number(k)] ?? []).length > 0))
     return true;
   return false;
+}
+
+/** Kurum kolonları: working_hours_start / working_hours_end (feature tabloları yok). */
+async function resolveInstitutionIdsByWorkingHoursFilter(
+  supabase: SupabaseBrowser,
+  params: { start: string; end: string },
+): Promise<Set<number>> {
+  const startDb = params.start ? inputHHMMToDbTimeOrNull(params.start) : null;
+  const endDb = params.end ? inputHHMMToDbTimeOrNull(params.end) : null;
+  if (!startDb && !endDb) return new Set();
+
+  let query = supabase.from("institutions").select("id");
+  if (startDb) {
+    query = query.not("working_hours_start", "is", null).lte("working_hours_start", startDb);
+  }
+  if (endDb) {
+    query = query.not("working_hours_end", "is", null).gte("working_hours_end", endDb);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const out = new Set<number>();
+  for (const row of (data ?? []) as Array<{ id: number }>) {
+    const id = Number(row.id);
+    if (Number.isFinite(id) && id > 0) out.add(id);
+  }
+  return out;
 }
 
 async function resolveInstitutionIdsForSingleSelectChoice(
@@ -681,100 +656,6 @@ async function resolveInstitutionIdsNumberRangeForDefinition(
     out.add(iid);
   }
   return out;
-}
-
-async function resolveInstitutionIdsPriceRangeForDefinitionIds(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  definitionIds: number[],
-  userRange: { min: number; max: number },
-): Promise<Set<number>> {
-  const idSet = new Set<number>();
-  if (definitionIds.length === 0) return idSet;
-
-  const { data: defsRaw, error: defErr } = await supabase
-    .from("institution_feature_definitions")
-    .select("id, name, slug, input_type")
-    .in("id", definitionIds)
-    .eq("is_active", true);
-  if (defErr) throw defErr;
-  const defs = ((defsRaw ?? []) as Array<{
-    id: number;
-    name?: string | null;
-    slug?: string | null;
-    input_type?: string | null;
-  }>).filter((d) => Number.isFinite(d.id) && isFiyatAraligiDefinition(d));
-  if (defs.length === 0) return idSet;
-
-  const defIds = defs.map((d) => d.id);
-  const inputTypeByDefId = new Map<number, string>();
-  for (const d of defs) inputTypeByDefId.set(d.id, String(d.input_type ?? ""));
-
-  const choiceRangeById = new Map<number, { min: number; max: number }>();
-  const { data: choicesRaw, error: chErr } = await supabase
-    .from("institution_feature_choices")
-    .select("id, feature_definition_id, name")
-    .in("feature_definition_id", defIds)
-    .eq("is_active", true);
-  if (!chErr) {
-    for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
-      const cid = Number(c.id);
-      if (!Number.isFinite(cid)) continue;
-      const r = parsePriceRangeFromText(String(c.name ?? ""));
-      if (r) choiceRangeById.set(cid, r);
-    }
-  }
-
-  const { data: entriesRaw, error: entErr } = await supabase
-    .from("institution_feature_entries")
-    .select("id, institution_id, feature_definition_id, number_answer, text_answer")
-    .in("feature_definition_id", defIds);
-  if (entErr) throw entErr;
-
-  const entries = (entriesRaw ?? []) as Array<{
-    id: number;
-    institution_id: number;
-    feature_definition_id: number;
-    number_answer: number | null;
-    text_answer: string | null;
-  }>;
-
-  const choiceEntryIdToInstitution = new Map<number, number>();
-  for (const e of entries) {
-    const iid = Number(e.institution_id);
-    if (!Number.isFinite(iid)) continue;
-    const inputType = inputTypeByDefId.get(Number(e.feature_definition_id)) ?? "";
-
-    if (inputType === "single_select" || inputType === "multi_select") {
-      choiceEntryIdToInstitution.set(Number(e.id), iid);
-    } else if (inputType === "number") {
-      const n = Number(e.number_answer);
-      if (!Number.isFinite(n)) continue;
-      if (rangesOverlap({ min: n, max: n }, userRange)) idSet.add(iid);
-    } else if (inputType === "text") {
-      const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
-      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
-    }
-  }
-
-  if (choiceEntryIdToInstitution.size > 0 && choiceRangeById.size > 0) {
-    const matchingChoiceIds = Array.from(choiceRangeById.entries())
-      .filter(([, r]) => rangesOverlap(r, userRange))
-      .map(([cid]) => cid);
-    if (matchingChoiceIds.length > 0) {
-      const { data: links, error: linkErr } = await supabase
-        .from("institution_feature_entry_choices")
-        .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", Array.from(choiceEntryIdToInstitution.keys()))
-        .in("choice_id", matchingChoiceIds);
-      if (linkErr) throw linkErr;
-      for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number }>) {
-        const iid = choiceEntryIdToInstitution.get(Number(row.institution_feature_entry_id));
-        if (Number.isFinite(iid)) idSet.add(iid!);
-      }
-    }
-  }
-
-  return idSet;
 }
 
 async function fetchRowsByIdsChunked(
@@ -1229,6 +1110,28 @@ export function useCategoryInstitutions(
         }
         if (cancelled) return;
 
+        const workingHoursStart = String(payload.workingHoursStart ?? "").trim();
+        const workingHoursEnd = String(payload.workingHoursEnd ?? "").trim();
+        if (workingHoursStart || workingHoursEnd) {
+          const matchedIds = await resolveInstitutionIdsByWorkingHoursFilter(supabase, {
+            start: workingHoursStart,
+            end: workingHoursEnd,
+          });
+          current = intersectSets(current, matchedIds);
+        }
+        if (cancelled) return;
+
+        const priceMinRaw = String(payload.priceMin ?? "").trim();
+        const priceMaxRaw = String(payload.priceMax ?? "").trim();
+        if (priceMinRaw || priceMaxRaw) {
+          const matchedIds = await resolveInstitutionIdsByPriceRange(supabase, {
+            min: parsePriceInputToIntOrNull(priceMinRaw),
+            max: parsePriceInputToIntOrNull(priceMaxRaw),
+          });
+          current = intersectSets(current, new Set(matchedIds));
+        }
+        if (cancelled) return;
+
         for (const [defIdStr, choiceIds] of Object.entries(payload.commonMulti)) {
           const defId = Number(defIdStr);
           if (!Number.isFinite(defId) || !Array.isArray(choiceIds) || choiceIds.length === 0) continue;
@@ -1264,24 +1167,10 @@ export function useCategoryInstitutions(
           const maxS = String(range?.max ?? "").trim();
           if (!minS && !maxS) continue;
 
-          const meta = defMetaById.get(defId);
-          const isPrice = meta ? isFiyatAraligiDefinition({ name: meta.name, slug: meta.slug }) : false;
-
-          if (isPrice) {
-            const minN = parseOptionalNumber(minS) ?? 0;
-            const maxN = parseOptionalNumber(maxS) ?? Number.POSITIVE_INFINITY;
-            const userRange = {
-              min: Math.min(minN, maxN),
-              max: Math.max(minN, maxN),
-            };
-            const set = await resolveInstitutionIdsPriceRangeForDefinitionIds(supabase, [defId], userRange);
-            current = intersectSets(current, set);
-          } else {
-            const minBound = minS ? parseOptionalNumber(minS) : null;
-            const maxBound = maxS ? parseOptionalNumber(maxS) : null;
-            const set = await resolveInstitutionIdsNumberRangeForDefinition(supabase, defId, minBound, maxBound);
-            current = intersectSets(current, set);
-          }
+          const minBound = minS ? parseOptionalNumber(minS) : null;
+          const maxBound = maxS ? parseOptionalNumber(maxS) : null;
+          const set = await resolveInstitutionIdsNumberRangeForDefinition(supabase, defId, minBound, maxBound);
+          current = intersectSets(current, set);
           if (current.size === 0) break;
         }
         if (cancelled) return;

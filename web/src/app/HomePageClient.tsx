@@ -46,10 +46,6 @@ import type { User } from "@supabase/supabase-js";
 import { PriceRangeSliderFilter, type PriceRangeSliderValue } from "@/components/filters/PriceRangeSliderFilter";
 import { AgeRangeSliderFilter } from "@/components/filters/AgeRangeSliderFilter";
 import {
-  INSTITUTION_PRICE_FILTER_MAX,
-  INSTITUTION_PRICE_FILTER_MIN,
-} from "@/lib/institutionPriceRangeFilter";
-import {
   isStudentAgeFilterTextActive,
   type StudentAgeFilterTextPayload,
 } from "@/lib/institutionStudentAgeFilter";
@@ -1343,8 +1339,6 @@ export default function HomePageClient() {
                   ? {
                       min: selectedPriceRange.min,
                       max: selectedPriceRange.max,
-                      defaultMin: INSTITUTION_PRICE_FILTER_MIN,
-                      defaultMax: INSTITUTION_PRICE_FILTER_MAX,
                     }
                   : undefined
               }

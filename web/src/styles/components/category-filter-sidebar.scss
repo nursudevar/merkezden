@@ -378,6 +378,38 @@
   flex-shrink: 0;
 }
 
+.category-filter-working-hours-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+
+  .working-hours-picker {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .working-hours-picker__trigger {
+    height: 40px;
+    padding: 0 12px;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    background-color: #f9fafb;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .working-hours-picker__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .working-hours-picker__menu {
+    z-index: 50;
+    min-width: 0;
+  }
+}
+
 .price-range-slider-filter {
   display: flex;
   flex-direction: column;

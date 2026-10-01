@@ -55,6 +55,12 @@ import {
   isAverageClassSizeInstitutionFeature,
   resolveInstitutionLogoPublicUrl,
 } from "@/lib/institutionHelpers";
+import { parsePriceInputToIntOrNull } from "@/lib/institutionPriceRangeFilter";
+
+function priceFromDbToForm(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) return "";
+  return String(Math.floor(Number(value)));
+}
 import {
   buildInstitutionMainFeatureSelectionGroups,
   collectDefinitionIdsFromFeatureGroups,
@@ -549,6 +555,8 @@ function PanelContent() {
     mahalleId: "",
     workingHoursStart: "",
     workingHoursEnd: "",
+    minFiyat: "",
+    maxFiyat: "",
     address: "",
     about: "",
     logoUrl: "",
@@ -570,6 +578,8 @@ function PanelContent() {
     mahalleId: "",
     workingHoursStart: "",
     workingHoursEnd: "",
+    minFiyat: "",
+    maxFiyat: "",
     address: "",
     about: "",
     logoUrl: "",
@@ -1222,6 +1232,8 @@ interface InstitutionDetailPreparedData {
           mahalleId: toLocationIdString(row.mahalle_id),
           workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
           workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
+          minFiyat: priceFromDbToForm(row.min_fiyat),
+          maxFiyat: priceFromDbToForm(row.max_fiyat),
           address: row.address || "",
           about: row.about || "",
           logoUrl,
@@ -1243,6 +1255,8 @@ interface InstitutionDetailPreparedData {
           mahalleId: toLocationIdString(row.mahalle_id),
           workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
           workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
+          minFiyat: priceFromDbToForm(row.min_fiyat),
+          maxFiyat: priceFromDbToForm(row.max_fiyat),
           address: row.address || "",
           about: row.about || "",
           logoUrl,
@@ -1974,6 +1988,23 @@ interface InstitutionDetailPreparedData {
       return;
     }
 
+    const minFiyatDigits = String(institutionFormData.minFiyat ?? "").replace(/[^\d]/g, "");
+    const maxFiyatDigits = String(institutionFormData.maxFiyat ?? "").replace(/[^\d]/g, "");
+    if (String(institutionFormData.minFiyat ?? "").trim() && !minFiyatDigits) {
+      setInstitutionProfileMessage("Aylık fiyat minimum değeri geçerli bir sayı olmalıdır.");
+      return;
+    }
+    if (String(institutionFormData.maxFiyat ?? "").trim() && !maxFiyatDigits) {
+      setInstitutionProfileMessage("Aylık fiyat maksimum değeri geçerli bir sayı olmalıdır.");
+      return;
+    }
+    const minFiyatValue = parsePriceInputToIntOrNull(institutionFormData.minFiyat);
+    const maxFiyatValue = parsePriceInputToIntOrNull(institutionFormData.maxFiyat);
+    if (minFiyatValue != null && maxFiyatValue != null && maxFiyatValue < minFiyatValue) {
+      setInstitutionProfileMessage("Maksimum fiyat, minimum fiyattan küçük olamaz.");
+      return;
+    }
+
     const locationNames = institutionLocationFieldsRef.current?.getSelectedNames();
     const cityName = (locationNames?.city || institutionFormData.city).trim();
     const districtName = (locationNames?.district || institutionFormData.district).trim();
@@ -1995,6 +2026,8 @@ interface InstitutionDetailPreparedData {
       district: districtName,
       working_hours_start: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursStart),
       working_hours_end: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
+      min_fiyat: minFiyatValue,
+      max_fiyat: maxFiyatValue,
       address: institutionFormData.address.trim(),
       about: institutionFormData.about.trim(),
       ...(isAdminActingAsInstitution
@@ -2014,7 +2047,7 @@ interface InstitutionDetailPreparedData {
         .update(payload)
         .eq("id", instNumericId)
         .select(
-          "id, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, working_hours_start, working_hours_end, il_id, ilce_id, mahalle_id"
+          "id, institution_name, official_email, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, city, district, address, about, logo, working_hours_start, working_hours_end, min_fiyat, max_fiyat, il_id, ilce_id, mahalle_id"
         )
         .maybeSingle();
 
@@ -2051,6 +2084,8 @@ interface InstitutionDetailPreparedData {
         logo?: string | null;
         working_hours_start?: string | null;
         working_hours_end?: string | null;
+        min_fiyat?: number | null;
+        max_fiyat?: number | null;
       };
 
       const logoUrl = resolveInstitutionLogoPublicUrl(supabase, row.logo);
@@ -2072,6 +2107,8 @@ interface InstitutionDetailPreparedData {
         mahalleId: toLocationIdString(row.mahalle_id),
         workingHoursStart: institutionTimeToInputHHMM(row.working_hours_start),
         workingHoursEnd: institutionTimeToInputHHMM(row.working_hours_end),
+        minFiyat: priceFromDbToForm(row.min_fiyat),
+        maxFiyat: priceFromDbToForm(row.max_fiyat),
         address: row.address || "",
         about: row.about || "",
         logoUrl,
@@ -2642,19 +2679,8 @@ interface InstitutionDetailPreparedData {
     if (key === "engelliye uygun".toLocaleLowerCase("tr-TR")) {
       return "Engellilere Uygun";
     }
-    if (key === "fiyat araligi" || key === "aylik ortalama fiyat araligi" || key === "aylik fiyat araligi") {
-      return "Aylık Fiyat Aralığı";
-    }
     if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") {
       return "Kurum Türü";
-    }
-    if (
-      key === "okul saatleri" ||
-      key === "kurum saatleri" ||
-      key === "egitim saatleri" ||
-      key === "calisma saatleri"
-    ) {
-      return "Eğitim Saatleri";
     }
     if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") {
       return "Sınıf Mevcudu";
@@ -3565,42 +3591,74 @@ interface InstitutionDetailPreparedData {
                       />
                     </div>
                   </div>
-                  <div className="panel-institution-form-row">
+                  <div className="panel-institution-form-row panel-institution-form-row--full">
                     <div className="panel-institution-form-field">
-                      <label
-                        className="panel-institution-form-label"
-                        htmlFor="panel-working-hours-start"
-                      >
-                        EĞİTİM SAATLERİ - BAŞLANGIÇ
-                      </label>
-                      <WorkingHoursTimePicker
-                        id="panel-working-hours-start"
-                        value={institutionFormData.workingHoursStart}
-                        onChange={(next) =>
-                          handleInstitutionFormChange("workingHoursStart", next)
-                        }
-                        disabled={!isEditingInstitutionProfile}
-                        ariaLabel="Eğitim saatleri başlangıç"
-                        placeholder="Başlangıç"
-                      />
+                      <span className="panel-institution-form-label">Eğitim Saatleri</span>
+                      <div className="panel-working-hours-range">
+                        <WorkingHoursTimePicker
+                          id="panel-working-hours-start"
+                          value={institutionFormData.workingHoursStart}
+                          onChange={(next) =>
+                            handleInstitutionFormChange("workingHoursStart", next)
+                          }
+                          disabled={!isEditingInstitutionProfile}
+                          ariaLabel="Eğitim saatleri başlangıç"
+                          placeholder="Başlangıç"
+                        />
+                        <span className="panel-working-hours-range-sep" aria-hidden>
+                          —
+                        </span>
+                        <WorkingHoursTimePicker
+                          id="panel-working-hours-end"
+                          value={institutionFormData.workingHoursEnd}
+                          onChange={(next) =>
+                            handleInstitutionFormChange("workingHoursEnd", next)
+                          }
+                          disabled={!isEditingInstitutionProfile}
+                          ariaLabel="Eğitim saatleri bitiş"
+                          placeholder="Bitiş"
+                        />
+                      </div>
                     </div>
+                  </div>
+                  <div className="panel-institution-form-row panel-institution-form-row--full">
                     <div className="panel-institution-form-field">
-                      <label
-                        className="panel-institution-form-label"
-                        htmlFor="panel-working-hours-end"
-                      >
-                        EĞİTİM SAATLERİ - BİTİŞ
-                      </label>
-                      <WorkingHoursTimePicker
-                        id="panel-working-hours-end"
-                        value={institutionFormData.workingHoursEnd}
-                        onChange={(next) =>
-                          handleInstitutionFormChange("workingHoursEnd", next)
-                        }
-                        disabled={!isEditingInstitutionProfile}
-                        ariaLabel="Eğitim saatleri bitiş"
-                        placeholder="Bitiş"
-                      />
+                      <span className="panel-institution-form-label">Aylık Fiyat Aralığı (TL)</span>
+                      <div className="panel-working-hours-range">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={institutionFormData.minFiyat}
+                          onChange={(e) =>
+                            handleInstitutionFormChange(
+                              "minFiyat",
+                              e.target.value.replace(/[^\d]/g, ""),
+                            )
+                          }
+                          disabled={!isEditingInstitutionProfile}
+                          className="panel-institution-form-input"
+                          placeholder="Min"
+                          aria-label="Aylık fiyat minimum"
+                        />
+                        <span className="panel-working-hours-range-sep" aria-hidden>
+                          —
+                        </span>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={institutionFormData.maxFiyat}
+                          onChange={(e) =>
+                            handleInstitutionFormChange(
+                              "maxFiyat",
+                              e.target.value.replace(/[^\d]/g, ""),
+                            )
+                          }
+                          disabled={!isEditingInstitutionProfile}
+                          className="panel-institution-form-input"
+                          placeholder="Max"
+                          aria-label="Aylık fiyat maksimum"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="panel-institution-form-row panel-institution-form-row--full">
