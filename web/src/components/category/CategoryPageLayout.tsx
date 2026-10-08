@@ -184,7 +184,11 @@ export default function CategoryPageLayout({
   );
 
   const layoutContent = (
-    <div className="category-page-layout">
+    <div
+      className={`category-page-layout${
+        instructorModeProps ? " category-page-layout--instructors" : ""
+      }`}
+    >
       <div className="category-page-layout-container">
         {/* Ana content container genişliğini paylaşır (filtre sol + sonuç sağ kenarı). */}
         <CategorySeoIntro />
@@ -234,6 +238,7 @@ export default function CategoryPageLayout({
           <div ref={resultsScrollRef}>
             <CategoryResultsList
               categoryName={categoryName}
+              categorySlug={categorySlug}
               subtitle={subtitle}
               title={resultsTitle}
               results={results}

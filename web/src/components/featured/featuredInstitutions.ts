@@ -6,6 +6,7 @@ import {
 } from "@/lib/featuredAccountsClient";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
+import { isAbortLikeError } from "@/lib/isAbortLikeError";
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import {
   PUBLIC_INSTRUCTOR_LIST_SELECT,
@@ -235,7 +236,9 @@ async function fetchAllActiveFeaturedAccountsOrdered(
       .range(from, to);
 
     if (error) {
-      console.error("[home-featured] featured_accounts load error:", error.message);
+      if (!isAbortLikeError(error)) {
+        console.error("[home-featured] featured_accounts load error:", error.message);
+      }
       break;
     }
 
@@ -269,7 +272,9 @@ async function fetchApprovedInstitutionRowsByIds(
         .range(from, to);
 
       if (error) {
-        console.error("[home-featured] institutions load error:", error.message);
+        if (!isAbortLikeError(error)) {
+          console.error("[home-featured] institutions load error:", error.message);
+        }
         break;
       }
 
@@ -308,7 +313,9 @@ async function fetchApprovedInstructorRowsByIds(
         .range(from, to);
 
       if (error) {
-        console.error("[home-featured] instructors load error:", error.message);
+        if (!isAbortLikeError(error)) {
+          console.error("[home-featured] instructors load error:", error.message);
+        }
         break;
       }
 

@@ -20,6 +20,7 @@ import {
   Building2,
   Calendar,
   Car,
+  ChevronDown,
   Clock3,
   Coins,
   CreditCard,
@@ -303,22 +304,35 @@ const PATILI_DOSTLAR_HIDDEN_FILTER_NAMES = new Set([
 
 /** Eğitmen public filtre — yalnızca Kurs / Sınava Hazırlık şema alan sırası (yaş/fiyat ayrı section). */
 const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER = [
-  "kurs turleri",
+  "ozel ders turleri",
   "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
   "egitim seviyesi",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
 
-const KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES = new Set(["kurs ozellikleri"]);
+/** Bu kategoride hedef sırada olmayan / UI'da gösterilmeyen Başlıca alanlar. */
+const KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES = new Set([
+  "musait gunler",
+  "egitim saatleri",
+  "ders verme sikligi",
+  "ucret tipi",
+]);
+
+const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
+  "ders suresi",
+  "egitim seviyesi",
+  "egitim dili",
+  "odeme secenekleri",
+]);
 
 /** Eğitmen public filtre — yalnızca Yabancı Dil şema alan sırası (yaş/fiyat ayrı section). */
 const YABANCI_DIL_INSTRUCTOR_FILTER_ORDER = [
@@ -406,6 +420,7 @@ const KISISEL_GELISIM_HIDDEN_FILTER_NAMES = new Set([
 const MESLEKI_EGITIM_INSTRUCTOR_FILTER_ORDER = [
   "egitim turleri",
   "hizmet tipi",
+  "hedef fayda",
   "hizmet yeri",
   "ders seviyesi",
   "musait gunler",
@@ -499,6 +514,7 @@ function normalizeMeslekiEgitimFilterOrderKey(name: string): string {
   ) {
     return "egitim turleri";
   }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
   return key;
 }
 
@@ -577,6 +593,30 @@ function normalizeInstructorFilterOrderKey(name: string): string {
   return key;
 }
 
+function normalizeKursSinavaHazirlikInstructorFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "kurs ozellikleri" || key === "egitim ozellikleri") return "egitim ozellikleri";
+  if (
+    key === "deneme dersi mevcuttur" ||
+    key === "deneme dersi" ||
+    key === "ucretsiz deneme dersi var" ||
+    (key.includes("deneme") && key.includes("ders"))
+  ) {
+    return "deneme dersi mevcuttur";
+  }
+  return key;
+}
+
+function getKursSinavaHazirlikInstructorFilterSectionTitle(name: string): string {
+  const key = normalizeKursSinavaHazirlikInstructorFilterOrderKey(name);
+  if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
+  if (key === "hedef fayda") return "HEDEF / FAYDA";
+  if (key === "deneme dersi mevcuttur") return "ÜCRETSİZ DENEME DERSİ VAR";
+  if (key === "odeme secenekleri") return "ÖDEME SEÇENEKLERİ";
+  return name.toLocaleUpperCase("tr-TR");
+}
+
 function orderKursSinavaHazirlikInstructorFields(
   fields: InstructorFilterField[],
 ): InstructorFilterField[] {
@@ -586,13 +626,13 @@ function orderKursSinavaHazirlikInstructorFields(
 
   const filtered = fields.filter((field) => {
     if (field.kind === "student_age_range") return false;
-    const key = normalizeInstructorFilterOrderKey(field.name);
+    const key = normalizeKursSinavaHazirlikInstructorFilterOrderKey(field.name);
     return !KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES.has(key);
   });
 
   return [...filtered].sort((a, b) => {
-    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
-    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aIndex = orderIndex.get(normalizeKursSinavaHazirlikInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeKursSinavaHazirlikInstructorFilterOrderKey(b.name));
     const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
     const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
     if (aRank !== bRank) return aRank - bRank;
@@ -941,6 +981,7 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "odeme secenekleri": CreditCard,
   "odeme yontemleri": CreditCard,
   "kurs turleri": Book,
+  "ozel ders turleri": Book,
   "egitim turleri": BookOpen,
   "mesleki egitim turleri": BookOpen,
   "sanat turleri": Palette,
@@ -960,6 +1001,7 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "tesis turu": Warehouse,
   "hedef/fayda": Target,
   "hedef fayda": Target,
+  "hedef / fayda": Target,
   "belge turleri": Files,
   "ek belge ve egitimler": FilePlus2,
   "src belgesi turleri": BadgeCheck,
@@ -1002,6 +1044,31 @@ function normalizeCategoryFilterSectionTitleKey(title: string): string {
 
 function getCategoryFilterSectionIcon(title: string): LucideIcon {
   return CATEGORY_FILTER_SECTION_ICON_MAP[normalizeCategoryFilterSectionTitleKey(title)] ?? ListFilter;
+}
+
+function CategoryFilterCollapse({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const Icon = getCategoryFilterSectionIcon(title);
+
+  return (
+    <div className={`category-filter-collapse${open ? " category-filter-collapse--open" : ""}`}>
+      <button
+        type="button"
+        className="category-filter-collapse__header"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="category-filter-collapse__title">
+          <Icon className="category-filter-collapse__title-icon" size={20} aria-hidden />
+          <span>{title}</span>
+        </span>
+        <ChevronDown className="category-filter-collapse__chevron" size={18} aria-hidden />
+      </button>
+      <div className="category-filter-collapse__content" hidden={!open}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function CategoryFilterSectionTitle({ title }: { title: string }) {
@@ -1067,22 +1134,35 @@ function isHiddenYabanciDillerInstitutionFilter(name: string): boolean {
 }
 
 const OKUL_INSTITUTION_FILTER_ORDER = [
-  "kurum turu",
-  "hizmet tipi",
+  "egitim saatleri",
+  "ogrenci yasi",
   "aylik fiyat araligi",
   "egitim sistemi",
-  "okul imkanlari",
-  "fiziki imkanlar",
   "aktivite",
-  "egitim dili",
-  "egitim saatleri",
+  "fiziki imkanlar",
+  "hedef/fayda",
+  "okul imkanlari",
   "sinif mevcudu",
+  "egitim dili",
+  "kurum turu",
+  "hizmet tipi",
   "odeme secenekleri",
 ] as const;
 
 const OKUL_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   OKUL_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
+
+/** Okul kurum filtresi — başlangıçta kapalı sekmeler. */
+const OKUL_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hedef/fayda",
+  "okul imkanlari",
+  "sinif mevcudu",
+  "egitim dili",
+  "kurum turu",
+  "hizmet tipi",
+  "odeme secenekleri",
+]);
 
 function normalizeOkulInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
@@ -1116,23 +1196,30 @@ function normalizeOkulInstitutionFilterOrderKey(name: string): string {
     return "fiziki imkanlar";
   }
   if (key.includes("okul imkan")) return "okul imkanlari";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
+  if (key === "ogrenci yasi") return "ogrenci yasi";
   return key;
 }
 
 function getOkulInstitutionFilterSectionTitle(name: string): string {
-  if (normalizeOkulInstitutionFilterOrderKey(name) === "aktivite") return "AKTİVİTE";
+  const key = normalizeOkulInstitutionFilterOrderKey(name);
+  if (key === "aktivite") return "AKTİVİTELER";
+  if (key === "hedef/fayda") return "HEDEF/FAYDA";
+  if (key === "ogrenci yasi") return "ÖĞRENCİ YAŞI";
   return name.toLocaleUpperCase("tr-TR");
 }
 
 type OkulDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
+  | { kind: "student_age"; originalIndex: number }
   | { kind: "working_hours"; originalIndex: number }
   | { kind: "price_range"; originalIndex: number };
 
 function getOkulSectionOrderName(section: OkulDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "group") return section.group.name;
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
   if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
   if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
   return WORKING_HOURS_FILTER_ORDER_NAME;
@@ -1158,13 +1245,14 @@ function orderOkulInstitutionFilterSections(
 const KURS_SINAVA_HAZIRLIK_INSTITUTION_FILTER_ORDER = [
   "kurs turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
-  "kurs ozellikleri",
+  "hedef/fayda",
+  "egitim ozellikleri",
   "fiziki imkanlar",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
@@ -1172,6 +1260,15 @@ const KURS_SINAVA_HAZIRLIK_INSTITUTION_FILTER_ORDER = [
 const KURS_SINAVA_HAZIRLIK_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   KURS_SINAVA_HAZIRLIK_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
+
+/** Kurs kurum filtresi — başlangıçta kapalı sekmeler. */
+const KURS_SINAVA_HAZIRLIK_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
 
 function normalizeKursSinavaHazirlikInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
@@ -1203,7 +1300,9 @@ function normalizeKursSinavaHazirlikInstitutionFilterOrderKey(name: string): str
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
     return "fiziki imkanlar";
   }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
   if (key === "ogrenci yasi") return "ogrenci yasi";
+  if (key === "kurs ozellikleri" || key === "egitim ozellikleri") return "egitim ozellikleri";
   return key;
 }
 
@@ -1213,6 +1312,8 @@ function getKursSinavaHazirlikInstitutionFilterSectionTitle(name: string): strin
   if (key === "egitim saatleri") return "EĞİTİM SAATLERİ";
   if (key === "sinif mevcudu") return "SINIF MEVCUDU";
   if (key === "ogrenci yasi") return "ÖĞRENCİ YAŞI";
+  if (key === "hedef/fayda") return "HEDEF / FAYDA";
+  if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
   return name.toLocaleUpperCase("tr-TR");
 }
 
@@ -1540,16 +1641,25 @@ function orderYabanciDilInstitutionFilterSections(
 const KISISEL_GELISIM_INSTITUTION_FILTER_ORDER = [
   "egitim turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
+  "hedef/fayda",
   "egitim ozellikleri",
   "fiziki imkanlar",
+  "kurum turu",
   "egitim dili",
-  "egitim saatleri",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
+
+const KISISEL_GELISIM_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "kurum turu",
+  "egitim dili",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
 
 const KISISEL_GELISIM_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   KISISEL_GELISIM_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
@@ -1557,6 +1667,7 @@ const KISISEL_GELISIM_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
 
 function normalizeKisiselGelisimInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "kurum turu";
   if (
     key.includes("aylik fiyat araligi") ||
@@ -1636,13 +1747,14 @@ function orderKisiselGelisimInstitutionFilterSections(
 const MESLEKI_EGITIM_INSTITUTION_FILTER_ORDER = [
   "egitim turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
+  "hedef/fayda",
   "egitim ozellikleri",
   "fiziki imkanlar",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
@@ -1650,6 +1762,15 @@ const MESLEKI_EGITIM_INSTITUTION_FILTER_ORDER = [
 const MESLEKI_EGITIM_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   MESLEKI_EGITIM_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
+
+/** Mesleki Eğitim kurum filtresi — başlangıçta kapalı sekmeler. */
+const MESLEKI_EGITIM_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
 
 function normalizeMeslekiEgitimInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
@@ -1684,6 +1805,7 @@ function normalizeMeslekiEgitimInstitutionFilterOrderKey(name: string): string {
   if (key === "ogrenci yasi") return "ogrenci yasi";
   if (key === "kurs ozellikleri") return "egitim ozellikleri";
   if (key === "mesleki egitim turleri" || key === "egitim turleri") return "egitim turleri";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
   return key;
 }
 
@@ -1694,7 +1816,8 @@ function getMeslekiEgitimInstitutionFilterSectionTitle(name: string): string {
   if (key === "sinif mevcudu") return "SINIF MEVCUDU";
   if (key === "ogrenci yasi") return "ÖĞRENCİ YAŞI";
   if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
-  if (key === "egitim turleri") return "EĞİTİM TÜRLERİ";
+  if (key === "egitim turleri") return "MESLEKİ EĞİTİM TÜRLERİ";
+  if (key === "hedef/fayda") return "HEDEF / FAYDA";
   return name.toLocaleUpperCase("tr-TR");
 }
 
@@ -1734,16 +1857,25 @@ function orderMeslekiEgitimInstitutionFilterSections(
 const OZEL_EGITIM_INSTITUTION_FILTER_ORDER = [
   "ozel egitim turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
+  "hedef/fayda",
   "egitim ozellikleri",
   "fiziki imkanlar",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
+
+const OZEL_EGITIM_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
 
 const OZEL_EGITIM_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   OZEL_EGITIM_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
@@ -1782,6 +1914,7 @@ function normalizeOzelEgitimInstitutionFilterOrderKey(name: string): string {
   if (key === "ogrenci yasi") return "ogrenci yasi";
   if (key === "kurs ozellikleri") return "egitim ozellikleri";
   if (key === "ozel egitim turleri") return "ozel egitim turleri";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
   return key;
 }
 
@@ -3714,9 +3847,12 @@ function CategoryFilterSidebarView({
     isSurucuKursuInstructorCategory ||
     isPatiliDostlarInstructorCategory;
 
-  const renderInstructorPriceFilterSection = (keySuffix: string) => (
+  const renderInstructorPriceFilterSection = (
+    keySuffix: string,
+    title: string = "AYLIK FİYAT ARALIĞI",
+  ) => (
     <div className="category-filter-section" key={`instructor-price-${keySuffix}`}>
-      <CategoryFilterSectionTitle title="AYLIK FİYAT ARALIĞI" />
+      <CategoryFilterSectionTitle title={title} />
       <PriceRangeSliderFilter
         value={priceRange}
         onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
@@ -3724,8 +3860,6 @@ function CategoryFilterSidebarView({
       />
     </div>
   );
-
-;
 
   const getCommonAgeRangeSliderValue = (): StudentAgeFilterTextPayload | null => {
     if (!selectedStudentAgeRange) return null;
@@ -3821,12 +3955,16 @@ function CategoryFilterSidebarView({
       sections.push({ kind: "group", group, originalIndex: commonFields.length + index });
     });
     sections.push({
-      kind: "working_hours",
+      kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
     });
     sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
       kind: "price_range",
-      originalIndex: (commonFields.length + renderedFeatureGroups.length) + 1,
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 2,
     });
     return orderOkulInstitutionFilterSections(sections);
   }, [showSchoolSubcategoryFilters, commonFields, renderedFeatureGroups]);
@@ -4601,6 +4739,7 @@ function CategoryFilterSidebarView({
             <>
               {!isPatiliDostlarCategory &&
               !usesInjectedAgePriceInstructorOrder &&
+              !showSchoolSubcategoryFilters &&
               !showKursSinavaHazirlikInstitutionFilters &&
               !showSporInstitutionFilters &&
               !showSanatInstitutionFilters &&
@@ -4623,7 +4762,12 @@ function CategoryFilterSidebarView({
                     </div>
                   ) : (
                     instructorFields.map((field) => {
-                      const fieldOrderKey = normalizeInstructorFilterOrderKey(field.name);
+                      const fieldOrderKey = isKursSinavaHazirlikInstructorCategory
+                        ? normalizeKursSinavaHazirlikInstructorFilterOrderKey(field.name)
+                        : normalizeInstructorFilterOrderKey(field.name);
+                      const instructorFieldSectionTitle = isKursSinavaHazirlikInstructorCategory
+                        ? getKursSinavaHazirlikInstructorFilterSectionTitle(field.name)
+                        : field.name.toLocaleUpperCase("tr-TR");
                       const wrapOrderedInstructorSpecialSections = (
                         section: ReactNode,
                         sectionKey: string,
@@ -4631,20 +4775,26 @@ function CategoryFilterSidebarView({
                         if (section == null) return section;
 
                         if (isKursSinavaHazirlikInstructorCategory) {
-                          if (fieldOrderKey === "kurs turleri") {
+                          if (fieldOrderKey === "ozel ders turleri") {
                             return (
                               <Fragment key={`kurs-slot-${sectionKey}`}>
                                 {section}
                                 {renderStudentAgeFilterSection("kurs-sinava-hazirlik")}
+                                {renderInstructorPriceFilterSection(
+                                  "kurs-sinava-hazirlik",
+                                  "FİYAT ARALIĞI",
+                                )}
                               </Fragment>
                             );
                           }
-                          if (fieldOrderKey === "hizmet yeri") {
+                          if (KURS_SINAVA_HAZIRLIK_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(fieldOrderKey)) {
                             return (
-                              <Fragment key={`kurs-slot-${sectionKey}`}>
+                              <CategoryFilterCollapse
+                                key={`kurs-instructor-collapse-${fieldOrderKey}-${sectionKey}`}
+                                title={instructorFieldSectionTitle}
+                              >
                                 {section}
-                                {renderInstructorPriceFilterSection("kurs-sinava-hazirlik")}
-                              </Fragment>
+                              </CategoryFilterCollapse>
                             );
                           }
                           return section;
@@ -4819,7 +4969,7 @@ function CategoryFilterSidebarView({
                             className="category-filter-section"
                             key={`instructor-bool-group-${field.groupId}`}
                           >
-                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                            <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
                             <div className={checkboxListClassName(sortedOptions.length)}>
                               {visibleOptions.map((option) => {
                                 const isChecked = Boolean(
@@ -4864,12 +5014,20 @@ function CategoryFilterSidebarView({
 
                       if (field.kind === "boolean") {
                         const isChecked = Boolean(selectedInstructorBoolean[field.definitionId]);
+                        const isKursDenemeBoolean =
+                          isKursSinavaHazirlikInstructorCategory &&
+                          fieldOrderKey === "deneme dersi mevcuttur";
+                        const booleanCheckboxLabel = isKursDenemeBoolean
+                          ? "Ücretsiz Deneme Dersi Var"
+                          : field.name;
                         return wrapOrderedInstructorSpecialSections(
                           <div
                             className="category-filter-section"
                             key={`instructor-bool-${field.definitionId}`}
                           >
-                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                            {isKursDenemeBoolean ? null : (
+                              <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
+                            )}
                             <div className={checkboxListClassName(1)}>
                               <label
                                 className={`category-filter-checkbox-option${
@@ -4882,7 +5040,9 @@ function CategoryFilterSidebarView({
                                   onChange={() => toggleInstructorBoolean(field.definitionId)}
                                   className="category-filter-checkbox-input"
                                 />
-                                <span className="category-filter-checkbox-label">{field.name}</span>
+                                <span className="category-filter-checkbox-label">
+                                  {booleanCheckboxLabel}
+                                </span>
                               </label>
                             </div>
                           </div>,
@@ -4900,7 +5060,7 @@ function CategoryFilterSidebarView({
                             className="category-filter-section"
                             key={`instructor-single-${field.definitionId}`}
                           >
-                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                            <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
                             <div className="category-filter-section-inputs">
                               <Select
                                 value={selectValue}
@@ -4964,7 +5124,7 @@ function CategoryFilterSidebarView({
                             className="category-filter-section"
                             key={`instructor-multi-${field.definitionId}`}
                           >
-                            <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                            <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
                             <div className={checkboxListClassName(sortedChoices.length)}>
                               {visibleChoices.map((choice) => {
                                 const key = String(choice.id);
@@ -5014,7 +5174,7 @@ function CategoryFilterSidebarView({
                           className="category-filter-section"
                           key={`instructor-number-${field.definitionId}`}
                         >
-                          <CategoryFilterSectionTitle title={field.name.toLocaleUpperCase("tr-TR")} />
+                          <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
                           <div className="category-filter-price-inputs">
                             <Input
                               type="number"
@@ -5048,42 +5208,66 @@ function CategoryFilterSidebarView({
 
               {showSchoolSubcategoryFilters
                 ? schoolOrderedDynamicSections.map((section) => {
-                    if (section.kind === "price_range") {
-                      return renderPriceRangeFilterSection("okul");
+                    const orderName = getOkulSectionOrderName(section);
+                    const orderKey = normalizeOkulInstitutionFilterOrderKey(orderName);
+                    const sectionNode =
+                      section.kind === "student_age"
+                        ? renderStudentAgeFilterSection("school")
+                        : section.kind === "price_range"
+                          ? renderPriceRangeFilterSection("okul")
+                          : section.kind === "working_hours"
+                            ? renderWorkingHoursFilterSection("okul")
+                            : section.kind === "common"
+                              ? renderInstitutionCommonField(
+                                  section.field,
+                                  getOkulInstitutionFilterSectionTitle(section.field.name),
+                                )
+                              : renderInstitutionFeatureGroup(
+                                  section.group,
+                                  getOkulInstitutionFilterSectionTitle(section.group.name),
+                                );
+                    if (!OKUL_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                      return sectionNode;
                     }
-                    if (section.kind === "working_hours") {
-                      return renderWorkingHoursFilterSection("okul");
-                    }
-                    return section.kind === "common"
-                      ? renderInstitutionCommonField(
-                          section.field,
-                          getOkulInstitutionFilterSectionTitle(section.field.name),
-                        )
-                      : renderInstitutionFeatureGroup(
-                          section.group,
-                          getOkulInstitutionFilterSectionTitle(section.group.name),
-                        );
+                    return (
+                      <CategoryFilterCollapse
+                        key={`okul-collapse-${orderKey}`}
+                        title={getOkulInstitutionFilterSectionTitle(orderName)}
+                      >
+                        {sectionNode}
+                      </CategoryFilterCollapse>
+                    );
                   })
                 : showKursSinavaHazirlikInstitutionFilters
                   ? kursOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("kurs-sinava-hazirlik");
+                      const orderName = getKursSinavaHazirlikSectionOrderName(section);
+                      const orderKey = normalizeKursSinavaHazirlikInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("kurs-sinava-hazirlik")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("kurs-sinava-hazirlik")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("kurs-sinava-hazirlik")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getKursSinavaHazirlikInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getKursSinavaHazirlikInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!KURS_SINAVA_HAZIRLIK_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("kurs-sinava-hazirlik");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("kurs-sinava-hazirlik");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getKursSinavaHazirlikInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getKursSinavaHazirlikInstitutionFilterSectionTitle(section.group.name),
+                      return (
+                        <CategoryFilterCollapse
+                          key={`kurs-sinava-hazirlik-collapse-${orderKey}`}
+                          title={getKursSinavaHazirlikInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showSporInstitutionFilters
@@ -5154,68 +5338,94 @@ function CategoryFilterSidebarView({
                     })
                 : showKisiselGelisimInstitutionFilters
                   ? kisiselGelisimOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("kisisel-gelisim");
-                      }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("kisisel-gelisim");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("kisisel-gelisim");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getKisiselGelisimInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getKisiselGelisimInstitutionFilterSectionTitle(section.group.name),
+                      const orderName = getKisiselGelisimSectionOrderName(section);
+                      const orderKey = normalizeKisiselGelisimInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("kisisel-gelisim")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("kisisel-gelisim")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("kisisel-gelisim")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getKisiselGelisimInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getKisiselGelisimInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!KISISEL_GELISIM_COLLAPSED_FILTER_KEYS.has(orderKey)) return sectionNode;
+                      return (
+                        <CategoryFilterCollapse
+                          key={`kisisel-gelisim-collapse-${orderKey}`}
+                          title={getKisiselGelisimInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showMeslekiEgitimInstitutionFilters
                   ? meslekiEgitimOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("mesleki-egitim");
+                      const orderName = getMeslekiEgitimSectionOrderName(section);
+                      const orderKey = normalizeMeslekiEgitimInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("mesleki-egitim")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("mesleki-egitim")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("mesleki-egitim")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getMeslekiEgitimInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getMeslekiEgitimInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!MESLEKI_EGITIM_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("mesleki-egitim");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("mesleki-egitim");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getMeslekiEgitimInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getMeslekiEgitimInstitutionFilterSectionTitle(section.group.name),
+                      return (
+                        <CategoryFilterCollapse
+                          key={`mesleki-egitim-collapse-${orderKey}`}
+                          title={getMeslekiEgitimInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showOzelEgitimInstitutionFilters
                   ? ozelEgitimOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("ozel-egitim");
-                      }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("ozel-egitim");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("ozel-egitim");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getOzelEgitimInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getOzelEgitimInstitutionFilterSectionTitle(section.group.name),
+                      const orderName = getOzelEgitimSectionOrderName(section);
+                      const orderKey = normalizeOzelEgitimInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("ozel-egitim")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("ozel-egitim")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("ozel-egitim")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getOzelEgitimInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getOzelEgitimInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!OZEL_EGITIM_COLLAPSED_FILTER_KEYS.has(orderKey)) return sectionNode;
+                      return (
+                        <CategoryFilterCollapse
+                          key={`ozel-egitim-collapse-${orderKey}`}
+                          title={getOzelEgitimInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showSurucuKursuInstitutionFilters

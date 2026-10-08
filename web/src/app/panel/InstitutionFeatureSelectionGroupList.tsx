@@ -1,6 +1,7 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { Fragment } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
 import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import { isAverageClassSizeInstitutionFeature } from "@/lib/institutionHelpers";
@@ -71,6 +72,8 @@ type InstitutionFeatureSelectionGroupListProps = {
   setOpenInstitutionSelectId: Dispatch<SetStateAction<number | null>>;
   studentAgeRangeError?: string | null;
   setStudentAgeRangeError?: Dispatch<SetStateAction<string | null>>;
+  baslicaWorkingHours?: ReactNode;
+  baslicaPriceRange?: ReactNode;
 };
 
 export function InstitutionFeatureSelectionGroupList({
@@ -91,6 +94,8 @@ export function InstitutionFeatureSelectionGroupList({
   setOpenInstitutionSelectId,
   studentAgeRangeError = null,
   setStudentAgeRangeError,
+  baslicaWorkingHours = null,
+  baslicaPriceRange = null,
 }: InstitutionFeatureSelectionGroupListProps) {
   return (
     <>
@@ -126,6 +131,9 @@ export function InstitutionFeatureSelectionGroupList({
           }
         };
         const groupNameKey = group.name.trim().toLocaleLowerCase("tr-TR");
+        const isBaslicaGroup = groupNameKey === "başlıca özellikler";
+        let baslicaWorkingHoursPlaced = false;
+        let baslicaPriceRangePlaced = false;
         const groupHeaderMeta = (() => {
           if (groupNameKey === "başlıca özellikler") {
             return {
@@ -204,7 +212,7 @@ export function InstitutionFeatureSelectionGroupList({
                 ) {
                   if (ageRangeRendered) return null;
                   ageRangeRendered = true;
-                  return (
+                  const ageRangeNode = (
                     <div
                       key={`student-age-range-${ageMinFeature.id}-${ageMaxFeature.id}`}
                       className="panel-institutions-selection-item panel-institutions-feature-item--full"
@@ -219,9 +227,19 @@ export function InstitutionFeatureSelectionGroupList({
                       />
                     </div>
                   );
+                  if (isBaslicaGroup && baslicaWorkingHours) {
+                    baslicaWorkingHoursPlaced = true;
+                    return (
+                      <Fragment key={`student-age-range-with-hours-${ageMinFeature.id}`}>
+                        {ageRangeNode}
+                        {baslicaWorkingHours}
+                      </Fragment>
+                    );
+                  }
+                  return ageRangeNode;
                 }
 
-                return (
+                const featureNode = (
                 <div
                   key={feature.id}
                   className={`panel-institutions-selection-item ${
@@ -442,7 +460,27 @@ export function InstitutionFeatureSelectionGroupList({
                   )}
                 </div>
                 );
+                if (
+                  isBaslicaGroup &&
+                  baslicaPriceRange &&
+                  isAverageClassSizeInstitutionFeature(feature.name)
+                ) {
+                  baslicaPriceRangePlaced = true;
+                  return (
+                    <Fragment key={`class-size-with-price-${feature.id}`}>
+                      {featureNode}
+                      {baslicaPriceRange}
+                    </Fragment>
+                  );
+                }
+                return featureNode;
               })}
+              {isBaslicaGroup && baslicaWorkingHours && !baslicaWorkingHoursPlaced
+                ? baslicaWorkingHours
+                : null}
+              {isBaslicaGroup && baslicaPriceRange && !baslicaPriceRangePlaced
+                ? baslicaPriceRange
+                : null}
             </div>
           </section>
         );

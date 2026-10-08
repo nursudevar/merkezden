@@ -132,6 +132,78 @@
   margin: 0;
 }
 
+.category-filter-collapse {
+  width: 100%;
+  min-width: 0;
+}
+
+.category-filter-collapse__header {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #f9fafb;
+  color: $default-text-color;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    border-color: rgba($purple-main, 0.35);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: $purple-main;
+    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  }
+}
+
+.category-filter-collapse__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: $font-bold;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.category-filter-collapse__title-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  flex-shrink: 0;
+  color: #0f172a;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.category-filter-collapse__chevron {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: $text-zinc-500;
+  transition: transform 0.2s ease;
+}
+
+.category-filter-collapse--open .category-filter-collapse__chevron {
+  transform: rotate(180deg);
+}
+
+.category-filter-collapse__content {
+  padding-top: 12px;
+
+  > .category-filter-section > .category-filter-section-title {
+    display: none;
+  }
+}
+
 .category-filter-section-title-icon {
   width: 20px;
   height: 20px;
@@ -724,5 +796,46 @@
   .category-filter-show-more {
     margin-top: 2px;
     padding: 4px 8px;
+  }
+}
+
+.category-page-layout:not(.haritada-ara-page):not(.category-page-layout--instructors) {
+  .age-range-slider-filter .age-range-slider-input,
+  .age-range-slider-filter .price-range-slider-input,
+  .price-range-slider-inputs.category-filter-price-inputs .price-range-slider-field .category-filter-price-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    box-shadow: none;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    line-height: 1.2;
+    text-align: left;
+    color: $default-text-color;
+
+    &::placeholder {
+      color: $text-placeholder;
+      text-align: left;
+      font-weight: $font-medium;
+    }
+
+    &:hover {
+      border-color: rgba($purple-main, 0.4);
+      box-shadow: none;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      border-color: $purple-main;
+      box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+    }
   }
 }

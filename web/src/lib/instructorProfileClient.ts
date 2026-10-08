@@ -17,12 +17,13 @@ import {
 export const INSTRUCTORS_TABLE = "instructors" as const;
 
 export const INSTRUCTOR_PROFILE_ROW_SELECT =
-  "id, user_id, owner_auth_id, name, surname, email, phone, identity_or_tax_number, birth_date, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id, can_edit_category";
+  "id, user_id, owner_auth_id, slug, name, surname, email, phone, identity_or_tax_number, birth_date, school, department, bio, about, website, facebook_url, instagram_url, x_url, linkedin_url, address, il_id, ilce_id, mahalle_id, is_abroad, branch, experience_years, education_level, lesson_type, service_type, working_hours_start, working_hours_end, is_approved, is_active, profile_picture, cv_url, diploma_document_path, category_id, can_edit_category";
 
 export type InstructorProfileRow = {
   id: number;
   user_id?: number | null;
   owner_auth_id?: string | null;
+  slug?: string | null;
   name?: string | null;
   surname?: string | null;
   email?: string | null;
@@ -289,7 +290,10 @@ export async function updateInstructorProfileForAuthUserClient(
   return { row: data as InstructorProfileRow, error: null };
 }
 
-export async function resolveInstructorNameFromInstructorsClient(authUid: string): Promise<string> {
+export async function resolveInstructorNameFromInstructorsClient(
+  authUid: string,
+): Promise<{ name: string; slug: string | null }> {
   const { row } = await loadInstructorRowForAuthUserClient(authUid);
-  return instructorDisplayNameFromRow(row);
+  const slug = String(row?.slug ?? "").trim();
+  return { name: instructorDisplayNameFromRow(row), slug: slug || null };
 }

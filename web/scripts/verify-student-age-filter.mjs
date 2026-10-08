@@ -1,35 +1,13 @@
 /**
- * Öğrenci yaşı filtre kuralları — kurum aralığı 1.5–4.
- * Çalıştır: node scripts/verify-student-age-filter.mjs
+ * Öğrenci yaşı filtre kuralları — production `storedStudentAgeMatchesFilter` ile doğrular.
+ *
+ * Çalıştır (web/ içinden):
+ *   npm run verify:student-age
  */
 import assert from "node:assert/strict";
+import { storedStudentAgeMatchesFilter } from "@/lib/institutionStudentAgeFilter.ts";
 
 const STORED = { min: 1.5, max: 4 };
-
-function studentAgeRangesIntersect(stored, selected) {
-  return stored.min <= selected.max && stored.max >= selected.min;
-}
-
-function storedStudentAgeMatchesFilter(stored, filter) {
-  const storedMin = Math.min(stored.min, stored.max);
-  const storedMax = Math.max(stored.min, stored.max);
-  const selectedMin = filter.min;
-  const selectedMax = filter.max;
-
-  const hasMin = selectedMin != null && Number.isFinite(selectedMin);
-  const hasMax = selectedMax != null && Number.isFinite(selectedMax);
-  if (!hasMin && !hasMax) return false;
-
-  if (hasMin && hasMax) {
-    const lo = Math.min(selectedMin, selectedMax);
-    const hi = Math.max(selectedMin, selectedMax);
-    return studentAgeRangesIntersect({ min: storedMin, max: storedMax }, { min: lo, max: hi });
-  }
-  if (hasMin) {
-    return storedMin <= selectedMin && selectedMin <= storedMax;
-  }
-  return storedMin <= selectedMax && selectedMax <= storedMax;
-}
 
 function minOnly(value) {
   return storedStudentAgeMatchesFilter(STORED, { min: value, max: null });
@@ -59,4 +37,4 @@ assert.equal(
   "empty filter must not match",
 );
 
-console.log("student-age filter verification: all cases passed");
+console.log("student-age filter verification: all cases passed (production module)");

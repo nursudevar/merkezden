@@ -19,6 +19,7 @@ function getCategoryResultsVisiblePageNumbers(currentPage: number, totalPages: n
 
 interface CategoryResultsListProps {
   categoryName: string;
+  categorySlug?: string;
   /**
    * Bu sürümde kategori detay sayfalarında başlık altında açıklama
    * gösterilmiyor; prop API geriye uyum için korunuyor.
@@ -43,6 +44,7 @@ type ViewMode = "single" | "two";
 
 export default function CategoryResultsList({
   categoryName,
+  categorySlug,
   subtitle,
   results = [],
   isLoading = false,
@@ -232,6 +234,7 @@ export default function CategoryResultsList({
               <CategoryResultsCard
                 key={result.id}
                 {...result}
+                categorySlug={categorySlug}
                 isFavorite={isFavorite}
                 isFavoriteActionLoading={isFavoriteActionLoading}
                 favoritesEnabled={favoritesEnabled}

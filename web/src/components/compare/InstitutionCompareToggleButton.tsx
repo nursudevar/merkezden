@@ -13,15 +13,18 @@ import {
 export function InstitutionCompareToggleButton({
   item,
   className = "",
+  labeled = false,
 }: {
   item: InstitutionCompareItem;
   className?: string;
+  labeled?: boolean;
 }) {
   const { items, toggle } = useInstitutionCompare();
   const { items: instructorItems } = useInstructorCompare();
   const { showCompareConflictNotice } = useCompareConflictNotice();
   const selected = items.some((current) => current.id === item.id);
   const disabled = !selected && items.length >= INSTITUTION_COMPARE_MAX;
+  const label = selected ? "Karşılaştırmadan çıkar" : "Karşılaştır";
 
   return (
     <button
@@ -31,8 +34,8 @@ export function InstitutionCompareToggleButton({
       }${className ? ` ${className}` : ""}`}
       disabled={disabled}
       aria-pressed={selected}
-      aria-label={selected ? "Karşılaştırmadan çıkar" : "Karşılaştır"}
-      title={selected ? "Karşılaştırmadan çıkar" : "Karşılaştır"}
+      aria-label={label}
+      title={label}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -49,6 +52,7 @@ export function InstitutionCompareToggleButton({
       }}
     >
       <ArrowLeftRight size={16} aria-hidden />
+      {labeled ? <span>{label}</span> : null}
     </button>
   );
 }

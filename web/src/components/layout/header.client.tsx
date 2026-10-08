@@ -67,6 +67,7 @@ interface HeaderWithSearchClientProps {
   institutionSlug?: string | null;
   individualName?: string | null;
   instructorName?: string | null;
+  instructorSlug?: string | null;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -85,6 +86,7 @@ export function HeaderWithSearchClient({
   institutionSlug,
   individualName,
   instructorName,
+  instructorSlug,
   searchValue = "",
   onSearchChange,
   searchPlaceholder,
@@ -113,6 +115,14 @@ export function HeaderWithSearchClient({
 
   const shouldShowCTA = !!user;
   const institutionDetailHref = institutionSlug ? `/kurumlar/${institutionSlug}` : "/panel";
+  const welcomeProfileHref =
+    userType === "institution"
+      ? institutionDetailHref
+      : userType === "instructor" && instructorSlug
+        ? `/egitmenler/${instructorSlug}`
+        : userType === "individual"
+          ? "/profil#favorites"
+          : "";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
@@ -193,9 +203,9 @@ export function HeaderWithSearchClient({
                 <div className="header-hamburger-dropdown">
                   {user &&
                     (userType === "institution" || userType === "individual" || userType === "instructor") &&
-                    (userType === "institution" ? (
+                    (welcomeProfileHref ? (
                       <Link
-                        href={institutionDetailHref}
+                        href={welcomeProfileHref}
                         className="header-hamburger-welcome header-hamburger-welcome-link"
                         onClick={() => setMenuOpen(false)}
                       >
@@ -360,9 +370,9 @@ export function HeaderWithSearchClient({
                 <div className="header-hamburger-dropdown header-hamburger-dropdown-desktop">
                   {user &&
                     (userType === "institution" || userType === "individual" || userType === "instructor") &&
-                    (userType === "institution" ? (
+                    (welcomeProfileHref ? (
                       <Link
-                        href={institutionDetailHref}
+                        href={welcomeProfileHref}
                         className="header-hamburger-welcome header-hamburger-welcome-link"
                         onClick={() => setDesktopMenuOpen(false)}
                       >
@@ -467,6 +477,7 @@ interface HeaderClientProps {
   initialInstitutionSlug?: string | null;
   initialIndividualName?: string | null;
   initialInstructorName?: string | null;
+  initialInstructorSlug?: string | null;
   headerCenter?: ReactNode;
 }
 
@@ -478,6 +489,7 @@ export function HeaderClient({
   initialInstitutionSlug,
   initialIndividualName,
   initialInstructorName,
+  initialInstructorSlug,
   headerCenter,
 }: HeaderClientProps) {
   return (
@@ -489,6 +501,7 @@ export function HeaderClient({
       institutionSlug={initialInstitutionSlug}
       individualName={initialIndividualName}
       instructorName={initialInstructorName}
+      instructorSlug={initialInstructorSlug}
       headerCenter={headerCenter}
     />
   );
@@ -518,6 +531,7 @@ export function HeaderWithSearch({
   const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
   const [instructorName, setInstructorName] = useState<string | null>(null);
+  const [instructorSlug, setInstructorSlug] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -540,6 +554,7 @@ export function HeaderWithSearch({
           setInstitutionSlug(null);
           setIndividualName(null);
           setInstructorName(null);
+      setInstructorSlug(null);
         }
         setIsAuthReady(true);
       });
@@ -561,6 +576,7 @@ export function HeaderWithSearch({
           setInstitutionSlug(null);
           setIndividualName(null);
           setInstructorName(null);
+      setInstructorSlug(null);
         }
       });
     });
@@ -645,11 +661,15 @@ export function HeaderWithSearch({
   useEffect(() => {
     if (!user?.id || userType !== "instructor") {
       setInstructorName(null);
+      setInstructorSlug(null);
       return;
     }
     let cancelled = false;
-    resolveInstructorNameFromInstructorsClient(user.id).then((name) => {
-      if (!cancelled) setInstructorName(name || "Eğitmen");
+    resolveInstructorNameFromInstructorsClient(user.id).then((profile) => {
+      if (!cancelled) {
+        setInstructorName(profile.name || "Eğitmen");
+        setInstructorSlug(profile.slug);
+      }
     });
     return () => {
       cancelled = true;
@@ -668,6 +688,7 @@ export function HeaderWithSearch({
       institutionSlug={displayUserType === "institution" ? institutionSlug : null}
       individualName={displayUserType === "individual" ? individualName : null}
       instructorName={displayUserType === "instructor" ? instructorName : null}
+      instructorSlug={displayUserType === "instructor" ? instructorSlug : null}
       searchValue={searchValue}
       onSearchChange={onSearchChange}
       searchPlaceholder={searchPlaceholder}
@@ -690,6 +711,7 @@ export function HeaderClientWrapper({
   const [institutionSlug, setInstitutionSlug] = useState<string | null>(null);
   const [individualName, setIndividualName] = useState<string | null>(null);
   const [instructorName, setInstructorName] = useState<string | null>(null);
+  const [instructorSlug, setInstructorSlug] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -712,6 +734,7 @@ export function HeaderClientWrapper({
           setInstitutionSlug(null);
           setIndividualName(null);
           setInstructorName(null);
+      setInstructorSlug(null);
         }
         setIsAuthReady(true);
       });
@@ -733,6 +756,7 @@ export function HeaderClientWrapper({
           setInstitutionSlug(null);
           setIndividualName(null);
           setInstructorName(null);
+      setInstructorSlug(null);
         }
       });
     });
@@ -817,11 +841,15 @@ export function HeaderClientWrapper({
   useEffect(() => {
     if (!user?.id || userType !== "instructor") {
       setInstructorName(null);
+      setInstructorSlug(null);
       return;
     }
     let cancelled = false;
-    resolveInstructorNameFromInstructorsClient(user.id).then((name) => {
-      if (!cancelled) setInstructorName(name || "Eğitmen");
+    resolveInstructorNameFromInstructorsClient(user.id).then((profile) => {
+      if (!cancelled) {
+        setInstructorName(profile.name || "Eğitmen");
+        setInstructorSlug(profile.slug);
+      }
     });
     return () => {
       cancelled = true;
@@ -840,6 +868,7 @@ export function HeaderClientWrapper({
       initialInstitutionSlug={displayUserType === "institution" ? institutionSlug : null}
       initialIndividualName={displayUserType === "individual" ? individualName : null}
       initialInstructorName={displayUserType === "instructor" ? instructorName : null}
+      initialInstructorSlug={displayUserType === "instructor" ? instructorSlug : null}
       headerCenter={headerCenter}
     />
   );

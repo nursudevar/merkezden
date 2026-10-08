@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, MapPin, GraduationCap, UserRound } from "lucide-react";
 import { getInstitutionDetailHref } from "@/lib/institutionHelpers";
+import { OKUL_CATEGORY_SLUG } from "@/lib/schoolInstitutionTypes";
 import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
 import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
 
@@ -24,6 +25,7 @@ interface CategoryResultsCardProps {
   slug?: string;
   source?: string | null;
   subcategoryName?: string;
+  categorySlug?: string;
   detailUrl?: string;
   instructorTitle?: string;
   instructorBranch?: string;
@@ -41,7 +43,6 @@ export default function CategoryResultsCard({
   id,
   resultType = "institution",
   name,
-  description,
   location,
   badges,
   logoInitial = "M",
@@ -50,6 +51,7 @@ export default function CategoryResultsCard({
   slug,
   source,
   subcategoryName,
+  categorySlug,
   detailUrl,
   instructorTitle,
   instructorBranch,
@@ -64,8 +66,9 @@ export default function CategoryResultsCard({
 }: CategoryResultsCardProps) {
   const isInstructor = resultType === "instructor";
   const institutionSlug = String(slug ?? "").trim();
-  const descriptionText = String(description ?? "").trim();
   const subcategoryLabel = String(subcategoryName ?? "").trim();
+  const showInstitutionType =
+    String(categorySlug ?? "").trim() === OKUL_CATEGORY_SLUG && subcategoryLabel.length > 0;
   const instructorTitleText = String(instructorTitle ?? "").trim();
   const instructorBranchText = String(instructorBranch ?? "").trim();
   const instructorPriceText = String(priceRange ?? "").trim();
@@ -137,7 +140,7 @@ export default function CategoryResultsCard({
               </span>
             </div>
           ) : null}
-          {!isInstructor && subcategoryLabel ? (
+          {showInstitutionType ? (
             <span className="category-results-card-subcategory-badge">
               <GraduationCap size={12} />
               {subcategoryLabel}
@@ -158,9 +161,6 @@ export default function CategoryResultsCard({
             <UserRound size={14} aria-hidden />
             <span>{instructorTitleText}</span>
           </p>
-        ) : null}
-        {!isInstructor && descriptionText ? (
-          <p className="category-results-card-description">{descriptionText}</p>
         ) : null}
         {isInstructor && instructorPriceText ? (
           <p className="category-results-card-price">{instructorPriceText}</p>
@@ -210,11 +210,15 @@ export default function CategoryResultsCard({
     </>
   );
 
+  const cardClassName = isInstructor
+    ? "category-results-card"
+    : "category-results-card category-results-card--institution";
+
   if (href) {
     return (
       <Link
         href={href}
-        className="category-results-card"
+        className={cardClassName}
         aria-label={`${name} detayları`}
       >
         {cardContent}
@@ -223,7 +227,7 @@ export default function CategoryResultsCard({
   }
 
   return (
-    <article className="category-results-card">
+    <article className={cardClassName}>
       {cardContent}
     </article>
   );

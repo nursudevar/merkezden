@@ -11,7 +11,8 @@
     "lint": "eslint",
     "import:meb": "node scripts/import-meb.js",
     "import:konumlar": "node scripts/import-turkiye-konumlari.js",
-    "geocode:institutions": "node scripts/geocode-institution-locations.js"
+    "geocode:institutions": "node scripts/geocode-institution-locations.js",
+    "verify:student-age": "node --import ./scripts/node-ts-alias-import.mjs --experimental-strip-types ./scripts/verify-student-age-filter.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

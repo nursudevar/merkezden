@@ -659,8 +659,6 @@ function PanelContent() {
   ]);
   const announcementShowImagePreview = Boolean(announcementPreviewSrc);
 
-  // Talepler sekmesi kaldırıldı.
-
 interface InstitutionFeatureGroupRow {
   id: number;
   name: string;
@@ -763,7 +761,6 @@ interface InstitutionDetailPreparedData {
   }>;
 }
 
-  // Talepler sekmesi kaldırıldı.
   const [institutionRecordMissing, setInstitutionRecordMissing] = useState(false);
   const [institutionFeaturesLoading, setInstitutionFeaturesLoading] = useState(false);
   const [institutionFeaturesError, setInstitutionFeaturesError] = useState<string | null>(null);
@@ -2142,6 +2139,68 @@ interface InstitutionDetailPreparedData {
   const isSubscriptionTab = activeTab === "subscription";
   const isOverviewTab = activeTab === "overview";
 
+  const baslicaWorkingHoursField = (
+    <div className="panel-institutions-selection-item panel-institutions-feature-item--full">
+      <div className="panel-institutions-feature-input-wrap">
+        <p className="panel-institutions-feature-name">Eğitim Saatleri</p>
+        <div className="panel-working-hours-range">
+          <WorkingHoursTimePicker
+            id="panel-working-hours-start"
+            value={institutionFormData.workingHoursStart}
+            onChange={(next) => handleInstitutionFormChange("workingHoursStart", next)}
+            ariaLabel="Eğitim saatleri başlangıç"
+            placeholder="Başlangıç"
+          />
+          <span className="panel-working-hours-range-sep" aria-hidden>
+            —
+          </span>
+          <WorkingHoursTimePicker
+            id="panel-working-hours-end"
+            value={institutionFormData.workingHoursEnd}
+            onChange={(next) => handleInstitutionFormChange("workingHoursEnd", next)}
+            ariaLabel="Eğitim saatleri bitiş"
+            placeholder="Bitiş"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const baslicaPriceRangeField = (
+    <div className="panel-institutions-selection-item panel-institutions-feature-item--full">
+      <div className="panel-institutions-feature-input-wrap">
+        <p className="panel-institutions-feature-name">Aylık Fiyat Aralığı (TL)</p>
+        <div className="panel-working-hours-range">
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={institutionFormData.minFiyat}
+            onChange={(e) =>
+              handleInstitutionFormChange("minFiyat", e.target.value.replace(/[^\d]/g, ""))
+            }
+            className="panel-institution-form-input"
+            placeholder="Min"
+            aria-label="Aylık fiyat minimum"
+          />
+          <span className="panel-working-hours-range-sep" aria-hidden>
+            —
+          </span>
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={institutionFormData.maxFiyat}
+            onChange={(e) =>
+              handleInstitutionFormChange("maxFiyat", e.target.value.replace(/[^\d]/g, ""))
+            }
+            className="panel-institution-form-input"
+            placeholder="Max"
+            aria-label="Aylık fiyat maksimum"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   const overviewMediaCountDisplay =
     !institutionId || !Number.isFinite(Number(institutionId))
       ? "0"
@@ -2278,14 +2337,42 @@ interface InstitutionDetailPreparedData {
         institutionFeatureDefinitions.map((definition) => [definition.id, definition]),
       );
 
+      const minFiyatDigits = String(institutionFormData.minFiyat ?? "").replace(/[^\d]/g, "");
+      const maxFiyatDigits = String(institutionFormData.maxFiyat ?? "").replace(/[^\d]/g, "");
+      if (String(institutionFormData.minFiyat ?? "").trim() && !minFiyatDigits) {
+        flashInstitutionFeaturesSaveMessage("Aylık fiyat minimum değeri geçerli bir sayı olmalıdır.");
+        setInstitutionFeaturesSaving(false);
+        return;
+      }
+      if (String(institutionFormData.maxFiyat ?? "").trim() && !maxFiyatDigits) {
+        flashInstitutionFeaturesSaveMessage("Aylık fiyat maksimum değeri geçerli bir sayı olmalıdır.");
+        setInstitutionFeaturesSaving(false);
+        return;
+      }
+      const minFiyatValue = parsePriceInputToIntOrNull(institutionFormData.minFiyat);
+      const maxFiyatValue = parsePriceInputToIntOrNull(institutionFormData.maxFiyat);
+      if (minFiyatValue != null && maxFiyatValue != null && maxFiyatValue < minFiyatValue) {
+        flashInstitutionFeaturesSaveMessage("Maksimum fiyat, minimum fiyattan küçük olamaz.");
+        setInstitutionFeaturesSaving(false);
+        return;
+      }
+
       const institutionRowUpdate: {
         institution_type_id: number | null;
         high_school_type: string | null;
         category_id: number | null;
+        working_hours_start: string | null;
+        working_hours_end: string | null;
+        min_fiyat: number | null;
+        max_fiyat: number | null;
       } = {
         institution_type_id: institutionTypeIdToSave,
         high_school_type: highSchoolTypeToSave,
         category_id: nextCategoryId,
+        working_hours_start: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursStart),
+        working_hours_end: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
+        min_fiyat: minFiyatValue,
+        max_fiyat: maxFiyatValue,
       };
 
       featureSaveStep = "institutions category update";
@@ -2765,8 +2852,6 @@ interface InstitutionDetailPreparedData {
       grouped: Array.from(groupedMap.values()),
     };
   })();
-
-  // Talepler sekmesi kaldırıldı.
 
   const openNewAnnouncementModal = () => {
     setEditingAnnouncementId(null);
@@ -3593,76 +3678,6 @@ interface InstitutionDetailPreparedData {
                   </div>
                   <div className="panel-institution-form-row panel-institution-form-row--full">
                     <div className="panel-institution-form-field">
-                      <span className="panel-institution-form-label">Eğitim Saatleri</span>
-                      <div className="panel-working-hours-range">
-                        <WorkingHoursTimePicker
-                          id="panel-working-hours-start"
-                          value={institutionFormData.workingHoursStart}
-                          onChange={(next) =>
-                            handleInstitutionFormChange("workingHoursStart", next)
-                          }
-                          disabled={!isEditingInstitutionProfile}
-                          ariaLabel="Eğitim saatleri başlangıç"
-                          placeholder="Başlangıç"
-                        />
-                        <span className="panel-working-hours-range-sep" aria-hidden>
-                          —
-                        </span>
-                        <WorkingHoursTimePicker
-                          id="panel-working-hours-end"
-                          value={institutionFormData.workingHoursEnd}
-                          onChange={(next) =>
-                            handleInstitutionFormChange("workingHoursEnd", next)
-                          }
-                          disabled={!isEditingInstitutionProfile}
-                          ariaLabel="Eğitim saatleri bitiş"
-                          placeholder="Bitiş"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="panel-institution-form-row panel-institution-form-row--full">
-                    <div className="panel-institution-form-field">
-                      <span className="panel-institution-form-label">Aylık Fiyat Aralığı (TL)</span>
-                      <div className="panel-working-hours-range">
-                        <Input
-                          type="text"
-                          inputMode="numeric"
-                          value={institutionFormData.minFiyat}
-                          onChange={(e) =>
-                            handleInstitutionFormChange(
-                              "minFiyat",
-                              e.target.value.replace(/[^\d]/g, ""),
-                            )
-                          }
-                          disabled={!isEditingInstitutionProfile}
-                          className="panel-institution-form-input"
-                          placeholder="Min"
-                          aria-label="Aylık fiyat minimum"
-                        />
-                        <span className="panel-working-hours-range-sep" aria-hidden>
-                          —
-                        </span>
-                        <Input
-                          type="text"
-                          inputMode="numeric"
-                          value={institutionFormData.maxFiyat}
-                          onChange={(e) =>
-                            handleInstitutionFormChange(
-                              "maxFiyat",
-                              e.target.value.replace(/[^\d]/g, ""),
-                            )
-                          }
-                          disabled={!isEditingInstitutionProfile}
-                          className="panel-institution-form-input"
-                          placeholder="Max"
-                          aria-label="Aylık fiyat maksimum"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="panel-institution-form-row panel-institution-form-row--full">
-                    <div className="panel-institution-form-field">
                       <label className="panel-institution-form-label">HAKKINDA</label>
                       <textarea
                         value={institutionFormData.about}
@@ -4216,6 +4231,8 @@ interface InstitutionDetailPreparedData {
                       setOpenInstitutionSelectId={setOpenInstitutionSelectId}
                       studentAgeRangeError={studentAgeRangeError}
                       setStudentAgeRangeError={setStudentAgeRangeError}
+                      baslicaWorkingHours={baslicaWorkingHoursField}
+                      baslicaPriceRange={baslicaPriceRangeField}
                     />
 
                     {institutionSelectionLowerGroups.length === 0 ? (
@@ -4278,6 +4295,8 @@ interface InstitutionDetailPreparedData {
                     setOpenInstitutionSelectId={setOpenInstitutionSelectId}
                     studentAgeRangeError={studentAgeRangeError}
                     setStudentAgeRangeError={setStudentAgeRangeError}
+                    baslicaWorkingHours={baslicaWorkingHoursField}
+                    baslicaPriceRange={baslicaPriceRangeField}
                   />
                 </div>
                 <div className="panel-institutions-actions">

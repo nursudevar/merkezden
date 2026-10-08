@@ -1,6 +1,7 @@
 "use client";
 
 import { resolveIsAdminFromUserRolesClient } from "@/lib/auth/authBrowserClient";
+import { isAbortLikeError } from "@/lib/isAbortLikeError";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const HOMEPAGE_BANNERS_TABLE = "homepage_banners" as const;
@@ -71,7 +72,7 @@ function safeJsonStringify(value: unknown): string {
 }
 
 function logHomepageBannerSupabaseError(context: string, error: unknown) {
-  if (!error) return;
+  if (!error || isAbortLikeError(error)) return;
 
   const record =
     typeof error === "object" && error !== null ? (error as SupabaseErrorLike) : ({} as SupabaseErrorLike);
@@ -250,6 +251,7 @@ export async function fetchActiveHomepageBanners(
     .order("created_at", { ascending: true });
 
   if (error) {
+    if (isAbortLikeError(error)) return { banners: [], error: null };
     logHomepageBannerSupabaseError("fetch active public banners", error);
     return { banners: [], error: formatHomepageBannerSupabaseError(error, "Bannerlar yüklenemedi.") };
   }

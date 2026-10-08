@@ -42,6 +42,7 @@ import {
 } from "@/lib/institutionStudentAgeFilter";
 import { isLegacyStudentAgeMultiSelectFeature } from "@/lib/studentAgeRangeFeature";
 import { getHighSchoolTypeLabel, LISE_INSTITUTION_TYPE_ID } from "@/lib/schoolInstitutionTypes";
+import { isOkulDurumuDefinition } from "@/lib/institutionSchoolStatusFilter";
 
 export type CategoryResultItem = {
   id: string;
@@ -982,10 +983,12 @@ export function useCategoryInstitutions(
             featuredOrderMap,
           );
           const priorityIdSet = new Set(priorityIds);
-          const priorityFullRows =
+          const [priorityFullRows, priorityKurumTuru] = await Promise.all([
             priorityIds.length > 0
-              ? await fetchRowsByIdsChunked(supabase, priorityIds, fullSelect)
-              : [];
+              ? fetchRowsByIdsChunked(supabase, priorityIds, fullSelect)
+              : Promise.resolve([] as InstitutionRow[]),
+            loadKurumTuruLabelByInstitutionId(supabase, priorityIds),
+          ]);
           if (cancelled) return;
 
           const firstPaintInstitutions = mergeInstitutionItemsWithFullRows(
@@ -995,7 +998,11 @@ export function useCategoryInstitutions(
           );
 
           setResults(
-            finalizeCategoryResults(firstPaintInstitutions, instructorResults, featuredOrderMap),
+            finalizeCategoryResults(
+              applyKurumTuruLabels(firstPaintInstitutions, priorityKurumTuru),
+              instructorResults,
+              featuredOrderMap,
+            ),
           );
           setIsLoading(false);
 
@@ -1004,11 +1011,10 @@ export function useCategoryInstitutions(
 
           void (async () => {
             try {
-              const remainingFullRows = await fetchRowsByIdsChunked(
-                supabase,
-                remainingIds,
-                fullSelect,
-              );
+              const [remainingFullRows, remainingKurumTuru] = await Promise.all([
+                fetchRowsByIdsChunked(supabase, remainingIds, fullSelect),
+                loadKurumTuruLabelByInstitutionId(supabase, remainingIds),
+              ]);
               if (cancelled) return;
 
               const hydratedInstitutions = mergeInstitutionItemsWithFullRows(
@@ -1016,9 +1022,14 @@ export function useCategoryInstitutions(
                 institutionStubs,
                 [...priorityFullRows, ...remainingFullRows],
               );
+              const kurumTuru = new Map([...priorityKurumTuru, ...remainingKurumTuru]);
 
               setResults(
-                finalizeCategoryResults(hydratedInstitutions, instructorResults, featuredOrderMap),
+                finalizeCategoryResults(
+                  applyKurumTuruLabels(hydratedInstitutions, kurumTuru),
+                  instructorResults,
+                  featuredOrderMap,
+                ),
               );
             } catch (backgroundErr) {
               console.error(
@@ -1189,10 +1200,16 @@ export function useCategoryInstitutions(
         if (cancelled) return;
 
         const finalIds = Array.from(current);
-        const rows = await fetchRowsByIdsChunked(supabase, finalIds, fullSelect);
+        const [rows, kurumTuru] = await Promise.all([
+          fetchRowsByIdsChunked(supabase, finalIds, fullSelect),
+          loadKurumTuruLabelByInstitutionId(supabase, finalIds),
+        ]);
         if (cancelled) return;
 
-        const mapped = rows.map((row): CategoryResultItem => mapRow(supabase, row));
+        const mapped = applyKurumTuruLabels(
+          rows.map((row): CategoryResultItem => mapRow(supabase, row)),
+          kurumTuru,
+        );
         const instructorResults = await fetchCategoryInstructorResults(supabase, {
           institutionCategoryId: categoryId,
           categoryName: listingName,
@@ -1228,6 +1245,104 @@ export function useCategoryInstitutions(
   }, [categoryName, categorySlug, debouncedSearch, ilId, ilceId, mahalleId, locationReady, schoolFiltersKey]);
 
   return { results, isLoading, error, categoryLabel };
+}
+
+function applyKurumTuruLabels(
+  items: CategoryResultItem[],
+  labels: Map<number, string>,
+): CategoryResultItem[] {
+  return items.map((item) => {
+    if (item.resultType === "instructor") return item;
+    const id = Number(item.institutionId ?? item.id);
+    const label = Number.isFinite(id) ? String(labels.get(id) ?? "").trim() : "";
+    const subcategoryName = label || String(item.subcategoryName ?? "").trim();
+    return { ...item, subcategoryName: subcategoryName || undefined };
+  });
+}
+
+async function loadKurumTuruLabelByInstitutionId(
+  supabase: SupabaseBrowser,
+  institutionIds: number[],
+): Promise<Map<number, string>> {
+  const labels = new Map<number, string>();
+  const ids = [...new Set(institutionIds.filter((id) => Number.isInteger(id) && id > 0))];
+  if (ids.length === 0) return labels;
+
+  try {
+    const { data: defsRaw, error: defErr } = await supabase
+      .from("institution_feature_definitions")
+      .select("id, name, slug")
+      .eq("is_active", true);
+    if (defErr) throw defErr;
+
+    const defIds = (
+      (defsRaw ?? []) as Array<{ id: number; name?: string | null; slug?: string | null }>
+    )
+      .filter((row) => Number.isFinite(row.id) && isOkulDurumuDefinition(row))
+      .map((row) => row.id);
+    if (defIds.length === 0) return labels;
+
+    const entries: Array<{ id: number; institution_id: number }> = [];
+    for (let i = 0; i < ids.length; i += IN_CHUNK) {
+      const { data, error } = await supabase
+        .from("institution_feature_entries")
+        .select("id, institution_id")
+        .in("feature_definition_id", defIds)
+        .in("institution_id", ids.slice(i, i + IN_CHUNK));
+      if (error) throw error;
+      for (const row of (data ?? []) as Array<{ id: number; institution_id: number }>) {
+        if (Number.isFinite(row.id) && Number.isFinite(row.institution_id)) entries.push(row);
+      }
+    }
+    if (entries.length === 0) return labels;
+
+    const institutionIdByEntryId = new Map(entries.map((row) => [row.id, row.institution_id]));
+    const choiceIdsByInstitution = new Map<number, number[]>();
+    for (let i = 0; i < entries.length; i += IN_CHUNK) {
+      const entryIds = entries.slice(i, i + IN_CHUNK).map((row) => row.id);
+      const { data, error } = await supabase
+        .from("institution_feature_entry_choices")
+        .select("institution_feature_entry_id, choice_id")
+        .in("institution_feature_entry_id", entryIds);
+      if (error) throw error;
+      for (const row of (data ?? []) as Array<{
+        institution_feature_entry_id: number;
+        choice_id: number;
+      }>) {
+        const institutionId = institutionIdByEntryId.get(Number(row.institution_feature_entry_id));
+        const choiceId = Number(row.choice_id);
+        if (institutionId == null || !Number.isFinite(choiceId)) continue;
+        const current = choiceIdsByInstitution.get(institutionId) ?? [];
+        if (!current.includes(choiceId)) current.push(choiceId);
+        choiceIdsByInstitution.set(institutionId, current);
+      }
+    }
+
+    const choiceIds = [...new Set([...choiceIdsByInstitution.values()].flat())];
+    const choiceNameById = new Map<number, string>();
+    for (let i = 0; i < choiceIds.length; i += IN_CHUNK) {
+      const { data, error } = await supabase
+        .from("institution_feature_choices")
+        .select("id, name")
+        .in("id", choiceIds.slice(i, i + IN_CHUNK));
+      if (error) throw error;
+      for (const row of (data ?? []) as Array<{ id: number; name?: string | null }>) {
+        const name = String(row.name ?? "").trim();
+        if (name) choiceNameById.set(Number(row.id), name);
+      }
+    }
+
+    for (const [institutionId, selectedIds] of choiceIdsByInstitution) {
+      const names = selectedIds
+        .map((choiceId) => choiceNameById.get(choiceId) ?? "")
+        .filter(Boolean);
+      if (names.length > 0) labels.set(institutionId, names.join(", "));
+    }
+  } catch (error) {
+    console.error("[category][institutions][kurum-turu]", error);
+  }
+
+  return labels;
 }
 
 function mapRow(

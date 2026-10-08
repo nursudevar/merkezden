@@ -103,7 +103,56 @@ export function collectStaleMainFeatureEntryIds(args: {
 }
 
 const PATILI_DOSTLAR_CATEGORY_SLUG = "patili-dostlar";
+const KISISEL_GELISIM_CATEGORY_SLUG = "kisisel-gelisim";
 const BASLICA_GROUP_NAME_KEY = "başlıca özellikler";
+const KISISEL_GELISIM_LOWER_TAIL_KEYS = [
+  "egitim ozellikleri",
+  "fiziki imkanlar",
+  "hedef/fayda",
+  "odeme secenekleri",
+] as const;
+
+function normalizeKisiselGelisimPanelGroupKey(name: string): string {
+  return name
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function kisiselGelisimLowerTailKey(name: string): string | null {
+  const key = normalizeKisiselGelisimPanelGroupKey(name);
+  if (key === "egitim ozellikleri" || key === "kurs ozellikleri") return "egitim ozellikleri";
+  if (key === "fiziki imkanlar" || key === "fiziksel imkanlar") return "fiziki imkanlar";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
+  if (key === "odeme secenekleri" || key === "odeme yontemleri") return "odeme secenekleri";
+  return null;
+}
+
+function orderKisiselGelisimLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const tailIndex = new Map<string, number>(
+    KISISEL_GELISIM_LOWER_TAIL_KEYS.map((key, index) => [key, index]),
+  );
+  const head: InstitutionMainFeatureSelectionGroup[] = [];
+  const tail: InstitutionMainFeatureSelectionGroup[] = [];
+  for (const item of groups) {
+    const key = kisiselGelisimLowerTailKey(item.group.name);
+    if (key && tailIndex.has(key)) tail.push(item);
+    else head.push(item);
+  }
+  tail.sort((a, b) => {
+    const aRank = tailIndex.get(kisiselGelisimLowerTailKey(a.group.name) ?? "") ?? 0;
+    const bRank = tailIndex.get(kisiselGelisimLowerTailKey(b.group.name) ?? "") ?? 0;
+    return aRank - bRank;
+  });
+  return [...head, ...tail];
+}
 
 export type InstitutionMainFeatureSelectionGroup = {
   group: { id: number; name: string; category_slug?: string | null };
@@ -167,5 +216,11 @@ export function buildInstitutionMainFeatureSelectionGroups(
               item.group.id !== patiliBaslicaOzelliklerGroup.group.id,
           );
 
-  return { upperGroups, lowerGroups };
+  return {
+    upperGroups,
+    lowerGroups:
+      selectedCategorySlug === KISISEL_GELISIM_CATEGORY_SLUG
+        ? orderKisiselGelisimLowerGroups(lowerGroups)
+        : lowerGroups,
+  };
 }

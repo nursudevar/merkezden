@@ -154,6 +154,25 @@ export function getCategoryIcon(name: string, slug: string): LucideIcon {
   return Building2;
 }
 
+/**
+ * Ana sayfa kategori listesi ve duyuru kategorilerindeki mevcut logo dosyaları.
+ * Sürücü kursu, “kurs” eşleşmesinden önce kontrol edilir.
+ */
+export function getCategoryLogoSrc(name: string, slug: string): string | null {
+  const key = normalizeCategoryKey(`${name} ${slug}`);
+  if (key.includes("surucu")) return "/images/surucu-kursu-logo.png";
+  if (key.includes("patili") || key.includes("dostlar")) return "/images/patili-dostlar-logo.png";
+  if (key.includes("okul")) return "/images/okul-logo.png";
+  if (key.includes("kurs") || key.includes("sinav")) return "/images/kurs-logo.png";
+  if (key.includes("spor")) return "/images/spor-logo.png";
+  if (key.includes("sanat")) return "/images/sanat-logo.png";
+  if (key.includes("yabanci dil")) return "/images/yabanci-dil-logo.png";
+  if (key.includes("kisisel gelisim")) return "/images/kisisel-gelisim-logo.png";
+  if (key.includes("mesleki egitim")) return "/images/mesleki-egitim-logo.png";
+  if (key.includes("ozel egitim")) return "/images/ozel-egitim-logo.png";
+  return null;
+}
+
 export type ActiveInstitutionCategory = {
   id: number;
   name: string;

@@ -57,6 +57,8 @@ export type AcademicFeatureLine = {
   label: string;
   value: string | string[];
   isBadgeList?: boolean;
+  /** Paneldeki özellik sırası. Genel Bilgiler yerleşimi için; filtrelemeyi değiştirmez. */
+  displayOrder?: number;
 };
 
 export type PublicFeatureCompareCell =
@@ -382,7 +384,12 @@ export function mapPublicInstitutionFeatures(args: {
       const value = extractFeatureValue(feature);
       if (!value || (Array.isArray(value) && value.length === 0)) return;
       usedFeatureIds.add(feature.id);
-      academicLines.push({ label, value, isBadgeList });
+      academicLines.push({
+        label,
+        value,
+        isBadgeList,
+        displayOrder: feature.display_order ?? 9999,
+      });
       pushCompareValue(
         feature,
         primaryStructuredGroup,
@@ -419,6 +426,10 @@ export function mapPublicInstitutionFeatures(args: {
           academicLines.push({
             label: ageLabel,
             value: ageValue,
+            displayOrder: Math.min(
+              ageDefs.min.display_order ?? 9999,
+              ageDefs.max.display_order ?? 9999,
+            ),
           });
           compareValues.push({
             rowKey: `student-age:${primaryStructuredGroup.id}`,
@@ -450,6 +461,7 @@ export function mapPublicInstitutionFeatures(args: {
       academicLines.push({
         label,
         value,
+        displayOrder: feature.display_order ?? 9999,
         ...(feature.input_type === "multi_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
         ...(feature.input_type === "single_select" && Array.isArray(value) ? { isBadgeList: true } : {}),
       });

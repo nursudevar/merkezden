@@ -276,10 +276,6 @@ export async function resolveInstitutionIdsByStudentAgeFilter(
     userFilter?: StudentAgeFilterQuery | null;
     /** @deprecated use userFilter */
     userRange?: { min: number; max: number } | null;
-    /** @deprecated Eski choice tabanlı filtre kaldırıldı; yok sayılır. */
-    specialChoiceIds?: number[];
-    /** @deprecated Eski choice tabanlı filtre kaldırıldı; yok sayılır. */
-    specialChoiceNames?: string[];
   },
 ): Promise<number[]> {
   const userFilter =
@@ -301,10 +297,6 @@ export async function resolveInstructorIdsByStudentAgeFilter(
     userFilter?: StudentAgeFilterQuery | null;
     /** @deprecated use userFilter */
     userRange?: { min: number; max: number } | null;
-    /** @deprecated Eski choice tabanlı filtre kaldırıldı; yok sayılır. */
-    specialChoiceIds?: number[];
-    /** @deprecated Eski choice tabanlı filtre kaldırıldı; yok sayılır. */
-    specialChoiceNames?: string[];
   },
 ): Promise<number[]> {
   const userFilter =

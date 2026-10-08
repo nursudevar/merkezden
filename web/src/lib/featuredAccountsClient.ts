@@ -1,5 +1,6 @@
 "use client";
 
+import { isAbortLikeError } from "@/lib/isAbortLikeError";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { buildLocationAdMaps, lookupLocationAds } from "@/lib/turkiyeLocationsClient";
 
@@ -31,6 +32,7 @@ export async function fetchActiveFeaturedAccountIds(
     .eq("is_active", true);
 
   if (error) {
+    if (isAbortLikeError(error)) return { ids: new Set(), error: null };
     console.error(`[featured-accounts] fetch active ${accountType} ids:`, error);
     return { ids: new Set(), error: String(error.message ?? "fetch failed") };
   }
@@ -68,6 +70,7 @@ export async function fetchActiveFeaturedInstitutionOrderMap(
     .order("display_order", { ascending: true });
 
   if (error) {
+    if (isAbortLikeError(error)) return { orderMap: new Map(), error: null };
     console.error("[featured-accounts] fetch institution order map:", error);
     return { orderMap: new Map(), error: String(error.message ?? "fetch failed") };
   }
@@ -95,6 +98,7 @@ export async function fetchActiveFeaturedInstructorOrderMap(
     .order("display_order", { ascending: true });
 
   if (error) {
+    if (isAbortLikeError(error)) return { orderMap: new Map(), error: null };
     console.error("[featured-accounts] fetch instructor order map:", error);
     return { orderMap: new Map(), error: String(error.message ?? "fetch failed") };
   }
