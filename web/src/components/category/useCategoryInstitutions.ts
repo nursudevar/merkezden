@@ -52,8 +52,6 @@ export type CategoryResultItem = {
   location: string;
   price: string | number;
   ageRange: string;
-  rating: number;
-  reviewCount: number;
   badges: string[];
   logoInitial?: string;
   logoColor?: string;
@@ -1381,8 +1379,6 @@ function mapRow(
     location,
     price: FALLBACK,
     ageRange: FALLBACK,
-    rating: 0,
-    reviewCount: 0,
     badges: [],
     logoInitial: pickInitial(name),
     imageUrl,

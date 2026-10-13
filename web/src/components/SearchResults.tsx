@@ -48,8 +48,6 @@ interface SearchResult {
   description: string;
   location: string;
   mainCategory: string;
-  rating: number;
-  reviewCount: number;
   imageUrl: string;
   slug: string;
   source?: string | null;
@@ -516,8 +514,6 @@ export default function SearchResults({
                 description,
                 location,
                 mainCategory,
-                rating: 4.8,
-                reviewCount: Math.floor(4.8 * 25),
                 imageUrl,
                 slug,
                 source,
@@ -557,8 +553,6 @@ export default function SearchResults({
                 description,
                 location: buildPublicInstructorLocation(row),
                 mainCategory: "Bireysel Eğitmen",
-                rating: 0,
-                reviewCount: 0,
                 imageUrl,
                 slug: String(row.slug ?? "").trim() || String(numericId),
                 source: null,

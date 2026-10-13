@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui";
+import GalleryMediaViewer, { useGalleryModalEffects } from "@/components/gallery/GalleryMediaViewer";
 import {
   MapPin,
   GraduationCap,
@@ -13,6 +14,7 @@ import {
   Globe,
   Clock,
   X,
+  ArrowLeft,
   Sparkles,
   Megaphone,
   CalendarDays,
@@ -83,7 +85,13 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const [academicLines, setAcademicLines] = useState<PublicInstructorFeatureLine[]>([]);
   const [featureSections, setFeatureSections] = useState<PublicInstructorFeatureSection[]>([]);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
   const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementDetailItem | null>(null);
+  const closeGalleryModal = useCallback(() => {
+    setIsGalleryModalOpen(false);
+    setActiveViewerIndex(null);
+  }, []);
+  useGalleryModalEffects(isGalleryModalOpen, closeGalleryModal);
 
   useEffect(() => {
     let cancelled = false;
@@ -894,39 +902,79 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
           <div
             className="instructor-gallery-modal-backdrop"
             onClick={(event) => {
-              if (event.target === event.currentTarget) setIsGalleryModalOpen(false);
+              if (event.target === event.currentTarget) closeGalleryModal();
             }}
             role="presentation"
           >
-            <div className="instructor-gallery-modal" role="dialog" aria-modal="true" aria-label="Eğitmen galerisi">
+            <div
+              className={`instructor-gallery-modal${activeViewerIndex !== null ? " institution-gallery-modal--viewer" : ""}`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="instructor-gallery-modal-title"
+            >
               <div className="instructor-gallery-modal-header">
                 <div>
-                  <h3 className="instructor-gallery-modal-title">Eğitmen Galerisi</h3>
+                  <h3 id="instructor-gallery-modal-title" className="instructor-gallery-modal-title">Eğitmen Galerisi</h3>
                   <p className="instructor-gallery-modal-subtitle">{displayName}</p>
                 </div>
-                <button
-                  type="button"
-                  className="instructor-gallery-modal-close"
-                  onClick={() => setIsGalleryModalOpen(false)}
-                  aria-label="Kapat"
-                >
-                  <X size={20} />
-                </button>
+                <div className="institution-gallery-modal-header-actions">
+                  {activeViewerIndex !== null ? (
+                    <>
+                      <button
+                        type="button"
+                        className="institution-gallery-viewer-back"
+                        onClick={() => setActiveViewerIndex(null)}
+                      >
+                        <ArrowLeft size={16} />
+                        Galeriye dön
+                      </button>
+                      <span className="institution-gallery-viewer-counter">
+                        {activeViewerIndex + 1} / {galleryUrls.length}
+                      </span>
+                    </>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="instructor-gallery-modal-close"
+                    onClick={closeGalleryModal}
+                    aria-label="Kapat"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
-              <div className="instructor-gallery-modal-grid">
-                {galleryUrls.map((url, index) => (
-                  <div key={`${url}-${index}`} className="instructor-gallery-modal-item">
-                    <Image
-                      src={url}
-                      alt={`${displayName} galeri ${index + 1}`}
-                      fill
-                      className="instructor-gallery-image"
-                      sizes="240px"
-                      unoptimized
-                    />
-                  </div>
-                ))}
-              </div>
+              {activeViewerIndex !== null ? (
+                <GalleryMediaViewer
+                  items={galleryUrls.map((url, index) => ({
+                    id: `${url}-${index}`,
+                    url,
+                    mediaType: "photo",
+                    alt: `${displayName} galeri ${index + 1}`,
+                  }))}
+                  activeIndex={activeViewerIndex}
+                  onIndexChange={setActiveViewerIndex}
+                />
+              ) : (
+                <div className="instructor-gallery-modal-grid">
+                  {galleryUrls.map((url, index) => (
+                    <button
+                      key={`${url}-${index}`}
+                      type="button"
+                      className="instructor-gallery-modal-item"
+                      onClick={() => setActiveViewerIndex(index)}
+                    >
+                      <Image
+                        src={url}
+                        alt={`${displayName} galeri ${index + 1}`}
+                        fill
+                        className="instructor-gallery-image"
+                        sizes="240px"
+                        unoptimized
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : null}

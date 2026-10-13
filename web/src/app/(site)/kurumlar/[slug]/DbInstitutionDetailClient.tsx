@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui";
+import GalleryMediaViewer, { useGalleryModalEffects } from "@/components/gallery/GalleryMediaViewer";
 import {
   MapPin,
   Heart,
@@ -11,8 +12,6 @@ import {
   Phone,
   Globe,
   X,
-  ChevronLeft,
-  ChevronRight,
   ArrowLeft,
   Play,
   Sparkles,
@@ -549,9 +548,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     activeViewerIndex !== null &&
     activeViewerIndex >= 0 &&
     activeViewerIndex < filteredModalItems.length;
-  const activeViewerItem = isViewerMode ? filteredModalItems[activeViewerIndex] : null;
   const [academicLines, setAcademicLines] = useState<AcademicFeatureLine[]>([]);
-  const hasPublicExtraBranches = publicExtraBranches.length > 0;
+  const showPublicExtraBranches = !isOkulCategory && publicExtraBranches.length > 0;
   const hasGallery = mediaItems.length > 0;
   const featureNavSections = useMemo(
     () => publicFeatureSections.filter((section) => section.badges.length > 0),
@@ -593,14 +591,14 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         icon: "feature",
       });
     });
-    if (hasPublicExtraBranches) {
+    if (showPublicExtraBranches) {
       tabs.push({ id: "extra-branches", label: "Ek Branşlar", icon: "branches" });
     }
     if (hasAnnouncementsTab) {
       tabs.push({ id: "announcements", label: "Duyurular", icon: "announcements" });
     }
     return tabs;
-  }, [featureNavSections, hasAbout, hasPublicExtraBranches, hasAnnouncementsTab]);
+  }, [featureNavSections, hasAbout, showPublicExtraBranches, hasAnnouncementsTab]);
   const hasAnyNavTab = navTabs.length > 0;
 
   useEffect(() => {
@@ -662,7 +660,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   }, [activeTab, navTabs]);
 
   useEffect(() => {
-    if (!row?.id) {
+    if (!row?.id || isOkulCategory) {
       setPublicExtraBranches([]);
       return;
     }
@@ -693,7 +691,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [row?.id, institutionCategorySlug]);
+  }, [row?.id, institutionCategorySlug, isOkulCategory]);
 
   useEffect(() => {
     setLogoLoadFailed(false);
@@ -876,6 +874,12 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       cancelled = true;
     };
   }, [row?.id, institutionCategorySlug]);
+
+  const closeGalleryModal = useCallback(() => {
+    setIsGalleryModalOpen(false);
+  }, []);
+
+  useGalleryModalEffects(isGalleryModalOpen, closeGalleryModal);
 
   useEffect(() => {
     if (!isGalleryModalOpen) {
@@ -1365,19 +1369,25 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           <div className="institution-feature-groups-grid">
             {featureNavSections.map((section, index) => {
               const anchorId = getFeatureGroupAnchorId(section.id, index, featureNavSections);
+              const isFullWidthCard =
+                featureNavSections.length % 2 === 1 && index === featureNavSections.length - 1;
+              const listColumnClass =
+                section.badges.length < 2
+                  ? ""
+                  : isFullWidthCard
+                    ? " institution-feature-group-card-list--four-columns"
+                    : " institution-feature-group-card-list--two-columns";
               return (
               <article
                 key={anchorId}
                 id={anchorId}
-                className="institution-feature-group-card"
+                className={`institution-feature-group-card${
+                  isFullWidthCard ? " institution-feature-group-card--full" : ""
+                }`}
               >
                 <h3 className="institution-feature-group-card-title">{section.name}</h3>
                 <ul
-                  className={`institution-feature-group-card-list${
-                    section.badges.length >= 6
-                      ? " institution-feature-group-card-list--two-columns"
-                      : ""
-                  }`}
+                  className={`institution-feature-group-card-list${listColumnClass}`}
                 >
                   {section.badges.map((badge) => (
                     <li key={`${section.id}-${badge}`} className="institution-feature-group-card-item">
@@ -1397,20 +1407,30 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         </section>
         ) : null}
 
-        {hasPublicExtraBranches ? (
+        {showPublicExtraBranches ? (
           <section id="extra-branches" className="institution-section">
             <h2 className="institution-section-title">Ek Branşlar</h2>
             <div className="institution-feature-groups-grid">
-              {publicExtraBranches.map((branch) => (
-                <article key={branch.categoryId} className="institution-feature-group-card">
+              {publicExtraBranches.map((branch, index) => {
+                const isFullWidthCard =
+                  publicExtraBranches.length % 2 === 1 && index === publicExtraBranches.length - 1;
+                const listColumnClass =
+                  branch.selectedTypeNames.length < 2
+                    ? ""
+                    : isFullWidthCard
+                      ? " institution-feature-group-card-list--four-columns"
+                      : " institution-feature-group-card-list--two-columns";
+                return (
+                <article
+                  key={branch.categoryId}
+                  className={`institution-feature-group-card${
+                    isFullWidthCard ? " institution-feature-group-card--full" : ""
+                  }`}
+                >
                   <h3 className="institution-feature-group-card-title">{branch.categoryName}</h3>
                   {branch.selectedTypeNames.length > 0 ? (
                     <ul
-                      className={`institution-feature-group-card-list${
-                        branch.selectedTypeNames.length >= 6
-                          ? " institution-feature-group-card-list--two-columns"
-                          : ""
-                      }`}
+                      className={`institution-feature-group-card-list${listColumnClass}`}
                     >
                       {branch.selectedTypeNames.map((typeName) => (
                         <li
@@ -1428,7 +1448,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     </ul>
                   ) : null}
                 </article>
-              ))}
+                );
+              })}
             </div>
           </section>
         ) : null}
@@ -1478,14 +1499,19 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             className="institution-gallery-modal-backdrop"
             onClick={(event) => {
               if (event.target === event.currentTarget) {
-                setIsGalleryModalOpen(false);
+                closeGalleryModal();
               }
             }}
           >
-            <div className="institution-gallery-modal">
+            <div
+              className={`institution-gallery-modal${isViewerMode ? " institution-gallery-modal--viewer" : ""}`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="institution-gallery-modal-title"
+            >
               <div className="institution-gallery-modal-header">
                 <div>
-                  <h3 className="institution-gallery-modal-title">Kurum Galerisi</h3>
+                  <h3 id="institution-gallery-modal-title" className="institution-gallery-modal-title">Kurum Galerisi</h3>
                   <p className="institution-gallery-modal-subtitle">
                     Kurumunuza ait yüklenen medya içeriklerini görüntüleyin.
                   </p>
@@ -1534,66 +1560,24 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     type="button"
                     className="institution-gallery-modal-close"
                     aria-label="Galeri modalını kapat"
-                    onClick={() => setIsGalleryModalOpen(false)}
+                    onClick={closeGalleryModal}
                   >
                     <X size={18} />
                   </button>
                 </div>
               </div>
               {filteredModalItems.length > 0 ? (
-                isViewerMode && activeViewerItem ? (
-                  <div className="institution-gallery-viewer">
-                    <div className="institution-gallery-viewer-media-wrap">
-                      {activeViewerItem.mediaType === "video" ? (
-                        <video
-                          className="institution-gallery-viewer-video"
-                          src={activeViewerItem.url}
-                          controls
-                          autoPlay
-                          preload="metadata"
-                        />
-                      ) : (
-                        <div className="institution-gallery-viewer-image-wrap">
-                          <Image
-                            src={activeViewerItem.url}
-                            alt={`${name} galeri görseli ${activeViewerIndex + 1}`}
-                            fill
-                            className="institution-gallery-viewer-image"
-                            sizes="(max-width: 768px) 100vw, 90vw"
-                            unoptimized
-                          />
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        className="institution-gallery-viewer-nav institution-gallery-viewer-nav--prev"
-                        aria-label="Önceki medya"
-                        onClick={() =>
-                          setActiveViewerIndex((prev) => {
-                            if (prev === null || filteredModalItems.length === 0) return null;
-                            return (prev - 1 + filteredModalItems.length) % filteredModalItems.length;
-                          })
-                        }
-                      >
-                        <ChevronLeft size={20} />
-                      </button>
-
-                      <button
-                        type="button"
-                        className="institution-gallery-viewer-nav institution-gallery-viewer-nav--next"
-                        aria-label="Sonraki medya"
-                        onClick={() =>
-                          setActiveViewerIndex((prev) => {
-                            if (prev === null || filteredModalItems.length === 0) return null;
-                            return (prev + 1) % filteredModalItems.length;
-                          })
-                        }
-                      >
-                        <ChevronRight size={20} />
-                      </button>
-                    </div>
-                  </div>
+                isViewerMode && activeViewerIndex !== null ? (
+                  <GalleryMediaViewer
+                    items={filteredModalItems.map((item, index) => ({
+                      id: item.id,
+                      url: item.url,
+                      mediaType: item.mediaType,
+                      alt: `${name} galeri görseli ${index + 1}`,
+                    }))}
+                    activeIndex={activeViewerIndex}
+                    onIndexChange={setActiveViewerIndex}
+                  />
                 ) : (
                   <div className="institution-gallery-modal-grid">
                     {filteredModalItems.map((item, index) => (

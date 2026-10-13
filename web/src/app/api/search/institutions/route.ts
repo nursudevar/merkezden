@@ -12,7 +12,6 @@ type Institution = {
   name: string;
   location: string;
   description: string;
-  rating: number;
   imageUrl: string;
   slug: string;
   source: string | null;
@@ -123,7 +122,6 @@ export async function GET(request: Request) {
           name,
           location,
           description,
-          rating: 4.8,
           imageUrl,
           slug: String(row.slug ?? "").trim(),
           source: row.source ?? null,
@@ -138,8 +136,6 @@ export async function GET(request: Request) {
         name: institution.name,
         description: institution.description,
         location: institution.location,
-        rating: institution.rating,
-        reviewCount: Math.floor(institution.rating * 25),
         imageUrl: institution.imageUrl,
         slug: institution.slug,
         source: institution.source,

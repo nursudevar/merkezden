@@ -1,9 +1,3 @@
-/**
- * Öğrenci yaşı filtre kuralları — production `storedStudentAgeMatchesFilter` ile doğrular.
- *
- * Çalıştır (web/ içinden):
- *   npm run verify:student-age
- */
 import assert from "node:assert/strict";
 import { storedStudentAgeMatchesFilter } from "@/lib/institutionStudentAgeFilter.ts";
 

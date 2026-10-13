@@ -421,8 +421,6 @@ export type MappedPublicInstructorListItem = {
   location: string;
   price: string;
   ageRange: string;
-  rating: number;
-  reviewCount: number;
   badges: string[];
   logoInitial: string;
   imageUrl?: string;
@@ -464,8 +462,6 @@ export function mapPublicInstructorToListItem(
     location: buildPublicInstructorLocation(row),
     price: priceRange || "-",
     ageRange: "-",
-    rating: 0,
-    reviewCount: 0,
     badges: [],
     logoInitial: pickInitial(name),
     imageUrl,
@@ -892,30 +888,35 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
   const defIdList = Array.from(uiDefinitionIds);
   const choiceIdList = Array.from(uiChoiceIds);
 
-  const [defsResult, choicesResult, realDefsResult, realChoicesResult] = await Promise.all([
-    defIdList.length > 0
-      ? supabase
-          .from("institution_feature_definitions")
-          .select("id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order")
-          .in("id", defIdList)
-      : Promise.resolve({ data: [], error: null }),
-    choiceIdList.length > 0
-      ? supabase
-          .from("institution_feature_choices")
-          .select("id, feature_definition_id, name, slug, is_active")
-          .in("id", choiceIdList)
-      : Promise.resolve({ data: [], error: null }),
-    fetchInstructorRealFeatureDefinitionsClient(supabase),
-    supabase
-      .from("instructor_feature_choices")
-      .select("id, feature_definition_id, name, slug, is_active")
-      .eq("is_active", true),
-  ]);
+  const [defsResult, choicesResult, realDefsResult, realChoicesResult, institutionGroupsResult, instructorGroupsResult] =
+    await Promise.all([
+      defIdList.length > 0
+        ? supabase
+            .from("institution_feature_definitions")
+            .select("id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order")
+            .in("id", defIdList)
+        : Promise.resolve({ data: [], error: null }),
+      choiceIdList.length > 0
+        ? supabase
+            .from("institution_feature_choices")
+            .select("id, feature_definition_id, name, slug, is_active")
+            .in("id", choiceIdList)
+        : Promise.resolve({ data: [], error: null }),
+      fetchInstructorRealFeatureDefinitionsClient(supabase),
+      supabase
+        .from("instructor_feature_choices")
+        .select("id, feature_definition_id, name, slug, is_active")
+        .eq("is_active", true),
+      supabase.from("institution_feature_groups").select("id, name, slug, category_slug"),
+      supabase.from("instructor_feature_groups").select("id, name, slug, category_slug"),
+    ]);
 
   if (defsResult.error) throw defsResult.error;
   if (choicesResult.error) throw choicesResult.error;
   if (realDefsResult.error) throw realDefsResult.error;
   if (realChoicesResult.error) throw realChoicesResult.error;
+  if (institutionGroupsResult.error) throw institutionGroupsResult.error;
+  if (instructorGroupsResult.error) throw instructorGroupsResult.error;
 
   const uiDefinitions = ((defsResult.data ?? []) as InstructorFeatureDefinitionRow[]).filter((d) =>
     Number.isFinite(d.id),
@@ -939,6 +940,20 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
       slug?: string | null;
       is_active?: boolean;
     }>).filter((c) => c.is_active !== false),
+    {
+      institutionGroups: (institutionGroupsResult.data ?? []) as Array<{
+        id: number;
+        name: string | null;
+        slug: string | null;
+        category_slug: string | null;
+      }>,
+      instructorGroups: (instructorGroupsResult.data ?? []) as Array<{
+        id: number;
+        name: string | null;
+        slug: string | null;
+        category_slug: string | null;
+      }>,
+    },
   );
 
   const defMetaById = new Map<number, { name: string; slug: string | null; inputType: string }>();

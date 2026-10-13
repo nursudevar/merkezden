@@ -367,6 +367,7 @@ const SANAT_INSTRUCTOR_FILTER_ORDER = [
   "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
+  "hedef/fayda",
 ] as const;
 
 const SANAT_HIDDEN_FILTER_NAMES = new Set(["ogrencinin egitim seviyesi"]);
@@ -388,11 +389,7 @@ const SPOR_INSTRUCTOR_FILTER_ORDER = [
   "odeme secenekleri",
 ] as const;
 
-const SPOR_HIDDEN_FILTER_NAMES = new Set([
-  "ogrencinin egitim seviyesi",
-  "tesis turu",
-  "egitim ozellikleri",
-]);
+const SPOR_HIDDEN_FILTER_NAMES = new Set(["ogrencinin egitim seviyesi"]);
 
 /** Eğitmen public filtre — yalnızca Kişisel Gelişim şema alan sırası (yaş/fiyat ayrı section). */
 const KISISEL_GELISIM_INSTRUCTOR_FILTER_ORDER = [
@@ -1136,6 +1133,7 @@ function isHiddenYabanciDillerInstitutionFilter(name: string): boolean {
 const OKUL_INSTITUTION_FILTER_ORDER = [
   "egitim saatleri",
   "ogrenci yasi",
+  "yabanci dil",
   "aylik fiyat araligi",
   "egitim sistemi",
   "aktivite",
@@ -1353,18 +1351,27 @@ function orderKursSinavaHazirlikInstitutionFilterSections(
 const SPOR_INSTITUTION_FILTER_ORDER = [
   "spor turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
-  "tesis turu",
-  "egitim ozellikleri",
-  "fiziki imkanlar",
   "hedef/fayda",
+  "egitim ozellikleri",
+  "tesis turu",
+  "fiziki imkanlar",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
+
+const SPOR_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "tesis turu",
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
 
 const SPOR_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   SPOR_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
@@ -1451,13 +1458,14 @@ function orderSporInstitutionFilterSections(
 const SANAT_INSTITUTION_FILTER_ORDER = [
   "sanat turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
+  "hedef/fayda",
   "egitim ozellikleri",
   "fiziki imkanlar",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
@@ -1466,8 +1474,20 @@ const SANAT_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   SANAT_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
 
+/** Sanat kurum filtresi — başlangıçta kapalı sekmeler. */
+const SANAT_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
+
 function normalizeSanatInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
+  if (key === "sanat turu" || key === "sanat turleri") return "sanat turleri";
+  if (key === "kurs ozellikleri" || key === "egitim ozellikleri") return "egitim ozellikleri";
   if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") return "kurum turu";
   if (
     key.includes("aylik fiyat araligi") ||
@@ -1506,6 +1526,8 @@ function getSanatInstitutionFilterSectionTitle(name: string): string {
   if (key === "egitim saatleri") return "EĞİTİM SAATLERİ";
   if (key === "sinif mevcudu") return "SINIF MEVCUDU";
   if (key === "ogrenci yasi") return "ÖĞRENCİ YAŞI";
+  if (key === "hedef/fayda") return "HEDEF/FAYDA";
+  if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
   return name.toLocaleUpperCase("tr-TR");
 }
 
@@ -1545,13 +1567,14 @@ function orderSanatInstitutionFilterSections(
 const YABANCI_DIL_INSTITUTION_FILTER_ORDER = [
   "yabanci dil turleri",
   "ogrenci yasi",
-  "kurum turu",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
+  "hedef/fayda",
   "egitim ozellikleri",
   "fiziki imkanlar",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme secenekleri",
 ] as const;
@@ -1559,6 +1582,15 @@ const YABANCI_DIL_INSTITUTION_FILTER_ORDER = [
 const YABANCI_DIL_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   YABANCI_DIL_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
+
+/** Yabancı Dil kurum filtresi — başlangıçta kapalı sekmeler. */
+const YABANCI_DIL_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme secenekleri",
+]);
 
 function normalizeYabanciDilInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
@@ -1591,7 +1623,8 @@ function normalizeYabanciDilInstitutionFilterOrderKey(name: string): string {
     return "fiziki imkanlar";
   }
   if (key === "ogrenci yasi") return "ogrenci yasi";
-  if (key === "kurs ozellikleri") return "egitim ozellikleri";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
+  if (key === "kurs ozellikleri" || key === "egitim ozellikleri") return "egitim ozellikleri";
   return key;
 }
 
@@ -1979,14 +2012,17 @@ function isSurucuKursuBelgeTuruDefinitionName(name: string): boolean {
 
 const SURUCU_KURSU_INSTITUTION_FILTER_ORDER = [
   "belge turleri",
-  "kurum turu",
+  "egitim turleri",
+  "ogrenci yasi",
+  "egitim saatleri",
   "hizmet tipi",
   "aylik fiyat araligi",
-  "surucu kursu imkanlari",
+  "hedef/fayda",
+  "egitim ozellikleri",
+  "arac imkanlari",
   "fiziki imkanlar",
-  "kurs ozellikleri",
   "egitim dili",
-  "egitim saatleri",
+  "kurum turu",
   "sinif mevcudu",
   "odeme yontemleri",
 ] as const;
@@ -1994,6 +2030,16 @@ const SURUCU_KURSU_INSTITUTION_FILTER_ORDER = [
 const SURUCU_KURSU_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   SURUCU_KURSU_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
+
+/** Sürücü Kursu kurum filtresi — başlangıçta kapalı sekmeler. */
+const SURUCU_KURSU_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "arac imkanlari",
+  "fiziki imkanlar",
+  "egitim dili",
+  "kurum turu",
+  "sinif mevcudu",
+  "odeme yontemleri",
+]);
 
 function normalizeSurucuKursuInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
@@ -2025,7 +2071,19 @@ function normalizeSurucuKursuInstitutionFilterOrderKey(name: string): string {
   if (key === "fiziksel imkanlar" || (key.includes("fizik") && key.includes("imkan"))) {
     return "fiziki imkanlar";
   }
-  if (key === "kurs ozellikleri") return "kurs ozellikleri";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
+  if (key === "egitim ozellikleri" || key === "kurs ozellikleri") return "egitim ozellikleri";
+  if (key === "egitim turleri" || key === "egitim turu") return "egitim turleri";
+  if (
+    key === "arac imkanlari" ||
+    key === "arac imkani" ||
+    (key.includes("arac") && key.includes("imkan"))
+  ) {
+    return "arac imkanlari";
+  }
+  if (key === "egitim dili") return "egitim dili";
+  if (key === "ogrenci yasi") return "ogrenci yasi";
+  if (key === "belge turleri" || key === "belge turu") return "belge turleri";
   return key;
 }
 
@@ -2034,7 +2092,14 @@ function getSurucuKursuInstitutionFilterSectionTitle(name: string): string {
   if (key === "aylik fiyat araligi") return "AYLIK FİYAT ARALIĞI";
   if (key === "egitim saatleri") return "EĞİTİM SAATLERİ";
   if (key === "sinif mevcudu") return "SINIF MEVCUDU";
-  if (key === "kurs ozellikleri") return "KURS ÖZELLİKLERİ";
+  if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
+  if (key === "egitim turleri") return "EĞİTİM TÜRLERİ";
+  if (key === "hedef/fayda") return "HEDEF/FAYDA";
+  if (key === "arac imkanlari") return "ARAÇ İMKANLARI";
+  if (key === "egitim dili") return "EĞİTİM DİLİ";
+  if (key === "ogrenci yasi") return "ÖĞRENCİ YAŞI";
+  if (key === "fiziki imkanlar") return "FİZİKİ İMKANLAR";
+  if (key === "kurum turu") return "KURUM TÜRÜ";
   if (key === "odeme yontemleri") return "ÖDEME YÖNTEMLERİ";
   if (key === "belge turleri") return "BELGE TÜRLERİ";
   return name.toLocaleUpperCase("tr-TR");
@@ -2044,12 +2109,14 @@ type SurucuKursuDynamicFilterSection =
   | { kind: "common"; field: CommonField; originalIndex: number }
   | { kind: "group"; group: FeatureFilterGroup; originalIndex: number }
   | { kind: "belge_turleri"; group: FeatureFilterGroup; originalIndex: number }
+  | { kind: "student_age"; originalIndex: number }
   | { kind: "working_hours"; originalIndex: number }
   | { kind: "price_range"; originalIndex: number };
 
 function getSurucuKursuSectionOrderName(section: SurucuKursuDynamicFilterSection): string {
   if (section.kind === "common") return section.field.name;
   if (section.kind === "belge_turleri") return "Belge Türleri";
+  if (section.kind === "student_age") return STUDENT_AGE_RANGE_LABEL;
   if (section.kind === "working_hours") return WORKING_HOURS_FILTER_ORDER_NAME;
   if (section.kind === "price_range") return PRICE_RANGE_FILTER_ORDER_NAME;
   return section.group.name;
@@ -2077,9 +2144,10 @@ const PATILI_DOSTLAR_INSTITUTION_FILTER_ORDER = [
   "hizmet turu",
   "hizmet tipi",
   "hizmet yeri",
-  "aylik fiyat araligi",
-  "fiziki imkanlar",
   "egitim saatleri",
+  "aylik fiyat araligi",
+  "egitim ozellikleri",
+  "fiziki imkanlar",
   "egitim dili",
   "odeme secenekleri",
 ] as const;
@@ -2087,6 +2155,13 @@ const PATILI_DOSTLAR_INSTITUTION_FILTER_ORDER = [
 const PATILI_DOSTLAR_INSTITUTION_FILTER_ORDER_INDEX = new Map<string, number>(
   PATILI_DOSTLAR_INSTITUTION_FILTER_ORDER.map((key, index) => [key, index]),
 );
+
+/** Patili Dostlar kurum filtresi — başlangıçta kapalı sekmeler. */
+const PATILI_DOSTLAR_INSTITUTION_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "fiziki imkanlar",
+  "egitim dili",
+  "odeme secenekleri",
+]);
 
 function normalizePatiliDostlarInstitutionFilterOrderKey(name: string): string {
   const key = normalizeCommonFieldNameKey(name);
@@ -2120,6 +2195,7 @@ function normalizePatiliDostlarInstitutionFilterOrderKey(name: string): string {
     return "fiziki imkanlar";
   }
   if (key === "egitim dili") return "egitim dili";
+  if (key === "egitim ozellikleri") return "egitim ozellikleri";
   if (key === "calisma saatleri" || key === "okul saatleri" || key === "kurum saatleri" || key === "egitim saatleri") {
     return "egitim saatleri";
   }
@@ -2135,7 +2211,6 @@ function normalizePatiliDostlarInstitutionFilterOrderKey(name: string): string {
 
 function isHiddenPatiliDostlarPublicInstitutionFilter(name: string): boolean {
   const key = normalizeCommonFieldNameKey(name);
-  if (key === "verilen hizmetler" || (key.includes("verilen") && key.includes("hizmet"))) return true;
   if (key === "ogrenci yasi") return true;
   return isHiddenYabanciDillerInstitutionFilter(name);
 }
@@ -2146,6 +2221,7 @@ function getPatiliDostlarInstitutionFilterSectionTitle(name: string): string {
   if (key === "hizmet tipi") return "HİZMET TİPİ";
   if (key === "aylik fiyat araligi") return "AYLIK FİYAT ARALIĞI";
   if (key === "egitim saatleri") return "EĞİTİM SAATLERİ";
+  if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
   if (key === "egitim dili") return "EĞİTİM DİLİ";
   if (key === "odeme secenekleri") return "ÖDEME SEÇENEKLERİ";
   return name.toLocaleUpperCase("tr-TR");
@@ -2936,10 +3012,9 @@ function useCategoryFilterSidebarModel({
     [selectedHighSchoolTypes],
   );
 
-  // "Başlıca Özellikler" feature group + definitions + choices (slug'tan bağımsız).
-  // Patili: global Başlıca'nın tamamı açılmaz; yalnız Eğitim Dili alınır.
+  // Global Başlıca Özellikler (category_slug boş). Patili kendi Başlıca tanımını kullanır.
   useEffect(() => {
-    if (!hasDynamicFeatureMode || (!usesGlobalBaslicaCommonFields && !isPatiliDostlarCategory)) {
+    if (!hasDynamicFeatureMode || !usesGlobalBaslicaCommonFields) {
       setCommonFields([]);
       return;
     }
@@ -3116,17 +3191,13 @@ function useCategoryFilterSidebarModel({
         // boolean / text → bu sürümde Başlıca Özellikler bloğunda atla.
       });
 
-      setCommonFields(
-        isPatiliDostlarCategory
-          ? fields.filter((field) => normalizeCommonFieldNameKey(field.name) === "egitim dili")
-          : fields,
-      );
+      setCommonFields(fields);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [hasDynamicFeatureMode, usesGlobalBaslicaCommonFields, isPatiliDostlarCategory]);
+  }, [hasDynamicFeatureMode, usesGlobalBaslicaCommonFields]);
 
   const handleFilterChange = (updates: Partial<FilterState>) => {
     const nextSearch = updates.search !== undefined ? updates.search : displaySearch;
@@ -4170,12 +4241,16 @@ function CategoryFilterSidebarView({
       }
     });
     sections.push({
-      kind: "working_hours",
+      kind: "student_age",
       originalIndex: commonFields.length + renderedFeatureGroups.length,
     });
     sections.push({
+      kind: "working_hours",
+      originalIndex: commonFields.length + renderedFeatureGroups.length + 1,
+    });
+    sections.push({
       kind: "price_range",
-      originalIndex: (commonFields.length + renderedFeatureGroups.length) + 1,
+      originalIndex: (commonFields.length + renderedFeatureGroups.length) + 2,
     });
     return orderSurucuKursuInstitutionFilterSections(sections);
   }, [showSurucuKursuInstitutionFilters, commonFields, renderedFeatureGroups]);
@@ -4188,7 +4263,6 @@ function CategoryFilterSidebarView({
     patiliBaslicaFields.forEach((field, index) => {
       if (isHiddenPatiliDostlarPublicInstitutionFilter(field.name)) return;
       if (isStudentAgeCommonField(field)) return;
-      if (normalizePatiliDostlarInstitutionFilterOrderKey(field.name) === "egitim dili") return;
       sections.push({ kind: "common", field, originalIndex: index });
     });
     commonFields.forEach((field, index) => {
@@ -5272,68 +5346,98 @@ function CategoryFilterSidebarView({
                     })
                 : showSporInstitutionFilters
                   ? sporOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("spor");
+                      const orderName = getSporSectionOrderName(section);
+                      const orderKey = normalizeSporInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("spor")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("spor")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("spor")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getSporInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getSporInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!SPOR_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("spor");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("spor");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getSporInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getSporInstitutionFilterSectionTitle(section.group.name),
+                      return (
+                        <CategoryFilterCollapse
+                          key={`spor-collapse-${orderKey}`}
+                          title={getSporInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showSanatInstitutionFilters
                   ? sanatOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("sanat");
+                      const orderName = getSanatSectionOrderName(section);
+                      const orderKey = normalizeSanatInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("sanat")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("sanat")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("sanat")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getSanatInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getSanatInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!SANAT_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("sanat");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("sanat");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getSanatInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getSanatInstitutionFilterSectionTitle(section.group.name),
+                      return (
+                        <CategoryFilterCollapse
+                          key={`sanat-collapse-${orderKey}`}
+                          title={getSanatInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showYabanciDilInstitutionFilters
                   ? yabanciDilOrderedDynamicSections.map((section) => {
-                      if (section.kind === "student_age") {
-                        return renderStudentAgeFilterSection("yabanci-dil");
+                      const orderName = getYabanciDilSectionOrderName(section);
+                      const orderKey = normalizeYabanciDilInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("yabanci-dil")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("yabanci-dil")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("yabanci-dil")
+                              : section.kind === "common"
+                                ? renderInstitutionCommonField(
+                                    section.field,
+                                    getYabanciDilInstitutionFilterSectionTitle(section.field.name),
+                                  )
+                                : renderInstitutionFeatureGroup(
+                                    section.group,
+                                    getYabanciDilInstitutionFilterSectionTitle(section.group.name),
+                                  );
+                      if (!YABANCI_DIL_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("yabanci-dil");
-                      }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("yabanci-dil");
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getYabanciDilInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getYabanciDilInstitutionFilterSectionTitle(section.group.name),
+                      return (
+                        <CategoryFilterCollapse
+                          key={`yabanci-dil-collapse-${orderKey}`}
+                          title={getYabanciDilInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showKisiselGelisimInstitutionFilters
@@ -5430,43 +5534,67 @@ function CategoryFilterSidebarView({
                     })
                 : showSurucuKursuInstitutionFilters
                   ? surucuKursuOrderedDynamicSections.map((section) => {
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("surucu-kursu");
+                      const orderName = getSurucuKursuSectionOrderName(section);
+                      const orderKey = normalizeSurucuKursuInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "student_age"
+                          ? renderStudentAgeFilterSection("surucu-kursu")
+                          : section.kind === "price_range"
+                            ? renderPriceRangeFilterSection("surucu-kursu")
+                            : section.kind === "working_hours"
+                              ? renderWorkingHoursFilterSection("surucu-kursu")
+                              : section.kind === "belge_turleri"
+                                ? renderSurucuKursuBelgeTurleriSection(section.group)
+                                : section.kind === "common"
+                                  ? renderInstitutionCommonField(
+                                      section.field,
+                                      getSurucuKursuInstitutionFilterSectionTitle(section.field.name),
+                                    )
+                                  : renderInstitutionFeatureGroup(
+                                      section.group,
+                                      getSurucuKursuInstitutionFilterSectionTitle(section.group.name),
+                                    );
+                      if (!SURUCU_KURSU_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("surucu-kursu");
-                      }
-                      if (section.kind === "belge_turleri") {
-                        return renderSurucuKursuBelgeTurleriSection(section.group);
-                      }
-                      if (section.kind === "common") {
-                        return renderInstitutionCommonField(
-                          section.field,
-                          getSurucuKursuInstitutionFilterSectionTitle(section.field.name),
-                        );
-                      }
-                      return renderInstitutionFeatureGroup(
-                        section.group,
-                        getSurucuKursuInstitutionFilterSectionTitle(section.group.name),
+                      return (
+                        <CategoryFilterCollapse
+                          key={`surucu-kursu-collapse-${orderKey}`}
+                          title={getSurucuKursuInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
                       );
                     })
                 : showPatiliDostlarInstitutionFilters
                   ? patiliDostlarOrderedDynamicSections.map((section) => {
-                      if (section.kind === "price_range") {
-                        return renderPriceRangeFilterSection("patili-dostlar");
+                      const orderName = getPatiliDostlarSectionOrderName(section);
+                      const orderKey = normalizePatiliDostlarInstitutionFilterOrderKey(orderName);
+                      const sectionNode =
+                        section.kind === "price_range"
+                          ? renderPriceRangeFilterSection("patili-dostlar")
+                          : section.kind === "working_hours"
+                            ? renderWorkingHoursFilterSection("patili-dostlar")
+                            : section.kind === "group"
+                              ? renderInstitutionFeatureGroup(
+                                  section.group,
+                                  getPatiliDostlarInstitutionFilterSectionTitle(section.group.name),
+                                )
+                              : renderInstitutionCommonField(
+                                  section.field,
+                                  getPatiliDostlarInstitutionFilterSectionTitle(section.field.name),
+                                );
+                      if (!PATILI_DOSTLAR_INSTITUTION_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                        return sectionNode;
                       }
-                      if (section.kind === "working_hours") {
-                        return renderWorkingHoursFilterSection("patili-dostlar");
-                      }
-                      if (section.kind === "group") {
-                        return renderInstitutionFeatureGroup(
-                          section.group,
-                          getPatiliDostlarInstitutionFilterSectionTitle(section.group.name),
-                        );
-                      }
-                      const field = section.field;
-                      const title = getPatiliDostlarInstitutionFilterSectionTitle(field.name);
-                      return renderInstitutionCommonField(field, title);
+                      return (
+                        <CategoryFilterCollapse
+                          key={`patili-dostlar-collapse-${orderKey}`}
+                          title={getPatiliDostlarInstitutionFilterSectionTitle(orderName)}
+                        >
+                          {sectionNode}
+                        </CategoryFilterCollapse>
+                      );
                     })
                 : hasDynamicFeatureMode && usesGlobalBaslicaCommonFields
                   ? (

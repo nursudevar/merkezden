@@ -104,6 +104,28 @@ export function collectStaleMainFeatureEntryIds(args: {
 
 const PATILI_DOSTLAR_CATEGORY_SLUG = "patili-dostlar";
 const KISISEL_GELISIM_CATEGORY_SLUG = "kisisel-gelisim";
+const OKUL_CATEGORY_SLUG = "okul";
+const SANAT_CATEGORY_SLUG = "sanat";
+const SPOR_CATEGORY_SLUG = "spor";
+const YABANCI_DIL_CATEGORY_SLUG = "yabanci-dil";
+const SURUCU_KURSU_CATEGORY_SLUG = "surucu-kursu";
+const SPOR_PANEL_GROUP_ORDER = [
+  "tesis turu",
+  "spor turleri",
+  "egitim ozellikleri",
+  "fiziki imkanlar",
+  "hedef/fayda",
+  "odeme secenekleri",
+] as const;
+const OKUL_PANEL_GROUP_ORDER = [
+  "yabanci dil",
+  "okul imkanlari",
+  "fiziki imkanlar",
+  "egitim sistemi",
+  "aktivite",
+  "hedef/fayda",
+  "odeme secenekleri",
+] as const;
 const BASLICA_GROUP_NAME_KEY = "başlıca özellikler";
 const KISISEL_GELISIM_LOWER_TAIL_KEYS = [
   "egitim ozellikleri",
@@ -154,8 +176,301 @@ function orderKisiselGelisimLowerGroups(
   return [...head, ...tail];
 }
 
+function normalizeOkulPanelGroupKey(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function okulPanelGroupOrderKey(group: { name: string; slug?: string | null }): string | null {
+  const slug = String(group.slug ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i");
+  if (slug === "okul-yabanci-dil") return "yabanci dil";
+
+  const key = normalizeOkulPanelGroupKey(group.name);
+  if (key === "yabanci dil") return "yabanci dil";
+  if (key.includes("okul imkan")) return "okul imkanlari";
+  if (key === "fiziki imkanlar" || key === "fiziksel imkanlar") return "fiziki imkanlar";
+  if (key === "egitim sistemi") return "egitim sistemi";
+  if (key === "aktiviteler" || key === "aktivite") return "aktivite";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef/fayda";
+  if (key === "odeme secenekleri" || key === "odeme yontemleri") return "odeme secenekleri";
+  return null;
+}
+
+function orderOkulLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const orderIndex = new Map<string, number>(
+    OKUL_PANEL_GROUP_ORDER.map((key, index) => [key, index]),
+  );
+  return [...groups].sort((a, b) => {
+    const aRank = orderIndex.get(okulPanelGroupOrderKey(a.group) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    const bRank = orderIndex.get(okulPanelGroupOrderKey(b.group) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return 0;
+  });
+}
+
+function isSanatFizikiImkanlarGroup(group: { name: string }): boolean {
+  const key = normalizeOkulPanelGroupKey(group.name);
+  return key === "fiziki imkanlar" || key === "fiziksel imkanlar";
+}
+
+function isSanatHedefFaydaGroup(group: { name: string }): boolean {
+  const key = normalizeOkulPanelGroupKey(group.name);
+  return key.includes("hedef") && key.includes("fayda");
+}
+
+function sporPanelGroupOrderKey(group: { name: string; slug?: string | null }): string | null {
+  const keys = [normalizeOkulPanelGroupKey(group.name), normalizeOkulPanelGroupKey(String(group.slug ?? ""))].filter(
+    Boolean,
+  );
+  const has = (predicate: (key: string) => boolean) => keys.some(predicate);
+
+  if (has((key) => key.includes("tesis") && key.includes("tur"))) return "tesis turu";
+  if (
+    has(
+      (key) =>
+        key === "spor turleri" ||
+        key === "spor turu" ||
+        (key.includes("spor") && key.includes("tur") && !key.includes("tesis")),
+    )
+  ) {
+    return "spor turleri";
+  }
+  if (has((key) => key === "egitim ozellikleri" || key === "kurs ozellikleri" || (key.includes("egitim") && key.includes("ozellik")))) {
+    return "egitim ozellikleri";
+  }
+  if (
+    has(
+      (key) =>
+        key === "fiziki imkanlar" ||
+        key === "fiziksel imkanlar" ||
+        (key.includes("fizik") && key.includes("imkan")),
+    )
+  ) {
+    return "fiziki imkanlar";
+  }
+  if (has((key) => key.includes("hedef") && key.includes("fayda"))) return "hedef/fayda";
+  if (has((key) => key === "odeme secenekleri" || key === "odeme yontemleri")) return "odeme secenekleri";
+  return null;
+}
+
+function orderSporLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const orderIndex = new Map<string, number>(
+    SPOR_PANEL_GROUP_ORDER.map((key, index) => [key, index]),
+  );
+  return [...groups].sort((a, b) => {
+    const aRank = orderIndex.get(sporPanelGroupOrderKey(a.group) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    const bRank = orderIndex.get(sporPanelGroupOrderKey(b.group) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return 0;
+  });
+}
+
+function orderSanatLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const fizikiIndex = groups.findIndex((item) => isSanatFizikiImkanlarGroup(item.group));
+  const hedefIndex = groups.findIndex((item) => isSanatHedefFaydaGroup(item.group));
+  if (fizikiIndex < 0 || hedefIndex < 0 || hedefIndex === fizikiIndex + 1) return groups;
+
+  const next = [...groups];
+  const [hedef] = next.splice(hedefIndex, 1);
+  const insertAt = next.findIndex((item) => isSanatFizikiImkanlarGroup(item.group)) + 1;
+  next.splice(insertAt, 0, hedef);
+  return next;
+}
+
+function isYabanciDilFizikiImkanlarGroup(group: { name: string }): boolean {
+  const key = normalizeOkulPanelGroupKey(group.name);
+  return key === "fiziki imkanlar" || key === "fiziksel imkanlar";
+}
+
+function isYabanciDilHedefFaydaGroup(group: { name: string }): boolean {
+  const key = normalizeOkulPanelGroupKey(group.name);
+  return key.includes("hedef") && key.includes("fayda");
+}
+
+const PATILI_PANEL_GROUP_ORDER = [
+  "hizmet turu",
+  "fiziki imkanlar",
+  "egitim ozellikleri",
+  "odeme secenekleri",
+] as const;
+
+const PATILI_PANEL_BASLICA_FEATURE_ORDER = [
+  "evcil hayvan turu",
+  "hizmet tipi",
+  "hizmet yeri",
+  "egitim dili",
+] as const;
+
+function patiliPanelTextKey(value: string): string {
+  return normalizeOkulPanelGroupKey(value);
+}
+
+function patiliPanelGroupOrderKey(group: { name: string; slug?: string | null }): string | null {
+  const keys = [patiliPanelTextKey(group.name), patiliPanelTextKey(String(group.slug ?? ""))].filter(Boolean);
+  const has = (predicate: (key: string) => boolean) => keys.some(predicate);
+
+  if (
+    has(
+      (key) =>
+        key === "hizmet turu" ||
+        key === "hizmet turleri" ||
+        (key.includes("hizmet") && key.includes("tur") && !key.includes("tip") && !key.includes("yer")),
+    )
+  ) {
+    return "hizmet turu";
+  }
+  if (
+    has(
+      (key) =>
+        key === "fiziki imkanlar" ||
+        key === "fiziksel imkanlar" ||
+        (key.includes("fizik") && key.includes("imkan")),
+    )
+  ) {
+    return "fiziki imkanlar";
+  }
+  if (has((key) => key === "egitim ozellikleri" || (key.includes("egitim") && key.includes("ozellik")))) {
+    return "egitim ozellikleri";
+  }
+  if (
+    has(
+      (key) =>
+        key === "odeme secenekleri" ||
+        key === "odeme yontemleri" ||
+        (key.includes("odeme") && (key.includes("secenek") || key.includes("yontem"))),
+    )
+  ) {
+    return "odeme secenekleri";
+  }
+  return null;
+}
+
+function orderPatiliDostlarLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const orderIndex = new Map<string, number>(
+    PATILI_PANEL_GROUP_ORDER.map((key, index) => [key, index]),
+  );
+  return [...groups].sort((a, b) => {
+    const aRank = orderIndex.get(patiliPanelGroupOrderKey(a.group) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    const bRank = orderIndex.get(patiliPanelGroupOrderKey(b.group) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return 0;
+  });
+}
+
+export function patiliDostlarBaslicaFeatureOrderKey(feature: {
+  name: string;
+  slug?: string | null;
+}): string | null {
+  const keys = [patiliPanelTextKey(feature.name), patiliPanelTextKey(String(feature.slug ?? ""))].filter(Boolean);
+  const has = (predicate: (key: string) => boolean) => keys.some(predicate);
+
+  if (
+    has(
+      (key) =>
+        key === "evcil hayvan turu" ||
+        key === "evcil hayvan turleri" ||
+        (key.includes("evcil") && key.includes("hayvan") && key.includes("tur")),
+    )
+  ) {
+    return "evcil hayvan turu";
+  }
+  if (has((key) => key === "hizmet tipi" || key === "hizmet tipleri")) return "hizmet tipi";
+  if (has((key) => key === "hizmet yeri")) return "hizmet yeri";
+  if (
+    has(
+      (key) =>
+        key === "egitim dili" ||
+        (key.includes("egitim") && key.includes("dil") && !key.includes("ozellik")),
+    )
+  ) {
+    return "egitim dili";
+  }
+  return null;
+}
+
+export function orderPatiliDostlarBaslicaFeatures<T extends { name: string; slug?: string | null }>(
+  features: T[],
+): T[] {
+  const orderIndex = new Map<string, number>(
+    PATILI_PANEL_BASLICA_FEATURE_ORDER.map((key, index) => [key, index]),
+  );
+  return [...features].sort((a, b) => {
+    const aRank =
+      orderIndex.get(patiliDostlarBaslicaFeatureOrderKey(a) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    const bRank =
+      orderIndex.get(patiliDostlarBaslicaFeatureOrderKey(b) ?? "") ?? Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return 0;
+  });
+}
+
+function isSurucuKursuFizikiImkanlarGroup(group: { name: string; slug?: string | null }): boolean {
+  const keys = [normalizeOkulPanelGroupKey(group.name), normalizeOkulPanelGroupKey(String(group.slug ?? ""))].filter(
+    Boolean,
+  );
+  return keys.some(
+    (key) =>
+      key === "fiziki imkanlar" ||
+      key === "fiziksel imkanlar" ||
+      (key.includes("fizik") && key.includes("imkan")),
+  );
+}
+
+function isSurucuKursuHedefFaydaGroup(group: { name: string; slug?: string | null }): boolean {
+  const keys = [normalizeOkulPanelGroupKey(group.name), normalizeOkulPanelGroupKey(String(group.slug ?? ""))].filter(
+    Boolean,
+  );
+  return keys.some((key) => key.includes("hedef") && key.includes("fayda"));
+}
+
+function orderSurucuKursuLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const fizikiIndex = groups.findIndex((item) => isSurucuKursuFizikiImkanlarGroup(item.group));
+  const hedefIndex = groups.findIndex((item) => isSurucuKursuHedefFaydaGroup(item.group));
+  if (fizikiIndex < 0 || hedefIndex < 0 || hedefIndex === fizikiIndex + 1) return groups;
+
+  const next = [...groups];
+  const [hedef] = next.splice(hedefIndex, 1);
+  const insertAt = next.findIndex((item) => isSurucuKursuFizikiImkanlarGroup(item.group)) + 1;
+  next.splice(insertAt, 0, hedef);
+  return next;
+}
+
+function orderYabanciDilLowerGroups(
+  groups: InstitutionMainFeatureSelectionGroup[],
+): InstitutionMainFeatureSelectionGroup[] {
+  const fizikiIndex = groups.findIndex((item) => isYabanciDilFizikiImkanlarGroup(item.group));
+  const hedefIndex = groups.findIndex((item) => isYabanciDilHedefFaydaGroup(item.group));
+  if (fizikiIndex < 0 || hedefIndex < 0 || fizikiIndex < hedefIndex) return groups;
+
+  const next = [...groups];
+  const fiziki = next[fizikiIndex];
+  next[fizikiIndex] = next[hedefIndex];
+  next[hedefIndex] = fiziki;
+  return next;
+}
+
 export type InstitutionMainFeatureSelectionGroup = {
-  group: { id: number; name: string; category_slug?: string | null };
+  group: { id: number; name: string; slug?: string | null; category_slug?: string | null };
   features: Array<{
     id: number;
     name: string;
@@ -191,7 +506,12 @@ export function buildInstitutionMainFeatureSelectionGroups(
 
   const upperGroups = isPatiliDostlarCategory
     ? patiliBaslicaOzelliklerGroup
-      ? [patiliBaslicaOzelliklerGroup]
+      ? [
+          {
+            ...patiliBaslicaOzelliklerGroup,
+            features: orderPatiliDostlarBaslicaFeatures(patiliBaslicaOzelliklerGroup.features),
+          },
+        ]
       : []
     : baslicaOzelliklerGroup
       ? [baslicaOzelliklerGroup]
@@ -221,6 +541,18 @@ export function buildInstitutionMainFeatureSelectionGroups(
     lowerGroups:
       selectedCategorySlug === KISISEL_GELISIM_CATEGORY_SLUG
         ? orderKisiselGelisimLowerGroups(lowerGroups)
-        : lowerGroups,
+        : selectedCategorySlug === OKUL_CATEGORY_SLUG
+          ? orderOkulLowerGroups(lowerGroups)
+          : selectedCategorySlug === SANAT_CATEGORY_SLUG
+            ? orderSanatLowerGroups(lowerGroups)
+            : selectedCategorySlug === SPOR_CATEGORY_SLUG
+              ? orderSporLowerGroups(lowerGroups)
+              : selectedCategorySlug === YABANCI_DIL_CATEGORY_SLUG
+                ? orderYabanciDilLowerGroups(lowerGroups)
+                : selectedCategorySlug === PATILI_DOSTLAR_CATEGORY_SLUG
+                  ? orderPatiliDostlarLowerGroups(lowerGroups)
+                  : selectedCategorySlug === SURUCU_KURSU_CATEGORY_SLUG
+                    ? orderSurucuKursuLowerGroups(lowerGroups)
+                    : lowerGroups,
   };
 }

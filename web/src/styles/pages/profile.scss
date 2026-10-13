@@ -833,26 +833,6 @@
   overflow-wrap: anywhere;
 }
 
-.favorite-card-rating {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.favorite-card-rating-icon {
-  width: 16px;
-  height: 16px;
-  color: #fbbf24;
-  fill: #fbbf24;
-  flex-shrink: 0;
-}
-
-.favorite-card-rating-value {
-  font-size: $text-sm;
-  color: $text-zinc-700;
-  font-weight: $font-medium;
-}
-
 .favorite-card-tags {
   display: flex;
   flex-wrap: wrap;

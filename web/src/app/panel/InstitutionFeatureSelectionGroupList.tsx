@@ -5,6 +5,7 @@ import { Fragment } from "react";
 import { Building, Building2, CreditCard, Info, List, Star } from "lucide-react";
 import { StudentAgeRangeFields } from "@/components/features/StudentAgeRangeFields";
 import { isAverageClassSizeInstitutionFeature } from "@/lib/institutionHelpers";
+import { patiliDostlarBaslicaFeatureOrderKey } from "@/lib/institutionMainFeatureSave";
 import {
   isLegacyStudentAgeMultiSelectFeature,
   isStudentAgeMaxFeature,
@@ -30,7 +31,7 @@ type InstitutionFeatureChoiceRow = {
 };
 
 export type InstitutionFeatureSelectionGroup = {
-  group: { id: number; name: string };
+  group: { id: number; name: string; slug?: string | null; category_slug?: string | null };
   features: InstitutionFeatureDefinitionForSelection[];
 };
 
@@ -107,11 +108,6 @@ export function InstitutionFeatureSelectionGroupList({
             feature.input_type === "number" ||
             feature.input_type === "text",
         );
-        const featuresToRender = hasSpecialNonOptionFeature
-          ? visibleFeatures
-          : sortPanelOptionItemsByLabel(visibleFeatures, (feature) =>
-              getDisplayFeatureName(feature.name),
-            );
         const ageMinFeature = visibleFeatures.find((f) => isStudentAgeMinFeature(f));
         const ageMaxFeature = visibleFeatures.find((f) => isStudentAgeMaxFeature(f));
         let ageRangeRendered = false;
@@ -132,6 +128,15 @@ export function InstitutionFeatureSelectionGroupList({
         };
         const groupNameKey = group.name.trim().toLocaleLowerCase("tr-TR");
         const isBaslicaGroup = groupNameKey === "başlıca özellikler";
+        const isPatiliBaslicaGroup =
+          isBaslicaGroup && String(group.category_slug ?? "").trim() === "patili-dostlar";
+        const featuresToRender = hasSpecialNonOptionFeature
+          ? visibleFeatures
+          : isPatiliBaslicaGroup
+            ? visibleFeatures
+            : sortPanelOptionItemsByLabel(visibleFeatures, (feature) =>
+                getDisplayFeatureName(feature.name),
+              );
         let baslicaWorkingHoursPlaced = false;
         let baslicaPriceRangePlaced = false;
         const groupHeaderMeta = (() => {
@@ -194,6 +199,10 @@ export function InstitutionFeatureSelectionGroupList({
           };
         })();
 
+        if (isPatiliBaslicaGroup && baslicaWorkingHours) {
+          baslicaWorkingHoursPlaced = true;
+        }
+
         return (
           <section key={group.id} className="panel-institutions-group-item">
             <h4 className={`panel-institutions-group-title ${groupHeaderMeta.titleClass}`}>
@@ -204,6 +213,7 @@ export function InstitutionFeatureSelectionGroupList({
               {group.name}
             </h4>
             <div className="panel-institutions-features-grid panel-institutions-features-grid--selection">
+              {isPatiliBaslicaGroup && baslicaWorkingHours ? baslicaWorkingHours : null}
               {featuresToRender.map((feature) => {
                 if (
                   isStudentAgeRangeNumberFeature(feature) &&
@@ -460,6 +470,19 @@ export function InstitutionFeatureSelectionGroupList({
                   )}
                 </div>
                 );
+                if (
+                  isPatiliBaslicaGroup &&
+                  baslicaPriceRange &&
+                  patiliDostlarBaslicaFeatureOrderKey(feature) === "egitim dili"
+                ) {
+                  baslicaPriceRangePlaced = true;
+                  return (
+                    <Fragment key={`patili-price-before-${feature.id}`}>
+                      {baslicaPriceRange}
+                      {featureNode}
+                    </Fragment>
+                  );
+                }
                 if (
                   isBaslicaGroup &&
                   baslicaPriceRange &&

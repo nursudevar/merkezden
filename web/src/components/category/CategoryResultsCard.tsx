@@ -16,8 +16,6 @@ interface CategoryResultsCardProps {
   location: string;
   price: string | number;
   ageRange: string;
-  rating: number;
-  reviewCount: number;
   badges: string[];
   logoInitial?: string;
   logoColor?: string;

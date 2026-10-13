@@ -3240,7 +3240,7 @@ interface InstitutionDetailPreparedData {
               </button>
             </div>
           </div>
-          {isInstitutionsTab ? (
+          {isInstitutionsTab && !isOkulInstitutionCategory ? (
             <div className="panel-sidebar-extra-box">
               <InstitutionExtraBranchesSidebarCard
                 onAddClick={() => handleSidebarExtraBranchClick()}
@@ -4315,6 +4315,7 @@ interface InstitutionDetailPreparedData {
           </div>
         ) : null}
         {isInstitutionsTab &&
+        !isOkulInstitutionCategory &&
         !institutionRecordMissing &&
         !institutionFeaturesLoading &&
         !institutionFeaturesError &&

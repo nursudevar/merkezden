@@ -672,6 +672,14 @@ export type InstructorRealFeatureDefinitionRow = {
   name: string | null;
   slug: string | null;
   input_type: string | null;
+  group_id: number | null;
+};
+
+export type FeatureMappingGroupRow = {
+  id: number;
+  name: string | null;
+  slug: string | null;
+  category_slug: string | null;
 };
 
 type DirectInstructorFeatureKey =
@@ -1336,7 +1344,7 @@ export async function fetchInstructorRealFeatureDefinitionsClient(
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("instructor_feature_definitions")
-    .select("id, name, slug, input_type");
+    .select("id, name, slug, input_type, group_id");
 
   if (error) {
     logInstructorFeaturesSupabaseError("real definitions", error);
@@ -1349,33 +1357,111 @@ export async function fetchInstructorRealFeatureDefinitionsClient(
   return { definitions, error: null };
 }
 
+function semanticFeatureSlug(value: string | null | undefined): string {
+  const key = normalizeInstructorFeatureText(String(value ?? ""));
+  const namespace = "instructor_";
+  return key.startsWith(namespace) ? key.slice(namespace.length) : key;
+}
+
+function featureMappingGroupsMatch(
+  institutionGroup: FeatureMappingGroupRow,
+  instructorGroup: FeatureMappingGroupRow,
+): boolean {
+  const institutionName = normalizeInstructorFeatureText(String(institutionGroup.name ?? ""));
+  const instructorName = normalizeInstructorFeatureText(String(instructorGroup.name ?? ""));
+  if (institutionName && instructorName && institutionName === instructorName) return true;
+
+  const institutionSlug = semanticFeatureSlug(institutionGroup.slug);
+  const instructorSlug = semanticFeatureSlug(instructorGroup.slug);
+  return Boolean(institutionSlug && instructorSlug && institutionSlug === instructorSlug);
+}
+
 export function buildInstructorUiRealDefinitionMaps(
   uiDefinitions: InstructorFeatureDefinitionRow[],
   realDefinitions: InstructorRealFeatureDefinitionRow[],
+  groups: {
+    institutionGroups: FeatureMappingGroupRow[];
+    instructorGroups: FeatureMappingGroupRow[];
+  },
 ): {
   uiFeatureIdToRealDefinition: Map<number, InstructorRealFeatureDefinitionRow>;
   realDefinitionIdToUiFeatureId: Map<number, number>;
 } {
-  const realDefinitionByNormalizedKey = new Map<string, InstructorRealFeatureDefinitionRow>();
-  realDefinitions.forEach((definition) => {
-    const slugKey = normalizeInstructorFeatureText(String(definition.slug ?? ""));
-    const nameKey = normalizeInstructorFeatureText(String(definition.name ?? ""));
-    if (slugKey) realDefinitionByNormalizedKey.set(slugKey, definition);
-    if (nameKey && !realDefinitionByNormalizedKey.has(nameKey)) {
-      realDefinitionByNormalizedKey.set(nameKey, definition);
-    }
-  });
+  const institutionGroupById = new Map<number, FeatureMappingGroupRow>();
+  for (const group of groups.institutionGroups) {
+    if (Number.isFinite(Number(group.id))) institutionGroupById.set(Number(group.id), group);
+  }
+
+  const instructorDefinitionsByGroupId = new Map<number, InstructorRealFeatureDefinitionRow[]>();
+  for (const definition of realDefinitions) {
+    const groupId = Number(definition.group_id);
+    if (!Number.isFinite(groupId)) continue;
+    const current = instructorDefinitionsByGroupId.get(groupId) ?? [];
+    current.push(definition);
+    instructorDefinitionsByGroupId.set(groupId, current);
+  }
 
   const resolveRealDefinition = (feature: InstructorFeatureDefinitionRow) => {
-    const keys = [
-      normalizeInstructorFeatureText(String(feature.slug ?? "")),
-      normalizeInstructorFeatureText(String(feature.name ?? "")),
-    ].filter(Boolean);
+    const institutionGroup = institutionGroupById.get(Number(feature.group_id));
+    if (!institutionGroup) return null;
 
-    for (const key of keys) {
-      const found = realDefinitionByNormalizedKey.get(key);
-      if (found) return found;
+    const categoryKey = normalizeInstructorGroupCategorySlug(institutionGroup.category_slug);
+    const candidateGroups = groups.instructorGroups.filter(
+      (group) => normalizeInstructorGroupCategorySlug(group.category_slug) === categoryKey,
+    );
+    const institutionGroupSlug = semanticFeatureSlug(institutionGroup.slug);
+    const institutionGroupName = normalizeInstructorFeatureText(String(institutionGroup.name ?? ""));
+    const groupRank = (group: FeatureMappingGroupRow) => {
+      const slugMatch = Boolean(
+        institutionGroupSlug && semanticFeatureSlug(group.slug) === institutionGroupSlug,
+      );
+      const nameMatch = Boolean(
+        institutionGroupName &&
+          normalizeInstructorFeatureText(String(group.name ?? "")) === institutionGroupName,
+      );
+      if (slugMatch && nameMatch) return 0;
+      if (slugMatch) return 1;
+      if (nameMatch) return 2;
+      return 3;
+    };
+    const matchedGroups = candidateGroups
+      .filter((group) => featureMappingGroupsMatch(institutionGroup, group))
+      .sort((a, b) => groupRank(a) - groupRank(b));
+    if (matchedGroups.length === 0) return null;
+
+    const institutionSlug = normalizeInstructorFeatureText(String(feature.slug ?? ""));
+    const institutionSemanticSlug = semanticFeatureSlug(feature.slug);
+    const institutionName = normalizeInstructorFeatureText(String(feature.name ?? ""));
+
+    const definitionsInGroups: InstructorRealFeatureDefinitionRow[] = [];
+    for (const group of matchedGroups) {
+      const rows = instructorDefinitionsByGroupId.get(Number(group.id)) ?? [];
+      definitionsInGroups.push(...rows);
     }
+
+    if (institutionSlug) {
+      const exactSlug = definitionsInGroups.find(
+        (definition) =>
+          normalizeInstructorFeatureText(String(definition.slug ?? "")) === institutionSlug,
+      );
+      if (exactSlug) return exactSlug;
+    }
+
+    if (institutionSemanticSlug) {
+      const semanticSlug = definitionsInGroups.find(
+        (definition) => semanticFeatureSlug(definition.slug) === institutionSemanticSlug,
+      );
+      if (semanticSlug) return semanticSlug;
+    }
+
+    if (institutionName) {
+      const byName = definitionsInGroups.find(
+        (definition) =>
+          normalizeInstructorFeatureText(String(definition.name ?? "")) === institutionName,
+      );
+      if (byName) return byName;
+    }
+
     return null;
   };
 
@@ -1397,11 +1483,19 @@ export function buildUiToInstructorChoiceIdMap(
   uiChoices: Array<{ id: number; feature_definition_id: number; name?: string | null; slug?: string | null }>,
   realDefinitions: InstructorRealFeatureDefinitionRow[],
   realChoices: Array<{ id: number; feature_definition_id: number; name?: string | null; slug?: string | null }>,
+  groups: {
+    institutionGroups: FeatureMappingGroupRow[];
+    instructorGroups: FeatureMappingGroupRow[];
+  },
 ): {
   uiFeatureIdToRealDefinition: Map<number, InstructorRealFeatureDefinitionRow>;
   instructorChoiceIdByUiKey: Map<string, number>;
 } {
-  const { uiFeatureIdToRealDefinition } = buildInstructorUiRealDefinitionMaps(uiDefinitions, realDefinitions);
+  const { uiFeatureIdToRealDefinition } = buildInstructorUiRealDefinitionMaps(
+    uiDefinitions,
+    realDefinitions,
+    groups,
+  );
   const instructorChoiceIdByUiKey = new Map<string, number>();
 
   const matchChoice = (

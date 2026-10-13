@@ -94,11 +94,11 @@
         order: 1;
       }
 
-      .institution-profile-card {
+      .institution-overview-card {
         order: 2;
       }
 
-      .institution-overview-card {
+      .institution-profile-card {
         order: 3;
       }
     }
@@ -886,30 +886,6 @@
   }
 }
 
-.institution-rating-badge {
-  background: $yellow-bg;
-  color: $yellow-main;
-  padding: 4px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: $text-sm;
-  font-weight: $font-bold;
-  white-space: nowrap;
-}
-
-.institution-rating-icon {
-  fill: currentColor;
-}
-
-.institution-rating-count {
-  color: $yellow-hover;
-  font-weight: $font-normal;
-  margin-left: 4px;
-}
-
 .institution-description {
   color: $text-zinc-600;
   font-size: $text-lg;
@@ -1220,6 +1196,10 @@
   scroll-margin-top: 100px;
 }
 
+.institution-feature-group-card--full {
+  grid-column: 1 / -1;
+}
+
 .institution-feature-group-card-title {
   margin: 0 0 14px;
   color: $purple-main;
@@ -1244,8 +1224,20 @@
   column-gap: 12px;
 }
 
+.institution-feature-group-card-list--four-columns {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .institution-feature-group-card-list--four-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
-  .institution-feature-group-card-list--two-columns {
+  .institution-feature-group-card-list--two-columns,
+  .institution-feature-group-card-list--four-columns {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1530,18 +1522,38 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 8px;
+  }
 }
 
 .institution-gallery-modal {
   width: 100%;
   max-width: 1380px;
-  max-height: 90vh;
+  max-height: calc(100dvh - 32px);
   background: $bg-white;
   border: 1px solid $border-light;
   border-radius: 18px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   padding: 16px;
+
+  @media (max-width: 768px) {
+    max-height: calc(100dvh - 16px);
+  }
+}
+
+.institution-gallery-modal--viewer {
+  height: calc(100dvh - 32px);
+
+  @media (max-width: 768px) {
+    height: calc(100dvh - 16px);
+  }
 }
 
 .institution-gallery-modal-header {
@@ -1550,6 +1562,7 @@
   justify-content: flex-start;
   gap: 12px;
   flex-wrap: wrap;
+  flex: 0 0 auto;
   margin-bottom: 14.4px;
 }
 
@@ -1618,6 +1631,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  align-content: start;
 
   @media (max-width: 992px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1664,12 +1682,6 @@
   }
 }
 
-.institution-gallery-viewer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 .institution-gallery-viewer-back {
   height: 32px;
   border: 1px solid $border-light;
@@ -1689,52 +1701,6 @@
   color: $text-zinc-500;
   font-size: $text-xs;
   font-weight: $font-semibold;
-}
-
-.institution-gallery-viewer-media-wrap {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid $border-light;
-  background: #eef2ff;
-  aspect-ratio: 16 / 10;
-}
-
-.institution-gallery-viewer-image-wrap {
-  position: absolute;
-  inset: 0;
-}
-
-.institution-gallery-viewer-image,
-.institution-gallery-viewer-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #111827;
-}
-
-.institution-gallery-viewer-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(17, 24, 39, 0.55);
-  color: $bg-white;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.institution-gallery-viewer-nav--prev {
-  left: 10px;
-}
-
-.institution-gallery-viewer-nav--next {
-  right: 10px;
 }
 
 .institution-gallery-modal-empty {

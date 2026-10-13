@@ -1,3 +1,4 @@
+import { OKUL_CATEGORY_SLUG } from "@/lib/schoolInstitutionTypes";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const INSTITUTION_EXTRA_CATEGORIES_TABLE = "institution_extra_categories" as const;
@@ -551,6 +552,19 @@ export async function saveInstitutionExtraBranchBooleanValuesClient(
   }
 }
 
+async function assertExtraBranchesAllowedForMainCategory(
+  supabase: SupabaseBrowser,
+  mainCategoryId?: number | null,
+): Promise<void> {
+  const categoryId = Number(mainCategoryId);
+  if (!Number.isFinite(categoryId) || categoryId <= 0) return;
+
+  const category = await fetchCategoryByIdClient(supabase, categoryId);
+  if (category && normalizeSlug(category.slug) === OKUL_CATEGORY_SLUG) {
+    throw new Error("Okul kategorisinde ek branş kaydedilemez.");
+  }
+}
+
 /** Relation + boolean seçimlerini birlikte kaydeder. */
 export async function saveInstitutionExtraBranchesClient(
   supabase: SupabaseBrowser,
@@ -562,6 +576,7 @@ export async function saveInstitutionExtraBranchesClient(
     previousCategoryIds?: number[];
   },
 ): Promise<void> {
+  await assertExtraBranchesAllowedForMainCategory(supabase, options?.mainCategoryId);
   await saveInstitutionExtraCategoryRelationsClient(supabase, institutionId, slots, options);
 
   for (const slot of slots) {

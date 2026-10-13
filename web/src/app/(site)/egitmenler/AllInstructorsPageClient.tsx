@@ -441,8 +441,6 @@ export function AllInstructorsPageClient() {
         location: item.locationLabel || "Konum bilgisi yok",
         price: item.priceLabel,
         ageRange: "-",
-        rating: 0,
-        reviewCount: 0,
         badges: [],
         logoInitial: item.displayName.charAt(0).toLocaleUpperCase("tr-TR") || "E",
         imageUrl: item.imageUrl || undefined,
