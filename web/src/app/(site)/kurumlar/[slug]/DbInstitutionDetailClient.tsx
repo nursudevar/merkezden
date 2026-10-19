@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import GalleryMediaViewer, { useGalleryModalEffects } from "@/components/gallery/GalleryMediaViewer";
 import {
   MapPin,
@@ -14,7 +15,6 @@ import {
   X,
   ArrowLeft,
   Play,
-  Sparkles,
   Megaphone,
   CalendarDays,
   ImageOff,
@@ -28,6 +28,12 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { formatWorkingHoursRange } from "@/lib/institutionHelpers";
 import { formatInstitutionPriceRangeDisplay } from "@/lib/institutionPriceRangeFilter";
+import { FeatureHighlightsPublicSection } from "@/components/features/FeatureHighlightsPublicSection";
+import {
+  fetchInstitutionHighlightRowsClient,
+  resolvePublicHighlightItems,
+  type PublicHighlightDisplayItem,
+} from "@/lib/featureHighlightsPublic";
 import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 import {
   loadInstitutionExtraBranchesClient,
@@ -131,6 +137,26 @@ type InstitutionMediaImageRow = {
   sort_order?: number | null;
   created_at?: string | null;
 };
+
+const OWN_PENDING_PROFILE_TITLE = "Profiliniz Henüz Yayında Değil";
+const OWN_PENDING_PROFILE_MESSAGE =
+  "Hesabınız yönetici onayını bekliyor. Onaylandığında profiliniz yayımlanacak ve diğer kullanıcılar tarafından görüntülenebilecektir.";
+
+async function isOwnPendingInstitutionProfile(slug: string): Promise<boolean> {
+  const supabase = createSupabaseBrowserClient();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const authUid = sessionData.session?.user?.id;
+  if (!authUid) return false;
+
+  const { data, error } = await supabase
+    .from("institutions")
+    .select("id, slug, is_approved")
+    .eq("owner_auth_id", authUid)
+    .maybeSingle();
+
+  if (error || !data || data.is_approved !== null) return false;
+  return String(data.slug ?? "").trim() === String(slug ?? "").trim();
+}
 
 function serializeSupabaseError(err: unknown) {
   if (!err || typeof err !== "object") return null;
@@ -270,6 +296,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [row, setRow] = useState<DbInstitutionRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ownPendingApproval, setOwnPendingApproval] = useState(false);
   const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const [mediaItems, setMediaItems] = useState<
     Array<{
@@ -282,12 +309,21 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
   const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
+  const [highlightItems, setHighlightItems] = useState<PublicHighlightDisplayItem[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const tabsListRef = useRef<HTMLDivElement | null>(null);
   const programmaticScrollRef = useRef(false);
   const [publicExtraBranches, setPublicExtraBranches] = useState<PublicInstitutionExtraBranch[]>(
     [],
   );
+  const [extraBranchesLoadFailed, setExtraBranchesLoadFailed] = useState(false);
+  const [extraBranchesChecking, setExtraBranchesChecking] = useState(false);
+  const [extraBranchesRetryCount, setExtraBranchesRetryCount] = useState(0);
+  const extraBranchesRetryLockRef = useRef(false);
+  const [featuresLoadFailed, setFeaturesLoadFailed] = useState(false);
+  const [featuresChecking, setFeaturesChecking] = useState(false);
+  const [featuresRetryCount, setFeaturesRetryCount] = useState(0);
+  const featuresRetryLockRef = useRef(false);
   const [institutionAnnouncements, setInstitutionAnnouncements] = useState<
     AnnouncementDetailItem[]
   >([]);
@@ -305,6 +341,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     (async () => {
       setLoading(true);
       setError(null);
+      setOwnPendingApproval(false);
 
       const { data, error: qErr } = await supabase
         .from("institutions")
@@ -327,8 +364,14 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
 
       const r = (data as DbInstitutionRow | null) ?? null;
       if (!r) {
+        const ownPending = await isOwnPendingInstitutionProfile(slug);
+        if (cancelled) return;
         setRow(null);
-        setError("Kurum kaydı bulunamadı.");
+        if (ownPending) {
+          setOwnPendingApproval(true);
+        } else {
+          setError("Kurum kaydı bulunamadı.");
+        }
         setLoading(false);
         return;
       }
@@ -662,6 +705,9 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!row?.id || isOkulCategory) {
       setPublicExtraBranches([]);
+      setExtraBranchesLoadFailed(false);
+      setExtraBranchesChecking(false);
+      extraBranchesRetryLockRef.current = false;
       return;
     }
 
@@ -677,21 +723,29 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             mainCategorySlug: institutionCategorySlug,
           }),
         );
+        setExtraBranchesLoadFailed(false);
       } catch (err) {
         if (cancelled) return;
         if (isUnauthorizedSupabaseError(err)) {
           setPublicExtraBranches([]);
+          setExtraBranchesLoadFailed(false);
           return;
         }
         console.error("[institutions][detail][extra-branches][load-error]", err);
         setPublicExtraBranches([]);
+        setExtraBranchesLoadFailed(true);
+      } finally {
+        if (!cancelled) {
+          setExtraBranchesChecking(false);
+          extraBranchesRetryLockRef.current = false;
+        }
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [row?.id, institutionCategorySlug, isOkulCategory]);
+  }, [row?.id, institutionCategorySlug, isOkulCategory, extraBranchesRetryCount]);
 
   useEffect(() => {
     setLogoLoadFailed(false);
@@ -763,7 +817,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (!row?.id) {
       setPublicFeatureSections([]);
+      setHighlightItems([]);
       setAcademicLines([]);
+      setFeaturesLoadFailed(false);
+      setFeaturesChecking(false);
+      featuresRetryLockRef.current = false;
       return;
     }
 
@@ -814,6 +872,9 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         ) {
           setPublicFeatureSections([]);
           setAcademicLines([]);
+          setFeaturesLoadFailed(false);
+          setFeaturesChecking(false);
+          featuresRetryLockRef.current = false;
           return;
         }
 
@@ -825,6 +886,9 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         });
         setPublicFeatureSections([]);
         setAcademicLines([]);
+        setFeaturesLoadFailed(true);
+        setFeaturesChecking(false);
+        featuresRetryLockRef.current = false;
         return;
       }
 
@@ -866,14 +930,33 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         entryChoices,
         categorySlug: selectedCategorySlug,
       });
+      const highlightRows = await fetchInstitutionHighlightRowsClient(institutionId, supabase);
+      if (cancelled) return;
+      setHighlightItems(
+        resolvePublicHighlightItems({
+          rows: highlightRows,
+          definitions,
+          choices,
+          entries,
+          entryChoices,
+          entity: "institution",
+          minFiyat: row.min_fiyat,
+          maxFiyat: row.max_fiyat,
+          workingHoursStart: row.working_hours_start,
+          workingHoursEnd: row.working_hours_end,
+        }),
+      );
       setPublicFeatureSections(mapped.badgeSections);
       setAcademicLines(mapped.academicLines);
+      setFeaturesLoadFailed(false);
+      setFeaturesChecking(false);
+      featuresRetryLockRef.current = false;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [row?.id, institutionCategorySlug]);
+  }, [row?.id, institutionCategorySlug, featuresRetryCount]);
 
   const closeGalleryModal = useCallback(() => {
     setIsGalleryModalOpen(false);
@@ -904,6 +987,17 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       <div className="institution-detail-page">
         <div className="institution-detail-container">
           <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (ownPendingApproval) {
+    return (
+      <div className="institution-detail-page">
+        <div className="institution-detail-container">
+          <h1 className="institution-name">{OWN_PENDING_PROFILE_TITLE}</h1>
+          <p className="institution-description">{OWN_PENDING_PROFILE_MESSAGE}</p>
         </div>
       </div>
     );
@@ -1240,6 +1334,8 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           ) : null}
         </div>
 
+        <FeatureHighlightsPublicSection items={highlightItems} />
+
         {hasContactBar ? (
           <div className="institution-contact-bar">
             {address ? (
@@ -1320,14 +1416,14 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         <div className="institution-tabs-sticky">
           <div className="institution-tabs-list institution-nav-scroll" ref={tabsListRef}>
             {navTabs.map((tab) => {
-              const Icon =
+              const iconSrc =
                 tab.icon === "overview"
-                  ? BookOpen
-                  : tab.icon === "branches"
-                    ? Layers
-                    : tab.icon === "announcements"
-                      ? Megaphone
-                      : Sparkles;
+                  ? "/images/about.png"
+                  : tab.icon === "announcements"
+                    ? "/images/duyurular.png"
+                    : tab.icon === "feature"
+                      ? "/images/feature.png"
+                      : null;
               return (
                 <a
                   key={tab.id}
@@ -1336,7 +1432,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   className={`institution-tab-item${activeTab === tab.id ? " institution-tab-active" : ""}`}
                   onClick={(event) => handleAnchorTabClick(event, tab.id)}
                 >
-                  <Icon size={20} />
+                  {iconSrc ? (
+                    <img src={iconSrc} alt="" width={20} height={20} className="institution-tab-icon" />
+                  ) : (
+                    <Layers size={20} />
+                  )}
                   <span>{tab.label}</span>
                 </a>
               );
@@ -1363,7 +1463,21 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
           </section>
         ) : null}
 
-        {hasFeatureSections ? (
+        {featuresLoadFailed ? (
+          <section id="features" className="institution-section">
+            <h2 className="institution-section-title">Kurum Özellikleri</h2>
+            <HomeSectionLoadError
+              message="Kurum özellikleri yüklenemedi."
+              loading={featuresChecking}
+              onRetry={() => {
+                if (featuresRetryLockRef.current || featuresChecking) return;
+                featuresRetryLockRef.current = true;
+                setFeaturesChecking(true);
+                setFeaturesRetryCount((count) => count + 1);
+              }}
+            />
+          </section>
+        ) : hasFeatureSections ? (
         <section id="features" className="institution-section">
           <h2 className="institution-section-title">Kurum Özellikleri</h2>
           <div className="institution-feature-groups-grid">
@@ -1405,6 +1519,22 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             })}
           </div>
         </section>
+        ) : null}
+
+        {extraBranchesLoadFailed ? (
+          <section id="extra-branches" className="institution-section">
+            <h2 className="institution-section-title">Ek Branşlar</h2>
+            <HomeSectionLoadError
+              message="Ek branşlar yüklenemedi."
+              loading={extraBranchesChecking}
+              onRetry={() => {
+                if (extraBranchesRetryLockRef.current || extraBranchesChecking) return;
+                extraBranchesRetryLockRef.current = true;
+                setExtraBranchesChecking(true);
+                setExtraBranchesRetryCount((count) => count + 1);
+              }}
+            />
+          </section>
         ) : null}
 
         {showPublicExtraBranches ? (

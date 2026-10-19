@@ -465,9 +465,8 @@ export default function SearchResults({
                   categoryId: instructorCategoryFilter ? instructorCategoryId : undefined,
                   priceRange: priceFilterIsActive
                     ? {
-                        // Eğitmen overlap için eksik uçlar açık aralık; input state'ine yazılmaz.
-                        min: priceMin ?? 0,
-                        max: priceMax ?? Number.POSITIVE_INFINITY,
+                        min: priceMin,
+                        max: priceMax,
                       }
                     : undefined,
                   allowedInstructorIds: studentAgeInstructorIds,

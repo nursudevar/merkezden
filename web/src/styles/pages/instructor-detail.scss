@@ -1,4 +1,4 @@
-﻿@import '../colors';
+@import '../colors';
 @import '../mixins';
 @import '../typography';
 
@@ -28,6 +28,7 @@
 .instructor-info { @extend .institution-info; }
 .instructor-title-row { @extend .institution-title-row; }
 .instructor-name { @extend .institution-name; }
+.instructor-description { @extend .institution-description; }
 .instructor-meta { @extend .institution-meta; }
 .instructor-meta-item { @extend .institution-meta-item; }
 .instructor-meta-badge { @extend .institution-meta-badge; }
@@ -289,13 +290,77 @@
   scroll-margin-top: 88px;
 }
 
-@media (max-width: 1024px) {
-  .instructor-sidebar--mobile {
-    display: flex;
-    margin-bottom: 24px;
+.instructor-extra-branches-grid { @extend .institution-feature-groups-grid; }
+.instructor-extra-branch-card { @extend .institution-feature-group-card; }
+.instructor-extra-branch-card--full { @extend .institution-feature-group-card--full; }
+.instructor-extra-branch-card-title { @extend .institution-feature-group-card-title; }
+.instructor-extra-branch-card-list { @extend .institution-feature-group-card-list; }
+.instructor-extra-branch-card-list--two-columns { @extend .institution-feature-group-card-list--two-columns; }
+.instructor-extra-branch-card-list--four-columns { @extend .institution-feature-group-card-list--four-columns; }
+.instructor-extra-branch-card-item { @extend .institution-feature-group-card-item; }
+.instructor-extra-branch-card-check { @extend .institution-feature-group-card-check; }
+.instructor-extra-branch-card-text { @extend .institution-feature-group-card-text; }
+
+#instructor-extra-branches {
+  .instructor-section-title::before {
+    background: $orange-primary;
   }
 
-  .instructor-sidebar--desktop {
-    display: none;
+  .instructor-extra-branch-card-title {
+    color: $orange-primary;
+  }
+
+  .instructor-extra-branch-card-check {
+    color: $orange-primary;
+  }
+}
+
+.instructor-extra-branches-error {
+  margin: 0 0 16px;
+  color: $red-error;
+  font-size: $text-sm;
+  line-height: 1.45;
+}
+
+.instructor-detail-page {
+  .institution-top-gallery-media {
+    flex: 0 0 auto;
+  }
+}
+
+.instructor-profile-fact-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+}
+
+.instructor-profile-fact-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 5px 12px;
+  border: 1px solid rgba($purple-main, 0.22);
+  border-radius: 999px;
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-bold;
+  line-height: 1;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.institution-contact-bar-item--email {
+  flex: 1 1 200px;
+}
+
+@media (max-width: 640px) {
+  .institution-contact-bar-item--email {
+    flex: 1 1 auto;
+    width: 100%;
   }
 }

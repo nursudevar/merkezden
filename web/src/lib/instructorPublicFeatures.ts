@@ -1,9 +1,17 @@
 import {
+  compareInstructorDersSeviyesiOptions,
   getDisplayInstructorFeatureName,
+  INSTRUCTOR_DERS_SEVIYESI_LABEL,
   isInstructorBaslicaFeatureGroupName,
+  firstInstructorEgitmenProfiliLabel,
+  isInstructorDersSeviyesiBooleanOption,
+  isInstructorDersSeviyesiExcludedCategorySlug,
+  isInstructorEgitmenProfiliFeature,
   parseValidTimeHHMM,
+  projectInstructorDefinitionsWithGlobalEgitimDili,
   resolveInstructorBaslicaFeatureGroupForCategory,
   resolveInstructorFeatureGroupsForActiveCategory,
+  selectGlobalInstructorDersSeviyesiDefinitions,
   type InstructorFeatureGroupRow,
 } from "@/lib/instructorFeaturesClient";
 import {
@@ -13,6 +21,13 @@ import {
   isLegacyStudentAgeMultiSelectFeature,
   isStudentAgeRangeNumberFeature,
 } from "@/lib/studentAgeRangeFeature";
+import {
+  LESSON_DURATION_LABEL,
+  findLessonDurationRangeDefinitions,
+  formatLessonDurationDisplay,
+  isLegacyLessonDurationMultiSelectFeature,
+  isLessonDurationRangeNumberFeature,
+} from "@/lib/instructorLessonDurationFeature";
 
 export type InstructorPublicFeatureDefinition = {
   id: number;
@@ -151,9 +166,17 @@ export function mapPublicInstructorFeatures(args: {
   );
 
   const visibleGroupIds = new Set(groups.map((g) => g.id));
-  const visibleDefinitions = definitions.filter((d) => visibleGroupIds.has(d.group_id));
+  const visibleDefinitions = projectInstructorDefinitionsWithGlobalEgitimDili(
+    definitions,
+    groups,
+    rawGroups,
+  ).filter((d) => visibleGroupIds.has(d.group_id));
 
   const entriesByFeatureId = new Map(entries.map((e) => [e.feature_definition_id, e]));
+  const dersSeviyesiDefinitions = selectGlobalInstructorDersSeviyesiDefinitions(
+    definitions,
+    rawGroups,
+  ).sort(compareInstructorDersSeviyesiOptions);
   const choiceNameById = new Map<number, string>();
   const choiceOrderById = new Map<number, number>();
   choices.forEach((c) => {
@@ -201,6 +224,9 @@ export function mapPublicInstructorFeatures(args: {
 
     if (feature.input_type === "multi_select") {
       const labels = orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []);
+      if (isInstructorEgitmenProfiliFeature(feature)) {
+        return firstInstructorEgitmenProfiliLabel(labels);
+      }
       return labels.length > 0 ? labels : null;
     }
 
@@ -294,10 +320,75 @@ export function mapPublicInstructorFeatures(args: {
       }
     }
 
+    const dersSeviyesiLabels = dersSeviyesiDefinitions
+      .filter((feature) => entriesByFeatureId.get(feature.id)?.boolean_answer === true)
+      .map((feature) => getDisplayInstructorFeatureName(String(feature.name ?? "").trim()))
+      .filter(Boolean);
+    for (const feature of dersSeviyesiDefinitions) usedIds.add(feature.id);
+    const durationDefs = findLessonDurationRangeDefinitions(definitions);
+    if (durationDefs.min) usedIds.add(durationDefs.min.id);
+    if (durationDefs.max) usedIds.add(durationDefs.max.id);
+    if (isInstructorBaslicaFeatureGroupName(group.name) && durationDefs.min && durationDefs.max) {
+      const minEntry = entriesByFeatureId.get(durationDefs.min.id);
+      const maxEntry = entriesByFeatureId.get(durationDefs.max.id);
+      const minVal =
+        typeof minEntry?.number_answer === "number" && Number.isFinite(minEntry.number_answer)
+          ? minEntry.number_answer
+          : null;
+      const maxVal =
+        typeof maxEntry?.number_answer === "number" && Number.isFinite(maxEntry.number_answer)
+          ? maxEntry.number_answer
+          : null;
+      const durationValue = formatLessonDurationDisplay(minVal, maxVal);
+      if (durationValue) {
+        lines.push({
+          label: LESSON_DURATION_LABEL,
+          value: durationValue,
+        });
+        compareValues.push({
+          rowKey: "instructor-ders-suresi",
+          groupId,
+          groupTitle: BASLICA_GROUP_TITLE,
+          groupDisplayOrder: Number.isFinite(Number(group.display_order))
+            ? Number(group.display_order)
+            : 9999,
+          sortIndex: lines.length,
+          label: LESSON_DURATION_LABEL,
+          cell: { kind: "text", value: durationValue },
+        });
+      }
+    }
+
+    if (
+      dersSeviyesiLabels.length > 0 &&
+      isInstructorBaslicaFeatureGroupName(group.name) &&
+      !isInstructorDersSeviyesiExcludedCategorySlug(instructorCategorySlug)
+    ) {
+      const dersSeviyesiValue = dersSeviyesiLabels.join(", ");
+      lines.push({
+        label: INSTRUCTOR_DERS_SEVIYESI_LABEL,
+        value: dersSeviyesiValue,
+      });
+      compareValues.push({
+        rowKey: "instructor-ders-seviyesi",
+        groupId,
+        groupTitle: BASLICA_GROUP_TITLE,
+        groupDisplayOrder: Number.isFinite(Number(group.display_order))
+          ? Number(group.display_order)
+          : 9999,
+        sortIndex: lines.length,
+        label: INSTRUCTOR_DERS_SEVIYESI_LABEL,
+        cell: { kind: "text", value: dersSeviyesiValue },
+      });
+    }
+
     for (const feature of features) {
       if (usedIds.has(feature.id)) continue;
       if (isStudentAgeRangeNumberFeature(feature)) continue;
       if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
+      if (isInstructorDersSeviyesiBooleanOption(feature)) continue;
+      if (isLessonDurationRangeNumberFeature(feature)) continue;
+      if (isLegacyLessonDurationMultiSelectFeature(feature)) continue;
       const value = extractValue(feature);
       if (!value || (Array.isArray(value) && value.length === 0)) continue;
       const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
@@ -345,6 +436,9 @@ export function mapPublicInstructorFeatures(args: {
     for (const feature of features) {
       if (isStudentAgeRangeNumberFeature(feature)) continue;
       if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
+      if (isInstructorDersSeviyesiBooleanOption(feature)) continue;
+      if (isLessonDurationRangeNumberFeature(feature)) continue;
+      if (isLegacyLessonDurationMultiSelectFeature(feature)) continue;
       const entry = entriesByFeatureId.get(feature.id);
       if (!entry) continue;
       const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());
@@ -367,6 +461,7 @@ export function mapPublicInstructorFeatures(args: {
       }
 
       if (feature.input_type === "multi_select") {
+        if (isInstructorEgitmenProfiliFeature(feature)) continue;
         orderedChoiceLabels(choiceIdsByEntryId.get(entry.id) ?? []).forEach((choiceLabel) => {
           badges.push(choiceLabel);
         });
@@ -439,6 +534,9 @@ export function mapPublicInstructorFeatures(args: {
     for (const feature of features) {
       if (isStudentAgeRangeNumberFeature(feature)) continue;
       if (isLegacyStudentAgeMultiSelectFeature(feature)) continue;
+      if (isInstructorDersSeviyesiBooleanOption(feature)) continue;
+      if (isLessonDurationRangeNumberFeature(feature)) continue;
+      if (isLegacyLessonDurationMultiSelectFeature(feature)) continue;
       const value = extractValue(feature);
       if (!value || (Array.isArray(value) && value.length === 0)) continue;
       const label = getDisplayInstructorFeatureName(String(feature.name ?? "").trim());

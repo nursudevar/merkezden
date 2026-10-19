@@ -2,7 +2,6 @@
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INSTRUCTORS_TABLE, type InstructorProfileRow } from "@/lib/instructorProfileClient";
-import { institutionTimeToInputHHMM } from "@/lib/institutionHelpers";
 import {
   STUDENT_AGE_RANGE_LABEL,
   findStudentAgeRangeDefinitions,
@@ -13,6 +12,14 @@ import {
   parseStudentAgeDecimalInput,
   validateStudentAgeRangeValues,
 } from "@/lib/studentAgeRangeFeature";
+import {
+  LESSON_DURATION_LABEL,
+  findLessonDurationRangeDefinitions,
+  isLegacyLessonDurationMultiSelectFeature,
+  isLessonDurationRangeNumberFeature,
+  parseLessonDurationInput,
+  validateLessonDurationRangeValues,
+} from "@/lib/instructorLessonDurationFeature";
 
 export const INSTRUCTOR_FEATURE_ENTRIES_TABLE = "instructor_feature_entries" as const;
 export const INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE = "instructor_feature_entry_choices" as const;
@@ -96,6 +103,11 @@ export type InstructorFilterField =
     }
   | {
       kind: "student_age_range";
+      definitionId: number;
+      name: string;
+    }
+  | {
+      kind: "lesson_duration_range";
       definitionId: number;
       name: string;
     };
@@ -326,7 +338,29 @@ export function buildInstructorFilterFieldsForListingCategory(
   selectedCategorySlug: string | null | undefined,
 ): InstructorFilterField[] {
   const visibleGroups = filterInstructorFeatureGroupsForListingFilter(groups, selectedCategorySlug);
-  return buildInstructorFilterFieldsFromSchema(visibleGroups, definitions, choices);
+  const definitionsForFields = projectInstructorDefinitionsWithGlobalEgitimDili(
+    definitions,
+    visibleGroups,
+    groups,
+  );
+  return buildInstructorFilterFieldsFromSchema(
+    visibleGroups,
+    definitionsForFields,
+    choices,
+    groups,
+    {
+      includeEgitmenProfili: [
+        "surucu-kursu",
+        "ozel-egitim",
+        "kisisel-gelisim",
+        "yabanci-dil",
+        "spor",
+        "sanat",
+        "mesleki-egitim",
+        "kurs-sinava-hazirlik",
+      ].includes(String(selectedCategorySlug ?? "").trim().toLocaleLowerCase("tr-TR")),
+    },
+  );
 }
 
 function featureNormalizedKeys(feature: Pick<InstructorFeatureDefinitionRow, "name" | "slug">): string[] {
@@ -339,12 +373,13 @@ function featureNormalizedKeys(feature: Pick<InstructorFeatureDefinitionRow, "na
 export function isInstructorTimeTextFeature(
   feature: Pick<InstructorFeatureDefinitionRow, "name" | "slug">,
 ): boolean {
-  return featureNormalizedKeys(feature).some(
-    (key) =>
-      key.includes("musait_saat") ||
+  return featureNormalizedKeys(feature).some((key) => {
+    if (key.includes("musait_saat")) return false;
+    return (
       key.includes("available_time") ||
-      (key.includes("saat") && (key.includes("baslangic") || key.includes("bitis"))),
-  );
+      (key.includes("saat") && (key.includes("baslangic") || key.includes("bitis")))
+    );
+  });
 }
 
 export function isInstructorTimeStartFeature(
@@ -405,166 +440,6 @@ export function isInstructorPriceRangeFeature(
     if (key.includes("patili_dostlar_fiyat")) return true;
     return false;
   });
-}
-
-export const INSTRUCTOR_PRICE_RANGE_FEATURE_SLUG = "fiyat_araligi";
-
-export function formatInstructorPriceRangeDisplay(labels: string | string[]): string {
-  const list = (Array.isArray(labels) ? labels : [String(labels ?? "")])
-    .map((label) => String(label ?? "").trim())
-    .filter(Boolean);
-  const unique = [...new Set(list)];
-  if (unique.length === 0) return "Fiyat belirtilmedi";
-  const joined = unique.join(", ");
-  if (/\btl\b/i.test(joined) || joined.includes("₺")) return joined;
-  return `${joined} TL`;
-}
-
-let cachedInstructorPriceRangeDefinitionId: number | null | undefined;
-let cachedInstructorPriceRangeDefinitionIds: number[] | undefined;
-
-export async function fetchInstructorPriceRangeDefinitionIdClient(
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<number | null> {
-  const ids = await fetchInstructorPriceRangeDefinitionIdsClient(supabaseArg);
-  return ids[0] ?? null;
-}
-
-/** Tüm fiyat-aralığı definition id'leri (global + category-specific). */
-export async function fetchInstructorPriceRangeDefinitionIdsClient(
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<number[]> {
-  if (cachedInstructorPriceRangeDefinitionIds !== undefined) {
-    return cachedInstructorPriceRangeDefinitionIds;
-  }
-
-  const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const { data: allDefs, error: allErr } = await supabase
-    .from("instructor_feature_definitions")
-    .select("id, slug, name");
-
-  if (allErr) {
-    cachedInstructorPriceRangeDefinitionId = null;
-    cachedInstructorPriceRangeDefinitionIds = [];
-    return [];
-  }
-
-  const matches = (allDefs ?? []).filter((row) =>
-    isInstructorPriceRangeFeature(row as InstructorFeatureDefinitionRow),
-  );
-
-  const ids: number[] = [];
-  const seen = new Set<number>();
-  // Önce klasik slug, sonra diğer eşleşmeler (Patili vb.).
-  const preferred = matches.find(
-    (row) =>
-      normalizeInstructorFeatureText(String(row.slug ?? "")) === INSTRUCTOR_PRICE_RANGE_FEATURE_SLUG,
-  );
-  if (preferred) {
-    const id = Number(preferred.id);
-    if (Number.isFinite(id) && id > 0) {
-      ids.push(id);
-      seen.add(id);
-    }
-  }
-  for (const row of matches) {
-    const id = Number(row.id);
-    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
-    ids.push(id);
-    seen.add(id);
-  }
-
-  cachedInstructorPriceRangeDefinitionIds = ids;
-  cachedInstructorPriceRangeDefinitionId = ids[0] ?? null;
-  return ids;
-}
-
-export async function fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-  instructorIds: number[],
-  supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
-): Promise<Map<number, string>> {
-  const result = new Map<number, string>();
-  const uniqueIds = [
-    ...new Set(instructorIds.filter((id) => Number.isFinite(id) && id > 0)),
-  ];
-  if (uniqueIds.length === 0) return result;
-
-  const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const definitionIds = await fetchInstructorPriceRangeDefinitionIdsClient(supabase);
-  if (definitionIds.length === 0) return result;
-
-  const { data: entriesRaw, error: entriesError } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("id, instructor_id")
-    .in("feature_definition_id", definitionIds)
-    .in("instructor_id", uniqueIds);
-
-  if (entriesError || !entriesRaw?.length) return result;
-
-  const entryIdToInstructorId = new Map<number, number>();
-  for (const entry of entriesRaw as Array<{ id: number; instructor_id: number }>) {
-    const entryId = Number(entry.id);
-    const instructorId = Number(entry.instructor_id);
-    if (Number.isFinite(entryId) && Number.isFinite(instructorId)) {
-      entryIdToInstructorId.set(entryId, instructorId);
-    }
-  }
-
-  const entryIds = Array.from(entryIdToInstructorId.keys());
-  if (entryIds.length === 0) return result;
-
-  const { data: linksRaw, error: linksError } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
-    .select("instructor_feature_entry_id, choice_id")
-    .in("instructor_feature_entry_id", entryIds);
-
-  if (linksError || !linksRaw?.length) return result;
-
-  const choiceIds = [
-    ...new Set(
-      (linksRaw as Array<{ choice_id: number }>)
-        .map((row) => Number(row.choice_id))
-        .filter((id) => Number.isFinite(id)),
-    ),
-  ];
-  if (choiceIds.length === 0) return result;
-
-  const { data: choicesRaw, error: choicesError } = await supabase
-    .from("instructor_feature_choices")
-    .select("id, name, display_order")
-    .in("id", choiceIds)
-    .eq("is_active", true);
-
-  if (choicesError) return result;
-
-  const choiceNameById = new Map<number, string>();
-  for (const choice of (choicesRaw ?? []) as Array<{
-    id: number;
-    name?: string | null;
-  }>) {
-    const choiceId = Number(choice.id);
-    const name = String(choice.name ?? "").trim();
-    if (Number.isFinite(choiceId) && name) choiceNameById.set(choiceId, name);
-  }
-
-  const labelsByInstructorId = new Map<number, string[]>();
-  for (const link of linksRaw as Array<{
-    instructor_feature_entry_id: number;
-    choice_id: number;
-  }>) {
-    const instructorId = entryIdToInstructorId.get(Number(link.instructor_feature_entry_id));
-    const label = choiceNameById.get(Number(link.choice_id));
-    if (!instructorId || !label) continue;
-    const existing = labelsByInstructorId.get(instructorId) ?? [];
-    existing.push(label);
-    labelsByInstructorId.set(instructorId, existing);
-  }
-
-  for (const [instructorId, labels] of labelsByInstructorId) {
-    result.set(instructorId, formatInstructorPriceRangeDisplay(labels));
-  }
-
-  return result;
 }
 
 export function parseValidTimeHHMM(raw: string): string | null {
@@ -646,6 +521,20 @@ export function validateInstructorFeatureForm(
     if (ageError) return ageError;
   }
 
+  const durationDefs = findLessonDurationRangeDefinitions(definitions);
+  if (
+    durationDefs.min &&
+    durationDefs.max &&
+    saveSet.has(durationDefs.min.id) &&
+    saveSet.has(durationDefs.max.id)
+  ) {
+    const durationError = validateLessonDurationRangeValues(
+      form.numberValues[durationDefs.min.id] ?? "",
+      form.numberValues[durationDefs.max.id] ?? "",
+    );
+    if (durationError) return durationError;
+  }
+
   const startFeature = definitions.find(
     (f) => saveSet.has(f.id) && f.input_type === "text" && isInstructorTimeStartFeature(f),
   );
@@ -682,18 +571,11 @@ export type FeatureMappingGroupRow = {
   category_slug: string | null;
 };
 
-type DirectInstructorFeatureKey =
-  | "lesson_type"
-  | "service_type"
-  | "education_level"
-  | "working_hours";
+type DirectInstructorFeatureKey = "lesson_type" | "service_type";
 
 type DirectInstructorFeaturePatch = {
   lesson_type?: string | null;
   service_type?: string | null;
-  education_level?: string | null;
-  working_hours_start?: string | null;
-  working_hours_end?: string | null;
   category_id?: number;
 };
 
@@ -716,6 +598,567 @@ function normalizeInstructorFeatureText(value: string): string {
     .replace(/ç/g, "c")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+export const INSTRUCTOR_HIZMET_YERI_LABEL = "Hizmet Yeri";
+
+const INSTRUCTOR_HIZMET_YERI_OPTION_ORDER = [
+  "ogretmenin_evi",
+  "ogrencinin_evi",
+  "diger_uygulama_yeri",
+] as const;
+
+export function instructorHizmetYeriOptionKey(
+  feature: { name?: string | null; slug?: string | null },
+): (typeof INSTRUCTOR_HIZMET_YERI_OPTION_ORDER)[number] | null {
+  const keys = [
+    normalizeInstructorFeatureText(String(feature.slug ?? "")),
+    normalizeInstructorFeatureText(String(feature.name ?? "")),
+  ].filter(Boolean);
+  for (const key of keys) {
+    if ((INSTRUCTOR_HIZMET_YERI_OPTION_ORDER as readonly string[]).includes(key)) {
+      return key as (typeof INSTRUCTOR_HIZMET_YERI_OPTION_ORDER)[number];
+    }
+  }
+  return null;
+}
+
+export function isInstructorHizmetYeriBooleanOption(feature: {
+  name?: string | null;
+  slug?: string | null;
+  input_type?: string | null;
+}): boolean {
+  const inputType = String(feature.input_type ?? "").trim().toLowerCase();
+  if (inputType && inputType !== "boolean") return false;
+  return instructorHizmetYeriOptionKey(feature) != null;
+}
+
+export function isInstructorHizmetYeriFeatureName(
+  name: string | null | undefined,
+  slug?: string | null,
+): boolean {
+  const keys = [
+    normalizeInstructorFeatureText(String(name ?? "")),
+    normalizeInstructorFeatureText(String(slug ?? "")),
+  ].filter(Boolean);
+  return keys.some((key) => key === "hizmet_yeri" || key.endsWith("_hizmet_yeri"));
+}
+
+export const INSTRUCTOR_DERS_SEVIYESI_LABEL = "Ders Seviyesi";
+
+const INSTRUCTOR_DERS_SEVIYESI_OPTION_ORDER = ["baslangic", "orta", "ileri"] as const;
+
+export function instructorDersSeviyesiOptionKey(
+  feature: { name?: string | null; slug?: string | null },
+): (typeof INSTRUCTOR_DERS_SEVIYESI_OPTION_ORDER)[number] | null {
+  const keys = [
+    normalizeInstructorFeatureText(String(feature.slug ?? "")),
+    normalizeInstructorFeatureText(String(feature.name ?? "")),
+  ].filter(Boolean);
+  for (const key of keys) {
+    if ((INSTRUCTOR_DERS_SEVIYESI_OPTION_ORDER as readonly string[]).includes(key)) {
+      return key as (typeof INSTRUCTOR_DERS_SEVIYESI_OPTION_ORDER)[number];
+    }
+  }
+  return null;
+}
+
+export function isInstructorDersSeviyesiBooleanOption(feature: {
+  name?: string | null;
+  slug?: string | null;
+  input_type?: string | null;
+}): boolean {
+  const inputType = String(feature.input_type ?? "").trim().toLowerCase();
+  if (inputType && inputType !== "boolean") return false;
+  return instructorDersSeviyesiOptionKey(feature) != null;
+}
+
+/** Global Ders Seviyesi bu instructor kategorisinde uygulanmaz. Tanımlar silinmez. */
+export function isInstructorDersSeviyesiExcludedCategorySlug(
+  slug: string | null | undefined,
+): boolean {
+  return normalizeInstructorGroupCategorySlug(slug) === "ozel-egitim";
+}
+
+export const INSTRUCTOR_EGITMEN_PROFILI_LABEL = "Eğitmen Profili";
+
+const INSTRUCTOR_EGITMEN_PROFILI_SLUG_KEY = "egitmen_profili";
+
+const INSTRUCTOR_EGITMEN_PROFILI_CHOICE_ORDER = [
+  "akademik",
+  "ogrenci",
+  "uzman",
+  "lisans",
+  "profesyonel",
+  "yuksek_lisans",
+] as const;
+
+export function isInstructorEgitmenProfiliFeature(feature: {
+  name?: string | null;
+  slug?: string | null;
+}): boolean {
+  return (
+    normalizeInstructorFeatureText(String(feature.slug ?? "")) === INSTRUCTOR_EGITMEN_PROFILI_SLUG_KEY
+  );
+}
+
+export function instructorEgitmenProfiliChoiceKey(
+  name: string | null | undefined,
+): (typeof INSTRUCTOR_EGITMEN_PROFILI_CHOICE_ORDER)[number] | null {
+  const key = normalizeInstructorFeatureText(String(name ?? ""));
+  if ((INSTRUCTOR_EGITMEN_PROFILI_CHOICE_ORDER as readonly string[]).includes(key)) {
+    return key as (typeof INSTRUCTOR_EGITMEN_PROFILI_CHOICE_ORDER)[number];
+  }
+  return null;
+}
+
+export function compareInstructorEgitmenProfiliChoices<T extends { name?: string | null }>(
+  a: T,
+  b: T,
+): number {
+  const rank = (item: T) => {
+    const key = instructorEgitmenProfiliChoiceKey(item.name);
+    if (!key) return INSTRUCTOR_EGITMEN_PROFILI_CHOICE_ORDER.length;
+    return INSTRUCTOR_EGITMEN_PROFILI_CHOICE_ORDER.indexOf(key);
+  };
+  return rank(a) - rank(b);
+}
+
+/** Bozuk çoklu kayıtta gösterilecek tek choice. Kanonik sıra, yoksa en küçük id. */
+export function resolveInstructorEgitmenProfiliSelectedChoiceId(
+  featureId: number,
+  selectedChoiceIds: string[],
+  choices: InstructorFeatureChoiceLike[],
+): string {
+  const selected = new Set(selectedChoiceIds.map((choiceId) => String(choiceId).trim()).filter(Boolean));
+  const matching = choices
+    .filter(
+      (choice) =>
+        choice.feature_definition_id === featureId &&
+        choice.is_active !== false &&
+        selected.has(String(choice.id)),
+    )
+    .sort(compareInstructorEgitmenProfiliChoices);
+  const canonical = matching.find((choice) => instructorEgitmenProfiliChoiceKey(choice.name));
+  if (canonical) return String(canonical.id);
+  const numericIds = [...selected]
+    .map((choiceId) => Number(choiceId))
+    .filter((choiceId) => Number.isFinite(choiceId) && choiceId > 0)
+    .sort((a, b) => a - b);
+  return numericIds.length > 0 ? String(numericIds[0]) : "";
+}
+
+export function firstInstructorEgitmenProfiliLabel(labels: string[]): string | null {
+  const ranked = labels
+    .map((label) => label.trim())
+    .filter(Boolean)
+    .sort((a, b) => compareInstructorEgitmenProfiliChoices({ name: a }, { name: b }));
+  return ranked[0] ?? null;
+}
+
+/** Admin onay ekranı: eğitmen başına tek Eğitmen Profili choice etiketi. */
+export async function fetchInstructorEgitmenProfiliLabelsByInstructorIds(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  instructorIds: number[],
+): Promise<Map<number, string>> {
+  const ids = [...new Set(instructorIds.filter((id) => Number.isFinite(id) && id > 0))];
+  const labelsByInstructorId = new Map<number, string>();
+  if (ids.length === 0) return labelsByInstructorId;
+
+  const { data: definitionRows, error: definitionError } = await supabase
+    .from("instructor_feature_definitions")
+    .select("id, name, slug, input_type, group_id")
+    .eq("slug", "egitmen-profili")
+    .eq("is_active", true);
+  if (definitionError || !definitionRows?.length) return labelsByInstructorId;
+
+  const candidates = (
+    definitionRows as Array<{
+      id: number;
+      name?: string | null;
+      slug?: string | null;
+      input_type?: string | null;
+      group_id: number | null;
+    }>
+  ).filter(
+    (row) =>
+      isInstructorEgitmenProfiliFeature(row) &&
+      String(row.input_type ?? "").trim().toLowerCase() === "multi_select",
+  );
+  if (candidates.length === 0) return labelsByInstructorId;
+
+  let definition = candidates[0];
+  if (candidates.length > 1) {
+    const groupIds = candidates
+      .map((row) => Number(row.group_id))
+      .filter((groupId) => Number.isFinite(groupId) && groupId > 0);
+    const { data: groupRows } = await supabase
+      .from("instructor_feature_groups")
+      .select("id, name, category_slug")
+      .in("id", groupIds);
+    const resolved = resolveInstructorGlobalBaslicaDefinition(
+      candidates,
+      (groupRows ?? []) as Array<{ id: number; name?: string | null; category_slug?: string | null }>,
+      INSTRUCTOR_EGITMEN_PROFILI_SLUG_KEY,
+      "multi_select",
+    );
+    if (resolved) definition = resolved;
+  }
+
+  const definitionId = Number(definition.id);
+  if (!Number.isFinite(definitionId) || definitionId <= 0) return labelsByInstructorId;
+
+  const { data: choiceRows, error: choiceError } = await supabase
+    .from("instructor_feature_choices")
+    .select("id, name")
+    .eq("feature_definition_id", definitionId)
+    .eq("is_active", true);
+  if (choiceError) return labelsByInstructorId;
+
+  const choiceNameById = new Map<number, string>();
+  for (const choice of (choiceRows ?? []) as Array<{ id: number; name?: string | null }>) {
+    const name = String(choice.name ?? "").trim();
+    const choiceId = Number(choice.id);
+    if (name && Number.isFinite(choiceId)) choiceNameById.set(choiceId, name);
+  }
+
+  const { data: entryRows, error: entryError } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+    .select("id, instructor_id")
+    .eq("feature_definition_id", definitionId)
+    .in("instructor_id", ids);
+  if (entryError || !entryRows?.length) return labelsByInstructorId;
+
+  const entryIdToInstructorId = new Map<number, number>();
+  for (const entry of entryRows as Array<{ id: number; instructor_id: number }>) {
+    const entryId = Number(entry.id);
+    const instructorId = Number(entry.instructor_id);
+    if (Number.isFinite(entryId) && Number.isFinite(instructorId)) {
+      entryIdToInstructorId.set(entryId, instructorId);
+    }
+  }
+  const entryIds = [...entryIdToInstructorId.keys()];
+  if (entryIds.length === 0) return labelsByInstructorId;
+
+  const { data: linkRows, error: linkError } = await supabase
+    .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
+    .select("instructor_feature_entry_id, choice_id")
+    .in("instructor_feature_entry_id", entryIds);
+  if (linkError) return labelsByInstructorId;
+
+  const collected = new Map<number, string[]>();
+  for (const link of (linkRows ?? []) as Array<{
+    instructor_feature_entry_id: number;
+    choice_id: number;
+  }>) {
+    const instructorId = entryIdToInstructorId.get(Number(link.instructor_feature_entry_id));
+    const label = choiceNameById.get(Number(link.choice_id));
+    if (!instructorId || !label) continue;
+    const current = collected.get(instructorId) ?? [];
+    current.push(label);
+    collected.set(instructorId, current);
+  }
+
+  for (const [instructorId, labels] of collected) {
+    const label = firstInstructorEgitmenProfiliLabel(labels);
+    if (label) labelsByInstructorId.set(instructorId, label);
+  }
+  return labelsByInstructorId;
+}
+
+export function compareInstructorDersSeviyesiOptions<
+  T extends { name?: string | null; slug?: string | null },
+>(a: T, b: T): number {
+  const rank = (item: T) => {
+    const key = instructorDersSeviyesiOptionKey(item);
+    if (!key) return INSTRUCTOR_DERS_SEVIYESI_OPTION_ORDER.length;
+    return INSTRUCTOR_DERS_SEVIYESI_OPTION_ORDER.indexOf(key);
+  };
+  return rank(a) - rank(b);
+}
+
+/** Global Başlıca altındaki Başlangıç / Orta / İleri boolean tanımları. */
+export function selectGlobalInstructorDersSeviyesiDefinitions<
+  T extends {
+    id: number;
+    group_id: number | null;
+    name?: string | null;
+    slug?: string | null;
+    input_type?: string | null;
+  },
+>(
+  definitions: T[],
+  groups: Array<{ id: number; name?: string | null; category_slug?: string | null }>,
+): T[] {
+  const globalBaslicaIds = new Set(
+    groups
+      .filter(
+        (group) =>
+          isInstructorBaslicaFeatureGroupName(group.name) &&
+          normalizeInstructorGroupCategorySlug(group.category_slug).length === 0,
+      )
+      .map((group) => Number(group.id)),
+  );
+  return definitions
+    .filter(
+      (definition) =>
+        isInstructorDersSeviyesiBooleanOption(definition) &&
+        globalBaslicaIds.has(Number(definition.group_id)),
+    )
+    .sort(compareInstructorDersSeviyesiOptions);
+}
+
+export function compareInstructorHizmetYeriOptions<
+  T extends { name?: string | null; slug?: string | null },
+>(a: T, b: T): number {
+  const rank = (item: T) => {
+    const key = instructorHizmetYeriOptionKey(item);
+    if (!key) return INSTRUCTOR_HIZMET_YERI_OPTION_ORDER.length;
+    return INSTRUCTOR_HIZMET_YERI_OPTION_ORDER.indexOf(key);
+  };
+  return rank(a) - rank(b);
+}
+
+export function resolveInstructorHizmetYeriBooleanDefinitionId(
+  definitions: Array<
+    Pick<InstructorRealFeatureDefinitionRow, "id" | "name" | "slug" | "input_type" | "group_id">
+  >,
+  groups: Array<Pick<FeatureMappingGroupRow, "id" | "category_slug">>,
+  optionName: string,
+  categorySlug: string | null | undefined,
+): number | null {
+  const optionKey = instructorHizmetYeriOptionKey({ name: optionName, slug: null });
+  if (!optionKey) return null;
+
+  const groupCategoryById = new Map<number, string>();
+  for (const group of groups) {
+    groupCategoryById.set(
+      Number(group.id),
+      normalizeInstructorGroupCategorySlug(group.category_slug),
+    );
+  }
+
+  const matches = definitions.filter(
+    (definition) =>
+      isInstructorHizmetYeriBooleanOption(definition) &&
+      instructorHizmetYeriOptionKey(definition) === optionKey,
+  );
+  const wantedCategory = normalizeInstructorGroupCategorySlug(categorySlug);
+  if (wantedCategory) {
+    const categoryMatch = matches.find(
+      (definition) => groupCategoryById.get(Number(definition.group_id)) === wantedCategory,
+    );
+    if (categoryMatch && Number.isFinite(Number(categoryMatch.id))) return Number(categoryMatch.id);
+  }
+
+  const globalMatch = matches.find(
+    (definition) => (groupCategoryById.get(Number(definition.group_id)) ?? "").length === 0,
+  );
+  return globalMatch && Number.isFinite(Number(globalMatch.id)) ? Number(globalMatch.id) : null;
+}
+
+const INSTRUCTOR_GLOBAL_EGITIM_DILI_SLUG_KEY = "egitim_dili";
+
+export function isInstructorEgitimDiliFeature(feature: {
+  name?: string | null;
+  slug?: string | null;
+}): boolean {
+  const slugKey = normalizeInstructorFeatureText(String(feature.slug ?? ""));
+  const nameKey = normalizeInstructorFeatureText(String(feature.name ?? ""));
+  if (slugKey === INSTRUCTOR_GLOBAL_EGITIM_DILI_SLUG_KEY) return true;
+  if (slugKey.endsWith(`_${INSTRUCTOR_GLOBAL_EGITIM_DILI_SLUG_KEY}`)) return true;
+  return nameKey === INSTRUCTOR_GLOBAL_EGITIM_DILI_SLUG_KEY;
+}
+
+export function resolveInstructorGlobalEgitimDiliDefinition<
+  T extends {
+    id: number;
+    group_id: number | null;
+    slug?: string | null;
+    input_type?: string | null;
+  },
+>(
+  definitions: T[],
+  groups: Array<{ id: number; category_slug?: string | null }>,
+): T | null {
+  const groupCategoryById = new Map<number, string>();
+  for (const group of groups) {
+    groupCategoryById.set(
+      Number(group.id),
+      normalizeInstructorGroupCategorySlug(group.category_slug),
+    );
+  }
+
+  return (
+    definitions.find((definition) => {
+      const slugKey = normalizeInstructorFeatureText(String(definition.slug ?? ""));
+      if (slugKey !== INSTRUCTOR_GLOBAL_EGITIM_DILI_SLUG_KEY) return false;
+      const inputType = String(definition.input_type ?? "").trim().toLowerCase();
+      if (inputType && inputType !== "multi_select") return false;
+      return groupCategoryById.get(Number(definition.group_id)) === "";
+    }) ?? null
+  );
+}
+
+const INSTRUCTOR_GLOBAL_HIZMET_TIPI_SLUG_KEY = "hizmet_tipi";
+const INSTRUCTOR_GLOBAL_DENEME_DERSI_SLUG_KEY = "ucretsiz_deneme_dersi";
+
+export function isInstructorHizmetTipiFeature(feature: {
+  name?: string | null;
+  slug?: string | null;
+}): boolean {
+  const slugKey = normalizeInstructorFeatureText(String(feature.slug ?? ""));
+  const nameKey = normalizeInstructorFeatureText(String(feature.name ?? ""));
+  if (slugKey === INSTRUCTOR_GLOBAL_HIZMET_TIPI_SLUG_KEY) return true;
+  if (slugKey.endsWith(`_${INSTRUCTOR_GLOBAL_HIZMET_TIPI_SLUG_KEY}`)) return true;
+  return nameKey === INSTRUCTOR_GLOBAL_HIZMET_TIPI_SLUG_KEY;
+}
+
+export function isInstructorDenemeDersiFeature(feature: {
+  name?: string | null;
+  slug?: string | null;
+}): boolean {
+  const slugKey = normalizeInstructorFeatureText(String(feature.slug ?? ""));
+  const nameKey = normalizeInstructorFeatureText(String(feature.name ?? ""));
+  if (slugKey === INSTRUCTOR_GLOBAL_DENEME_DERSI_SLUG_KEY) return true;
+  if (slugKey.endsWith(`_${INSTRUCTOR_GLOBAL_DENEME_DERSI_SLUG_KEY}`)) return true;
+  return nameKey === INSTRUCTOR_GLOBAL_DENEME_DERSI_SLUG_KEY;
+}
+
+function resolveInstructorGlobalBaslicaDefinition<
+  T extends {
+    id: number;
+    group_id: number | null;
+    slug?: string | null;
+    input_type?: string | null;
+  },
+>(
+  definitions: T[],
+  groups: Array<{ id: number; category_slug?: string | null }>,
+  slugKey: string,
+  inputType: string,
+): T | null {
+  const groupCategoryById = new Map<number, string>();
+  for (const group of groups) {
+    groupCategoryById.set(
+      Number(group.id),
+      normalizeInstructorGroupCategorySlug(group.category_slug),
+    );
+  }
+
+  return (
+    definitions.find((definition) => {
+      if (normalizeInstructorFeatureText(String(definition.slug ?? "")) !== slugKey) return false;
+      const definitionInputType = String(definition.input_type ?? "").trim().toLowerCase();
+      if (definitionInputType && definitionInputType !== inputType) return false;
+      return groupCategoryById.get(Number(definition.group_id)) === "";
+    }) ?? null
+  );
+}
+
+export function resolveInstructorGlobalHizmetTipiDefinition<
+  T extends {
+    id: number;
+    group_id: number | null;
+    slug?: string | null;
+    input_type?: string | null;
+  },
+>(
+  definitions: T[],
+  groups: Array<{ id: number; category_slug?: string | null }>,
+): T | null {
+  return resolveInstructorGlobalBaslicaDefinition(
+    definitions,
+    groups,
+    INSTRUCTOR_GLOBAL_HIZMET_TIPI_SLUG_KEY,
+    "multi_select",
+  );
+}
+
+export function resolveInstructorGlobalDenemeDersiDefinition<
+  T extends {
+    id: number;
+    group_id: number | null;
+    slug?: string | null;
+    input_type?: string | null;
+  },
+>(
+  definitions: T[],
+  groups: Array<{ id: number; category_slug?: string | null }>,
+): T | null {
+  return resolveInstructorGlobalBaslicaDefinition(
+    definitions,
+    groups,
+    INSTRUCTOR_GLOBAL_DENEME_DERSI_SLUG_KEY,
+    "boolean",
+  );
+}
+
+/**
+ * Eğitim Dili kategori kopyaları elenir; tek kaynak global tanımdır.
+ * Global Başlıca grubu gizlendiğinde (Patili) o gruptaki tanımlar, kimlikleri
+ * değişmeden görünen Başlıca grubunun içine alınır.
+ */
+export function projectInstructorDefinitionsWithGlobalEgitimDili<
+  T extends {
+    id: number;
+    group_id: number | null;
+    name?: string | null;
+    slug?: string | null;
+    input_type?: string | null;
+  },
+>(
+  definitions: T[],
+  visibleGroups: Array<{ id: number; name?: string | null }>,
+  allGroups: Array<{ id: number; name?: string | null; category_slug?: string | null }>,
+): T[] {
+  const globalEgitimDili = resolveInstructorGlobalEgitimDiliDefinition(definitions, allGroups);
+  const globalHizmetTipi = resolveInstructorGlobalHizmetTipiDefinition(definitions, allGroups);
+  const globalDenemeDersi = resolveInstructorGlobalDenemeDersiDefinition(definitions, allGroups);
+  const globalEgitmenProfili = resolveInstructorGlobalBaslicaDefinition(
+    definitions,
+    allGroups,
+    INSTRUCTOR_EGITMEN_PROFILI_SLUG_KEY,
+    "multi_select",
+  );
+  const withoutCategorySpecific = definitions.filter((definition) => {
+    if (isInstructorEgitmenProfiliFeature(definition)) {
+      return globalEgitmenProfili != null && definition.id === globalEgitmenProfili.id;
+    }
+    if (isInstructorEgitimDiliFeature(definition)) {
+      return globalEgitimDili != null && definition.id === globalEgitimDili.id;
+    }
+    if (isInstructorHizmetTipiFeature(definition)) {
+      return globalHizmetTipi != null && definition.id === globalHizmetTipi.id;
+    }
+    if (isInstructorDenemeDersiFeature(definition)) {
+      return globalDenemeDersi != null && definition.id === globalDenemeDersi.id;
+    }
+    return true;
+  });
+
+  const globalBaslicaIds = new Set(
+    allGroups
+      .filter(
+        (group) =>
+          isInstructorBaslicaFeatureGroupName(group.name) &&
+          normalizeInstructorGroupCategorySlug(group.category_slug).length === 0,
+      )
+      .map((group) => Number(group.id)),
+  );
+  const visibleGroupIds = new Set(visibleGroups.map((group) => Number(group.id)));
+  if ([...globalBaslicaIds].some((groupId) => visibleGroupIds.has(groupId))) {
+    return withoutCategorySpecific;
+  }
+
+  const baslica = visibleGroups.find((group) => isInstructorBaslicaFeatureGroupName(group.name));
+  if (!baslica || globalBaslicaIds.size === 0) return withoutCategorySpecific;
+
+  return withoutCategorySpecific.map((definition) =>
+    globalBaslicaIds.has(Number(definition.group_id))
+      ? { ...definition, group_id: baslica.id }
+      : definition,
+  );
 }
 
 function resolveDirectInstructorFeatureKey(
@@ -748,21 +1191,6 @@ function resolveDirectInstructorFeatureKey(
     )
   ) {
     return "service_type";
-  }
-  if (candidates.some((key) => key.includes("education_level") || key === "egitim_seviyesi")) {
-    return "education_level";
-  }
-  if (
-    candidates.some(
-      (key) =>
-        key.includes("working_hours") ||
-        key === "okul_saatleri" ||
-        key === "calisma_saatleri" ||
-        key === "egitim_saatleri" ||
-        key === "saat",
-    )
-  ) {
-    return "working_hours";
   }
   return null;
 }
@@ -816,31 +1244,6 @@ function getFeatureValueAsText(
   return "";
 }
 
-function parseWorkingHoursFeatureValue(value: string): {
-  working_hours_start: string | null;
-  working_hours_end: string | null;
-} {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return { working_hours_start: null, working_hours_end: null };
-  }
-
-  const match = trimmed.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
-  if (!match) {
-    return { working_hours_start: null, working_hours_end: null };
-  }
-
-  const normalizeTime = (raw: string) => {
-    const [hour, minute] = raw.split(":");
-    return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
-  };
-
-  return {
-    working_hours_start: normalizeTime(match[1]),
-    working_hours_end: normalizeTime(match[2]),
-  };
-}
-
 export function buildInstructorDirectFeatureUpdatePayload(
   definitions: InstructorFeatureDefinitionRow[],
   choices: InstructorFeatureChoiceLike[],
@@ -856,21 +1259,6 @@ export function buildInstructorDirectFeatureUpdatePayload(
     if (!directKey) continue;
 
     const value = getFeatureValueAsText(feature, form, choices);
-    if (directKey === "working_hours") {
-      const parsed = parseWorkingHoursFeatureValue(value);
-      if (value && !parsed.working_hours_start && !parsed.working_hours_end) {
-        console.warn("[instructor-features] okul saatleri değeri parse edilemedi, atlanıyor:", {
-          featureId: feature.id,
-          featureName: feature.name,
-          value,
-        });
-        continue;
-      }
-      patch.working_hours_start = parsed.working_hours_start;
-      patch.working_hours_end = parsed.working_hours_end;
-      continue;
-    }
-
     patch[directKey] = value || null;
   }
 
@@ -881,10 +1269,7 @@ export function mergeInstructorDirectFeatureValuesIntoForm(
   definitions: InstructorFeatureDefinitionRow[],
   choices: InstructorFeatureChoiceLike[],
   baseForm: InstructorFeatureFormState,
-  instructorRow: Pick<
-    InstructorProfileRow,
-    "lesson_type" | "service_type" | "education_level" | "working_hours_start" | "working_hours_end"
-  >,
+  instructorRow: Pick<InstructorProfileRow, "lesson_type" | "service_type">,
 ): InstructorFeatureFormState {
   const next: InstructorFeatureFormState = {
     booleanValues: { ...baseForm.booleanValues },
@@ -895,18 +1280,10 @@ export function mergeInstructorDirectFeatureValuesIntoForm(
     multiSelectValues: { ...baseForm.multiSelectValues },
   };
 
-  const directValues: Record<Exclude<DirectInstructorFeatureKey, "working_hours">, string> = {
+  const directValues: Record<DirectInstructorFeatureKey, string> = {
     lesson_type: String(instructorRow.lesson_type ?? "").trim(),
     service_type: String(instructorRow.service_type ?? "").trim(),
-    education_level: String(instructorRow.education_level ?? "").trim(),
   };
-
-  const workingHoursRange =
-    instructorRow.working_hours_start && instructorRow.working_hours_end
-      ? `${institutionTimeToInputHHMM(instructorRow.working_hours_start)} - ${institutionTimeToInputHHMM(
-          instructorRow.working_hours_end,
-        )}`
-      : "";
 
   for (const feature of definitions) {
     const directKey = resolveDirectInstructorFeatureKey(feature);
@@ -919,7 +1296,7 @@ export function mergeInstructorDirectFeatureValuesIntoForm(
       if ((baseForm.singleSelectValues[feature.id] ?? "").trim()) continue;
     }
 
-    const rawValue = directKey === "working_hours" ? workingHoursRange : directValues[directKey];
+    const rawValue = directValues[directKey];
     if (!rawValue) continue;
 
     if (feature.input_type === "text") {
@@ -1028,6 +1405,27 @@ export async function fetchInstructorOwnedCategoryIdClient(
   };
 }
 
+const INSTRUCTOR_FEATURE_CATALOG_PAGE_SIZE = 1000;
+
+/** PostgREST varsayılan 1000 satır tavanını aşan tanım kataloglarını eksiksiz okur. */
+export async function fetchAllQueryPages<T>(
+  loadPage: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: T[] | null; error: { message?: string } | null }>,
+): Promise<{ data: T[] | null; error: { message?: string } | null }> {
+  const data: T[] = [];
+  let from = 0;
+  for (;;) {
+    const page = await loadPage(from, from + INSTRUCTOR_FEATURE_CATALOG_PAGE_SIZE - 1);
+    if (page.error) return { data: null, error: page.error };
+    const rows = page.data ?? [];
+    data.push(...rows);
+    if (rows.length < INSTRUCTOR_FEATURE_CATALOG_PAGE_SIZE) return { data, error: null };
+    from += INSTRUCTOR_FEATURE_CATALOG_PAGE_SIZE;
+  }
+}
+
 export async function fetchInstructorFeatureDefinitionsBundleClient(
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{
@@ -1044,11 +1442,17 @@ export async function fetchInstructorFeatureDefinitionsBundleClient(
       .select("id, name, slug, display_order, is_active, category_slug")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
-    supabase
-      .from("instructor_feature_definitions")
-      .select("id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order, is_active")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true }),
+    fetchAllQueryPages<InstructorFeatureDefinitionRow>((from, to) =>
+      supabase
+        .from("instructor_feature_definitions")
+        .select(
+          "id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order, is_active",
+        )
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
     supabase
       .from("instructor_feature_choices")
       .select("id, feature_definition_id, name, display_order, is_active")
@@ -1109,14 +1513,17 @@ export async function fetchInstructorFeatureFilterSchemaDataClient(
       .eq("is_active", true)
       .order("display_order", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true }),
-    supabase
-      .from("instructor_feature_definitions")
-      .select(
-        "id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order, is_active",
-      )
-      .eq("is_active", true)
-      .order("display_order", { ascending: true, nullsFirst: false })
-      .order("id", { ascending: true }),
+    fetchAllQueryPages<InstructorFeatureDefinitionRow>((from, to) =>
+      supabase
+        .from("instructor_feature_definitions")
+        .select(
+          "id, group_id, name, slug, input_type, help_text, placeholder, unit, display_order, is_active",
+        )
+        .eq("is_active", true)
+        .order("display_order", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
     supabase
       .from("instructor_feature_choices")
       .select("id, feature_definition_id, name, display_order, is_active")
@@ -1148,6 +1555,8 @@ export function buildInstructorFilterFieldsFromSchema(
   groups: InstructorFeatureGroupRow[],
   definitions: InstructorFeatureDefinitionRow[],
   choices: InstructorFeatureChoiceRow[],
+  lookupGroups: InstructorFeatureGroupRow[] = groups,
+  options?: { includeEgitmenProfili?: boolean },
 ): InstructorFilterField[] {
   const choicesByDefinition = new Map<number, InstructorFilterFieldChoice[]>();
 
@@ -1176,10 +1585,66 @@ export function buildInstructorFilterFieldsFromSchema(
   const fields: InstructorFilterField[] = [];
   const ageDefs = findStudentAgeRangeDefinitions(definitions);
   let ageRangeInserted = false;
+  const durationDefs = findLessonDurationRangeDefinitions(definitions);
+  let durationRangeInserted = false;
+  const placeLessonDurationField = () => {
+    if (durationRangeInserted || !durationDefs.min || !durationDefs.max) return;
+    durationRangeInserted = true;
+    fields.push({
+      kind: "lesson_duration_range",
+      definitionId: durationDefs.min.id,
+      name: LESSON_DURATION_LABEL,
+    });
+  };
+  const hizmetYeriDefinitions = definitions
+    .filter((definition) => isInstructorHizmetYeriBooleanOption(definition))
+    .sort(compareInstructorHizmetYeriOptions);
+  let hizmetYeriPlaced = false;
+  const dersSeviyesiDefinitions = selectGlobalInstructorDersSeviyesiDefinitions(
+    definitions,
+    lookupGroups,
+  );
+  const dersSeviyesiDefinitionIds = new Set(dersSeviyesiDefinitions.map((definition) => definition.id));
+  let dersSeviyesiPlaced = false;
+  const placeDersSeviyesiField = () => {
+    if (dersSeviyesiPlaced || dersSeviyesiDefinitions.length === 0) return;
+    dersSeviyesiPlaced = true;
+    const definitionIds = dersSeviyesiDefinitions
+      .map((definition) => Number(definition.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    fields.push({
+      kind: "boolean_group",
+      groupId: definitionIds.length > 0 ? -Math.min(...definitionIds) : 0,
+      name: INSTRUCTOR_DERS_SEVIYESI_LABEL,
+      options: dersSeviyesiDefinitions.map((definition) => ({
+        definitionId: definition.id,
+        name: getDisplayInstructorFeatureName(String(definition.name ?? "").trim()),
+      })),
+    });
+  };
+  const placeHizmetYeriField = () => {
+    if (hizmetYeriPlaced || hizmetYeriDefinitions.length === 0) return;
+    hizmetYeriPlaced = true;
+    const definitionIds = hizmetYeriDefinitions
+      .map((definition) => Number(definition.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    fields.push({
+      kind: "boolean_group",
+      groupId: definitionIds.length > 0 ? -Math.min(...definitionIds) : 0,
+      name: INSTRUCTOR_HIZMET_YERI_LABEL,
+      options: hizmetYeriDefinitions.map((definition) => ({
+        definitionId: definition.id,
+        name: getDisplayInstructorFeatureName(String(definition.name ?? "").trim()),
+      })),
+    });
+  };
 
   for (const group of sortedGroups) {
     const groupDefinitions = [...(definitionsByGroup.get(group.id) ?? [])].sort(compareDisplayOrder);
     const groupName = getDisplayInstructorFeatureName(String(group.name ?? "").trim());
+    const groupCategorySlug = normalizeInstructorGroupCategorySlug(group.category_slug);
+    const keepDefinitionOrder =
+      groupCategorySlug === "surucu-kursu" || groupCategorySlug === "ozel-egitim";
     const booleanBuffer: Array<{ definitionId: number; name: string }> = [];
 
     const flushBooleanBuffer = () => {
@@ -1189,7 +1654,9 @@ export function buildInstructorFilterFieldsFromSchema(
           kind: "boolean_group",
           groupId: group.id,
           name: groupName,
-          options: sortInstructorFilterOptionsByLabel(booleanBuffer, (option) => option.name),
+          options: keepDefinitionOrder
+            ? [...booleanBuffer]
+            : sortInstructorFilterOptionsByLabel(booleanBuffer, (option) => option.name),
         });
       } else {
         for (const option of booleanBuffer) {
@@ -1236,6 +1703,29 @@ export function buildInstructorFilterFieldsFromSchema(
         continue;
       }
 
+      if (isLessonDurationRangeNumberFeature(definition)) {
+        flushBooleanBuffer();
+        placeLessonDurationField();
+        continue;
+      }
+
+      if (isLegacyLessonDurationMultiSelectFeature(definition)) {
+        flushBooleanBuffer();
+        continue;
+      }
+
+      if (isInstructorDersSeviyesiBooleanOption(definition)) {
+        flushBooleanBuffer();
+        if (dersSeviyesiDefinitionIds.has(definition.id)) placeDersSeviyesiField();
+        continue;
+      }
+
+      if (isInstructorHizmetYeriBooleanOption(definition)) {
+        flushBooleanBuffer();
+        placeHizmetYeriField();
+        continue;
+      }
+
       if (inputType === "boolean") {
         booleanBuffer.push({
           definitionId: definition.id,
@@ -1260,6 +1750,10 @@ export function buildInstructorFilterFieldsFromSchema(
       }
 
       if (inputType === "multi_select") {
+        if (isInstructorEgitmenProfiliFeature(definition) && !options?.includeEgitmenProfili) {
+          flushBooleanBuffer();
+          continue;
+        }
         const definitionChoices = choicesByDefinition.get(definition.id) ?? [];
         if (definitionChoices.length === 0) continue;
         fields.push({
@@ -1286,6 +1780,10 @@ export function buildInstructorFilterFieldsFromSchema(
 
     flushBooleanBuffer();
   }
+
+  placeLessonDurationField();
+  placeDersSeviyesiField();
+  placeHizmetYeriField();
 
   return fields;
 }
@@ -1342,9 +1840,13 @@ export async function fetchInstructorRealFeatureDefinitionsClient(
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
 ): Promise<{ definitions: InstructorRealFeatureDefinitionRow[]; error: string | null }> {
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("instructor_feature_definitions")
-    .select("id, name, slug, input_type, group_id");
+  const { data, error } = await fetchAllQueryPages<InstructorRealFeatureDefinitionRow>((from, to) =>
+    supabase
+      .from("instructor_feature_definitions")
+      .select("id, name, slug, input_type, group_id")
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   if (error) {
     logInstructorFeaturesSupabaseError("real definitions", error);
@@ -1402,6 +1904,25 @@ export function buildInstructorUiRealDefinitionMaps(
   }
 
   const resolveRealDefinition = (feature: InstructorFeatureDefinitionRow) => {
+    if (isInstructorEgitimDiliFeature(feature)) {
+      return resolveInstructorGlobalEgitimDiliDefinition(
+        realDefinitions,
+        groups.instructorGroups,
+      );
+    }
+    if (isInstructorHizmetTipiFeature(feature)) {
+      return resolveInstructorGlobalHizmetTipiDefinition(
+        realDefinitions,
+        groups.instructorGroups,
+      );
+    }
+    if (isInstructorDenemeDersiFeature(feature)) {
+      return resolveInstructorGlobalDenemeDersiDefinition(
+        realDefinitions,
+        groups.instructorGroups,
+      );
+    }
+
     const institutionGroup = institutionGroupById.get(Number(feature.group_id));
     if (!institutionGroup) return null;
 
@@ -1967,6 +2488,10 @@ export async function saveInstructorFeaturesClient(
       const ageParsed = parseStudentAgeDecimalInput(raw);
       if (ageParsed.kind !== "ok") continue;
       parsed = ageParsed.value;
+    } else if (isLessonDurationRangeNumberFeature(feature)) {
+      const durationParsed = parseLessonDurationInput(raw);
+      if (durationParsed.kind !== "ok") continue;
+      parsed = durationParsed.value;
     } else {
       parsed = Number(raw);
       if (!Number.isFinite(parsed)) continue;
@@ -2080,13 +2605,24 @@ export async function saveInstructorFeaturesClient(
 
   for (const feature of persistableDefinitions.filter((f) => f.input_type === "multi_select")) {
     const uiSelectedIds = form.multiSelectValues[feature.id] ?? [];
-    const selectedIds = Array.from(
+    const normalizedSelectedIds = Array.from(
       new Set(
         uiSelectedIds
           .map((choiceId) => Number(String(choiceId).trim()))
           .filter((id) => Number.isFinite(id) && id > 0),
       ),
     );
+    const selectedIds = isInstructorEgitmenProfiliFeature(feature)
+      ? (() => {
+          const soleId = resolveInstructorEgitmenProfiliSelectedChoiceId(
+            feature.id,
+            normalizedSelectedIds.map(String),
+            choices,
+          );
+          const parsed = Number(soleId);
+          return Number.isFinite(parsed) && parsed > 0 ? [parsed] : [];
+        })()
+      : normalizedSelectedIds;
     let existing = findEntry(feature.id);
 
     if (selectedIds.length === 0) {

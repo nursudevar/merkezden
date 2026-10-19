@@ -335,9 +335,6 @@ export async function POST(request: Request) {
     branch,
     il_id: ilId,
     ilce_id: ilceId,
-    is_approved: null,
-    approved_by: null,
-    approved_at: null,
   };
 
   const { data: signUpData, error: signUpError } = await authSupabase.auth.signUp({

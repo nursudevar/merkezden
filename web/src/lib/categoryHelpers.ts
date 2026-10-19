@@ -179,7 +179,10 @@ export type ActiveInstitutionCategory = {
   slug: string;
 };
 
-export async function fetchActiveInstitutionCategories(): Promise<ActiveInstitutionCategory[]> {
+export async function fetchActiveInstitutionCategoriesResult(): Promise<{
+  categories: ActiveInstitutionCategory[];
+  error: { message: string } | null;
+}> {
   const supabase = createSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("institution_categories")
@@ -188,17 +191,26 @@ export async function fetchActiveInstitutionCategories(): Promise<ActiveInstitut
     .order("display_order", { ascending: true })
     .order("name", { ascending: true });
 
-  if (error || !data?.length) return [];
+  if (error) return { categories: [], error: { message: error.message || "Kategoriler yüklenemedi." } };
+  if (!data?.length) return { categories: [], error: null };
 
-  return sortByHomeMainCategoryOrder(
-    (data as Array<{ id: number; name: string | null; slug: string | null }>)
-      .map((row) => ({
-        id: row.id,
-        name: String(row.name ?? "").trim(),
-        slug: String(row.slug ?? "").trim(),
-      }))
-      .filter((row) => row.name.length > 0),
-  );
+  return {
+    categories: sortByHomeMainCategoryOrder(
+      (data as Array<{ id: number; name: string | null; slug: string | null }>)
+        .map((row) => ({
+          id: row.id,
+          name: String(row.name ?? "").trim(),
+          slug: String(row.slug ?? "").trim(),
+        }))
+        .filter((row) => row.name.length > 0),
+    ),
+    error: null,
+  };
+}
+
+export async function fetchActiveInstitutionCategories(): Promise<ActiveInstitutionCategory[]> {
+  const { categories } = await fetchActiveInstitutionCategoriesResult();
+  return categories;
 }
 
 export async function fetchInstitutionCategoryBySlug(

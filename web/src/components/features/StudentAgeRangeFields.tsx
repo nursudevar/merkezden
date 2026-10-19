@@ -45,7 +45,8 @@ export function StudentAgeRangeFields({
   const inputClass =
     variant === "institution"
       ? "panel-institutions-feature-input"
-      : "egitmen-panel-features-feature-input";
+      : "egitmen-panel-features-feature-input egitmen-panel-features-feature-input--stepper";
+  const ageMin = variant === "institution" ? STUDENT_AGE_INPUT_MIN : 0;
   const fieldsClass =
     variant === "institution"
       ? "panel-institutions-feature-age-range-fields"
@@ -67,7 +68,7 @@ export function StudentAgeRangeFields({
           id={`student-age-min-${variant}`}
           type="number"
           inputMode="decimal"
-          min={STUDENT_AGE_INPUT_MIN}
+          min={ageMin}
           max={STUDENT_AGE_INPUT_MAX}
           step={STUDENT_AGE_INPUT_STEP}
           className={inputClass}
@@ -81,7 +82,7 @@ export function StudentAgeRangeFields({
           id={`student-age-max-${variant}`}
           type="number"
           inputMode="decimal"
-          min={STUDENT_AGE_INPUT_MIN}
+          min={ageMin}
           max={STUDENT_AGE_INPUT_MAX}
           step={STUDENT_AGE_INPUT_STEP}
           className={inputClass}

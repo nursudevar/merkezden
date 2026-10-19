@@ -212,7 +212,7 @@ export const InstitutionExtraBranchesSection = forwardRef<
 
   useEffect(() => {
     void loadExtraBranches();
-    // Kategori değişiminde DB'den yeniden yükleme yapılmaz; resetUiState ile UI sıfırlanır.
+    // Kategori değişince kayıtlı ek branşlar yeniden okunmaz ve temizlenmez.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnızca kurum değişince
   }, [normalizedInstitutionId, supabase]);
 
@@ -237,6 +237,8 @@ export const InstitutionExtraBranchesSection = forwardRef<
 
     void reloadSupportedCategories(mainId);
 
+    // Yeni ana kategoriyle aynı olan tek slot formdan düşer. Diğer kayıtlı branşlar
+    // ve loadedCategoryIds olduğu gibi kalır.
     setUiSlots((prevSlots) =>
       prevSlots.filter((slot) => slot.categoryId == null || slot.categoryId !== mainId),
     );

@@ -5,6 +5,7 @@ import { GraduationCap } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectMountGate } from "@/components/ui";
 import { CategoryFilterResetButton } from "./CategoryFilterSidebar";
 import CategoryResultsCard from "./CategoryResultsCard";
+import InstructorDirectoryCard from "@/components/instructors/InstructorDirectoryCard";
 import { CATEGORY_RESULTS_PAGE_SIZE } from "./useCategoryInstitutions";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 
@@ -230,6 +231,34 @@ export default function CategoryResultsList({
                 )
               : false;
 
+            if (isInstructor) {
+              return (
+                <InstructorDirectoryCard
+                  key={result.id}
+                  name={result.name}
+                  location={result.location}
+                  logoInitial={result.logoInitial}
+                  imageUrl={result.imageUrl}
+                  detailUrl={result.detailUrl}
+                  slug={result.slug}
+                  instructorTitle={result.instructorTitle}
+                  instructorBranch={result.instructorBranch}
+                  instructorId={result.instructorId}
+                  isFavorite={isFavorite}
+                  isFavoriteActionLoading={isFavoriteActionLoading}
+                  favoritesEnabled={favoritesEnabled}
+                  isAuthenticated={isAuthenticated}
+                  onToggleFavorite={
+                    canFavorite
+                      ? (event) => {
+                          onToggleInstructorFavorite?.(targetId, event);
+                        }
+                      : undefined
+                  }
+                />
+              );
+            }
+
             return (
               <CategoryResultsCard
                 key={result.id}
@@ -242,8 +271,7 @@ export default function CategoryResultsList({
                 onToggleFavorite={
                   canFavorite
                     ? (e) => {
-                        if (isInstructor) onToggleInstructorFavorite?.(targetId, e);
-                        else onToggleInstitutionFavorite?.(targetId, e);
+                        onToggleInstitutionFavorite?.(targetId, e);
                       }
                     : undefined
                 }

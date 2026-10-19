@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { parseCompareInstructorIdsFromQuery } from "@/lib/instructorCompare";
 import {
+  fetchAllQueryPages,
   INSTRUCTOR_FEATURE_ENTRIES_TABLE,
   INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
   type InstructorFeatureGroupRow,
@@ -144,14 +145,18 @@ export default function InstructorComparePageClient() {
             .select("id, name, slug, display_order, is_active, category_slug")
             .eq("is_active", true)
             .order("display_order", { ascending: true }),
-          supabase
-            .from("instructor_feature_definitions")
-            .select(
-              "id, group_id, name, slug, input_type, unit, display_order, is_active, show_on_detail",
-            )
-            .eq("is_active", true)
-            .eq("show_on_detail", true)
-            .order("display_order", { ascending: true }),
+          fetchAllQueryPages((from, to) =>
+            supabase
+              .from("instructor_feature_definitions")
+              .select(
+                "id, group_id, name, slug, input_type, unit, display_order, is_active, show_on_detail",
+              )
+              .eq("is_active", true)
+              .eq("show_on_detail", true)
+              .order("display_order", { ascending: true })
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
           supabase
             .from("instructor_feature_choices")
             .select("id, feature_definition_id, name, display_order, is_active")

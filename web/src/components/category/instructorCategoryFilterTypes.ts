@@ -16,6 +16,10 @@ export type InstructorCategoryFilterPayload = {
   numberRange: Record<number, { min: string; max: string }>;
   /** Öğrenci yaşı (ham metin); ana sayfa ile aynı davranış. */
   studentAgeRange: StudentAgeFilterTextPayload | null;
+  /** Müsait Saat Aralığı başlangıç (HH:mm). Boş = filtre yok. */
+  workingHoursStart?: string;
+  /** Müsait Saat Aralığı bitiş (HH:mm). Boş = filtre yok. */
+  workingHoursEnd?: string;
 };
 
 export const EMPTY_INSTRUCTOR_CATEGORY_FILTERS: InstructorCategoryFilterPayload = {
@@ -25,4 +29,6 @@ export const EMPTY_INSTRUCTOR_CATEGORY_FILTERS: InstructorCategoryFilterPayload 
   multiSelect: {},
   numberRange: {},
   studentAgeRange: null,
+  workingHoursStart: "",
+  workingHoursEnd: "",
 };

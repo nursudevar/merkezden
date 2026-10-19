@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Building2, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import {
   fetchIller,
   findLocationIdByAd,
@@ -64,78 +64,122 @@ function mapRowToPurpleCard(
 
 export function HomePurpleFeaturedMarquee() {
   const [cards, setCards] = useState<PurpleFeaturedCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryLockRef = useRef(false);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(() => new Set());
   const sliderRef = useRef<HTMLDivElement | null>(null);
 
+  const retry = useCallback(() => {
+    if (retryLockRef.current || loading) return;
+    retryLockRef.current = true;
+    setRetryCount((count) => count + 1);
+  }, [loading]);
+
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const [category, iller] = await Promise.all([
-        fetchInstitutionCategoryBySlug(DRIVING_SCHOOL_CATEGORY_SLUG),
-        fetchIller(),
-      ]);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const [{ data: categoryRow, error: categoryError }, iller] = await Promise.all([
+          supabase
+            .from("institution_categories")
+            .select("id")
+            .eq("is_active", true)
+            .eq("slug", DRIVING_SCHOOL_CATEGORY_SLUG)
+            .maybeSingle(),
+          fetchIller(),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (!category?.id) {
-        console.warn("[purple-featured] sürücü kursu kategorisi bulunamadı:", {
-          slug: DRIVING_SCHOOL_CATEGORY_SLUG,
-        });
-        setCards([]);
-        return;
-      }
+        if (categoryError) {
+          console.warn("[purple-featured] kategori sorgusu hatası:", categoryError.message);
+          setCards([]);
+          setFailed(true);
+          return;
+        }
 
-      const ankaraId = parseLocationId(findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD));
-      if (ankaraId == null) {
-        console.warn("[purple-featured] Ankara il_id resolve edilemedi");
-        setCards([]);
-        return;
-      }
+        const categoryId = Number((categoryRow as { id?: number } | null)?.id);
+        if (!Number.isFinite(categoryId) || categoryId <= 0) {
+          console.warn("[purple-featured] sürücü kursu kategorisi bulunamadı:", {
+            slug: DRIVING_SCHOOL_CATEGORY_SLUG,
+          });
+          setCards([]);
+          setFailed(false);
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from("institutions")
-        .select("id, slug, source, institution_name, city, district, logo")
-        .eq("category_id", category.id)
-        .eq("il_id", ankaraId)
-        .not("institution_name", "is", null)
-        .eq("is_approved", true)
-        .order("institution_name", { ascending: true })
-        .limit(FETCH_LIMIT);
+        const ankaraId = parseLocationId(findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD));
+        if (ankaraId == null) {
+          console.warn("[purple-featured] Ankara il_id resolve edilemedi");
+          setCards([]);
+          setFailed(false);
+          return;
+        }
 
-      if (cancelled) return;
+        const { data, error } = await supabase
+          .from("institutions")
+          .select("id, slug, source, institution_name, city, district, logo")
+          .eq("category_id", categoryId)
+          .eq("il_id", ankaraId)
+          .not("institution_name", "is", null)
+          .eq("is_approved", true)
+          .order("institution_name", { ascending: true })
+          .limit(FETCH_LIMIT);
 
-      if (error || !data?.length) {
+        if (cancelled) return;
+
         if (error) {
           console.warn("[purple-featured] kurum listesi hatası:", error.message);
+          setCards([]);
+          setFailed(true);
+          return;
         }
-        setCards([]);
-        return;
+
+        if (!data?.length) {
+          setCards([]);
+          setFailed(false);
+          return;
+        }
+
+        const mapped = (data as Array<Record<string, unknown>>)
+          .map((row) => mapRowToPurpleCard(supabase, row))
+          .filter((item): item is PurpleFeaturedCard => item !== null);
+
+        if (mapped.length === 0) {
+          setCards([]);
+          setFailed(false);
+          return;
+        }
+
+        const list = shuffleItems(mapped).slice(0, LIST_SIZE);
+        setCards(
+          list.map((card, index) => ({
+            ...card,
+            badge: PURPLE_BADGES[index % PURPLE_BADGES.length] ?? "YENİ",
+          })),
+        );
+        setFailed(false);
+      } catch (error) {
+        console.error("[purple-featured] load error:", error);
+        if (!cancelled) {
+          setCards([]);
+          setFailed(true);
+        }
+      } finally {
+        retryLockRef.current = false;
+        if (!cancelled) setLoading(false);
       }
-
-      const mapped = (data as Array<Record<string, unknown>>)
-        .map((row) => mapRowToPurpleCard(supabase, row))
-        .filter((item): item is PurpleFeaturedCard => item !== null);
-
-      if (mapped.length === 0) {
-        setCards([]);
-        return;
-      }
-
-      const list = shuffleItems(mapped).slice(0, LIST_SIZE);
-      setCards(
-        list.map((card, index) => ({
-          ...card,
-          badge: PURPLE_BADGES[index % PURPLE_BADGES.length] ?? "YENİ",
-        })),
-      );
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryCount]);
 
   useEffect(() => {
     const slider = sliderRef.current;
@@ -161,7 +205,17 @@ export function HomePurpleFeaturedMarquee() {
     };
   }, []);
 
-  if (cards.length === 0) return null;
+  if (failed) {
+    return (
+      <HomeSectionLoadError
+        message="Kurumlar yüklenemedi. Lütfen tekrar deneyin."
+        loading={loading}
+        onRetry={retry}
+      />
+    );
+  }
+
+  if (loading || cards.length === 0) return null;
 
   const marqueeList = [...cards, ...cards];
 

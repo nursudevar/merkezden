@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import {
   type HomeFeaturedAccountItem,
   fetchHomeFeaturedAccountsFromFeaturedAccounts,
@@ -40,6 +41,10 @@ export function HomeFeaturedInstitutionsList({
   isAuthenticated: boolean;
 }) {
   const [allFeaturedAccounts, setAllFeaturedAccounts] = useState<HomeFeaturedAccountItem[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [featuredFailed, setFeaturedFailed] = useState(false);
+  const [featuredRetryCount, setFeaturedRetryCount] = useState(0);
+  const featuredRetryLockRef = useRef(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [brokenInstitutionImageIds, setBrokenInstitutionImageIds] = useState<Set<number>>(
     () => new Set(),
@@ -62,19 +67,43 @@ export function HomeFeaturedInstitutionsList({
 
   useEffect(() => {
     let cancelled = false;
+    setFeaturedLoading(true);
 
     (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const featuredAccounts = await fetchHomeFeaturedAccountsFromFeaturedAccounts(supabase);
-      if (cancelled) return;
-      setAllFeaturedAccounts(featuredAccounts);
-      setCurrentPage(1);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const featuredAccounts = await fetchHomeFeaturedAccountsFromFeaturedAccounts(supabase);
+        if (cancelled) return;
+        if (featuredAccounts.failed) {
+          setAllFeaturedAccounts([]);
+          setFeaturedFailed(true);
+          return;
+        }
+        setAllFeaturedAccounts(featuredAccounts.items);
+        setCurrentPage(1);
+        setFeaturedFailed(false);
+      } catch (error) {
+        console.error("[home-featured] load error:", error);
+        if (!cancelled) {
+          setAllFeaturedAccounts([]);
+          setFeaturedFailed(true);
+        }
+      } finally {
+        featuredRetryLockRef.current = false;
+        if (!cancelled) setFeaturedLoading(false);
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [featuredRetryCount]);
+
+  const retryFeaturedAccounts = useCallback(() => {
+    if (featuredRetryLockRef.current || featuredLoading) return;
+    featuredRetryLockRef.current = true;
+    setFeaturedRetryCount((count) => count + 1);
+  }, [featuredLoading]);
 
   const totalItems = allFeaturedAccounts.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / FEATURED_PAGE_SIZE));
@@ -108,7 +137,26 @@ export function HomeFeaturedInstitutionsList({
     return allFeaturedAccounts.slice(start, start + FEATURED_PAGE_SIZE);
   }, [allFeaturedAccounts, currentPage, totalPages]);
 
-  if (allFeaturedAccounts.length === 0) return null;
+  if (featuredFailed) {
+    return (
+      <section className="featured-institutions-list-section featured-institutions-section" aria-labelledby="home-featured-institutions-list-heading">
+        <div className="featured-institutions-header">
+          <div className="featured-institutions-header-left">
+            <h2 className="featured-institutions-title" id="home-featured-institutions-list-heading">
+              Öne Çıkanlar
+            </h2>
+          </div>
+        </div>
+        <HomeSectionLoadError
+          message="Öne çıkanlar yüklenemedi. Lütfen tekrar deneyin."
+          loading={featuredLoading}
+          onRetry={retryFeaturedAccounts}
+        />
+      </section>
+    );
+  }
+
+  if (featuredLoading || allFeaturedAccounts.length === 0) return null;
 
   return (
     <section

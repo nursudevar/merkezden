@@ -62,6 +62,7 @@ import {
 import Image from "next/image";
 import { Input } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectMountGate } from "@/components/ui";
+import { InstructorCategorySelect } from "@/components/category/InstructorCategorySelect";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   CATEGORY_ALL_ILCELER_VALUE,
@@ -83,6 +84,7 @@ import {
   type PriceRangeSliderValue,
 } from "@/components/filters/PriceRangeSliderFilter";
 import { AgeRangeSliderFilter } from "@/components/filters/AgeRangeSliderFilter";
+import { FilterNumericStepper } from "@/components/filters/FilterNumericStepper";
 import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
 import {
   isStudentAgeFilterTextActive,
@@ -99,12 +101,20 @@ import {
   buildInstructorFilterFieldsForListingCategory,
   fetchInstructorFeatureCategoriesClient,
   fetchInstructorFeatureFilterSchemaDataClient,
+  INSTRUCTOR_DERS_SEVIYESI_LABEL,
+  INSTRUCTOR_HIZMET_YERI_LABEL,
   type InstructorFeatureCategoryRow,
   type InstructorFeatureChoiceRow,
   type InstructorFeatureDefinitionRow,
   type InstructorFeatureGroupRow,
   type InstructorFilterField,
 } from "@/lib/instructorFeaturesClient";
+import {
+  LESSON_DURATION_MAX_INPUT_LABEL,
+  LESSON_DURATION_MIN_INPUT_LABEL,
+  LESSON_DURATION_UNIT_LABEL,
+  sanitizeLessonDurationInput,
+} from "@/lib/instructorLessonDurationFeature";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
 import { CategoryFilterMultiSelect } from "./CategoryFilterMultiSelect";
@@ -258,6 +268,8 @@ const WORKING_HOURS_FILTER_ORDER_NAME = "Eğitim Saatleri";
 /** Kolon-based Aylık Fiyat Aralığı filtre section order adı (feature değil). */
 const PRICE_RANGE_FILTER_ORDER_NAME = "Aylık Fiyat Aralığı";
 const PATILI_DOSTLAR_CATEGORY_SLUG = "patili-dostlar";
+/** Global eğitmen tanımı: Ücretsiz Deneme Dersi (`ucretsiz-deneme-dersi`). */
+const INSTRUCTOR_DENEME_DERSI_DEFINITION_ID = 16;
 const KURS_SINAVA_HAZIRLIK_CATEGORY_SLUG = "kurs-sinava-hazirlik";
 const YABANCI_DIL_CATEGORY_SLUG = "yabanci-dil";
 const SANAT_CATEGORY_SLUG = "sanat";
@@ -274,10 +286,8 @@ const PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER = [
   "hizmet tipi",
   "hizmet yeri",
   "fiziki imkanlar",
-  "musait gunler",
-  "egitim saatleri",
   "egitim dili",
-  "ucret tipi",
+  "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
 
@@ -292,17 +302,14 @@ const PATILI_DOSTLAR_HIDDEN_FILTER_NAMES = new Set([
   "ogrencinin egitim seviyesi",
   "egitim seviyesi",
   "egitmenin seviyesi",
-  "ders verme sikligi",
   "ders suresi",
   "musait saat baslangic",
   "musait saat bitis",
   "musait saat baslangic bitis",
-  "deneme dersi mevcuttur",
-  "deneme dersi",
   "egitim ozellikleri",
 ]);
 
-/** Eğitmen public filtre — yalnızca Kurs / Sınava Hazırlık şema alan sırası (yaş/fiyat ayrı section). */
+/** Eğitmen public filtre — yalnızca Kurs & Sınava Hazırlık. Yaş ve fiyat Özel Ders Türleri ardına enjekte edilir. */
 const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER = [
   "ozel ders turleri",
   "hizmet tipi",
@@ -311,179 +318,253 @@ const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER = [
   "hizmet yeri",
   "ders seviyesi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
 
 /** Bu kategoride hedef sırada olmayan / UI'da gösterilmeyen Başlıca alanlar. */
-const KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES = new Set([
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
-  "ucret tipi",
+const KURS_SINAVA_HAZIRLIK_HIDDEN_FILTER_NAMES = new Set<string>([
+  "ogrencinin egitim seviyesi",
+  "egitim seviyesi",
+  "egitmenin seviyesi",
 ]);
 
 const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
   "hizmet yeri",
   "ders seviyesi",
   "ders suresi",
-  "egitim seviyesi",
+  "musait saat araligi",
+  "egitmen profili",
   "egitim dili",
   "odeme secenekleri",
 ]);
 
-/** Eğitmen public filtre — yalnızca Yabancı Dil şema alan sırası (yaş/fiyat ayrı section). */
+/** Eğitmen public filtre — yalnızca Yabancı Dil. Yaş ve fiyat Yabancı Dil Türleri ardına enjekte edilir. */
 const YABANCI_DIL_INSTRUCTOR_FILTER_ORDER = [
   "yabanci dil turleri",
   "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "ogrencinin egitim seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
 
-/** Eğitmen public filtre — yalnızca Sanat şema alan sırası (yaş/fiyat ayrı section). */
+const YABANCI_DIL_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
+  "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
+]);
+
+const YABANCI_DIL_HIDDEN_FILTER_NAMES = new Set([
+  "ogrencinin egitim seviyesi",
+  "egitim seviyesi",
+  "egitmenin seviyesi",
+]);
+
+/** Eğitmen public filtre — yalnızca Sanat. Yaş ve fiyat Sanat Türleri ardına enjekte edilir. */
 const SANAT_INSTRUCTOR_FILTER_ORDER = [
   "sanat turleri",
   "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
-  "hedef/fayda",
 ] as const;
 
-const SANAT_HIDDEN_FILTER_NAMES = new Set(["ogrencinin egitim seviyesi"]);
+const SANAT_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
+  "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
+]);
 
-/** Eğitmen public filtre — yalnızca Spor şema alan sırası (yaş/fiyat ayrı section). */
+const SANAT_HIDDEN_FILTER_NAMES = new Set([
+  "ogrencinin egitim seviyesi",
+  "egitim seviyesi",
+  "egitmenin seviyesi",
+]);
+
+/** Eğitmen public filtre — yalnızca Spor. Yaş ve fiyat Spor Türleri ardına enjekte edilir. */
 const SPOR_INSTRUCTOR_FILTER_ORDER = [
   "spor turleri",
   "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
+
+const SPOR_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
+  "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
+]);
 
 const SPOR_HIDDEN_FILTER_NAMES = new Set(["ogrencinin egitim seviyesi"]);
 
-/** Eğitmen public filtre — yalnızca Kişisel Gelişim şema alan sırası (yaş/fiyat ayrı section). */
+/** Eğitmen public filtre — yalnızca Kişisel Gelişim şema alan sırası (yaş/fiyat/saat ayrı section). */
 const KISISEL_GELISIM_INSTRUCTOR_FILTER_ORDER = [
   "egitim turleri",
   "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
 
-const KISISEL_GELISIM_HIDDEN_FILTER_NAMES = new Set([
-  "ogrencinin egitim seviyesi",
-  "egitim ozellikleri",
+const KISISEL_GELISIM_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
+  "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
 ]);
 
-/** Eğitmen public filtre — yalnızca Mesleki Eğitim şema alan sırası (yaş/fiyat ayrı section). */
+const KISISEL_GELISIM_HIDDEN_FILTER_NAMES = new Set([
+  "ogrencinin egitim seviyesi",
+  "egitim seviyesi",
+  "egitmenin seviyesi",
+]);
+
+/** Eğitmen public filtre — yalnızca Mesleki Eğitim. Yaş ve fiyat Eğitim Türleri ardına enjekte edilir. */
 const MESLEKI_EGITIM_INSTRUCTOR_FILTER_ORDER = [
   "egitim turleri",
   "hizmet tipi",
   "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
+
+const MESLEKI_EGITIM_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
+  "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
+]);
 
 const MESLEKI_EGITIM_HIDDEN_FILTER_NAMES = new Set([
   "ogrencinin egitim seviyesi",
-  "egitim ozellikleri",
+  "egitim seviyesi",
+  "egitmenin seviyesi",
 ]);
 
-/** Eğitmen public filtre — yalnızca Özel Eğitim şema alan sırası (yaş/fiyat ayrı section). */
+/** Eğitmen /egitmenler — yalnız Özel Eğitim. Yaş, fiyat ve saat ayrı section olarak enjekte edilir. */
 const OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER = [
   "ozel egitim turleri",
   "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
+  "hizmet yeri",
+  "ders suresi",
+  "egitmen profili",
+  "egitim dili",
+  "deneme dersi mevcuttur",
+  "odeme secenekleri",
+] as const;
+
+const OZEL_EGITIM_COLLAPSED_INSTRUCTOR_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
+]);
+
+const OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER_KEYS = new Set<string>(
+  OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER,
+);
+
+const OZEL_EGITIM_HIDDEN_FILTER_NAMES = new Set(["ders seviyesi"]);
+
+/** Eğitmen Sürücü Kursu filtresi. Kategori alanından sonraki sıra. */
+const SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER = [
+  "egitim turleri",
+  "arac tipleri",
+  "hizmet tipi",
+  "hedef fayda",
+  "egitim ozellikleri",
   "hizmet yeri",
   "ders seviyesi",
-  "ogrencinin egitim seviyesi",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
   "ders suresi",
-  "egitim seviyesi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
   "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
 
-const OZEL_EGITIM_HIDDEN_FILTER_NAMES = new Set(["egitim ozellikleri"]);
-
-/** Eğitmen public filtre — yalnızca Sürücü Kursu şema alan sırası (fiyat Araç İmkanı sonrası inject). */
-const SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER = [
-  "hizmet turleri",
-  "hizmet tipi",
-  "arac tipleri",
-  "arac imkani",
-  "musait gunler",
-  "egitim saatleri",
-  "ders verme sikligi",
+const SURUCU_KURSU_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "ders seviyesi",
   "ders suresi",
+  "musait saat araligi",
+  "egitmen profili",
   "egitim dili",
-  "ucret tipi",
-  "deneme dersi mevcuttur",
   "odeme secenekleri",
-] as const;
+]);
 
 const SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER_KEYS = new Set<string>(
   SURUCU_KURSU_INSTRUCTOR_FILTER_ORDER,
 );
 
 const SURUCU_KURSU_HIDDEN_FILTER_NAMES = new Set([
-  "ders seviyesi",
   "ogrencinin egitim seviyesi",
   "egitim seviyesi",
-  "hizmet yeri",
-  "egitim ozellikleri",
   "kurs ozellikleri",
   "surucu kursu ozellikleri",
+  "surucu kursu imkanlari",
+  "belge turleri",
+  "belge turu",
+  "fiziki imkanlar",
+  "fiziksel imkanlar",
+  "odeme yontemleri",
+  "arac imkani",
+  "arac imkanlari",
+  "hizmet turleri",
 ]);
 
 /** Kişisel Gelişim — "Eğitim Türleri" ve olası DB adı varyantlarını tek anahtara indirger. */
@@ -497,6 +578,9 @@ function normalizeKisiselGelisimFilterOrderKey(name: string): string {
   ) {
     return "egitim turleri";
   }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim ozellikleri" || key === "kurs ozellikleri") return "egitim ozellikleri";
+  if (key === "egitmen profili") return "egitmen profili";
   return key;
 }
 
@@ -512,6 +596,8 @@ function normalizeMeslekiEgitimFilterOrderKey(name: string): string {
     return "egitim turleri";
   }
   if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim ozellikleri") return "egitim ozellikleri";
+  if (key === "egitmen profili") return "egitmen profili";
   return key;
 }
 
@@ -525,19 +611,17 @@ function normalizeOzelEgitimFilterOrderKey(name: string): string {
   ) {
     return "ozel egitim turleri";
   }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim ozellikleri" || key === "kurs ozellikleri") return "egitim ozellikleri";
   return key;
 }
 
-/** Sürücü Kursu — Hizmet Türleri / Araç Tipleri / Araç İmkanı / Ödeme varyantlarını tek anahtara indirger. */
+/** Eğitmen Sürücü Kursu filtre anahtarı. Eski grup adları yeni başlıklara bağlanmaz. */
 function normalizeSurucuKursuFilterOrderKey(name: string): string {
   const key = normalizeInstructorFilterOrderKey(name);
-  if (
-    key === "hizmet turleri" ||
-    key.endsWith(" hizmet turleri") ||
-    (key.includes("hizmet") && key.includes("turleri"))
-  ) {
-    return "hizmet turleri";
-  }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim turleri" || key === "surucu kursu egitim turleri") return "egitim turleri";
+  if (key === "egitim ozellikleri") return "egitim ozellikleri";
   if (
     key === "arac tipleri" ||
     key === "arac tipi" ||
@@ -545,22 +629,7 @@ function normalizeSurucuKursuFilterOrderKey(name: string): string {
   ) {
     return "arac tipleri";
   }
-  if (
-    key === "arac imkani" ||
-    key === "arac imkanlari" ||
-    key === "surucu kursu imkanlari" ||
-    ((key.includes("imkan") || key.includes("imkanlar")) &&
-      (key.includes("arac") || key.includes("surucu")))
-  ) {
-    return "arac imkani";
-  }
-  if (
-    key === "odeme secenekleri" ||
-    key === "odeme yontemleri" ||
-    (key.includes("odeme") && (key.includes("secenek") || key.includes("yontem")))
-  ) {
-    return "odeme secenekleri";
-  }
+  if (key === "odeme secenekleri") return "odeme secenekleri";
   return key;
 }
 
@@ -580,23 +649,9 @@ function normalizeInstructorFilterOrderKey(name: string): string {
     .replace(/\s+/g, " ")
     .trim();
   if (
-    key === "calisma saatleri" ||
-    key === "okul saatleri" ||
-    key === "kurum saatleri" ||
-    key === "egitim saatleri"
-  ) {
-    return "egitim saatleri";
-  }
-  return key;
-}
-
-function normalizeKursSinavaHazirlikInstructorFilterOrderKey(name: string): string {
-  const key = normalizeInstructorFilterOrderKey(name);
-  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
-  if (key === "kurs ozellikleri" || key === "egitim ozellikleri") return "egitim ozellikleri";
-  if (
     key === "deneme dersi mevcuttur" ||
     key === "deneme dersi" ||
+    key === "ucretsiz deneme dersi" ||
     key === "ucretsiz deneme dersi var" ||
     (key.includes("deneme") && key.includes("ders"))
   ) {
@@ -605,11 +660,19 @@ function normalizeKursSinavaHazirlikInstructorFilterOrderKey(name: string): stri
   return key;
 }
 
+function normalizeKursSinavaHazirlikInstructorFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (key === "ozel ders turleri" || key === "kurs turleri") return "ozel ders turleri";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "kurs ozellikleri" || key === "egitim ozellikleri") return "egitim ozellikleri";
+  if (key === "egitmen profili") return "egitmen profili";
+  return key;
+}
+
 function getKursSinavaHazirlikInstructorFilterSectionTitle(name: string): string {
   const key = normalizeKursSinavaHazirlikInstructorFilterOrderKey(name);
   if (key === "egitim ozellikleri") return "EĞİTİM ÖZELLİKLERİ";
   if (key === "hedef fayda") return "HEDEF / FAYDA";
-  if (key === "deneme dersi mevcuttur") return "ÜCRETSİZ DENEME DERSİ VAR";
   if (key === "odeme secenekleri") return "ÖDEME SEÇENEKLERİ";
   return name.toLocaleUpperCase("tr-TR");
 }
@@ -637,6 +700,21 @@ function orderKursSinavaHazirlikInstructorFields(
   });
 }
 
+function normalizeYabanciDilInstructorFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "yabanci dil turleri" ||
+    key === "yabanci dil kurs turleri" ||
+    key === "dil turleri"
+  ) {
+    return "yabanci dil turleri";
+  }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim ozellikleri") return "egitim ozellikleri";
+  if (key === "egitmen profili") return "egitmen profili";
+  return key;
+}
+
 function orderYabanciDilInstructorFields(
   fields: InstructorFilterField[],
 ): InstructorFilterField[] {
@@ -644,16 +722,29 @@ function orderYabanciDilInstructorFields(
     YABANCI_DIL_INSTRUCTOR_FILTER_ORDER.map((key, index) => [key, index]),
   );
 
-  const filtered = fields.filter((field) => field.kind !== "student_age_range");
+  const filtered = fields.filter((field) => {
+    if (field.kind === "student_age_range") return false;
+    const key = normalizeYabanciDilInstructorFilterOrderKey(field.name);
+    return !YABANCI_DIL_HIDDEN_FILTER_NAMES.has(key);
+  });
 
   return [...filtered].sort((a, b) => {
-    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
-    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aIndex = orderIndex.get(normalizeYabanciDilInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeYabanciDilInstructorFilterOrderKey(b.name));
     const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
     const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
     if (aRank !== bRank) return aRank - bRank;
     return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
   });
+}
+
+function normalizeSanatInstructorFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (key === "sanat turleri" || key === "sanat turu") return "sanat turleri";
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim ozellikleri") return "egitim ozellikleri";
+  if (key === "egitmen profili") return "egitmen profili";
+  return key;
 }
 
 function orderSanatInstructorFields(fields: InstructorFilterField[]): InstructorFilterField[] {
@@ -663,18 +754,33 @@ function orderSanatInstructorFields(fields: InstructorFilterField[]): Instructor
 
   const filtered = fields.filter((field) => {
     if (field.kind === "student_age_range") return false;
-    const key = normalizeInstructorFilterOrderKey(field.name);
+    const key = normalizeSanatInstructorFilterOrderKey(field.name);
     return !SANAT_HIDDEN_FILTER_NAMES.has(key);
   });
 
   return [...filtered].sort((a, b) => {
-    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
-    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aIndex = orderIndex.get(normalizeSanatInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeSanatInstructorFilterOrderKey(b.name));
     const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
     const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
     if (aRank !== bRank) return aRank - bRank;
     return a.name.localeCompare(b.name, "tr", { sensitivity: "base" });
   });
+}
+
+function normalizeSporInstructorFilterOrderKey(name: string): string {
+  const key = normalizeInstructorFilterOrderKey(name);
+  if (
+    key === "spor turleri" ||
+    key === "spor turu" ||
+    (key.includes("spor") && key.includes("tur") && !key.includes("tesis"))
+  ) {
+    return "spor turleri";
+  }
+  if (key.includes("hedef") && key.includes("fayda")) return "hedef fayda";
+  if (key === "egitim ozellikleri") return "egitim ozellikleri";
+  if (key === "egitmen profili") return "egitmen profili";
+  return key;
 }
 
 function orderSporInstructorFields(fields: InstructorFilterField[]): InstructorFilterField[] {
@@ -684,13 +790,13 @@ function orderSporInstructorFields(fields: InstructorFilterField[]): InstructorF
 
   const filtered = fields.filter((field) => {
     if (field.kind === "student_age_range") return false;
-    const key = normalizeInstructorFilterOrderKey(field.name);
+    const key = normalizeSporInstructorFilterOrderKey(field.name);
     return !SPOR_HIDDEN_FILTER_NAMES.has(key);
   });
 
   return [...filtered].sort((a, b) => {
-    const aIndex = orderIndex.get(normalizeInstructorFilterOrderKey(a.name));
-    const bIndex = orderIndex.get(normalizeInstructorFilterOrderKey(b.name));
+    const aIndex = orderIndex.get(normalizeSporInstructorFilterOrderKey(a.name));
+    const bIndex = orderIndex.get(normalizeSporInstructorFilterOrderKey(b.name));
     const aRank = aIndex ?? Number.MAX_SAFE_INTEGER;
     const bRank = bIndex ?? Number.MAX_SAFE_INTEGER;
     if (aRank !== bRank) return aRank - bRank;
@@ -752,7 +858,8 @@ function orderOzelEgitimInstructorFields(fields: InstructorFilterField[]): Instr
   const filtered = fields.filter((field) => {
     if (field.kind === "student_age_range") return false;
     const key = normalizeOzelEgitimFilterOrderKey(field.name);
-    return !OZEL_EGITIM_HIDDEN_FILTER_NAMES.has(key);
+    if (OZEL_EGITIM_HIDDEN_FILTER_NAMES.has(key)) return false;
+    return OZEL_EGITIM_INSTRUCTOR_FILTER_ORDER_KEYS.has(key);
   });
 
   return [...filtered].sort((a, b) => {
@@ -911,7 +1018,6 @@ function buildPatiliBaslicaCommonField(
   return null;
 }
 const CLEAR_SINGLE_SELECT_VALUE = "__clear__";
-const CLEAR_INSTRUCTOR_CATEGORY_VALUE = "__all_categories__";
 
 function describeSupabaseError(err: unknown): {
   message: string;
@@ -962,6 +1068,7 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "hizmet tipi": Users,
   "egitim dili": Languages,
   "egitim saatleri": Clock3,
+  "musait saat araligi": Clock3,
   "kurum saatleri": Clock3,
   "okul saatleri": Clock3,
   "calisma saatleri": Clock3,
@@ -1021,6 +1128,7 @@ const CATEGORY_FILTER_SECTION_ICON_MAP: Record<string, LucideIcon> = {
   "ders seviyesi": BarChart3,
   "deneme dersi mevcuttur": Gift,
   "deneme dersi": Gift,
+  "deneme dersi var": Gift,
   "ucretsiz deneme dersi": Gift,
   "ucret tipi": Coins,
   brans: GitBranch,
@@ -1043,12 +1151,26 @@ function getCategoryFilterSectionIcon(title: string): LucideIcon {
   return CATEGORY_FILTER_SECTION_ICON_MAP[normalizeCategoryFilterSectionTitleKey(title)] ?? ListFilter;
 }
 
-function CategoryFilterCollapse({ title, children }: { title: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+function CategoryFilterCollapse({
+  title,
+  children,
+  defaultOpen = false,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const Icon = getCategoryFilterSectionIcon(title);
 
   return (
-    <div className={`category-filter-collapse${open ? " category-filter-collapse--open" : ""}`}>
+    <div
+      className={`category-filter-collapse${open ? " category-filter-collapse--open" : ""}${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <button
         type="button"
         className="category-filter-collapse__header"
@@ -3501,6 +3623,8 @@ function useCategoryFilterSidebarModel({
       multiSelect,
       numberRange,
       studentAgeRange: selectedStudentAgeRange,
+      workingHoursStart: String(workingHoursStart ?? "").trim(),
+      workingHoursEnd: String(workingHoursEnd ?? "").trim(),
     });
   }, [
     hasInstructorFeatureMode,
@@ -3510,6 +3634,7 @@ function useCategoryFilterSidebarModel({
     commonMultiKey,
     commonRangeKey,
     studentAgeRangeKey,
+    workingHoursKey,
   ]);
 
   const renderedFeatureGroups = useMemo(() => featureGroups, [featureGroups]);
@@ -3928,6 +4053,7 @@ function CategoryFilterSidebarView({
         value={priceRange}
         onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
         className="category-filter-price-slider"
+        steppers
       />
     </div>
   );
@@ -3947,6 +4073,7 @@ function CategoryFilterSidebarView({
         value={getCommonAgeRangeSliderValue()}
         onChange={setStudentAgeRange}
         className="category-filter-price-slider"
+        steppers
       />
     </div>
   );
@@ -3974,6 +4101,29 @@ function CategoryFilterSidebarView({
     </div>
   );
 
+  const renderInstructorAvailableHoursFilterSection = (keySuffix: string) => (
+    <div className="category-filter-section" key={`instructor-available-hours-${keySuffix}`}>
+      <CategoryFilterSectionTitle title="Müsait Saat Aralığı" />
+      <div className="category-filter-working-hours-range">
+        <WorkingHoursTimePicker
+          value={workingHoursStart}
+          onChange={setWorkingHoursStart}
+          ariaLabel="Müsait saat aralığı başlangıç"
+          placeholder="Başlangıç"
+        />
+        <span className="category-filter-price-separator" aria-hidden>
+          —
+        </span>
+        <WorkingHoursTimePicker
+          value={workingHoursEnd}
+          onChange={setWorkingHoursEnd}
+          ariaLabel="Müsait saat aralığı bitiş"
+          placeholder="Bitiş"
+        />
+      </div>
+    </div>
+  );
+
   const renderPriceRangeFilterSection = (keySuffix: string) => {
     const minId = `category-price-min-${keySuffix}-${instanceId}`;
     const maxId = `category-price-max-${keySuffix}-${instanceId}`;
@@ -3983,31 +4133,25 @@ function CategoryFilterSidebarView({
         <div className="price-range-slider-inputs category-filter-price-inputs">
           <label className="price-range-slider-field" htmlFor={minId}>
             <span className="price-range-slider-label">Minimum Fiyat</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              name={minId}
+            <FilterNumericStepper
               id={minId}
+              name={minId}
               value={priceMin}
-              onChange={(e) => handlePriceMinChange(e.target.value)}
+              onValueChange={handlePriceMinChange}
               placeholder="Min"
-              aria-label="Aylık fiyat minimum"
+              ariaLabel="Aylık fiyat minimum"
               className="price-range-slider-input category-filter-price-input"
             />
           </label>
           <label className="price-range-slider-field" htmlFor={maxId}>
             <span className="price-range-slider-label">Maksimum Fiyat</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              name={maxId}
+            <FilterNumericStepper
               id={maxId}
+              name={maxId}
               value={priceMax}
-              onChange={(e) => handlePriceMaxChange(e.target.value)}
+              onValueChange={handlePriceMaxChange}
               placeholder="Max"
-              aria-label="Aylık fiyat maksimum"
+              ariaLabel="Aylık fiyat maksimum"
               className="price-range-slider-input category-filter-price-input"
             />
           </label>
@@ -4345,21 +4489,21 @@ function CategoryFilterSidebarView({
         <div className="category-filter-section" key={`common-${field.definitionId}`}>
           <CategoryFilterSectionTitle title={title} />
           <div className="category-filter-price-inputs">
-            <Input
+            <FilterNumericStepper
               type="number"
               value={value.min}
-              onChange={(e) => setCommonRange(field.definitionId, "min", e.target.value)}
+              onValueChange={(next) => setCommonRange(field.definitionId, "min", next)}
               placeholder="Min"
-              min="0"
+              ariaLabel="Minimum"
               className="category-filter-price-input"
             />
             <span className="category-filter-price-separator">-</span>
-            <Input
+            <FilterNumericStepper
               type="number"
               value={value.max}
-              onChange={(e) => setCommonRange(field.definitionId, "max", e.target.value)}
+              onValueChange={(next) => setCommonRange(field.definitionId, "max", next)}
               placeholder="Max"
-              min="0"
+              ariaLabel="Maksimum"
               className="category-filter-price-input"
             />
           </div>
@@ -4608,7 +4752,6 @@ function CategoryFilterSidebarView({
             <CategoryFilterSectionTitle title="ARAMA" />
             <div className="category-filter-section-inputs">
               <div className="category-filter-search-wrapper">
-                <Search size={18} className="category-filter-search-icon" />
                 <Input
                   type="text"
                   placeholder={searchPlaceholder}
@@ -4616,6 +4759,9 @@ function CategoryFilterSidebarView({
                   onChange={(e) => handleFilterChange({ search: e.target.value })}
                   className="category-filter-search-input"
                 />
+                <button type="button" className="category-filter-search-button" aria-label="Ara">
+                  <Search className="category-filter-search-button-icon" aria-hidden />
+                </button>
               </div>
             </div>
           </div>
@@ -4762,41 +4908,20 @@ function CategoryFilterSidebarView({
                   label={instructorCategorySelectLabel}
                   disabled={instructorCategoriesLoading}
                 >
-                <Select
-                  value={selectedCategory ? selectedCategory : CLEAR_INSTRUCTOR_CATEGORY_VALUE}
-                  onValueChange={(value) =>
-                    handleFilterChange({
-                      category: value === CLEAR_INSTRUCTOR_CATEGORY_VALUE ? "" : value,
-                    })
-                  }
-                  disabled={instructorCategoriesLoading}
-                >
-                  <SelectTrigger className="category-filter-select">
-                    <SelectValue
-                      placeholder={
-                        instructorCategoriesLoading ? "Kategoriler yükleniyor..." : "Kategori Seçin"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="select-content home-location-dropdown"
-                    side="bottom"
-                    avoidCollisions={false}
-                  >
-                    <SelectItem value={CLEAR_INSTRUCTOR_CATEGORY_VALUE} className="select-item">
-                      Tüm Kategoriler
-                    </SelectItem>
-                    {instructorCategories.map((category) => {
+                  <InstructorCategorySelect
+                    value={String(selectedCategory ?? "").trim()}
+                    disabled={instructorCategoriesLoading}
+                    placeholder={
+                      instructorCategoriesLoading ? "Kategoriler yükleniyor..." : "Kategori Seçin"
+                    }
+                    options={instructorCategories.flatMap((category) => {
                       const slug = String(category.slug ?? "").trim();
-                      if (!slug) return null;
-                      return (
-                        <SelectItem key={category.id} value={slug} className="select-item">
-                          {category.name}
-                        </SelectItem>
-                      );
+                      const label = String(category.name ?? "").trim();
+                      if (!slug || !label) return [];
+                      return [{ value: slug, label }];
                     })}
-                  </SelectContent>
-                </Select>
+                    onChange={(next) => handleFilterChange({ category: next })}
+                  />
                 </SelectMountGate>
                 {instructorCategoriesError ? (
                   <p className="category-filter-section-empty">{instructorCategoriesError}</p>
@@ -4806,7 +4931,10 @@ function CategoryFilterSidebarView({
           ) : null}
 
           {hasInstructorFeatureMode && !usesInjectedAgePriceInstructorOrder ? (
-            renderInstructorPriceFilterSection("default")
+            <>
+              {renderInstructorPriceFilterSection("default")}
+              {renderInstructorAvailableHoursFilterSection("default")}
+            </>
           ) : null}
 
           {hasDynamicFeatureMode || hasInstructorFeatureMode ? (
@@ -4842,6 +4970,23 @@ function CategoryFilterSidebarView({
                       const instructorFieldSectionTitle = isKursSinavaHazirlikInstructorCategory
                         ? getKursSinavaHazirlikInstructorFilterSectionTitle(field.name)
                         : field.name.toLocaleUpperCase("tr-TR");
+                      const wrapSurucuKursuInstructorCollapse = (
+                        node: ReactNode,
+                        orderKey: string,
+                        title: string,
+                        sectionKey: string,
+                      ): ReactNode => {
+                        if (!SURUCU_KURSU_COLLAPSED_FILTER_KEYS.has(orderKey)) return node;
+                        return (
+                          <CategoryFilterCollapse
+                            key={`surucu-collapse-${orderKey}-${sectionKey}`}
+                            title={title}
+                            className="category-filter-collapse--surucu"
+                          >
+                            {node}
+                          </CategoryFilterCollapse>
+                        );
+                      };
                       const wrapOrderedInstructorSpecialSections = (
                         section: ReactNode,
                         sectionKey: string,
@@ -4849,10 +4994,35 @@ function CategoryFilterSidebarView({
                         if (section == null) return section;
 
                         if (isKursSinavaHazirlikInstructorCategory) {
+                          const wrapKursSinavaHazirlikInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!KURS_SINAVA_HAZIRLIK_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                              return node;
+                            }
+                            return (
+                              <CategoryFilterCollapse
+                                key={`kurs-instructor-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapKursSinavaHazirlikInstructorCollapse(
+                            section,
+                            fieldOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
                           if (fieldOrderKey === "ozel ders turleri") {
                             return (
                               <Fragment key={`kurs-slot-${sectionKey}`}>
-                                {section}
+                                {wrapped}
                                 {renderStudentAgeFilterSection("kurs-sinava-hazirlik")}
                                 {renderInstructorPriceFilterSection(
                                   "kurs-sinava-hazirlik",
@@ -4861,152 +5031,382 @@ function CategoryFilterSidebarView({
                               </Fragment>
                             );
                           }
-                          if (KURS_SINAVA_HAZIRLIK_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(fieldOrderKey)) {
+                          if (fieldOrderKey === "ders suresi") {
                             return (
-                              <CategoryFilterCollapse
-                                key={`kurs-instructor-collapse-${fieldOrderKey}-${sectionKey}`}
-                                title={instructorFieldSectionTitle}
-                              >
-                                {section}
-                              </CategoryFilterCollapse>
+                              <Fragment key={`kurs-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapKursSinavaHazirlikInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("kurs-sinava-hazirlik"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
+                              </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isYabanciDilInstructorCategory) {
-                          if (fieldOrderKey === "yabanci dil turleri") {
+                          const yabanciOrderKey = normalizeYabanciDilInstructorFilterOrderKey(field.name);
+                          const wrapYabanciDilInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!YABANCI_DIL_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                              return node;
+                            }
+                            return (
+                              <CategoryFilterCollapse
+                                key={`yabanci-dil-instructor-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapYabanciDilInstructorCollapse(
+                            section,
+                            yabanciOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
+                          if (yabanciOrderKey === "yabanci dil turleri") {
                             return (
                               <Fragment key={`yabanci-dil-slot-${sectionKey}`}>
-                                {section}
+                                {wrapped}
                                 {renderStudentAgeFilterSection("yabanci-dil")}
+                                {renderInstructorPriceFilterSection("yabanci-dil", "FİYAT ARALIĞI")}
                               </Fragment>
                             );
                           }
-                          if (fieldOrderKey === "hizmet yeri") {
+                          if (yabanciOrderKey === "ders suresi") {
                             return (
-                              <Fragment key={`yabanci-dil-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("yabanci-dil")}
+                              <Fragment key={`yabanci-dil-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapYabanciDilInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("yabanci-dil"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
                               </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isSanatInstructorCategory) {
-                          if (fieldOrderKey === "sanat turleri") {
+                          const sanatOrderKey = normalizeSanatInstructorFilterOrderKey(field.name);
+                          const wrapSanatInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!SANAT_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) return node;
+                            return (
+                              <CategoryFilterCollapse
+                                key={`sanat-instructor-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapSanatInstructorCollapse(
+                            section,
+                            sanatOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
+                          if (sanatOrderKey === "sanat turleri") {
                             return (
                               <Fragment key={`sanat-slot-${sectionKey}`}>
-                                {section}
+                                {wrapped}
                                 {renderStudentAgeFilterSection("sanat")}
+                                {renderInstructorPriceFilterSection("sanat", "FİYAT ARALIĞI")}
                               </Fragment>
                             );
                           }
-                          if (fieldOrderKey === "hizmet yeri") {
+                          if (sanatOrderKey === "ders suresi") {
                             return (
-                              <Fragment key={`sanat-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("sanat")}
+                              <Fragment key={`sanat-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapSanatInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("sanat"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
                               </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isSporInstructorCategory) {
-                          if (fieldOrderKey === "spor turleri") {
+                          const sporOrderKey = normalizeSporInstructorFilterOrderKey(field.name);
+                          const wrapSporInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!SPOR_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) return node;
+                            return (
+                              <CategoryFilterCollapse
+                                key={`spor-instructor-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapSporInstructorCollapse(
+                            section,
+                            sporOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
+                          if (sporOrderKey === "spor turleri") {
                             return (
                               <Fragment key={`spor-slot-${sectionKey}`}>
-                                {section}
+                                {wrapped}
                                 {renderStudentAgeFilterSection("spor")}
+                                {renderInstructorPriceFilterSection("spor", "FİYAT ARALIĞI")}
                               </Fragment>
                             );
                           }
-                          if (fieldOrderKey === "hizmet yeri") {
+                          if (sporOrderKey === "ders suresi") {
                             return (
-                              <Fragment key={`spor-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("spor")}
+                              <Fragment key={`spor-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapSporInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("spor"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
                               </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isKisiselGelisimInstructorCategory) {
                           const kisiselOrderKey = normalizeKisiselGelisimFilterOrderKey(field.name);
+                          const wrapKisiselGelisimInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!KISISEL_GELISIM_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                              return node;
+                            }
+                            return (
+                              <CategoryFilterCollapse
+                                key={`kisisel-gelisim-instructor-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapKisiselGelisimInstructorCollapse(
+                            section,
+                            kisiselOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
                           if (kisiselOrderKey === "egitim turleri") {
                             return (
                               <Fragment key={`kisisel-gelisim-slot-${sectionKey}`}>
-                                {section}
+                                {wrapped}
                                 {renderStudentAgeFilterSection("kisisel-gelisim")}
+                                {renderInstructorPriceFilterSection(
+                                  "kisisel-gelisim",
+                                  "FİYAT ARALIĞI",
+                                )}
                               </Fragment>
                             );
                           }
-                          if (kisiselOrderKey === "hizmet yeri") {
+                          if (kisiselOrderKey === "ders suresi") {
                             return (
-                              <Fragment key={`kisisel-gelisim-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("kisisel-gelisim")}
+                              <Fragment key={`kisisel-gelisim-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapKisiselGelisimInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("kisisel-gelisim"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
                               </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isMeslekiEgitimInstructorCategory) {
                           const meslekiOrderKey = normalizeMeslekiEgitimFilterOrderKey(field.name);
+                          const wrapMeslekiEgitimInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!MESLEKI_EGITIM_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+                              return node;
+                            }
+                            return (
+                              <CategoryFilterCollapse
+                                key={`mesleki-egitim-instructor-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapMeslekiEgitimInstructorCollapse(
+                            section,
+                            meslekiOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
                           if (meslekiOrderKey === "egitim turleri") {
                             return (
                               <Fragment key={`mesleki-egitim-slot-${sectionKey}`}>
-                                {section}
+                                {wrapped}
                                 {renderStudentAgeFilterSection("mesleki-egitim")}
+                                {renderInstructorPriceFilterSection("mesleki-egitim", "FİYAT ARALIĞI")}
                               </Fragment>
                             );
                           }
-                          if (meslekiOrderKey === "hizmet yeri") {
+                          if (meslekiOrderKey === "ders suresi") {
                             return (
-                              <Fragment key={`mesleki-egitim-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("mesleki-egitim")}
+                              <Fragment key={`mesleki-egitim-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapMeslekiEgitimInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("mesleki-egitim"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
                               </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isOzelEgitimInstructorCategory) {
                           const ozelOrderKey = normalizeOzelEgitimFilterOrderKey(field.name);
+                          const wrapOzelEgitimInstructorCollapse = (
+                            node: ReactNode,
+                            orderKey: string,
+                            title: string,
+                            collapseKey: string,
+                          ): ReactNode => {
+                            if (!OZEL_EGITIM_COLLAPSED_INSTRUCTOR_FILTER_KEYS.has(orderKey)) return node;
+                            return (
+                              <CategoryFilterCollapse
+                                key={`ozel-egitim-collapse-${orderKey}-${collapseKey}`}
+                                title={title}
+                                className="category-filter-collapse--surucu"
+                              >
+                                {node}
+                              </CategoryFilterCollapse>
+                            );
+                          };
+                          const wrapped = wrapOzelEgitimInstructorCollapse(
+                            section,
+                            ozelOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
                           if (ozelOrderKey === "ozel egitim turleri") {
                             return (
                               <Fragment key={`ozel-egitim-slot-${sectionKey}`}>
-                                {section}
-                                {renderStudentAgeFilterSection("ozel-egitim")}
+                                {wrapped}
+                                {wrapOzelEgitimInstructorCollapse(
+                                  renderStudentAgeFilterSection("ozel-egitim"),
+                                  "ogrenci yasi",
+                                  "ÖĞRENCİ YAŞI",
+                                  "age",
+                                )}
+                                {wrapOzelEgitimInstructorCollapse(
+                                  renderInstructorPriceFilterSection("ozel-egitim", "FİYAT ARALIĞI"),
+                                  "fiyat araligi",
+                                  "FİYAT ARALIĞI",
+                                  "price",
+                                )}
                               </Fragment>
                             );
                           }
-                          if (ozelOrderKey === "hizmet yeri") {
+                          if (ozelOrderKey === "ders suresi") {
                             return (
-                              <Fragment key={`ozel-egitim-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("ozel-egitim")}
+                              <Fragment key={`ozel-egitim-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapOzelEgitimInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("ozel-egitim"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
                               </Fragment>
                             );
                           }
-                          return section;
+                          return wrapped;
                         }
 
                         if (isSurucuKursuInstructorCategory) {
                           const surucuOrderKey = normalizeSurucuKursuFilterOrderKey(field.name);
-                          if (surucuOrderKey === "arac imkani") {
+                          const wrapped = wrapSurucuKursuInstructorCollapse(
+                            section,
+                            surucuOrderKey,
+                            instructorFieldSectionTitle,
+                            sectionKey,
+                          );
+                          if (surucuOrderKey === "arac tipleri") {
                             return (
                               <Fragment key={`surucu-kursu-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("surucu-kursu")}
+                                {wrapped}
+                                {wrapSurucuKursuInstructorCollapse(
+                                  renderStudentAgeFilterSection("surucu-kursu"),
+                                  "ogrenci yasi",
+                                  "ÖĞRENCİ YAŞI",
+                                  "age",
+                                )}
+                                {wrapSurucuKursuInstructorCollapse(
+                                  renderInstructorPriceFilterSection("surucu-kursu", "FİYAT ARALIĞI"),
+                                  "fiyat araligi",
+                                  "FİYAT ARALIĞI",
+                                  "price",
+                                )}
                               </Fragment>
                             );
                           }
+                          if (surucuOrderKey === "ders suresi") {
+                            return (
+                              <Fragment key={`surucu-kursu-hours-${sectionKey}`}>
+                                {wrapped}
+                                {wrapSurucuKursuInstructorCollapse(
+                                  renderInstructorAvailableHoursFilterSection("surucu-kursu"),
+                                  "musait saat araligi",
+                                  "MÜSAİT SAAT ARALIĞI",
+                                  "hours",
+                                )}
+                              </Fragment>
+                            );
+                          }
+                          return wrapped;
                         }
 
                         if (isPatiliDostlarInstructorCategory) {
@@ -5022,6 +5422,14 @@ function CategoryFilterSidebarView({
                               </Fragment>
                             );
                           }
+                          if (patiliOrderKey === "fiziki imkanlar") {
+                            return (
+                              <Fragment key={`patili-dostlar-hours-${sectionKey}`}>
+                                {section}
+                                {renderInstructorAvailableHoursFilterSection("patili-dostlar")}
+                              </Fragment>
+                            );
+                          }
                         }
 
                         return section;
@@ -5029,10 +5437,13 @@ function CategoryFilterSidebarView({
 
                       if (field.kind === "boolean_group") {
                         const isExpanded = expandedInstructorBooleanGroupIds.has(field.groupId);
-                        const sortedOptions = sortCheckboxOptionsByLabel(
-                          field.options,
-                          (option) => option.name,
-                        );
+                        const sortedOptions =
+                          field.name === INSTRUCTOR_HIZMET_YERI_LABEL ||
+                          field.name === INSTRUCTOR_DERS_SEVIYESI_LABEL ||
+                          isSurucuKursuInstructorCategory ||
+                          isOzelEgitimInstructorCategory
+                            ? field.options
+                            : sortCheckboxOptionsByLabel(field.options, (option) => option.name);
                         const visibleOptions = isExpanded
                           ? sortedOptions
                           : sortedOptions.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
@@ -5088,20 +5499,18 @@ function CategoryFilterSidebarView({
 
                       if (field.kind === "boolean") {
                         const isChecked = Boolean(selectedInstructorBoolean[field.definitionId]);
-                        const isKursDenemeBoolean =
-                          isKursSinavaHazirlikInstructorCategory &&
-                          fieldOrderKey === "deneme dersi mevcuttur";
-                        const booleanCheckboxLabel = isKursDenemeBoolean
-                          ? "Ücretsiz Deneme Dersi Var"
-                          : field.name;
+                        const isDenemeDersiFilter =
+                          field.definitionId === INSTRUCTOR_DENEME_DERSI_DEFINITION_ID;
                         return wrapOrderedInstructorSpecialSections(
                           <div
                             className="category-filter-section"
                             key={`instructor-bool-${field.definitionId}`}
                           >
-                            {isKursDenemeBoolean ? null : (
-                              <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
-                            )}
+                            <CategoryFilterSectionTitle
+                              title={
+                                isDenemeDersiFilter ? "DENEME DERSİ VAR" : instructorFieldSectionTitle
+                              }
+                            />
                             <div className={checkboxListClassName(1)}>
                               <label
                                 className={`category-filter-checkbox-option${
@@ -5115,7 +5524,7 @@ function CategoryFilterSidebarView({
                                   className="category-filter-checkbox-input"
                                 />
                                 <span className="category-filter-checkbox-label">
-                                  {booleanCheckboxLabel}
+                                  {isDenemeDersiFilter ? "Var" : field.name}
                                 </span>
                               </label>
                             </div>
@@ -5181,14 +5590,64 @@ function CategoryFilterSidebarView({
                         return null;
                       }
 
+                      if (field.kind === "lesson_duration_range") {
+                        const value = selectedCommonRange[field.definitionId] ?? { min: "", max: "" };
+                        return wrapOrderedInstructorSpecialSections(
+                          <div
+                            className="category-filter-section"
+                            key={`instructor-lesson-duration-${field.definitionId}`}
+                          >
+                            <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
+                            <div className="category-filter-price-inputs">
+                              <FilterNumericStepper
+                                type="number"
+                                value={value.min}
+                                onValueChange={(next) =>
+                                  setInstructorRange(
+                                    field.definitionId,
+                                    "min",
+                                    sanitizeLessonDurationInput(next),
+                                  )
+                                }
+                                placeholder={LESSON_DURATION_MIN_INPUT_LABEL}
+                                ariaLabel="Ders süresi minimum"
+                                className="category-filter-price-input"
+                              />
+                              <span className="category-filter-price-separator" aria-hidden>
+                                —
+                              </span>
+                              <FilterNumericStepper
+                                type="number"
+                                value={value.max}
+                                onValueChange={(next) =>
+                                  setInstructorRange(
+                                    field.definitionId,
+                                    "max",
+                                    sanitizeLessonDurationInput(next),
+                                  )
+                                }
+                                placeholder={LESSON_DURATION_MAX_INPUT_LABEL}
+                                ariaLabel="Ders süresi maksimum"
+                                className="category-filter-price-input"
+                              />
+                            </div>
+                            <span className="category-filter-price-separator">
+                              {LESSON_DURATION_UNIT_LABEL}
+                            </span>
+                          </div>,
+                          `lesson-duration-${field.definitionId}`,
+                        );
+                      }
+
                       if (field.kind === "multi_select") {
                         const selectedSet =
                           selectedCommonMulti[field.definitionId] ?? new Set<string>();
                         const isExpanded = expandedInstructorMultiIds.has(field.definitionId);
-                        const sortedChoices = sortCheckboxOptionsByLabel(
-                          field.choices,
-                          (choice) => choice.name,
-                        );
+                        const sortedChoices =
+                          isSurucuKursuInstructorCategory &&
+                          normalizeSurucuKursuFilterOrderKey(field.name) === "egitmen profili"
+                            ? field.choices
+                            : sortCheckboxOptionsByLabel(field.choices, (choice) => choice.name);
                         const visibleChoices = isExpanded
                           ? sortedChoices
                           : sortedChoices.slice(0, FEATURE_OPTIONS_VISIBLE_LIMIT);
@@ -5250,25 +5709,25 @@ function CategoryFilterSidebarView({
                         >
                           <CategoryFilterSectionTitle title={instructorFieldSectionTitle} />
                           <div className="category-filter-price-inputs">
-                            <Input
+                            <FilterNumericStepper
                               type="number"
                               value={value.min}
-                              onChange={(e) =>
-                                setInstructorRange(field.definitionId, "min", e.target.value)
+                              onValueChange={(next) =>
+                                setInstructorRange(field.definitionId, "min", next)
                               }
                               placeholder="Min"
-                              min="0"
+                              ariaLabel="Minimum"
                               className="category-filter-price-input"
                             />
                             <span className="category-filter-price-separator">-</span>
-                            <Input
+                            <FilterNumericStepper
                               type="number"
                               value={value.max}
-                              onChange={(e) =>
-                                setInstructorRange(field.definitionId, "max", e.target.value)
+                              onValueChange={(next) =>
+                                setInstructorRange(field.definitionId, "max", next)
                               }
                               placeholder="Max"
-                              min="0"
+                              ariaLabel="Maksimum"
                               className="category-filter-price-input"
                             />
                           </div>
@@ -5668,6 +6127,7 @@ function CategoryFilterSidebarView({
                   value={priceRange}
                   onChange={(nextRange) => handleFilterChange({ priceRange: nextRange })}
                   className="category-filter-price-slider"
+                  steppers
                 />
               </div>
             </>

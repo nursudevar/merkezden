@@ -53,6 +53,7 @@ export type InstructorGalleryMediaRow = {
   file_path: string;
   file_name: string | null;
   file_type: string | null;
+  file_size: number | null;
   media_type: string;
   created_at: string | null;
 };
@@ -512,7 +513,7 @@ export async function loadInstructorGalleryMediaClient(
   const { data, error } = await supabase
     .from(INSTRUCTOR_MEDIA_TABLE)
     .select(
-      "id, instructor_id, owner_auth_id, file_url, file_path, file_name, file_type, media_type, created_at",
+      "id, instructor_id, owner_auth_id, file_url, file_path, file_name, file_type, file_size, media_type, created_at",
     )
     .eq("instructor_id", instructorId)
     .eq("owner_auth_id", authUid)
@@ -564,10 +565,11 @@ export async function uploadInstructorGalleryImageClient(
       file_path: path,
       file_name: file.name,
       file_type: file.type,
+      file_size: file.size,
       media_type: "gallery",
     })
     .select(
-      "id, instructor_id, owner_auth_id, file_url, file_path, file_name, file_type, media_type, created_at",
+      "id, instructor_id, owner_auth_id, file_url, file_path, file_name, file_type, file_size, media_type, created_at",
     )
     .single();
 

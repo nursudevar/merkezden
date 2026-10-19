@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
 import AnnouncementDetailModal, {
@@ -12,6 +12,7 @@ import {
   type HomeAnnouncementItem,
 } from "@/lib/homeAnnouncementsClient";
 import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 
 function HomeAnnouncementCard({
   announcement,
@@ -88,30 +89,57 @@ export function HomeAnnouncementsMarquee() {
   const [isMarqueeMounted, setIsMarqueeMounted] = useState(false);
   const [announcements, setAnnouncements] = useState<HomeAnnouncementItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryLockRef = useRef(false);
   const [activeAnnouncement, setActiveAnnouncement] = useState<HomeAnnouncementItem | null>(null);
 
   useEffect(() => {
     setIsMarqueeMounted(true);
   }, []);
 
+  const retry = useCallback(() => {
+    if (retryLockRef.current || loading) return;
+    retryLockRef.current = true;
+    setRetryCount((count) => count + 1);
+  }, [loading]);
+
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { items, error } = await fetchHomeAnnouncements(supabase);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { items, error } = await fetchHomeAnnouncements(supabase);
 
-      if (cancelled) return;
-      if (error) {
+        if (cancelled) return;
+        if (error && items.length === 0) {
+          console.error("[home][duyurular] load error", error);
+          setAnnouncements([]);
+          setFailed(true);
+          return;
+        }
+        if (error) {
+          console.error("[home][duyurular] load error", error);
+        }
+        setAnnouncements(items);
+        setFailed(false);
+      } catch (error) {
         console.error("[home][duyurular] load error", error);
+        if (!cancelled) {
+          setAnnouncements([]);
+          setFailed(true);
+        }
+      } finally {
+        retryLockRef.current = false;
+        if (!cancelled) setLoading(false);
       }
-      setAnnouncements(items);
-      setLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryCount]);
 
   const openAnnouncement = useCallback((item: HomeAnnouncementItem) => {
     setActiveAnnouncement(item);
@@ -136,6 +164,21 @@ export function HomeAnnouncementsMarquee() {
 
   const marqueeList = [...announcements, ...announcements];
   const showCarousel = !loading && announcements.length > 0;
+
+  if (failed) {
+    return (
+      <section className="duyurular-section" aria-label="Duyurular">
+        <div className="duyurular-header">
+          <h2 className="duyurular-title">Duyurular</h2>
+        </div>
+        <HomeSectionLoadError
+          message="Duyurular yüklenemedi. Lütfen tekrar deneyin."
+          loading={loading}
+          onRetry={retry}
+        />
+      </section>
+    );
+  }
 
   if (!loading && announcements.length === 0) {
     return null;

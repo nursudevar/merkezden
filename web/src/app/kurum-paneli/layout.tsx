@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getCurrentUserRole } from '@/lib/auth/authServer';
+import { resolveInstitutionPanelAccess } from '@/lib/auth/authServer';
+import { InstitutionPanelAccessError } from './InstitutionPanelAccessError';
 
 export default async function InstitutionLayout({
   children,
@@ -8,14 +9,18 @@ export default async function InstitutionLayout({
   children: React.ReactNode;
 }) {
   noStore();
-  const { user, userType } = await getCurrentUserRole();
+  const access = await resolveInstitutionPanelAccess();
 
-  if (!user) {
+  if (access === 'anonymous') {
     redirect('/giris');
   }
 
-  if (userType !== 'institution') {
+  if (access === 'unauthorized') {
     redirect('/');
+  }
+
+  if (access === 'error') {
+    return <InstitutionPanelAccessError />;
   }
 
   return <>{children}</>;

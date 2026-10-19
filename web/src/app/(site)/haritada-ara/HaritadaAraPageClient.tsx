@@ -7,6 +7,7 @@ import { SlidersHorizontal } from "lucide-react";
 import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
 import { HaritadaAraFilterSidebar } from "@/components/map/HaritadaAraFilterSidebar";
 import { InstitutionMapSearchExperience } from "@/components/map/InstitutionMapSearchExperience";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import type { InstitutionMapFocusTarget } from "@/components/map/InstitutionLocationsMap";
 import { useHaritadaAraMapMarkers } from "@/hooks/useHaritadaAraMapMarkers";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -47,7 +48,7 @@ import {
   type KurumTuruSlug,
 } from "@/lib/institutionSchoolStatusFilter";
 import {
-  fetchActiveInstitutionCategories,
+  fetchActiveInstitutionCategoriesResult,
   type ActiveInstitutionCategory,
 } from "@/lib/categoryHelpers";
 import { fetchInstructorFeatureCategoriesClient } from "@/lib/instructorFeaturesClient";
@@ -108,7 +109,12 @@ export function HaritadaAraPageClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchKey = searchParams.toString();
-  const { markers, loading } = useHaritadaAraMapMarkers();
+  const {
+    markers,
+    loading: markersLoading,
+    error: markersFailed,
+    retry: retryMarkers,
+  } = useHaritadaAraMapMarkers();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => new Set());
@@ -141,6 +147,12 @@ export function HaritadaAraPageClient() {
   const [ilceler, setIlceler] = useState<TurkiyeLocationOption[]>([]);
   const [mahalleler, setMahalleler] = useState<TurkiyeLocationOption[]>([]);
   const [locationDefaultsReady, setLocationDefaultsReady] = useState(false);
+  const [illerPhase, setIllerPhase] = useState<"loading" | "ready" | "error">("loading");
+  const [illerRetryCount, setIllerRetryCount] = useState(0);
+  const [categoriesPhase, setCategoriesPhase] = useState<"loading" | "ready" | "error">("loading");
+  const [categoriesRetryCount, setCategoriesRetryCount] = useState(0);
+  const illerRetryLockRef = useRef(false);
+  const categoriesRetryLockRef = useRef(false);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [nearbyActive, setNearbyActive] = useState(false);
@@ -152,6 +164,14 @@ export function HaritadaAraPageClient() {
   const activeGeoCancelRef = useRef<(() => void) | null>(null);
   const locationDefaultsReadyRef = useRef(false);
   const lastHydratedSearchKeyRef = useRef<string | null>(null);
+  const searchQueryRef = useRef(searchQuery);
+  const appliedSearchQueryRef = useRef(appliedSearchQuery);
+  const selectedKurumTuruRef = useRef(selectedKurumTuru);
+  const selectedCategorySlugsRef = useRef(selectedCategorySlugs);
+  searchQueryRef.current = searchQuery;
+  appliedSearchQueryRef.current = appliedSearchQuery;
+  selectedKurumTuruRef.current = selectedKurumTuru;
+  selectedCategorySlugsRef.current = selectedCategorySlugs;
   const writeGenerationRef = useRef(0);
   const markersRef = useRef(markers);
   const illerRef = useRef(iller);
@@ -304,45 +324,53 @@ export function HaritadaAraPageClient() {
         illerRef.current = rows;
         const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
         if (ankaraId) setDefaultIlId(ankaraId);
+        setIllerPhase("ready");
+        locationDefaultsReadyRef.current = true;
+        setLocationDefaultsReady(true);
       } catch (error) {
         console.error("İller yüklenemedi:", error);
-        if (!cancelled) setIller([]);
+        if (!cancelled) setIllerPhase("error");
       } finally {
-        if (!cancelled) {
-          locationDefaultsReadyRef.current = true;
-          setLocationDefaultsReady(true);
-        }
+        if (!cancelled) illerRetryLockRef.current = false;
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [illerRetryCount]);
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
       try {
-        const [institutionRows, instructorResult] = await Promise.all([
-          fetchActiveInstitutionCategories(),
+        const [institutionResult, instructorResult] = await Promise.all([
+          fetchActiveInstitutionCategoriesResult(),
           fetchInstructorFeatureCategoriesClient(),
         ]);
         if (cancelled) return;
+        if (institutionResult.error || instructorResult.error) {
+          console.error("Harita kategorileri yüklenemedi:", institutionResult.error ?? instructorResult.error);
+          setCategoriesPhase("error");
+          return;
+        }
         setMapCategories(
-          mergeMapSearchCategories(institutionRows, instructorResult.categories ?? []),
+          mergeMapSearchCategories(institutionResult.categories, instructorResult.categories ?? []),
         );
+        setCategoriesPhase("ready");
       } catch (error) {
         console.error("Harita kategorileri yüklenemedi:", error);
-        if (!cancelled) setMapCategories([]);
+        if (!cancelled) setCategoriesPhase("error");
+      } finally {
+        if (!cancelled) categoriesRetryLockRef.current = false;
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categoriesRetryCount]);
 
   useEffect(() => {
     if (!locationDefaultsReady) return;
@@ -359,16 +387,22 @@ export function HaritadaAraPageClient() {
       setSelectedMahalleId(nextMahalleId);
       if (!nextIlId) setIlceler([]);
       if (!nextIlceId) setMahalleler([]);
-      setSearchQuery(q);
-      setAppliedSearchQuery(q);
-      setSelectedKurumTuru(readKurumTuruSlugsFromSearch(searchKey));
+      if (!searchQueryRef.current.trim() && !appliedSearchQueryRef.current.trim()) {
+        setSearchQuery(q);
+        setAppliedSearchQuery(q);
+      }
+      if (selectedKurumTuruRef.current.length === 0) {
+        setSelectedKurumTuru(readKurumTuruSlugsFromSearch(searchKey));
+      }
       const categorySlugs = readMapCategorySlugsFromSearch(searchKey);
       const categories = mapCategoriesRef.current;
-      setSelectedCategorySlugs(
-        categories.length > 0
-          ? sanitizeMapCategorySlugs(categorySlugs, categories)
-          : categorySlugs,
-      );
+      if (selectedCategorySlugsRef.current.length === 0) {
+        setSelectedCategorySlugs(
+          categories.length > 0
+            ? sanitizeMapCategorySlugs(categorySlugs, categories)
+            : categorySlugs,
+        );
+      }
       lastHydratedSearchKeyRef.current = searchKey;
       if (nextIlceId || nextMahalleId) {
         void focusMapForLocation(nextIlId, nextIlceId, nextMahalleId);
@@ -950,6 +984,39 @@ export function HaritadaAraPageClient() {
     ],
   );
 
+  const retryIller = useCallback(() => {
+    if (illerRetryLockRef.current || illerPhase === "loading" || illerPhase !== "error") return;
+    illerRetryLockRef.current = true;
+    setIllerPhase("loading");
+    setIllerRetryCount((count) => count + 1);
+  }, [illerPhase]);
+
+  const retryCategories = useCallback(() => {
+    if (categoriesRetryLockRef.current || categoriesPhase === "loading" || categoriesPhase !== "error") return;
+    categoriesRetryLockRef.current = true;
+    setCategoriesPhase("loading");
+    setCategoriesRetryCount((count) => count + 1);
+  }, [categoriesPhase]);
+
+  const filterLoadErrors = (
+    <>
+      {illerPhase === "error" || (illerPhase === "loading" && illerRetryCount > 0) ? (
+        <HomeSectionLoadError
+          message="İl listesi yüklenemedi."
+          loading={illerPhase === "loading"}
+          onRetry={retryIller}
+        />
+      ) : null}
+      {categoriesPhase === "error" || (categoriesPhase === "loading" && categoriesRetryCount > 0) ? (
+        <HomeSectionLoadError
+          message="Kategori listesi yüklenemedi."
+          loading={categoriesPhase === "loading"}
+          onRetry={retryCategories}
+        />
+      ) : null}
+    </>
+  );
+
   const filterSidebarProps = {
     iller,
     ilceler,
@@ -993,6 +1060,7 @@ export function HaritadaAraPageClient() {
         </div>
         <aside className="category-page-layout-sidebar haritada-ara-sidebar">
           <div className="haritada-ara-filter-panel">
+            {filterLoadErrors}
             <HaritadaAraFilterSidebar {...filterSidebarProps} />
           </div>
         </aside>
@@ -1019,6 +1087,7 @@ export function HaritadaAraPageClient() {
               aria-hidden
             />
             <div className="category-page-layout-filter-drawer-content">
+              {filterLoadErrors}
               <HaritadaAraFilterSidebar {...filterSidebarProps} />
             </div>
           </div>
@@ -1026,7 +1095,10 @@ export function HaritadaAraPageClient() {
           <div ref={resultsScrollRef} className="haritada-ara-results">
             <InstitutionMapSearchExperience
               markers={filteredMarkers}
-              loading={loading || !locationDefaultsReady}
+              loading={markersLoading || !locationDefaultsReady}
+              markerLoadFailed={markersFailed}
+              markerLoading={markersLoading}
+              onRetryMarkerLoad={retryMarkers}
               focusTarget={mapFocus}
               onToggleFavorite={handleFavoriteToggle}
               favoriteIds={favoriteIds}

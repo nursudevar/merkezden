@@ -10,7 +10,6 @@ import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import { resolveCategoryListingIlId } from "@/components/category/categoryLocationFilter";
 import { parseLocationId } from "@/lib/turkiyeLocationsClient";
-import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   parsePriceInputToIntOrNull,
   resolveInstitutionIdsByPriceRange,
@@ -22,6 +21,7 @@ import {
   mapPublicInstructorToListItem,
   resolveInstitutionCategoryIdByName,
   resolveInstructorCategoryIdBySlugOrName,
+  resolveInstructorIdsByPriceRange,
 } from "@/lib/publicInstructorSearch";
 import {
   buildProfileSearchVariants,
@@ -718,14 +718,31 @@ async function fetchCategoryInstructorResults(
     schoolFilters,
   );
 
+  let allowedInstructorIds =
+    instructorFilters.featureFilterIds !== null ? instructorFilters.featureFilterIds : undefined;
+
+  const priceMinRaw = String(schoolFilters?.priceMin ?? "").trim();
+  const priceMaxRaw = String(schoolFilters?.priceMax ?? "").trim();
+  if (priceMinRaw || priceMaxRaw) {
+    const matchedPriceIds = new Set(
+      await resolveInstructorIdsByPriceRange(supabase, {
+        min: parsePriceInputToIntOrNull(priceMinRaw),
+        max: parsePriceInputToIntOrNull(priceMaxRaw),
+      }),
+    );
+    allowedInstructorIds =
+      allowedInstructorIds !== undefined
+        ? intersectSets(allowedInstructorIds, matchedPriceIds)
+        : matchedPriceIds;
+  }
+
   const rows = await fetchPublicInstructorsForListing(supabase, {
     categoryId: instructorCategoryId,
     ilId: location.ilId,
     ilceId: location.ilceId,
     mahalleId: location.mahalleId,
     searchTerm,
-    allowedInstructorIds:
-      instructorFilters.featureFilterIds !== null ? instructorFilters.featureFilterIds : undefined,
+    allowedInstructorIds,
   });
 
   const filteredRows = applyInstructorListingFilters(rows, {
@@ -734,20 +751,11 @@ async function fetchCategoryInstructorResults(
     priceRange: null,
   });
 
-  const instructorIds = filteredRows
-    .map((row) => Number(row.id))
-    .filter((id) => Number.isFinite(id) && id > 0);
-  const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-    instructorIds,
-    supabase,
-  );
-
   return filteredRows
     .map((row) =>
       mapPublicInstructorToListItem(
         row,
         supabase,
-        priceLabelsByInstructorId.get(Number(row.id)),
       ),
     )
     .filter((item): item is NonNullable<typeof item> => item !== null);

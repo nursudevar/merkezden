@@ -6,6 +6,9 @@ import {
   INSTRUCTOR_FEATURE_ENTRIES_TABLE,
   INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
   isInstructorPriceRangeFeature,
+  isInstructorHizmetYeriBooleanOption,
+  isInstructorHizmetYeriFeatureName,
+  resolveInstructorHizmetYeriBooleanDefinitionId,
   type InstructorFeatureDefinitionRow,
 } from "@/lib/instructorFeaturesClient";
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
@@ -23,6 +26,8 @@ import {
 } from "@/lib/turkiyeLocationsClient";
 import type { SchoolCategoryFilterPayload } from "@/components/category/schoolCategoryFilterTypes";
 import type { InstructorCategoryFilterPayload } from "@/components/category/instructorCategoryFilterTypes";
+import { formatInstitutionPriceRangeDisplay } from "@/lib/institutionPriceRangeFilter";
+import { inputHHMMToDbTimeOrNull } from "@/lib/institutionHelpers";
 import {
   extractStudentAgeFilterQueryFromRangePayload,
   isStudentAgeFilterDefinitionId,
@@ -34,9 +39,17 @@ import {
   isLegacyStudentAgeMultiSelectFeature,
   isStudentAgeRangeNumberFeature,
 } from "@/lib/studentAgeRangeFeature";
+import {
+  LESSON_DURATION_MAX_SLUG,
+  LESSON_DURATION_MIN_SLUG,
+  isLessonDurationMinFeature,
+  isLessonDurationRangeNumberFeature,
+  lessonDurationStoredOverlapsSelected,
+  parseLessonDurationInput,
+} from "@/lib/instructorLessonDurationFeature";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
-  "id, slug, name, surname, full_name, address, branch, bio, about, school, department, education_level, lesson_type, service_type, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at, il_id, ilce_id";
+  "id, slug, name, surname, full_name, address, branch, bio, about, school, department, lesson_type, service_type, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at, il_id, ilce_id, min_fiyat, max_fiyat";
 
 const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "name",
@@ -48,7 +61,6 @@ const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
   "about",
   "school",
   "department",
-  "education_level",
   "lesson_type",
   "service_type",
   "website",
@@ -69,7 +81,6 @@ export type PublicInstructorListRow = {
   about?: string | null;
   school?: string | null;
   department?: string | null;
-  education_level?: string | null;
   lesson_type?: string | null;
   service_type?: string | null;
   website?: string | null;
@@ -81,6 +92,8 @@ export type PublicInstructorListRow = {
   created_at?: string | null;
   il_id?: number | null;
   ilce_id?: number | null;
+  min_fiyat?: number | null;
+  max_fiyat?: number | null;
   locationIlAd?: string | null;
   locationIlceAd?: string | null;
   category_name?: string | null;
@@ -102,7 +115,7 @@ export type InstructorListingFilters = {
   /** null = feature filtresi yok; boş Set = eşleşme yok */
   featureFilterIds: Set<number> | null;
   branchTitleTerms: string[];
-  /** Genel arama / liste fiyat slider'ı — fiyat_araligi feature üzerinden çözülür */
+  /** Liste fiyat slider'ı. Aktif runtime filtresi instructors.min_fiyat / max_fiyat kolonlarındadır. */
   priceRange: { min: number; max: number } | null;
 };
 
@@ -277,27 +290,88 @@ function intersectInstructorIdSets(a: Set<number>, b: Set<number>): Set<number> 
   return out;
 }
 
-async function resolveInstructorIdsForUserPriceRange(
+/**
+ * Kategori eğitmen fiyat filtresi — instructors.min_fiyat / max_fiyat.
+ * Kurum resolveInstitutionIdsByPriceRange ile aynı overlap ve NULL kuralı:
+ * ikisi dolu: min_fiyat <= selectedMax AND max_fiyat >= selectedMin (ikisi de NOT NULL);
+ * yalnız min: max_fiyat >= selectedMin (NOT NULL);
+ * yalnız max: min_fiyat <= selectedMax (NOT NULL).
+ */
+export async function resolveInstructorIdsByPriceRange(
   supabase: SupabaseBrowser,
-  userRange: { min: number; max: number },
-): Promise<Set<number>> {
-  const { definitions } = await fetchInstructorRealFeatureDefinitionsClient(supabase);
-  const priceDefinitions = definitions.filter((row) =>
-    isInstructorPriceRangeFeature({ name: row.name ?? "", slug: row.slug }),
-  );
-  if (priceDefinitions.length === 0) return new Set<number>();
+  range: { min?: number | null; max?: number | null },
+): Promise<number[]> {
+  const minRaw = range.min;
+  const maxRaw = range.max;
+  const hasMin = minRaw != null && Number.isFinite(Number(minRaw));
+  const hasMax = maxRaw != null && Number.isFinite(Number(maxRaw));
+  if (!hasMin && !hasMax) return [];
 
-  const union = new Set<number>();
-  for (const priceDefinition of priceDefinitions) {
-    const set = await resolveInstructorIdsForPriceRangeDefinition(
-      supabase,
-      Number(priceDefinition.id),
-      String(priceDefinition.input_type ?? "multi_select"),
-      userRange,
-    );
-    set.forEach((id) => union.add(id));
+  const selectedMin = hasMin ? Math.max(0, Math.floor(Number(minRaw))) : null;
+  const selectedMax = hasMax ? Math.max(0, Math.floor(Number(maxRaw))) : null;
+
+  const rows: Array<{ id: number }> = [];
+  let from = 0;
+  for (;;) {
+    const to = from + QUERY_PAGE_SIZE - 1;
+
+    let query = supabase.from("instructors").select("id");
+    if (selectedMin != null && selectedMax != null) {
+      query = query
+        .not("min_fiyat", "is", null)
+        .not("max_fiyat", "is", null)
+        .lte("min_fiyat", selectedMax)
+        .gte("max_fiyat", selectedMin);
+    } else if (selectedMin != null) {
+      query = query.not("max_fiyat", "is", null).gte("max_fiyat", selectedMin);
+    } else if (selectedMax != null) {
+      query = query.not("min_fiyat", "is", null).lte("min_fiyat", selectedMax);
+    }
+
+    const { data, error } = await query.range(from, to);
+    if (error) throw error;
+    const batch = (data ?? []) as Array<{ id: number }>;
+    rows.push(...batch);
+    if (batch.length < QUERY_PAGE_SIZE) break;
+    from += QUERY_PAGE_SIZE;
   }
-  return union;
+
+  const out: number[] = [];
+  for (const row of rows) {
+    const id = Number(row.id);
+    if (Number.isFinite(id) && id > 0) out.push(id);
+  }
+  return out;
+}
+
+/** Aynı overlap ve NULL kuralı; /egitmenler istemci filtresi için. */
+export function instructorStoredPriceOverlapsSelectedRange(
+  minFiyat: number | null | undefined,
+  maxFiyat: number | null | undefined,
+  selected: { min?: number | null; max?: number | null } | null | undefined,
+): boolean {
+  if (!selected) return true;
+  const hasMin = selected.min != null && Number.isFinite(Number(selected.min));
+  const hasMax = selected.max != null && Number.isFinite(Number(selected.max));
+  if (!hasMin && !hasMax) return true;
+
+  const selectedMin = hasMin ? Math.max(0, Math.floor(Number(selected.min))) : null;
+  const selectedMax = hasMax ? Math.max(0, Math.floor(Number(selected.max))) : null;
+  const storedMin =
+    minFiyat == null || !Number.isFinite(Number(minFiyat)) ? null : Number(minFiyat);
+  const storedMax =
+    maxFiyat == null || !Number.isFinite(Number(maxFiyat)) ? null : Number(maxFiyat);
+
+  if (selectedMin != null && selectedMax != null) {
+    return (
+      storedMin != null &&
+      storedMax != null &&
+      storedMin <= selectedMax &&
+      storedMax >= selectedMin
+    );
+  }
+  if (selectedMin != null) return storedMax != null && storedMax >= selectedMin;
+  return storedMin != null && selectedMax != null && storedMin <= selectedMax;
 }
 
 export async function fetchPublicInstructorsForListing(
@@ -308,7 +382,7 @@ export async function fetchPublicInstructorsForListing(
     ilId?: number | null;
     ilceId?: number | null;
     mahalleId?: number | null;
-    priceRange?: { min: number; max: number } | null;
+    priceRange?: { min?: number | null; max?: number | null } | null;
     limit?: number;
     allowedInstructorIds?: Set<number>;
   },
@@ -330,16 +404,17 @@ export async function fetchPublicInstructorsForListing(
   const hardLimit = options?.limit ?? 600;
   let allowedInstructorIds = options?.allowedInstructorIds;
 
-  if (options?.priceRange) {
-    const priceFilterIds = await resolveInstructorIdsForUserPriceRange(
-      supabase,
-      options.priceRange,
-    );
-    if (priceFilterIds.size === 0) return [];
+  const priceRange = options?.priceRange;
+  const hasPriceMin = priceRange?.min != null && Number.isFinite(Number(priceRange.min));
+  const hasPriceMax = priceRange?.max != null && Number.isFinite(Number(priceRange.max));
+  if (priceRange && (hasPriceMin || hasPriceMax)) {
+    const priceFilterIds = await resolveInstructorIdsByPriceRange(supabase, priceRange);
+    if (priceFilterIds.length === 0) return [];
+    const priceFilterIdSet = new Set(priceFilterIds);
     allowedInstructorIds =
       allowedInstructorIds !== undefined
-        ? intersectInstructorIdSets(allowedInstructorIds, priceFilterIds)
-        : priceFilterIds;
+        ? intersectInstructorIdSets(allowedInstructorIds, priceFilterIdSet)
+        : priceFilterIdSet;
   }
 
   if (allowedInstructorIds !== undefined && allowedInstructorIds.size === 0) {
@@ -436,7 +511,6 @@ export type MappedPublicInstructorListItem = {
 export function mapPublicInstructorToListItem(
   row: PublicInstructorListRow,
   supabase: SupabaseBrowser,
-  priceLabel?: string,
 ): MappedPublicInstructorListItem | null {
   const numericId = Number(row.id);
   if (!Number.isFinite(numericId) || numericId <= 0) return null;
@@ -447,7 +521,7 @@ export function mapPublicInstructorToListItem(
   const about = String(row.about ?? "").trim();
   const bio = String(row.bio ?? "").trim();
   const description = about || bio || branch || school;
-  const priceRange = String(priceLabel ?? "").trim();
+  const priceRange = formatInstitutionPriceRangeDisplay(row.min_fiyat, row.max_fiyat) ?? "";
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) ||
     undefined;
@@ -485,22 +559,6 @@ function normalizeFilterKey(text: string): string {
     .trim();
 }
 
-function isPriceRangeDefinition(row: { name?: string | null; slug?: string | null }): boolean {
-  const t = normalizeFilterKey(`${row.slug ?? ""} ${row.name ?? ""}`);
-  return (
-    t.includes("fiyat araligi") ||
-    t.includes("aylik ortalama fiyat") ||
-    t.includes("ortalama fiyat") ||
-    t.includes("price range") ||
-    t.includes("monthly price") ||
-    t === "fiyat" ||
-    t.startsWith("fiyat ") ||
-    t.endsWith(" fiyat") ||
-    t.includes(" fiyat ") ||
-    t.includes("ucret")
-  );
-}
-
 function isBranchOrTitleDefinition(row: { name?: string | null; slug?: string | null }): boolean {
   const t = normalizeFilterKey(`${row.slug ?? ""} ${row.name ?? ""}`);
   return (
@@ -510,55 +568,6 @@ function isBranchOrTitleDefinition(row: { name?: string | null; slug?: string | 
     t.includes(" title") ||
     t.startsWith("title ")
   );
-}
-
-function parsePriceRangeFromText(raw: string): { min: number; max: number } | null {
-  const text = String(raw ?? "").trim();
-  if (!text) return null;
-  const lower = text.toLocaleLowerCase("tr-TR");
-  const norm = normalizeFilterKey(text);
-
-  const isFree =
-    lower.includes("ücretsiz") || norm.includes("ucretsiz") || lower === "0" || lower === "0 tl" || lower === "0₺";
-  if (isFree) return { min: 0, max: 0 };
-
-  const compact = text.replace(/\s+/g, "");
-  const numericTokens = compact.match(/\d+(?:[.,]\d+)?/g) ?? [];
-  const numbers = numericTokens
-    .map((tok) => Number(tok.replace(/[.,]/g, "")))
-    .filter((n) => Number.isFinite(n));
-  if (numbers.length === 0) return null;
-
-  const isUpperOpen =
-    /\+/.test(text) ||
-    /üzeri/i.test(text) ||
-    norm.includes("uzeri") ||
-    norm.includes("ve ustu") ||
-    norm.includes("ustu") ||
-    norm.includes("yukari") ||
-    norm.includes("more");
-  const isLowerOpen =
-    /alt[ıi]/i.test(text) ||
-    norm.includes("alti") ||
-    norm.includes("altinda") ||
-    norm.includes("kadar") ||
-    norm.includes("less") ||
-    norm.includes("under");
-
-  if (numbers.length >= 2) {
-    const min = Math.min(numbers[0], numbers[1]);
-    const max = Math.max(numbers[0], numbers[1]);
-    return { min, max };
-  }
-
-  const single = numbers[0];
-  if (isUpperOpen) return { min: single, max: Number.POSITIVE_INFINITY };
-  if (isLowerOpen) return { min: 0, max: single };
-  return { min: single, max: single };
-}
-
-function rangesOverlap(a: { min: number; max: number }, b: { min: number; max: number }): boolean {
-  return a.min <= b.max && b.min <= a.max;
 }
 
 function parseOptionalNumber(raw: string): number | null {
@@ -721,79 +730,109 @@ async function resolveInstructorIdsNumberRangeForDefinition(
   return out;
 }
 
-async function resolveInstructorIdsForPriceRangeDefinition(
+async function resolveInstructorIdsByLessonDurationOverlap(
   supabase: SupabaseBrowser,
-  instructorDefinitionId: number,
-  inputType: string,
-  userRange: { min: number; max: number },
+  selected: { min: number | null; max: number | null },
 ): Promise<Set<number>> {
-  const idSet = new Set<number>();
-  const choiceRangeById = new Map<number, { min: number; max: number }>();
+  const out = new Set<number>();
+  const { data: defs, error: defsError } = await supabase
+    .from("instructor_feature_definitions")
+    .select("id, slug, is_active")
+    .eq("is_active", true)
+    .in("slug", [LESSON_DURATION_MIN_SLUG, LESSON_DURATION_MAX_SLUG]);
+  if (defsError) throw defsError;
 
-  const { data: choicesRaw, error: chErr } = await supabase
-    .from("instructor_feature_choices")
-    .select("id, name")
-    .eq("feature_definition_id", instructorDefinitionId)
-    .eq("is_active", true);
-  if (!chErr) {
-    for (const c of (choicesRaw ?? []) as Array<{ id: number; name?: string | null }>) {
-      const cid = Number(c.id);
-      if (!Number.isFinite(cid)) continue;
-      const r = parsePriceRangeFromText(String(c.name ?? ""));
-      if (r) choiceRangeById.set(cid, r);
-    }
+  let minId: number | null = null;
+  let maxId: number | null = null;
+  for (const row of (defs ?? []) as Array<{ id: number; slug?: string | null }>) {
+    const id = Number(row.id);
+    if (!Number.isFinite(id)) continue;
+    if (isLessonDurationMinFeature(row)) minId = id;
+    else maxId = id;
   }
+  if (minId == null || maxId == null) return out;
 
-  const { data: entriesRaw, error: entErr } = await supabase
+  const { data: entries, error: entriesError } = await supabase
     .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("id, instructor_id, number_answer, text_answer")
-    .eq("feature_definition_id", instructorDefinitionId);
-  if (entErr) throw entErr;
+    .select("instructor_id, feature_definition_id, number_answer")
+    .in("feature_definition_id", [minId, maxId]);
+  if (entriesError) throw entriesError;
 
-  const entries = (entriesRaw ?? []) as Array<{
-    id: number;
+  const byInstructor = new Map<number, { min: number | null; max: number | null }>();
+  for (const row of (entries ?? []) as Array<{
     instructor_id: number;
+    feature_definition_id: number;
     number_answer: number | null;
-    text_answer: string | null;
-  }>;
-
-  const choiceEntryIdToInstructor = new Map<number, number>();
-  for (const e of entries) {
-    const iid = Number(e.instructor_id);
-    if (!Number.isFinite(iid)) continue;
-    const it = inputType.toLowerCase();
-
-    if (it === "single_select" || it === "multi_select") {
-      choiceEntryIdToInstructor.set(Number(e.id), iid);
-    } else if (it === "number") {
-      const n = Number(e.number_answer);
-      if (!Number.isFinite(n)) continue;
-      if (rangesOverlap({ min: n, max: n }, userRange)) idSet.add(iid);
-    } else if (it === "text") {
-      const r = parsePriceRangeFromText(String(e.text_answer ?? ""));
-      if (r && rangesOverlap(r, userRange)) idSet.add(iid);
-    }
+  }>) {
+    const instructorId = Number(row.instructor_id);
+    const definitionId = Number(row.feature_definition_id);
+    const answer =
+      row.number_answer != null && Number.isFinite(Number(row.number_answer))
+        ? Number(row.number_answer)
+        : null;
+    if (!Number.isFinite(instructorId) || answer == null || answer < 0) continue;
+    const current = byInstructor.get(instructorId) ?? { min: null, max: null };
+    if (definitionId === minId) current.min = answer;
+    if (definitionId === maxId) current.max = answer;
+    byInstructor.set(instructorId, current);
   }
 
-  if (choiceEntryIdToInstructor.size > 0 && choiceRangeById.size > 0) {
-    const matchingChoiceIds = Array.from(choiceRangeById.entries())
-      .filter(([, r]) => rangesOverlap(r, userRange))
-      .map(([cid]) => cid);
-    if (matchingChoiceIds.length > 0) {
-      const { data: links, error: linkErr } = await supabase
-        .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
-        .select("instructor_feature_entry_id, choice_id")
-        .in("instructor_feature_entry_id", Array.from(choiceEntryIdToInstructor.keys()))
-        .in("choice_id", matchingChoiceIds);
-      if (linkErr) throw linkErr;
-      for (const row of (links ?? []) as Array<{ instructor_feature_entry_id: number }>) {
-        const iid = choiceEntryIdToInstructor.get(Number(row.instructor_feature_entry_id));
-        if (Number.isFinite(iid)) idSet.add(iid!);
-      }
+  for (const [instructorId, stored] of byInstructor) {
+    if (
+      lessonDurationStoredOverlapsSelected({
+        storedMin: stored.min,
+        storedMax: stored.max,
+        selectedMin: selected.min,
+        selectedMax: selected.max,
+      })
+    ) {
+      out.add(instructorId);
     }
   }
+  return out;
+}
 
-  return idSet;
+/**
+ * Eğitmen müsait saat aralığı — public_instructors.working_hours_start / working_hours_end.
+ * Kurum Eğitim Saatleri ile aynı kapsam kuralı:
+ * yalnız başlangıç: start NOT NULL ve start <= selectedStart;
+ * yalnız bitiş: end NOT NULL ve end >= selectedEnd;
+ * ikisi: her iki koşul.
+ */
+async function resolveInstructorIdsByWorkingHoursFilter(
+  supabase: SupabaseBrowser,
+  params: { start: string; end: string },
+): Promise<Set<number>> {
+  const startDb = params.start ? inputHHMMToDbTimeOrNull(params.start) : null;
+  const endDb = params.end ? inputHHMMToDbTimeOrNull(params.end) : null;
+  if (!startDb && !endDb) return new Set();
+
+  const rows: Array<{ id: number }> = [];
+  let from = 0;
+  for (;;) {
+    const to = from + QUERY_PAGE_SIZE - 1;
+    let query = supabase.from(PUBLIC_INSTRUCTORS_TABLE).select("id");
+    if (startDb) {
+      query = query.not("working_hours_start", "is", null).lte("working_hours_start", startDb);
+    }
+    if (endDb) {
+      query = query.not("working_hours_end", "is", null).gte("working_hours_end", endDb);
+    }
+    const { data, error } = await query.range(from, to);
+    if (error) throw error;
+    const batch = (data ?? []) as Array<{ id: number }>;
+    rows.push(...batch);
+    if (batch.length < QUERY_PAGE_SIZE) break;
+    from += QUERY_PAGE_SIZE;
+    if (from / QUERY_PAGE_SIZE >= MAX_QUERY_PAGES) break;
+  }
+
+  const out = new Set<number>();
+  for (const row of rows) {
+    const id = Number(row.id);
+    if (Number.isFinite(id) && id > 0) out.add(id);
+  }
+  return out;
 }
 
 function hasInstructorListingFilters(filters: InstructorListingFilters): boolean {
@@ -929,6 +968,19 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
     is_active?: boolean;
   }>).filter((c) => c.is_active !== false);
 
+  const institutionGroups = (institutionGroupsResult.data ?? []) as Array<{
+    id: number;
+    name: string | null;
+    slug: string | null;
+    category_slug: string | null;
+  }>;
+  const instructorGroups = (instructorGroupsResult.data ?? []) as Array<{
+    id: number;
+    name: string | null;
+    slug: string | null;
+    category_slug: string | null;
+  }>;
+
   const { uiFeatureIdToRealDefinition, instructorChoiceIdByUiKey } = buildUiToInstructorChoiceIdMap(
     uiDefinitions,
     uiChoices,
@@ -941,18 +993,8 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
       is_active?: boolean;
     }>).filter((c) => c.is_active !== false),
     {
-      institutionGroups: (institutionGroupsResult.data ?? []) as Array<{
-        id: number;
-        name: string | null;
-        slug: string | null;
-        category_slug: string | null;
-      }>,
-      instructorGroups: (instructorGroupsResult.data ?? []) as Array<{
-        id: number;
-        name: string | null;
-        slug: string | null;
-        category_slug: string | null;
-      }>,
+      institutionGroups,
+      instructorGroups,
     },
   );
 
@@ -973,6 +1015,24 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
     });
   }
 
+  const institutionGroupCategoryById = new Map<number, string | null>();
+  for (const group of institutionGroups) {
+    institutionGroupCategoryById.set(Number(group.id), group.category_slug ?? null);
+  }
+  const uiDefinitionById = new Map(uiDefinitions.map((definition) => [definition.id, definition]));
+  const hizmetYeriBooleanIdForLabel = (label: string, uiDefId: number): number | null => {
+    const definition = uiDefinitionById.get(uiDefId);
+    const categorySlug = definition
+      ? (institutionGroupCategoryById.get(Number(definition.group_id)) ?? null)
+      : null;
+    return resolveInstructorHizmetYeriBooleanDefinitionId(
+      realDefsResult.definitions,
+      instructorGroups,
+      label,
+      categorySlug,
+    );
+  };
+
   const branchTitleTerms: string[] = [];
   let current: Set<number> | null = null;
 
@@ -986,8 +1046,24 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
       if (label) branchTitleTerms.push(label);
       return null;
     }
+    if (meta && isInstructorPriceRangeFeature({ name: meta.name, slug: meta.slug })) {
+      return null;
+    }
+    if (meta && isInstructorHizmetYeriFeatureName(meta.name, meta.slug)) {
+      const label = choiceMetaById.get(uiChoiceId)?.name ?? "";
+      const booleanId = hizmetYeriBooleanIdForLabel(label, uiDefId);
+      if (booleanId != null) {
+        return resolveInstructorIdsForBooleanDefinition(supabase, booleanId);
+      }
+    }
 
     const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
+    if (
+      realDef &&
+      isInstructorPriceRangeFeature({ name: realDef.name ?? "", slug: realDef.slug })
+    ) {
+      return null;
+    }
     const instructorChoiceId = instructorChoiceIdByUiKey.get(`${uiDefId}:${uiChoiceId}`);
     // Kurum tarafında olup eğitmen şemasında karşılığı olmayan tanımları atla (AND'i bozma).
     if (!realDef) return null;
@@ -1073,40 +1149,32 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
     const minS = String(range?.min ?? "").trim();
     const maxS = String(range?.max ?? "").trim();
     if (!minS && !maxS) continue;
+    if (isInstructorPriceRangeFeature({ name: meta.name, slug: meta.slug })) continue;
 
     const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
+    if (
+      realDef &&
+      isInstructorPriceRangeFeature({ name: realDef.name ?? "", slug: realDef.slug })
+    ) {
+      continue;
+    }
     if (!realDef) {
       current = applyIntersect(current, new Set<number>());
       if (isFilterIdSetEmpty(current)) break;
       continue;
     }
 
-    if (isPriceRangeDefinition(meta)) {
-      const minN = parseOptionalNumber(minS) ?? 0;
-      const maxN = parseOptionalNumber(maxS) ?? Number.POSITIVE_INFINITY;
-      const userRange = { min: Math.min(minN, maxN), max: Math.max(minN, maxN) };
-      current = applyIntersect(
-        current,
-        await resolveInstructorIdsForPriceRangeDefinition(
-          supabase,
-          Number(realDef.id),
-          meta.inputType,
-          userRange,
-        ),
-      );
-    } else {
-      const minBound = minS ? parseOptionalNumber(minS) : null;
-      const maxBound = maxS ? parseOptionalNumber(maxS) : null;
-      current = applyIntersect(
-        current,
-        await resolveInstructorIdsNumberRangeForDefinition(
-          supabase,
-          Number(realDef.id),
-          minBound,
-          maxBound,
-        ),
-      );
-    }
+    const minBound = minS ? parseOptionalNumber(minS) : null;
+    const maxBound = maxS ? parseOptionalNumber(maxS) : null;
+    current = applyIntersect(
+      current,
+      await resolveInstructorIdsNumberRangeForDefinition(
+        supabase,
+        Number(realDef.id),
+        minBound,
+        maxBound,
+      ),
+    );
     if (isFilterIdSetEmpty(current)) break;
   }
 
@@ -1118,6 +1186,22 @@ export async function buildInstructorListingFiltersFromSchoolPayload(
       if (keyStr.startsWith("def:")) {
         const uiDefId = Number(keyStr.slice(4));
         if (!Number.isFinite(uiDefId)) continue;
+        const meta = defMetaById.get(uiDefId);
+        if (
+          meta &&
+          isInstructorHizmetYeriBooleanOption({
+            name: meta.name,
+            slug: meta.slug,
+            input_type: meta.inputType,
+          })
+        ) {
+          const booleanId = hizmetYeriBooleanIdForLabel(meta.name, uiDefId);
+          if (booleanId != null) {
+            const set = await resolveInstructorIdsForBooleanDefinition(supabase, booleanId);
+            set.forEach((id) => union.add(id));
+            continue;
+          }
+        }
         const realDef = uiFeatureIdToRealDefinition.get(uiDefId);
         if (!realDef) continue;
         const set = await resolveInstructorIdsForBooleanDefinition(supabase, Number(realDef.id));
@@ -1181,14 +1265,13 @@ export async function fetchFeaturedPublicInstructors(
 export function mapPublicInstructorToFeaturedItem(
   row: PublicInstructorListRow,
   supabase: SupabaseBrowser,
-  priceLabel?: string,
 ): FeaturedInstructorItem | null {
   const numericId = Number(row.id);
   if (!Number.isFinite(numericId) || numericId <= 0) return null;
 
   const name = mapPublicInstructorDisplayName(row);
   const { categoryLabel, branch, location } = resolvePublicInstructorFeaturedCardLabels(row);
-  const priceRange = String(priceLabel ?? "").trim();
+  const priceRange = formatInstitutionPriceRangeDisplay(row.min_fiyat, row.max_fiyat) ?? "";
   const imageUrl =
     resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? "").trim(), supabase) || "";
 
@@ -1268,6 +1351,9 @@ export function hasInstructorCategoryFilterPayload(
   ) {
     return true;
   }
+  if (String(payload.workingHoursStart ?? "").trim() || String(payload.workingHoursEnd ?? "").trim()) {
+    return true;
+  }
   return false;
 }
 
@@ -1294,7 +1380,7 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
 
   for (const definitionId of selectedBooleanDefinitionIds) {
     const groupId = Number(groupMembership[definitionId]);
-    if (Number.isFinite(groupId) && groupId > 0) {
+    if (Number.isFinite(groupId) && groupId !== 0) {
       const current = booleanSelectionsByGroup.get(groupId) ?? [];
       current.push(definitionId);
       booleanSelectionsByGroup.set(groupId, current);
@@ -1382,10 +1468,29 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
     if (isFilterIdSetEmpty(accumulated)) return accumulated;
   }
 
+  const durationMinDef = numberRangeDefs.find((definition) => isLessonDurationMinFeature(definition));
+  if (durationMinDef) {
+    const durationRange = payload!.numberRange[durationMinDef.id];
+    const minParsed = parseLessonDurationInput(String(durationRange?.min ?? ""));
+    const maxParsed = parseLessonDurationInput(String(durationRange?.max ?? ""));
+    const selectedMin = minParsed.kind === "ok" ? minParsed.value : null;
+    const selectedMax = maxParsed.kind === "ok" ? maxParsed.value : null;
+    if (selectedMin != null || selectedMax != null) {
+      const matched = await resolveInstructorIdsByLessonDurationOverlap(supabase, {
+        min: selectedMin,
+        max: selectedMax,
+      });
+      accumulated = applyIntersect(accumulated, matched);
+      if (isFilterIdSetEmpty(accumulated)) return accumulated;
+    }
+  }
+
   for (const [definitionIdStr, range] of Object.entries(payload!.numberRange)) {
     const definitionId = Number(definitionIdStr);
     if (!Number.isFinite(definitionId)) continue;
     if (isStudentAgeFilterDefinitionId(definitionId, numberRangeDefs)) continue;
+    const rangeDef = numberRangeDefs.find((definition) => definition.id === definitionId);
+    if (rangeDef && isLessonDurationRangeNumberFeature(rangeDef)) continue;
     const minText = String(range?.min ?? "").trim();
     const maxText = String(range?.max ?? "").trim();
     if (!minText && !maxText) continue;
@@ -1399,6 +1504,17 @@ export async function resolveInstructorIdsFromInstructorCategoryFilterPayload(
       maxBound,
     );
     accumulated = applyIntersect(accumulated, matchingIds);
+    if (isFilterIdSetEmpty(accumulated)) return accumulated;
+  }
+
+  const selectedHoursStart = String(payload!.workingHoursStart ?? "").trim();
+  const selectedHoursEnd = String(payload!.workingHoursEnd ?? "").trim();
+  if (selectedHoursStart || selectedHoursEnd) {
+    const matched = await resolveInstructorIdsByWorkingHoursFilter(supabase, {
+      start: selectedHoursStart,
+      end: selectedHoursEnd,
+    });
+    accumulated = applyIntersect(accumulated, matched);
     if (isFilterIdSetEmpty(accumulated)) return accumulated;
   }
 

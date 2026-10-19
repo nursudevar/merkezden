@@ -51,6 +51,28 @@ export function resolveInstitutionLogoPublicUrl(
   return supabase.storage.from("institution-logos").getPublicUrl(path).data.publicUrl || "";
 }
 
+/** institutions.logo veya public URL içinden institution-logos nesne yolu. */
+export function resolveInstitutionLogoStoragePath(rawLogo: string | null | undefined): string | null {
+  const trimmed = String(rawLogo ?? "").trim();
+  if (!trimmed || trimmed.startsWith("/images/")) return null;
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    const path = trimmed.replace(/^\/+/, "");
+    return path.startsWith("institutions/") ? path : null;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    const marker = "/storage/v1/object/public/institution-logos/";
+    const idx = url.pathname.indexOf(marker);
+    if (idx < 0) return null;
+    const path = decodeURIComponent(url.pathname.slice(idx + marker.length));
+    return path.startsWith("institutions/") ? path : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Postgres `time` (HH:mm[:ss]) -> HTML `input[type=time]` (HH:mm). */
 export function institutionTimeToInputHHMM(value: string | null | undefined): string {
   const s = String(value ?? "").trim();

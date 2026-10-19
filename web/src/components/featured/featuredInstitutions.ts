@@ -5,7 +5,6 @@ import {
   FEATURED_ACCOUNT_TYPE_INSTRUCTOR,
 } from "@/lib/featuredAccountsClient";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
-import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import { isAbortLikeError } from "@/lib/isAbortLikeError";
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import {
@@ -221,7 +220,7 @@ export async function fetchHomeFeaturedPinnedRows(
 
 async function fetchAllActiveFeaturedAccountsOrdered(
   supabase: SupabaseBrowser,
-): Promise<FeaturedAccountRow[]> {
+): Promise<{ rows: FeaturedAccountRow[]; failed: boolean }> {
   const rows: FeaturedAccountRow[] = [];
 
   for (let page = 0; page < 50; page += 1) {
@@ -238,6 +237,7 @@ async function fetchAllActiveFeaturedAccountsOrdered(
     if (error) {
       if (!isAbortLikeError(error)) {
         console.error("[home-featured] featured_accounts load error:", error.message);
+        return { rows, failed: true };
       }
       break;
     }
@@ -248,13 +248,13 @@ async function fetchAllActiveFeaturedAccountsOrdered(
     if (batch.length < FEATURED_ACCOUNTS_PAGE_SIZE) break;
   }
 
-  return rows;
+  return { rows, failed: false };
 }
 
 async function fetchApprovedInstitutionRowsByIds(
   supabase: SupabaseBrowser,
   orderedIds: number[],
-): Promise<Map<number, Record<string, unknown>>> {
+): Promise<{ rows: Map<number, Record<string, unknown>>; failed: boolean }> {
   const institutionById = new Map<number, Record<string, unknown>>();
 
   for (let index = 0; index < orderedIds.length; index += ENTITY_ID_CHUNK_SIZE) {
@@ -274,6 +274,7 @@ async function fetchApprovedInstitutionRowsByIds(
       if (error) {
         if (!isAbortLikeError(error)) {
           console.error("[home-featured] institutions load error:", error.message);
+          return { rows: institutionById, failed: true };
         }
         break;
       }
@@ -288,13 +289,13 @@ async function fetchApprovedInstitutionRowsByIds(
     }
   }
 
-  return institutionById;
+  return { rows: institutionById, failed: false };
 }
 
 async function fetchApprovedInstructorRowsByIds(
   supabase: SupabaseBrowser,
   orderedIds: number[],
-): Promise<Map<number, PublicInstructorListRow>> {
+): Promise<{ rows: Map<number, PublicInstructorListRow>; failed: boolean }> {
   const instructorById = new Map<number, PublicInstructorListRow>();
 
   for (let index = 0; index < orderedIds.length; index += ENTITY_ID_CHUNK_SIZE) {
@@ -315,6 +316,7 @@ async function fetchApprovedInstructorRowsByIds(
       if (error) {
         if (!isAbortLikeError(error)) {
           console.error("[home-featured] instructors load error:", error.message);
+          return { rows: instructorById, failed: true };
         }
         break;
       }
@@ -339,14 +341,16 @@ async function fetchApprovedInstructorRowsByIds(
     if (Number.isFinite(id)) instructorById.set(id, row);
   }
 
-  return instructorById;
+  return { rows: instructorById, failed: false };
 }
 
 export async function fetchHomeFeaturedAccountsFromFeaturedAccounts(
   supabase: SupabaseBrowser,
-): Promise<HomeFeaturedAccountItem[]> {
-  const accountRows = await fetchAllActiveFeaturedAccountsOrdered(supabase);
-  if (accountRows.length === 0) return [];
+): Promise<{ items: HomeFeaturedAccountItem[]; failed: boolean }> {
+  const accounts = await fetchAllActiveFeaturedAccountsOrdered(supabase);
+  if (accounts.failed) return { items: [], failed: true };
+  const accountRows = accounts.rows;
+  if (accountRows.length === 0) return { items: [], failed: false };
 
   const institutionIds = new Set<number>();
   const instructorIds = new Set<number>();
@@ -363,15 +367,13 @@ export async function fetchHomeFeaturedAccountsFromFeaturedAccounts(
     }
   }
 
-  const [institutionById, instructorById] = await Promise.all([
+  const [institutions, instructors] = await Promise.all([
     fetchApprovedInstitutionRowsByIds(supabase, Array.from(institutionIds)),
     fetchApprovedInstructorRowsByIds(supabase, Array.from(instructorIds)),
   ]);
-
-  const instructorPriceLabels = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-    Array.from(instructorIds),
-    supabase,
-  );
+  if (institutions.failed || instructors.failed) return { items: [], failed: true };
+  const institutionById = institutions.rows;
+  const instructorById = instructors.rows;
 
   const result: HomeFeaturedAccountItem[] = [];
 
@@ -392,17 +394,13 @@ export async function fetchHomeFeaturedAccountsFromFeaturedAccounts(
       if (!Number.isFinite(id) || id <= 0) continue;
       const instructorRow = instructorById.get(id);
       if (!instructorRow) continue;
-      const instructor = mapPublicInstructorToFeaturedItem(
-        instructorRow,
-        supabase,
-        instructorPriceLabels.get(id),
-      );
+      const instructor = mapPublicInstructorToFeaturedItem(instructorRow, supabase);
       if (!instructor) continue;
       result.push({ kind: "instructor", instructor });
     }
   }
 
-  return result;
+  return { items: result, failed: false };
 }
 
 export async function fetchHomeFeaturedPinnedInstructorRow(

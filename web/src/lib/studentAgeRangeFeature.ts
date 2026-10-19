@@ -13,7 +13,7 @@ export const STUDENT_AGE_INPUT_STEP = 0.5;
 
 /**
  * Eğitmen panelinde Öğrenci Yaşı (min/max) gösterilecek kategori slug'ları.
- * Patili Dostlar ve Sürücü Kursu dahil değildir.
+ * Patili Dostlar dahil değildir.
  */
 export const INSTRUCTOR_PANEL_STUDENT_AGE_CATEGORY_SLUGS = [
   "kurs-sinava-hazirlik",
@@ -23,6 +23,7 @@ export const INSTRUCTOR_PANEL_STUDENT_AGE_CATEGORY_SLUGS = [
   "kisisel-gelisim",
   "mesleki-egitim",
   "ozel-egitim",
+  "surucu-kursu",
 ] as const;
 
 export function isInstructorPanelStudentAgeCategorySlug(

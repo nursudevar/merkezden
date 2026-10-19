@@ -51,6 +51,7 @@ import {
   type FeaturedAccountAdminRow,
 } from "@/lib/featuredAccountsClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
+import { fetchInstructorEgitmenProfiliLabelsByInstructorIds } from "@/lib/instructorFeaturesClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   fetchIller,
@@ -99,6 +100,7 @@ type InstitutionListRow = {
   institution_name: string | null;
   type: string | null;
   district: string | null;
+  is_approved: boolean | null;
   institution_type?: {
     name?: string | null;
     category?: { name?: string | null } | null;
@@ -151,6 +153,7 @@ type InstructorListRow = {
   branch: string | null;
   il_id: number | null;
   ilce_id: number | null;
+  is_approved: boolean | null;
   locationIlAd?: string | null;
   locationIlceAd?: string | null;
 };
@@ -180,7 +183,7 @@ type PendingInstructorApprovalRow = {
   department: string | null;
   branch: string | null;
   experience_years: number | null;
-  education_level: string | null;
+  egitmen_profili: string | null;
   il_id: number | null;
   ilce_id: number | null;
   locationIlAd?: string | null;
@@ -641,11 +644,12 @@ export default function AdminPageClient() {
       table: string,
       onSuccess: (count: number) => void,
       onError: () => void,
-      onDone: () => void
+      onDone: () => void,
+      countColumn = "*"
     ) => {
       const { count, error } = await supabase
         .from(table)
-        .select("*", { count: "exact", head: true });
+        .select(countColumn, { count: "exact", head: true });
 
       if (cancelled) return;
       if (error) {
@@ -684,7 +688,8 @@ export default function AdminPageClient() {
         setInstitutionsCount(null);
         setInstitutionsError("Kurum sayısı alınamadı.");
       },
-      () => setInstitutionsLoading(false)
+      () => setInstitutionsLoading(false),
+      "id"
     );
 
     void loadCount(
@@ -774,7 +779,7 @@ export default function AdminPageClient() {
       let institutionsQuery = supabase
         .from("institutions")
         .select(
-          "id, institution_name, type, district, institution_type:institution_types(name, category:institution_categories(name))",
+          "id, institution_name, type, district, is_approved, institution_type:institution_types(name, category:institution_categories(name))",
           { count: "exact" }
         )
         .order("id", { ascending: false });
@@ -1028,7 +1033,7 @@ export default function AdminPageClient() {
 
       let instructorsQuery = supabase
         .from("instructors")
-        .select("id, name, surname, email, phone, branch, il_id, ilce_id", { count: "exact" })
+        .select("id, name, surname, email, phone, branch, il_id, ilce_id, is_approved", { count: "exact" })
         .order("id", { ascending: false });
 
       const normalizedSearch = instructorsSearchQuery.trim();
@@ -1046,7 +1051,6 @@ export default function AdminPageClient() {
           "school",
           "department",
           "address",
-          "education_level",
           "website",
         ] as const;
         const orParts = variants.flatMap((term) => {
@@ -1141,7 +1145,7 @@ export default function AdminPageClient() {
         supabase
           .from("instructors")
           .select(
-            "id, name, surname, email, phone, school, department, branch, experience_years, education_level, il_id, ilce_id, address, about, profile_picture, created_at"
+            "id, name, surname, email, phone, school, department, branch, experience_years, il_id, ilce_id, address, about, profile_picture, created_at"
           )
           .is("is_approved", null)
           .order("created_at", { ascending: false }),
@@ -1190,6 +1194,10 @@ export default function AdminPageClient() {
       const instructorRaw = (
         instructorsRes.error ? [] : instructorsRes.data ?? []
       ) as PendingInstructorApprovalRow[];
+      const egitmenProfiliByInstructorId = await fetchInstructorEgitmenProfiliLabelsByInstructorIds(
+        supabase,
+        instructorRaw.map((row) => Number(row.id)),
+      );
       const instructorLocationMaps = await buildLocationAdMaps(instructorRaw);
       if (cancelled) return;
 
@@ -1201,7 +1209,12 @@ export default function AdminPageClient() {
         const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, instructorLocationMaps);
         return {
           kind: "instructor",
-          row: { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd },
+          row: {
+            ...row,
+            locationIlAd: ilAd,
+            locationIlceAd: ilceAd,
+            egitmen_profili: egitmenProfiliByInstructorId.get(Number(row.id)) ?? null,
+          },
           displayName: fullName || "-",
           email: String(row.email ?? "").trim() || "-",
           phone: String(row.phone ?? "").trim() || "-",
@@ -2523,6 +2536,7 @@ export default function AdminPageClient() {
         category,
         district: String(row.district ?? "").trim() || "-",
         mediaCount: mediaCountByInstitutionId[row.id] ?? 0,
+        is_approved: row.is_approved,
       };
     });
   }, [institutionsList, mediaCountByInstitutionId]);
@@ -2892,7 +2906,10 @@ export default function AdminPageClient() {
                       </thead>
                       <tbody>
                         {institutionsRows.map((row) => (
-                          <tr key={row.id}>
+                          <tr
+                            key={row.id}
+                            className={row.is_approved === null ? "admin-list-row--pending" : undefined}
+                          >
                             <td>{row.name}</td>
                             <td className="admin-institutions-category-cell">
                               <span className="admin-institutions-category-badge">
@@ -3322,7 +3339,12 @@ export default function AdminPageClient() {
                       </thead>
                       <tbody>
                         {instructorsRows.map((row) => (
-                          <tr key={row.id}>
+                          <tr
+                            key={row.id}
+                            className={
+                              row.sourceRow.is_approved === null ? "admin-list-row--pending" : undefined
+                            }
+                          >
                             <td>{row.fullName}</td>
                             <td>{row.email}</td>
                             <td>{row.phone}</td>
@@ -3852,8 +3874,8 @@ export default function AdminPageClient() {
                           </strong>
                         </div>
                         <div>
-                          <span>Eğitim Seviyesi</span>
-                          <strong>{String(selectedApprovalItem.row.education_level ?? "").trim() || "-"}</strong>
+                          <span>Eğitmen Profili</span>
+                          <strong>{String(selectedApprovalItem.row.egitmen_profili ?? "").trim() || "-"}</strong>
                         </div>
                         <div>
                           <span>Şehir</span>

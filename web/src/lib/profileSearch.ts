@@ -256,6 +256,31 @@ export async function resolveInstitutionIdsByProfileSearch(
   };
 }
 
+async function fetchProfileSearchDefinitionPages(supabase: SupabaseLike) {
+  const data: Array<{
+    id: number;
+    group_id: number;
+    name?: string | null;
+    slug?: string | null;
+    input_type?: string | null;
+    unit?: string | null;
+  }> = [];
+  let from = 0;
+  for (;;) {
+    const page = await supabase
+      .from("instructor_feature_definitions")
+      .select("id, group_id, name, slug, input_type, unit")
+      .eq("is_active", true)
+      .order("id", { ascending: true })
+      .range(from, from + QUERY_PAGE_SIZE - 1);
+    if (page.error) return page;
+    const rows = page.data ?? [];
+    data.push(...rows);
+    if (rows.length < QUERY_PAGE_SIZE) return { data, error: null };
+    from += QUERY_PAGE_SIZE;
+  }
+}
+
 export async function resolveInstructorIdsByProfileSearch(
   supabase: SupabaseLike,
   searchTerm: string,
@@ -268,10 +293,7 @@ export async function resolveInstructorIdsByProfileSearch(
       .from("instructor_feature_groups")
       .select("id, name")
       .eq("is_active", true),
-    supabase
-      .from("instructor_feature_definitions")
-      .select("id, group_id, name, slug, input_type, unit")
-      .eq("is_active", true),
+    fetchProfileSearchDefinitionPages(supabase),
     supabase
       .from("instructor_feature_choices")
       .select("id, feature_definition_id, name, slug")
@@ -412,7 +434,7 @@ async function resolveDirectInstructorIdsByProfileSearch(
 ): Promise<number[]> {
   const ids = new Set<number>();
   const select =
-    "id, name, surname, full_name, branch, bio, about, school, department, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, education_level, lesson_type, service_type, experience_years";
+    "id, name, surname, full_name, branch, bio, about, school, department, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, lesson_type, service_type, experience_years";
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -446,7 +468,6 @@ async function resolveDirectInstructorIdsByProfileSearch(
         row.instagram_url,
         row.x_url,
         row.linkedin_url,
-        row.education_level,
         row.lesson_type,
         row.service_type,
         row.experience_years,

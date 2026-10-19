@@ -101,6 +101,63 @@
   }
 }
 
+.home-load-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px 8px;
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid $border-light;
+  border-radius: 8px;
+  background-color: $bg-zinc-50;
+}
+
+.home-load-error-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: $orange-primary;
+}
+
+.home-load-error-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: $text-xs;
+  line-height: 1.35;
+  color: $text-zinc-700;
+  overflow-wrap: anywhere;
+}
+
+.home-load-error .home-load-error-retry {
+  flex: 0 0 auto;
+  height: 26px;
+  min-height: 0;
+  padding: 0 8px;
+  border: 1px solid $border-light;
+  border-radius: 6px;
+  background-color: $bg-white;
+  box-shadow: none;
+  color: $text-zinc-700;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  line-height: 1;
+
+  &:hover {
+    background-color: $bg-zinc-50;
+    color: $text-zinc-800;
+  }
+}
+
+.auth-check-error {
+  display: flex;
+  justify-content: center;
+  padding: 48px 20px 80px;
+}
+
 @keyframes app-notice-bar-enter {
   from {
     opacity: 0;

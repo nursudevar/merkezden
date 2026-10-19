@@ -88,7 +88,8 @@
   margin: 0 auto;
   padding: 0 30px;
   display: grid;
-  grid-template-columns: 340px 1fr;
+  /* Ana sayfa `.filter-sidebar` genişliği (320px). Aralık aynı: 32px. */
+  grid-template-columns: 320px 1fr;
   column-gap: 32px;
   /* SEO intro satırı ile alt grid arası — önceki layout padding-top ile uyumlu */
   row-gap: 16px;
@@ -231,6 +232,29 @@
 
     @media (max-width: 480px) {
       padding: 20px 18px;
+    }
+  }
+}
+
+/*
+ * Kategori ve eğitmen liste sayfalarında sol filtre, ana sayfa ile aynı yatay alanı kaplar.
+ * Ölçüler ana sayfadan (masaüstü, viewport içi hesaplanmış kutu):
+ * - `.filter-sidebar` genişliği 320px, margin 0, dış padding 0
+ * - içerik yatay inset 18px, içerik kutusu 284px
+ * - sağ içerikle `column-gap` / flex `gap` 32px
+ * Kartın 1px border'ı korunur; padding-inline 17px ile inset 1px + 17px = 18px kalır.
+ * Drawer kopyası `.category-page-layout-sidebar` dışında olduğu için bu kurala girmez.
+ */
+@media (min-width: 1024px) {
+  .category-page-layout:not(.haritada-ara-page) {
+    .category-page-layout-sidebar .category-filter-sidebar {
+      width: 320px;
+      max-width: 320px;
+    }
+
+    .category-page-layout-sidebar .category-filter-sidebar-card {
+      padding-left: 17px;
+      padding-right: 17px;
     }
   }
 }

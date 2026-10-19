@@ -37,25 +37,56 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  STUDENT_AGE_RANGE_LABEL,
   findStudentAgeRangeDefinitions,
+  formatStudentAgeDisplay,
   isLegacyStudentAgeMultiSelectFeature,
   isStudentAgeRangeNumberFeature,
   parseStudentAgeDecimalInput,
+  parseStudentAgeDecimalNumber,
   validateStudentAgeRangeValues,
 } from "@/lib/studentAgeRangeFeature";
 import {
   loadInstitutionRowForAuthUserClient,
   loadInstitutionRowByIdClient,
-  resolveIsAdminFromUserRolesClient,
-  resolveUserTypeFromUsersClient,
+  resolveIsAdminResolutionFromUserRolesClient,
+  resolveUserTypeResolutionFromUsersClient,
+  type AdminRoleResolution,
+  type UserTypeResolution,
 } from "@/lib/auth/authBrowserClient";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import {
+  formatWorkingHoursRange,
   institutionTimeToInputHHMM,
   inputHHMMToDbTimeOrNull,
   isAverageClassSizeInstitutionFeature,
   resolveInstitutionLogoPublicUrl,
+  resolveInstitutionLogoStoragePath,
 } from "@/lib/institutionHelpers";
-import { parsePriceInputToIntOrNull } from "@/lib/institutionPriceRangeFilter";
+import {
+  formatInstitutionPriceRangeDisplay,
+  parsePriceInputToIntOrNull,
+} from "@/lib/institutionPriceRangeFilter";
+import {
+  FEATURE_HIGHLIGHTS_REQUIRED_COUNT,
+  FEATURE_HIGHLIGHT_PROFILE_KEYS,
+  FEATURE_HIGHLIGHT_RANGE_KEYS,
+  collectFilledFeatureHighlightCandidates,
+  combinedHighlightCandidate,
+  highlightRowToSelection,
+  pruneFeatureHighlightSelections,
+  toFeatureHighlightRpcItem,
+  type FeatureHighlightRow,
+  type FeatureHighlightSelection,
+} from "@/lib/featureHighlights";
+import {
+  FEATURE_HIGHLIGHTS_ATOMIC_SAVE_ENABLED,
+  FEATURE_HIGHLIGHTS_FOUR_REQUIRED,
+  buildInstitutionAtomicFeatureRows,
+  saveInstitutionFeaturesAtomicClient,
+} from "@/lib/featureHighlightsAtomic";
+import { fetchInstitutionHighlightRowsClient } from "@/lib/featureHighlightsPublic";
+import { FeatureHighlightsCard } from "@/components/features/FeatureHighlightsCard";
 
 function priceFromDbToForm(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(Number(value))) return "";
@@ -85,6 +116,7 @@ import {
   normalizeAnnouncementTag,
 } from "@/lib/announcementTags";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
+import { UploadSuccessModal } from "@/components/ui/UploadSuccessModal";
 import {
   AdminActingAsBanner,
   isAdminActingAsTargetId,
@@ -497,6 +529,22 @@ function isValidStrictHttpUrl(value: string): boolean {
   }
 }
 
+const PANEL_SESSION_CHECK_ERROR =
+  "Oturum doğrulanamadı. Bağlantı sorunu olabilir. Lütfen tekrar deneyin.";
+const PANEL_ACCESS_CHECK_ERROR =
+  "Hesap yetkiniz doğrulanamadı. Bağlantı sorunu olabilir. Lütfen tekrar deneyin.";
+
+function panelAccessFromResolutions(
+  userType: UserTypeResolution,
+  admin: AdminRoleResolution,
+): "allowed" | "denied" | "error" {
+  const isInstitution = userType.status === "resolved" && userType.userType === "institution";
+  const isAdmin = admin.status === "resolved" && admin.isAdmin;
+  if (isInstitution || isAdmin) return "allowed";
+  if (userType.status === "error" || admin.status === "error") return "error";
+  return "denied";
+}
+
 function PanelContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -505,12 +553,22 @@ function PanelContent() {
   const [userType, setUserType] = useState<"individual" | "institution" | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [roleLoaded, setRoleLoaded] = useState(false);
+  const [sessionCheckFailed, setSessionCheckFailed] = useState(false);
+  const [sessionChecking, setSessionChecking] = useState(false);
+  const [sessionRetryCount, setSessionRetryCount] = useState(0);
+  const [accessState, setAccessState] = useState<"idle" | "allowed" | "denied" | "error">("idle");
+  const [accessChecking, setAccessChecking] = useState(false);
+  const [accessRetryCount, setAccessRetryCount] = useState(0);
+  const sessionRetryLockRef = useRef(false);
+  const accessRetryLockRef = useRef(false);
+  const accessRequestUserIdRef = useRef<string | null>(null);
   const [activeTab, setActiveTab] = useState<PanelTabId>("overview");
   const [institutionName, setInstitutionName] = useState<string>("");
   const [institutionProfileLoaded, setInstitutionProfileLoaded] = useState(false);
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [logoUploadSuccessOpen, setLogoUploadSuccessOpen] = useState(false);
   const [logoValidationModalMessage, setLogoValidationModalMessage] = useState<string | null>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const extraBranchesSectionRef = useRef<InstitutionExtraBranchesSectionHandle>(null);
@@ -530,6 +588,11 @@ function PanelContent() {
   const [schoolAltCategoryError, setSchoolAltCategoryError] = useState<string | null>(null);
   const [highSchoolTypeError, setHighSchoolTypeError] = useState<string | null>(null);
   const [institutionCategoryId, setInstitutionCategoryId] = useState<string>("");
+  const [blockedExtraBranchCategoryName, setBlockedExtraBranchCategoryName] = useState<string | null>(
+    null,
+  );
+  const [categoryChangeCheckError, setCategoryChangeCheckError] = useState<string | null>(null);
+  const categoryChangeRequestRef = useRef(0);
   const [institutionCategories, setInstitutionCategories] = useState<
     Array<{ id: number; name: string; display_order: number | null; slug: string | null }>
   >([]);
@@ -778,6 +841,12 @@ interface InstitutionDetailPreparedData {
   const [institutionFeaturesSaving, setInstitutionFeaturesSaving] = useState(false);
   const [institutionFeaturesSaveMessage, setInstitutionFeaturesSaveMessage] = useState<string | null>(null);
   const [institutionFeaturesSaveToastNonce, setInstitutionFeaturesSaveToastNonce] = useState(0);
+  const [institutionHighlightSelections, setInstitutionHighlightSelections] = useState<
+    FeatureHighlightSelection[]
+  >([]);
+  const [institutionHighlightRows, setInstitutionHighlightRows] = useState<FeatureHighlightRow[]>([]);
+  const [institutionHighlightsHydrated, setInstitutionHighlightsHydrated] = useState(false);
+  const [institutionHighlightWarning, setInstitutionHighlightWarning] = useState<string | null>(null);
   const [openInstitutionSelectId, setOpenInstitutionSelectId] = useState<number | null>(null);
   const [openInstitutionCategoryPicker, setOpenInstitutionCategoryPicker] = useState(false);
   const [openInstitutionSchoolLevelPicker, setOpenInstitutionSchoolLevelPicker] = useState(false);
@@ -799,23 +868,36 @@ interface InstitutionDetailPreparedData {
     const supabase = createSupabaseBrowserClient();
 
     async function initSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        setSessionCheckFailed(true);
+        setUser(null);
+        setIsAuthReady(true);
+        setSessionChecking(false);
+        sessionRetryLockRef.current = false;
+        return;
+      }
+      setSessionCheckFailed(false);
       setUser(session?.user ? { id: session.user.id } : null);
       setIsAuthReady(true);
+      setSessionChecking(false);
+      sessionRetryLockRef.current = false;
     }
 
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) setSessionCheckFailed(false);
       setUser(session?.user ? { id: session.user.id } : null);
       if (!session?.user) {
         setUserType(null);
         setRoleLoaded(false);
+        setAccessState("idle");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [sessionRetryCount]);
 
   const formatBytes = (bytes: number | null | undefined) => {
     if (!bytes || !Number.isFinite(bytes)) return "—";
@@ -1106,41 +1188,63 @@ interface InstitutionDetailPreparedData {
   };
 
   useEffect(() => {
-    if (!isAuthReady || user !== null) return;
+    if (!isAuthReady || user !== null || sessionCheckFailed) return;
     const supabase = createSupabaseBrowserClient();
     let cancelled = false;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (cancelled) return;
+      if (error) {
+        setSessionCheckFailed(true);
+        return;
+      }
       if (session?.user) setUser({ id: session.user.id });
       else router.replace("/giris");
     });
     return () => {
       cancelled = true;
     };
-  }, [isAuthReady, user, router]);
+  }, [isAuthReady, user, sessionCheckFailed, router]);
 
   useEffect(() => {
     if (!user?.id) {
       setRoleLoaded(false);
       setIsAdmin(false);
+      setAccessState("idle");
+      setAccessChecking(false);
+      accessRetryLockRef.current = false;
+      accessRequestUserIdRef.current = null;
       return;
     }
     let cancelled = false;
-    setRoleLoaded(false);
+    const sameUserRetry =
+      accessRetryLockRef.current && accessRequestUserIdRef.current === user.id;
+    accessRequestUserIdRef.current = user.id;
+    setAccessChecking(true);
+    if (!sameUserRetry) setRoleLoaded(false);
     Promise.all([
-      resolveUserTypeFromUsersClient(user.id),
-      resolveIsAdminFromUserRolesClient(user.id),
-    ]).then(([type, adminFlag]) => {
-      if (!cancelled) {
-        setUserType(type === "individual" || type === "institution" ? type : null);
-        setIsAdmin(adminFlag);
-        setRoleLoaded(true);
+      resolveUserTypeResolutionFromUsersClient(user.id),
+      resolveIsAdminResolutionFromUserRolesClient(user.id),
+    ]).then(([userTypeResolution, adminResolution]) => {
+      if (cancelled) return;
+      const access = panelAccessFromResolutions(userTypeResolution, adminResolution);
+      setAccessState(access);
+      if (access === "allowed") {
+        const resolvedType =
+          userTypeResolution.status === "resolved" ? userTypeResolution.userType : null;
+        setUserType(resolvedType === "individual" || resolvedType === "institution" ? resolvedType : null);
+        setIsAdmin(adminResolution.status === "resolved" && adminResolution.isAdmin);
+      } else {
+        setUserType(null);
+        setIsAdmin(false);
       }
+      setAccessChecking(false);
+      accessRetryLockRef.current = false;
+      setRoleLoaded(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, accessRetryCount]);
 
   useEffect(() => {
     if (!user?.id || (!isAdmin && userType !== "institution")) return;
@@ -1457,6 +1561,14 @@ interface InstitutionDetailPreparedData {
         setInstitutionFeatureChoices(choicesData as InstitutionFeatureChoiceRow[]);
         setInstitutionFeatureEntries(entries);
         setInstitutionFeatureEntryChoices(entryChoices);
+        const loadedHighlights = await fetchInstitutionHighlightRowsClient(
+          Number(institutionId),
+          supabase,
+        );
+        if (cancelled) return;
+        setInstitutionHighlightRows(loadedHighlights);
+        setInstitutionHighlightsHydrated(false);
+        setInstitutionHighlightWarning(null);
 
         const definitions = definitionsData as InstitutionFeatureDefinitionRow[];
         const entriesByFeatureId = new Map<number, InstitutionFeatureEntryRow>();
@@ -1543,11 +1655,12 @@ interface InstitutionDetailPreparedData {
 
 
   useEffect(() => {
-    if (!isAuthReady || !user || !roleLoaded) return;
+    if (!isAuthReady || !user || !roleLoaded || sessionCheckFailed) return;
+    if (accessState === "error") return;
     if (userType !== "institution" && !isAdmin) {
       router.replace("/");
     }
-  }, [isAuthReady, user, roleLoaded, userType, isAdmin, router]);
+  }, [isAuthReady, user, roleLoaded, sessionCheckFailed, accessState, userType, isAdmin, router]);
 
   useEffect(() => {
     if (!announcementModalOpen && !subscriptionModalOpen && !announcementDeleteConfirmRow) {
@@ -1743,6 +1856,144 @@ interface InstitutionDetailPreparedData {
       [selectionGroups, selectedInstitutionCategorySlug],
     );
 
+  const getDisplayFeatureName = (name: string) => {
+    const trimmed = (name ?? "").trim();
+    const key = trimmed
+      .toLocaleLowerCase("tr-TR")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ı/g, "i")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (key === "engelliye uygun".toLocaleLowerCase("tr-TR")) {
+      return "Engellilere Uygun";
+    }
+    if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") {
+      return "Kurum Türü";
+    }
+    if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") {
+      return "Sınıf Mevcudu";
+    }
+    return trimmed;
+  };
+
+  const institutionHighlightCandidates = useMemo(() => {
+    const groups = [...institutionSelectionUpperGroups, ...institutionSelectionLowerGroups];
+    const form = {
+      booleanValues: institutionBooleanFeatureValues,
+      textValues: institutionTextFeatureValues,
+      numberValues: institutionNumberFeatureValues,
+      singleSelectValues: institutionSingleSelectValues,
+      multiSelectValues: institutionMultiSelectValues,
+    };
+    const candidates = collectFilledFeatureHighlightCandidates({
+      groups,
+      form,
+      choices: institutionFeatureChoices,
+      displayName: getDisplayFeatureName,
+      skipFeature: isStudentAgeRangeNumberFeature,
+    });
+    const groupName =
+      groups.find((item) =>
+        String(item.group.name ?? "").trim().toLocaleLowerCase("tr-TR") === "başlıca özellikler",
+      )?.group.name ?? "Başlıca Özellikler";
+    const ageDefs = findStudentAgeRangeDefinitions(institutionFeatureDefinitions);
+    if (ageDefs.min && ageDefs.max) {
+      const min = parseStudentAgeDecimalNumber(institutionNumberFeatureValues[ageDefs.min.id]);
+      const max = parseStudentAgeDecimalNumber(institutionNumberFeatureValues[ageDefs.max.id]);
+      if (min != null && max != null) {
+        candidates.push(
+          combinedHighlightCandidate({
+            kind: "range",
+            range_key: FEATURE_HIGHLIGHT_RANGE_KEYS.studentAge,
+            label: STUDENT_AGE_RANGE_LABEL,
+            groupName,
+            valueLabel: formatStudentAgeDisplay(min, max),
+          }),
+        );
+      }
+    }
+    const hoursValue = formatWorkingHoursRange(
+      inputHHMMToDbTimeOrNull(institutionFormData.workingHoursStart),
+      inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
+    );
+    if (hoursValue) {
+      candidates.push(
+        combinedHighlightCandidate({
+          kind: "profile",
+          profile_key: FEATURE_HIGHLIGHT_PROFILE_KEYS.workingHours,
+          label: "Eğitim Saatleri",
+          groupName,
+          valueLabel: hoursValue,
+        }),
+      );
+    }
+    const priceValue = formatInstitutionPriceRangeDisplay(
+      parsePriceInputToIntOrNull(institutionFormData.minFiyat),
+      parsePriceInputToIntOrNull(institutionFormData.maxFiyat),
+    );
+    if (priceValue) {
+      candidates.push(
+        combinedHighlightCandidate({
+          kind: "profile",
+          profile_key: FEATURE_HIGHLIGHT_PROFILE_KEYS.priceRange,
+          label: "Aylık Fiyat Aralığı",
+          groupName,
+          valueLabel: priceValue,
+        }),
+      );
+    }
+    return candidates;
+  }, [
+    institutionBooleanFeatureValues,
+    institutionFeatureChoices,
+    institutionFeatureDefinitions,
+    institutionFormData.maxFiyat,
+    institutionFormData.minFiyat,
+    institutionFormData.workingHoursEnd,
+    institutionFormData.workingHoursStart,
+    institutionMultiSelectValues,
+    institutionNumberFeatureValues,
+    institutionSelectionLowerGroups,
+    institutionSelectionUpperGroups,
+    institutionSingleSelectValues,
+    institutionTextFeatureValues,
+  ]);
+
+  useEffect(() => {
+    if (institutionFeaturesLoading || institutionHighlightsHydrated) return;
+    const mapped = institutionHighlightRows
+      .map((row) => highlightRowToSelection(row, institutionHighlightCandidates))
+      .filter((item): item is FeatureHighlightSelection => item != null);
+    setInstitutionHighlightSelections(mapped);
+    setInstitutionHighlightsHydrated(true);
+  }, [
+    institutionFeaturesLoading,
+    institutionHighlightCandidates,
+    institutionHighlightRows,
+    institutionHighlightsHydrated,
+  ]);
+
+  useEffect(() => {
+    if (!institutionHighlightsHydrated) return;
+    const { next, removed } = pruneFeatureHighlightSelections(
+      institutionHighlightSelections,
+      institutionHighlightCandidates,
+    );
+    if (removed.length === 0 && next.length === institutionHighlightSelections.length) return;
+    setInstitutionHighlightSelections(next);
+    if (removed.length > 0) {
+      setInstitutionHighlightWarning(
+        `${removed.map((item) => `“${item.label}”`).join(", ")} öne çıkan özelliklerden kaldırıldı, çünkü formda artık seçili değil.`,
+      );
+    }
+  }, [
+    institutionHighlightCandidates,
+    institutionHighlightSelections,
+    institutionHighlightsHydrated,
+  ]);
+
   const isPatiliDostlarCategory = selectedInstitutionCategorySlug === PATILI_DOSTLAR_CATEGORY_SLUG;
 
   const resetMainInstitutionFeatureFormState = useCallback(() => {
@@ -1817,6 +2068,21 @@ interface InstitutionDetailPreparedData {
     performExtraBranchesNavigation,
   ]);
 
+  const retrySessionCheck = () => {
+    if (sessionRetryLockRef.current || sessionChecking) return;
+    sessionRetryLockRef.current = true;
+    setSessionChecking(true);
+    setSessionRetryCount((count) => count + 1);
+  };
+
+  const retryAccessCheck = () => {
+    if (accessRetryLockRef.current || accessChecking) return;
+    if (!roleLoaded || accessState !== "error") return;
+    accessRetryLockRef.current = true;
+    setAccessChecking(true);
+    setAccessRetryCount((count) => count + 1);
+  };
+
   if (!isAuthReady || (user && !roleLoaded)) {
     return (
       <div className="panel-page">
@@ -1828,7 +2094,37 @@ interface InstitutionDetailPreparedData {
     );
   }
 
+  if (sessionCheckFailed) {
+    return (
+      <div className="panel-page">
+        <HeaderClientWrapper />
+        <div className="auth-check-error">
+          <HomeSectionLoadError
+            message={PANEL_SESSION_CHECK_ERROR}
+            loading={sessionChecking}
+            onRetry={retrySessionCheck}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return null;
+
+  if (accessState === "error") {
+    return (
+      <div className="panel-page">
+        <HeaderClientWrapper />
+        <div className="auth-check-error">
+          <HomeSectionLoadError
+            message={PANEL_ACCESS_CHECK_ERROR}
+            loading={accessChecking}
+            onRetry={retryAccessCheck}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (userType !== "institution" && !isAdmin) return null;
 
@@ -1912,27 +2208,36 @@ interface InstitutionDetailPreparedData {
     }
     setLogoUploading(true);
     const supabase = createSupabaseBrowserClient();
-    const path = `institutions/${institutionId}/logo.${ext}`;
+    const previousPath = resolveInstitutionLogoStoragePath(institutionFormData.logoUrl);
+    const path = `institutions/${institutionId}/logo-${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("institution-logos")
-      .upload(path, file, { upsert: true });
+      .upload(path, file, { upsert: false, contentType: file.type });
     if (uploadError) {
       setLogoUploading(false);
       setLogoUploadError(uploadError.message || "Yükleme başarısız.");
       return;
     }
-    const { error: updateError } = await supabase
+    const { data: updatedRow, error: updateError } = await supabase
       .from("institutions")
       .update({ logo: path })
-      .eq("id", Number(institutionId));
-    if (updateError) {
+      .eq("id", Number(institutionId))
+      .select("logo")
+      .maybeSingle();
+    if (updateError || updatedRow?.logo !== path) {
+      await supabase.storage.from("institution-logos").remove([path]);
       setLogoUploading(false);
-      setLogoUploadError(updateError.message || "Kayıt güncellenemedi.");
+      setLogoUploadError(updateError?.message || "Kayıt güncellenemedi.");
       return;
     }
-    const publicUrl = supabase.storage.from("institution-logos").getPublicUrl(path).data.publicUrl;
+    const publicUrl = resolveInstitutionLogoPublicUrl(supabase, updatedRow.logo);
     setInstitutionFormData((prev) => ({ ...prev, logoUrl: publicUrl }));
+    setInstitutionInitialFormData((prev) => ({ ...prev, logoUrl: publicUrl }));
+    if (previousPath && previousPath !== path) {
+      await supabase.storage.from("institution-logos").remove([previousPath]);
+    }
     setLogoUploading(false);
+    setLogoUploadSuccessOpen(true);
   };
 
   const handleInstitutionProfileSave = async () => {
@@ -1985,23 +2290,6 @@ interface InstitutionDetailPreparedData {
       return;
     }
 
-    const minFiyatDigits = String(institutionFormData.minFiyat ?? "").replace(/[^\d]/g, "");
-    const maxFiyatDigits = String(institutionFormData.maxFiyat ?? "").replace(/[^\d]/g, "");
-    if (String(institutionFormData.minFiyat ?? "").trim() && !minFiyatDigits) {
-      setInstitutionProfileMessage("Aylık fiyat minimum değeri geçerli bir sayı olmalıdır.");
-      return;
-    }
-    if (String(institutionFormData.maxFiyat ?? "").trim() && !maxFiyatDigits) {
-      setInstitutionProfileMessage("Aylık fiyat maksimum değeri geçerli bir sayı olmalıdır.");
-      return;
-    }
-    const minFiyatValue = parsePriceInputToIntOrNull(institutionFormData.minFiyat);
-    const maxFiyatValue = parsePriceInputToIntOrNull(institutionFormData.maxFiyat);
-    if (minFiyatValue != null && maxFiyatValue != null && maxFiyatValue < minFiyatValue) {
-      setInstitutionProfileMessage("Maksimum fiyat, minimum fiyattan küçük olamaz.");
-      return;
-    }
-
     const locationNames = institutionLocationFieldsRef.current?.getSelectedNames();
     const cityName = (locationNames?.city || institutionFormData.city).trim();
     const districtName = (locationNames?.district || institutionFormData.district).trim();
@@ -2021,10 +2309,6 @@ interface InstitutionDetailPreparedData {
       mahalle_id: Number(institutionFormData.mahalleId),
       city: cityName,
       district: districtName,
-      working_hours_start: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursStart),
-      working_hours_end: inputHHMMToDbTimeOrNull(institutionFormData.workingHoursEnd),
-      min_fiyat: minFiyatValue,
-      max_fiyat: maxFiyatValue,
       address: institutionFormData.address.trim(),
       about: institutionFormData.about.trim(),
       ...(isAdminActingAsInstitution
@@ -2374,6 +2658,50 @@ interface InstitutionDetailPreparedData {
         min_fiyat: minFiyatValue,
         max_fiyat: maxFiyatValue,
       };
+
+      if (FEATURE_HIGHLIGHTS_ATOMIC_SAVE_ENABLED) {
+        if (institutionHighlightSelections.length !== FEATURE_HIGHLIGHTS_REQUIRED_COUNT) {
+          flashInstitutionFeaturesSaveMessage(FEATURE_HIGHLIGHTS_FOUR_REQUIRED);
+          setInstitutionFeaturesSaving(false);
+          return;
+        }
+        featureSaveStep = "atomic rpc";
+        const persistIds = new Set<number>();
+        for (const { features } of [...institutionSelectionUpperGroups, ...institutionSelectionLowerGroups]) {
+          for (const feature of features) {
+            if (shouldPersistFeature(feature.id)) persistIds.add(feature.id);
+          }
+        }
+        const { error: atomicError } = await saveInstitutionFeaturesAtomicClient(
+          {
+            institution_id: normalizedInstitutionId,
+            category_id: nextCategoryId,
+            institution_type_id: institutionTypeIdToSave,
+            high_school_type: highSchoolTypeToSave,
+            min_fiyat: minFiyatValue,
+            max_fiyat: maxFiyatValue,
+            working_hours_start: institutionRowUpdate.working_hours_start,
+            working_hours_end: institutionRowUpdate.working_hours_end,
+            features: buildInstitutionAtomicFeatureRows(
+              institutionFeatureDefinitions,
+              persistIds,
+              mainFeatureFormState,
+            ),
+            highlights: institutionHighlightSelections.map((item, index) =>
+              toFeatureHighlightRpcItem(item, index + 1),
+            ),
+          },
+          supabase,
+        );
+        if (atomicError) {
+          flashInstitutionFeaturesSaveMessage(atomicError);
+          setInstitutionFeaturesSaving(false);
+          return;
+        }
+        flashInstitutionFeaturesSaveMessage("Kurum özellikleri güncellendi.");
+        setInstitutionFeaturesSaving(false);
+        return;
+      }
 
       featureSaveStep = "institutions category update";
       const { error: institutionRowUpdateError } = await supabase
@@ -2751,28 +3079,6 @@ interface InstitutionDetailPreparedData {
     } finally {
       setInstitutionFeaturesSaving(false);
     }
-  };
-
-  const getDisplayFeatureName = (name: string) => {
-    const trimmed = (name ?? "").trim();
-    const key = trimmed
-      .toLocaleLowerCase("tr-TR")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/ı/g, "i")
-      .replace(/[_-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (key === "engelliye uygun".toLocaleLowerCase("tr-TR")) {
-      return "Engellilere Uygun";
-    }
-    if (key === "okul durumu" || key === "okul turu" || key === "kurum turu") {
-      return "Kurum Türü";
-    }
-    if (key === "ortalama sinif mevcudu" || key === "sinif mevcudu") {
-      return "Sınıf Mevcudu";
-    }
-    return trimmed;
   };
 
   const institutionDetailPreparedData: InstitutionDetailPreparedData = (() => {
@@ -4034,37 +4340,84 @@ interface InstitutionDetailPreparedData {
                                             : ""
                                         }`}
                                         onClick={() => {
+                                          const requestId = categoryChangeRequestRef.current + 1;
+                                          categoryChangeRequestRef.current = requestId;
                                           const nextId = String(category.id);
                                           const prevId = (institutionCategoryId ?? "").trim();
-                                          if (nextId !== prevId) {
-                                            extraBranchesSectionRef.current?.resetUiState();
-                                            resetMainInstitutionFeatureFormState();
-                                          }
                                           const nextSlug = String(category.slug ?? "").trim();
-                                          setInstitutionCategoryId(nextId);
-                                          if (nextSlug !== OKUL_CATEGORY_SLUG) {
-                                            setInstitutionTypeId("");
-                                            setHighSchoolType("");
-                                            setSchoolAltCategoryError(null);
-                                            setHighSchoolTypeError(null);
-                                          } else {
-                                            const currentTypeId = Number(
-                                              String(institutionTypeId ?? "").trim(),
-                                            );
-                                            const isValidOkulType =
-                                              Number.isFinite(currentTypeId) &&
-                                              currentTypeId > 0 &&
-                                              okulInstitutionTypes.some(
-                                                (type) => type.id === currentTypeId,
-                                              );
-                                            if (!isValidOkulType) {
+                                          const categoryName = category.name;
+                                          setOpenInstitutionCategoryPicker(false);
+                                          if (nextId === prevId) return;
+
+                                          const applyCategorySelection = () => {
+                                            if (categoryChangeRequestRef.current !== requestId) return;
+                                            resetMainInstitutionFeatureFormState();
+                                            setInstitutionCategoryId(nextId);
+                                            if (nextSlug !== OKUL_CATEGORY_SLUG) {
                                               setInstitutionTypeId("");
                                               setHighSchoolType("");
                                               setSchoolAltCategoryError(null);
                                               setHighSchoolTypeError(null);
+                                            } else {
+                                              const currentTypeId = Number(
+                                                String(institutionTypeId ?? "").trim(),
+                                              );
+                                              const isValidOkulType =
+                                                Number.isFinite(currentTypeId) &&
+                                                currentTypeId > 0 &&
+                                                okulInstitutionTypes.some(
+                                                  (type) => type.id === currentTypeId,
+                                                );
+                                              if (!isValidOkulType) {
+                                                setInstitutionTypeId("");
+                                                setHighSchoolType("");
+                                                setSchoolAltCategoryError(null);
+                                                setHighSchoolTypeError(null);
+                                              }
                                             }
+                                          };
+
+                                          const numericInstitutionId = Number(institutionId);
+                                          const nextCategoryId = Number(nextId);
+                                          if (
+                                            !Number.isFinite(numericInstitutionId) ||
+                                            numericInstitutionId <= 0 ||
+                                            !Number.isFinite(nextCategoryId) ||
+                                            nextCategoryId <= 0
+                                          ) {
+                                            applyCategorySelection();
+                                            return;
                                           }
-                                          setOpenInstitutionCategoryPicker(false);
+
+                                          void (async () => {
+                                            try {
+                                              const supabase = createSupabaseBrowserClient();
+                                              const relations =
+                                                await loadInstitutionExtraCategoryRelationsClient(
+                                                  supabase,
+                                                  numericInstitutionId,
+                                                );
+                                              if (categoryChangeRequestRef.current !== requestId) return;
+                                              const isSavedExtraBranch = relations.some(
+                                                (relation) => relation.categoryId === nextCategoryId,
+                                              );
+                                              if (isSavedExtraBranch) {
+                                                setBlockedExtraBranchCategoryName(categoryName);
+                                                return;
+                                              }
+                                            } catch (error) {
+                                              if (categoryChangeRequestRef.current !== requestId) return;
+                                              console.error(
+                                                "Institution category change extra-branch check error:",
+                                                error,
+                                              );
+                                              setCategoryChangeCheckError(
+                                                "Ek branş kayıtları kontrol edilemedi. Kategori değiştirilmedi.",
+                                              );
+                                              return;
+                                            }
+                                            applyCategorySelection();
+                                          })();
                                         }}
                                       >
                                         {category.name}
@@ -4234,6 +4587,15 @@ interface InstitutionDetailPreparedData {
                       baslicaWorkingHours={baslicaWorkingHoursField}
                       baslicaPriceRange={baslicaPriceRangeField}
                     />
+                    <FeatureHighlightsCard
+                      candidates={institutionHighlightCandidates}
+                      selected={institutionHighlightSelections}
+                      onChange={(next) => {
+                        setInstitutionHighlightWarning(null);
+                        setInstitutionHighlightSelections(next);
+                      }}
+                      warning={institutionHighlightWarning}
+                    />
 
                     {institutionSelectionLowerGroups.length === 0 ? (
                       <>
@@ -4331,6 +4693,80 @@ interface InstitutionDetailPreparedData {
           </div>
         ) : null}
       </div>
+
+      {blockedExtraBranchCategoryName ? (
+        <div
+          className="app-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="panel-category-change-blocked-title"
+          onClick={() => setBlockedExtraBranchCategoryName(null)}
+        >
+          <div
+            className="app-modal-content app-modal-content--warning"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="panel-category-change-blocked-title" className="app-modal-title">
+              Kategori Değiştirilemiyor
+            </h2>
+            <div className="app-modal-body">
+              <p className="app-modal-message">
+                Seçmek istediğiniz {blockedExtraBranchCategoryName} kategorisi, Ek Branşlar
+                listenizde zaten bulunuyor.
+              </p>
+              <p className="app-modal-message">
+                Devam etmek için önce bu kategoriyi Ek Branşlar alanından kaldırıp değişiklikleri
+                kaydedin.
+              </p>
+              <p className="app-modal-message">
+                Ek Branşı kaldırdığınızda bu branşa ait seçilmiş türler de silinir.
+              </p>
+            </div>
+            <div className="app-modal-footer">
+              <Button
+                type="button"
+                variant="default"
+                className="app-modal-btn app-modal-btn--primary"
+                onClick={() => setBlockedExtraBranchCategoryName(null)}
+              >
+                Tamam
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {categoryChangeCheckError ? (
+        <div
+          className="app-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="panel-category-change-check-error-title"
+          onClick={() => setCategoryChangeCheckError(null)}
+        >
+          <div
+            className="app-modal-content app-modal-content--error"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="panel-category-change-check-error-title" className="app-modal-title">
+              Kategori Değiştirilemiyor
+            </h2>
+            <div className="app-modal-body">
+              <p className="app-modal-message">{categoryChangeCheckError}</p>
+            </div>
+            <div className="app-modal-footer">
+              <Button
+                type="button"
+                variant="default"
+                className="app-modal-btn app-modal-btn--primary"
+                onClick={() => setCategoryChangeCheckError(null)}
+              >
+                Tamam
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {institutionProfileMessage ? (
         <div
@@ -4713,6 +5149,11 @@ interface InstitutionDetailPreparedData {
           </div>
         </div>
       )}
+      <UploadSuccessModal
+        open={logoUploadSuccessOpen}
+        message="Kurum logosu başarıyla yüklendi."
+        onClose={() => setLogoUploadSuccessOpen(false)}
+      />
     </div>
   );
 }

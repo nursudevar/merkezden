@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui";
+import { FilterNumericStepper } from "@/components/filters/FilterNumericStepper";
 import {
   STUDENT_AGE_FILTER_MAX,
   STUDENT_AGE_FILTER_MIN,
@@ -16,6 +17,8 @@ type AgeRangeSliderFilterProps = {
   max?: number;
   step?: number;
   className?: string;
+  /** Kategori ve eğitmen filtresinde artırma/azaltma. Ana sayfada kapalı kalır. */
+  steppers?: boolean;
 };
 
 /** Yazım sırasında serbest bırakılır; filtre uygulamasında ayrı parse edilir. */
@@ -31,6 +34,7 @@ export function AgeRangeSliderFilter({
   min = STUDENT_AGE_FILTER_MIN,
   max = STUDENT_AGE_FILTER_MAX,
   className = "",
+  steppers = false,
 }: AgeRangeSliderFilterProps) {
   const [minText, setMinText] = useState(value?.min ?? "");
   const [maxText, setMaxText] = useState(value?.max ?? "");
@@ -71,37 +75,77 @@ export function AgeRangeSliderFilter({
       <div className="price-range-slider-inputs">
         <label className="price-range-slider-field">
           <span className="price-range-slider-label">Minimum Yaş</span>
-          <Input
-            type="text"
-            inputMode="decimal"
-            value={minText}
-            onFocus={() => {
-              minFocusedRef.current = true;
-            }}
-            onBlur={() => {
-              minFocusedRef.current = false;
-            }}
-            onChange={(event) => handleMinInputChange(event.target.value)}
-            placeholder={formatStudentAgeFilterValue(min)}
-            className="price-range-slider-input age-range-slider-input"
-          />
+          {steppers ? (
+            <FilterNumericStepper
+              allowDecimal
+              step={0.5}
+              minValue={0}
+              maxValue={max}
+              value={minText}
+              onValueChange={handleMinInputChange}
+              onFocus={() => {
+                minFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                minFocusedRef.current = false;
+              }}
+              placeholder={formatStudentAgeFilterValue(min)}
+              ariaLabel="Minimum yaş"
+              className="price-range-slider-input age-range-slider-input"
+            />
+          ) : (
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={minText}
+              onFocus={() => {
+                minFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                minFocusedRef.current = false;
+              }}
+              onChange={(event) => handleMinInputChange(event.target.value)}
+              placeholder={formatStudentAgeFilterValue(min)}
+              className="price-range-slider-input age-range-slider-input"
+            />
+          )}
         </label>
         <label className="price-range-slider-field">
           <span className="price-range-slider-label">Maksimum Yaş</span>
-          <Input
-            type="text"
-            inputMode="decimal"
-            value={maxText}
-            onFocus={() => {
-              maxFocusedRef.current = true;
-            }}
-            onBlur={() => {
-              maxFocusedRef.current = false;
-            }}
-            onChange={(event) => handleMaxInputChange(event.target.value)}
-            placeholder={formatStudentAgeFilterValue(max)}
-            className="price-range-slider-input age-range-slider-input"
-          />
+          {steppers ? (
+            <FilterNumericStepper
+              allowDecimal
+              step={0.5}
+              minValue={0}
+              maxValue={max}
+              value={maxText}
+              onValueChange={handleMaxInputChange}
+              onFocus={() => {
+                maxFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                maxFocusedRef.current = false;
+              }}
+              placeholder={formatStudentAgeFilterValue(max)}
+              ariaLabel="Maksimum yaş"
+              className="price-range-slider-input age-range-slider-input"
+            />
+          ) : (
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={maxText}
+              onFocus={() => {
+                maxFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                maxFocusedRef.current = false;
+              }}
+              onChange={(event) => handleMaxInputChange(event.target.value)}
+              placeholder={formatStudentAgeFilterValue(max)}
+              className="price-range-slider-input age-range-slider-input"
+            />
+          )}
         </label>
       </div>
     </div>

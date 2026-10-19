@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -18,15 +18,16 @@ import {
   Phone,
   MapPin,
   CheckCircle,
-  Clock,
   CloudUpload,
   Heart,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { institutionTimeToInputHHMM } from "@/lib/institutionHelpers";
 import {
   resolveIsAdminFromUserRolesClient,
-  resolveUserTypeFromUsersClient,
+  resolveUserTypeResolutionFromUsersClient,
   type AppUserType,
+  type UserTypeResolution,
 } from "@/lib/auth/authBrowserClient";
 import {
   EMPTY_INSTRUCTOR_PROFILE_FORM,
@@ -48,12 +49,15 @@ import { FavoritesSection } from "@/components/favorites/FavoritesSection";
 import { UserBlogPostsPanel } from "@/components/blog/UserBlogPostsPanel";
 import { SignupBirthDatePicker } from "@/components/signup/SignupBirthDatePicker";
 import { Button, Input } from "@/components/ui";
-import { WorkingHoursTimePicker } from "@/app/panel/WorkingHoursTimePicker";
 import { InstructorLocationFields } from "./InstructorLocationFields";
 import { UniversitySelect } from "@/components/university/UniversitySelect";
 import { InstructorAnnouncementsTab } from "./InstructorAnnouncementsTab";
 import { InstructorFeaturesTab } from "./InstructorFeaturesTab";
+import { InstructorExtraBranchesSidebarCard } from "./InstructorExtraBranchesSidebarCard";
+import type { InstructorExtraBranchesSectionHandle } from "./InstructorExtraBranchesSection";
+import { MAX_INSTRUCTOR_EXTRA_BRANCHES } from "@/lib/instructorExtraBranches";
 import { InstructorMediaTab } from "./InstructorMediaTab";
+import { InstructorProfilePhotoField } from "./InstructorProfilePhotoField";
 import {
   INSTRUCTOR_DIPLOMA_MAX_BYTES,
   INSTRUCTOR_MEDIA_DIPLOMA_ERROR,
@@ -80,7 +84,7 @@ const INSTRUCTOR_PANEL_TABS: { id: InstructorPanelTabId; label: string }[] = [
   { id: "overview", label: "Genel Bakış" },
   { id: "profile", label: "Eğitmen Profili" },
   { id: "features", label: "Eğitmen Özellikleri" },
-  { id: "media", label: "Fotoğraflar / CV" },
+  { id: "media", label: "Medya Yönetimi / CV" },
   { id: "announcements", label: "Duyurular" },
   { id: "favorites", label: "Favoriler" },
   { id: "my-blogs", label: "Blog Yazılarım" },
@@ -96,14 +100,12 @@ const INSTRUCTOR_OVERVIEW_COMPLETENESS_KEYS = [
   "ilce_id",
   "address",
   "branch",
-  "education_level",
   "experience_years",
   "school",
   "department",
   "diploma_document_path",
   "bio",
   "about",
-  "working_hours",
   "profile_picture",
   "cv_url",
 ] as const;
@@ -127,15 +129,13 @@ const INSTRUCTOR_OVERVIEW_FIELD_META: Record<
   ilce_id: { label: "İlçe", tab: "profile" },
   address: { label: "Adres", tab: "profile" },
   branch: { label: "Branş", tab: "profile" },
-  education_level: { label: "Eğitim Seviyesi", tab: "profile" },
   experience_years: { label: "Deneyim Yılı", tab: "profile" },
   school: { label: "Mezun Olunan Okul", tab: "profile" },
   department: { label: "Bölüm", tab: "profile" },
   diploma_document_path: { label: "Diploma / Belge", tab: "profile" },
   bio: { label: "Kısa Biyografi", tab: "profile" },
   about: { label: "Hakkında", tab: "profile" },
-  working_hours: { label: "Eğitim Saatleri", tab: "profile" },
-  profile_picture: { label: "Profil Fotoğrafı", tab: "media" },
+  profile_picture: { label: "Profil Fotoğrafı", tab: "profile" },
   cv_url: { label: "CV", tab: "media" },
 };
 
@@ -159,8 +159,6 @@ function isInstructorOverviewFieldFilled(
       return Boolean(form.address.trim() && (form.isAbroad || form.mahalleId.trim()));
     case "branch":
       return Boolean(form.branch.trim());
-    case "education_level":
-      return Boolean(form.education_level.trim());
     case "experience_years": {
       const exp = row.experience_years;
       if (exp != null && Number.isFinite(Number(exp))) return true;
@@ -176,8 +174,6 @@ function isInstructorOverviewFieldFilled(
       return Boolean(form.bio.trim());
     case "about":
       return Boolean(form.about.trim());
-    case "working_hours":
-      return Boolean(form.working_hours_start.trim() && form.working_hours_end.trim());
     case "profile_picture":
       return Boolean(String(row.profile_picture ?? "").trim());
     case "cv_url":
@@ -200,7 +196,6 @@ function renderInstructorOverviewMissingFieldIcon(id: InstructorOverviewMissingF
       return <Tags className={c} aria-hidden />;
     case "school":
     case "department":
-    case "education_level":
     case "experience_years":
       return <GraduationCap className={c} aria-hidden />;
     case "bio":
@@ -208,8 +203,6 @@ function renderInstructorOverviewMissingFieldIcon(id: InstructorOverviewMissingF
     case "cv_url":
     case "diploma_document_path":
       return <FileText className={c} aria-hidden />;
-    case "working_hours":
-      return <Clock className={c} aria-hidden />;
     case "profile_picture":
       return <ImageIcon className={c} aria-hidden />;
     default:
@@ -256,6 +249,8 @@ function isValidStrictHttpUrl(value: string): boolean {
 
 const INSTRUCTOR_PROFILE_SUCCESS_MESSAGE = "Eğitmen profiliniz başarıyla güncellendi.";
 const INSTRUCTOR_PROFILE_ERROR_MESSAGE = "Eğitmen profili güncellenirken bir hata oluştu.";
+const INSTRUCTOR_USER_TYPE_CHECK_ERROR =
+  "Hesap türünüz doğrulanamadı. Bağlantı sorunu olabilir. Lütfen tekrar deneyin.";
 
 function InstructorPanelPage() {
   const router = useRouter();
@@ -263,10 +258,17 @@ function InstructorPanelPage() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [userType, setUserType] = useState<AppUserType | null>(null);
+  const [userTypeResolution, setUserTypeResolution] = useState<UserTypeResolution | null>(null);
+  const [userTypeRetryCount, setUserTypeRetryCount] = useState(0);
+  const [userTypeChecking, setUserTypeChecking] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [instructorName, setInstructorName] = useState("Eğitmen");
   const [activeTab, setActiveTab] = useState<InstructorPanelTabId>("overview");
+  const extraBranchesSectionRef = useRef<InstructorExtraBranchesSectionHandle>(null);
+  const userTypeRetryLockRef = useRef(false);
+  const userTypeRequestUserIdRef = useRef<string | null>(null);
+  const [extraBranchSlotCount, setExtraBranchSlotCount] = useState(0);
 
   const [instructorRowId, setInstructorRowId] = useState<number | null>(null);
   const [instructorRow, setInstructorRow] = useState<InstructorProfileRow | null>(null);
@@ -326,25 +328,39 @@ function InstructorPanelPage() {
     if (!user?.id) {
       setRoleLoaded(false);
       setUserType(null);
+      setUserTypeResolution(null);
       setIsAdmin(false);
+      setUserTypeChecking(false);
+      userTypeRetryLockRef.current = false;
+      userTypeRequestUserIdRef.current = null;
       return;
     }
     let cancelled = false;
-    setRoleLoaded(false);
+    const sameUserRetry =
+      userTypeRetryLockRef.current && userTypeRequestUserIdRef.current === user.id;
+    userTypeRequestUserIdRef.current = user.id;
+    setUserTypeChecking(true);
+    if (!sameUserRetry) {
+      setRoleLoaded(false);
+      setUserType(null);
+      setUserTypeResolution(null);
+    }
     Promise.all([
-      resolveUserTypeFromUsersClient(user.id),
+      resolveUserTypeResolutionFromUsersClient(user.id),
       resolveIsAdminFromUserRolesClient(user.id),
-    ]).then(([type, adminFlag]) => {
-      if (!cancelled) {
-        setUserType(type);
-        setIsAdmin(adminFlag);
-        setRoleLoaded(true);
-      }
+    ]).then(([resolution, adminFlag]) => {
+      if (cancelled) return;
+      setIsAdmin(adminFlag);
+      setUserTypeResolution(resolution);
+      setUserType(resolution.status === "resolved" ? resolution.userType : null);
+      setUserTypeChecking(false);
+      userTypeRetryLockRef.current = false;
+      setRoleLoaded(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, userTypeRetryCount]);
 
   useEffect(() => {
     if (!user?.id || userType !== "instructor") {
@@ -396,17 +412,42 @@ function InstructorPanelPage() {
   }, [user?.id, userType]);
 
   useEffect(() => {
+    if (!instructorRow) return;
+    const start = institutionTimeToInputHHMM(instructorRow.working_hours_start);
+    const end = institutionTimeToInputHHMM(instructorRow.working_hours_end);
+    setProfileForm((prev) =>
+      prev.working_hours_start === start && prev.working_hours_end === end
+        ? prev
+        : { ...prev, working_hours_start: start, working_hours_end: end },
+    );
+    setProfileInitialForm((prev) =>
+      prev.working_hours_start === start && prev.working_hours_end === end
+        ? prev
+        : { ...prev, working_hours_start: start, working_hours_end: end },
+    );
+  }, [instructorRow]);
+
+  useEffect(() => {
     if (!showProfileSuccessPopup) return;
     const timer = window.setTimeout(() => setShowProfileSuccessPopup(false), 3000);
     return () => window.clearTimeout(timer);
   }, [showProfileSuccessPopup]);
 
   useEffect(() => {
-    if (!isAuthReady || !user || !roleLoaded) return;
+    if (!isAuthReady || !user || !roleLoaded || !userTypeResolution) return;
+    if (userTypeResolution.status === "error") return;
     if (userType !== "instructor") {
       router.replace("/");
     }
-  }, [isAuthReady, user, roleLoaded, userType, router]);
+  }, [isAuthReady, user, roleLoaded, userType, userTypeResolution, router]);
+
+  const retryUserTypeResolution = useCallback(() => {
+    if (userTypeRetryLockRef.current || userTypeChecking) return;
+    if (!roleLoaded || userTypeResolution?.status !== "error") return;
+    userTypeRetryLockRef.current = true;
+    setUserTypeChecking(true);
+    setUserTypeRetryCount((count) => count + 1);
+  }, [roleLoaded, userTypeChecking, userTypeResolution]);
 
   const handleLogout = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -691,6 +732,24 @@ function InstructorPanelPage() {
   }
 
   if (!user) return null;
+
+  if (userTypeResolution?.status === "error") {
+    return (
+      <div className="egitmen-panel-page">
+        <HeaderClientWrapper />
+        <div className="egitmen-panel-auth-error">
+          <div className="egitmen-panel-auth-error-card" role="alert">
+            <h1 className="egitmen-panel-auth-error-title">Hesap türü doğrulanamadı</h1>
+            <p className="egitmen-panel-auth-error-text">{INSTRUCTOR_USER_TYPE_CHECK_ERROR}</p>
+            <Button type="button" onClick={retryUserTypeResolution} disabled={userTypeChecking}>
+              {userTypeChecking ? "Yükleniyor..." : "Tekrar Dene"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (userType !== "instructor") return null;
 
   const isOverview = activeTab === "overview";
@@ -740,6 +799,21 @@ function InstructorPanelPage() {
               </button>
             </nav>
           </div>
+          {isFeatures ? (
+            <div className="egitmen-panel-sidebar-extra-box">
+              <InstructorExtraBranchesSidebarCard
+                onAddClick={() => {
+                  const section = extraBranchesSectionRef.current;
+                  if (!section) return;
+                  if (section.canAddBranch()) {
+                    section.addBranch();
+                  }
+                  section.scrollIntoView();
+                }}
+                disabled={!instructorRow || extraBranchSlotCount >= MAX_INSTRUCTOR_EXTRA_BRANCHES}
+              />
+            </div>
+          ) : null}
         </aside>
 
         {isFeatures && instructorRow && user?.id ? (
@@ -759,6 +833,8 @@ function InstructorPanelPage() {
             authUserId={user.id}
             instructorRow={instructorRow}
             onInstructorRowChange={setInstructorRow}
+            extraBranchesRef={extraBranchesSectionRef}
+            onExtraBranchSlotCountChange={setExtraBranchSlotCount}
           />
         ) : (
         <div className="egitmen-panel-page-main">
@@ -967,63 +1043,80 @@ function InstructorPanelPage() {
                       <div className="egitmen-panel-form">
                         <section className="egitmen-panel-form-section">
                           <h3 className="egitmen-panel-form-section-title">Kişisel Bilgiler</h3>
-                          <div className="egitmen-panel-form-row">
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Ad</label>
-                              <Input
-                                className="egitmen-panel-form-input"
-                                value={profileForm.name}
-                                onChange={(e) => handleProfileFieldChange("name", e.target.value)}
+                          <div
+                            className={
+                              user?.id && instructorRow
+                                ? "egitmen-panel-form-row-first"
+                                : "egitmen-panel-form-row-first egitmen-panel-form-row-first--fields"
+                            }
+                          >
+                            {user?.id && instructorRow ? (
+                              <InstructorProfilePhotoField
+                                authUserId={user.id}
+                                instructorRow={instructorRow}
+                                onInstructorRowChange={setInstructorRow}
                               />
-                              {profileFieldErrors.name ? (
-                                <span className="egitmen-panel-form-error" role="alert">
-                                  {profileFieldErrors.name}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Soyad</label>
-                              <Input
-                                className="egitmen-panel-form-input"
-                                value={profileForm.surname}
-                                onChange={(e) => handleProfileFieldChange("surname", e.target.value)}
-                              />
-                              {profileFieldErrors.surname ? (
-                                <span className="egitmen-panel-form-error" role="alert">
-                                  {profileFieldErrors.surname}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                          <div className="egitmen-panel-form-row">
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">E-posta</label>
-                              <Input
-                                type="email"
-                                className="egitmen-panel-form-input"
-                                value={profileForm.email}
-                                onChange={(e) => handleProfileFieldChange("email", e.target.value)}
-                              />
-                              {profileFieldErrors.email ? (
-                                <span className="egitmen-panel-form-error" role="alert">
-                                  {profileFieldErrors.email}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Telefon</label>
-                              <Input
-                                type="tel"
-                                inputMode="tel"
-                                className="egitmen-panel-form-input"
-                                value={profileForm.phone}
-                                onChange={handlePhoneChange}
-                              />
-                              {profileFieldErrors.phone ? (
-                                <span className="egitmen-panel-form-error" role="alert">
-                                  {profileFieldErrors.phone}
-                                </span>
-                              ) : null}
+                            ) : null}
+                            <div className="egitmen-panel-form-first-fields">
+                              <div className="egitmen-panel-form-row">
+                                <div className="egitmen-panel-form-field">
+                                  <label className="egitmen-panel-form-label">Ad</label>
+                                  <Input
+                                    className="egitmen-panel-form-input"
+                                    value={profileForm.name}
+                                    onChange={(e) => handleProfileFieldChange("name", e.target.value)}
+                                  />
+                                  {profileFieldErrors.name ? (
+                                    <span className="egitmen-panel-form-error" role="alert">
+                                      {profileFieldErrors.name}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="egitmen-panel-form-field">
+                                  <label className="egitmen-panel-form-label">Soyad</label>
+                                  <Input
+                                    className="egitmen-panel-form-input"
+                                    value={profileForm.surname}
+                                    onChange={(e) => handleProfileFieldChange("surname", e.target.value)}
+                                  />
+                                  {profileFieldErrors.surname ? (
+                                    <span className="egitmen-panel-form-error" role="alert">
+                                      {profileFieldErrors.surname}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div className="egitmen-panel-form-row">
+                                <div className="egitmen-panel-form-field">
+                                  <label className="egitmen-panel-form-label">E-posta</label>
+                                  <Input
+                                    type="email"
+                                    className="egitmen-panel-form-input"
+                                    value={profileForm.email}
+                                    onChange={(e) => handleProfileFieldChange("email", e.target.value)}
+                                  />
+                                  {profileFieldErrors.email ? (
+                                    <span className="egitmen-panel-form-error" role="alert">
+                                      {profileFieldErrors.email}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="egitmen-panel-form-field">
+                                  <label className="egitmen-panel-form-label">Telefon</label>
+                                  <Input
+                                    type="tel"
+                                    inputMode="tel"
+                                    className="egitmen-panel-form-input"
+                                    value={profileForm.phone}
+                                    onChange={handlePhoneChange}
+                                  />
+                                  {profileFieldErrors.phone ? (
+                                    <span className="egitmen-panel-form-error" role="alert">
+                                      {profileFieldErrors.phone}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
                             </div>
                           </div>
                           <div className="egitmen-panel-form-row">
@@ -1081,16 +1174,6 @@ function InstructorPanelPage() {
                                   {profileFieldErrors.experience_years}
                                 </span>
                               ) : null}
-                            </div>
-                            <div className="egitmen-panel-form-field">
-                              <label className="egitmen-panel-form-label">Eğitim Seviyesi</label>
-                              <Input
-                                className="egitmen-panel-form-input"
-                                value={profileForm.education_level}
-                                onChange={(e) =>
-                                  handleProfileFieldChange("education_level", e.target.value)
-                                }
-                              />
                             </div>
                           </div>
                           <div className="egitmen-panel-form-row">
@@ -1388,46 +1471,6 @@ function InstructorPanelPage() {
                                 rows={2}
                                 value={profileForm.address}
                                 onChange={(e) => handleProfileFieldChange("address", e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </section>
-
-                        <section className="egitmen-panel-form-section">
-                          <h3 className="egitmen-panel-form-section-title">Eğitim Saatleri</h3>
-                          <div className="egitmen-panel-form-row">
-                            <div className="egitmen-panel-form-field">
-                              <label
-                                className="egitmen-panel-form-label"
-                                htmlFor="egitmen-working-hours-start"
-                              >
-                                Eğitim Saati Başlangıç
-                              </label>
-                              <WorkingHoursTimePicker
-                                id="egitmen-working-hours-start"
-                                value={profileForm.working_hours_start}
-                                onChange={(next) =>
-                                  handleProfileFieldChange("working_hours_start", next)
-                                }
-                                ariaLabel="Eğitim saati başlangıç"
-                                placeholder="--:--"
-                              />
-                            </div>
-                            <div className="egitmen-panel-form-field">
-                              <label
-                                className="egitmen-panel-form-label"
-                                htmlFor="egitmen-working-hours-end"
-                              >
-                                Eğitim Saati Bitiş
-                              </label>
-                              <WorkingHoursTimePicker
-                                id="egitmen-working-hours-end"
-                                value={profileForm.working_hours_end}
-                                onChange={(next) =>
-                                  handleProfileFieldChange("working_hours_end", next)
-                                }
-                                ariaLabel="Eğitim saati bitiş"
-                                placeholder="--:--"
                               />
                             </div>
                           </div>

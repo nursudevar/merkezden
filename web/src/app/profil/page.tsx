@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Heart, Settings, LogOut, PencilLine, FileText, User as UserIcon, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -9,6 +9,7 @@ import { HeaderClientWrapper } from '@/components/layout/header.client';
 import { ChangePasswordCard } from '@/components/settings/ChangePasswordCard';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { FavoritesSection } from '@/components/favorites/FavoritesSection';
+import { HomeSectionLoadError } from '@/components/home/HomeSectionLoadError';
 import { UserBlogPostsPanel } from '@/components/blog/UserBlogPostsPanel';
 import '@/styles/main.scss';
 import '@/styles/pages/profile.scss';
@@ -415,7 +416,15 @@ export default function ProfilePage() {
   const [usersRow, setUsersRow] = useState<UsersRow | null>(null);
   const [profile, setProfile] = useState<IndividualProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionCheckFailed, setSessionCheckFailed] = useState(false);
+  const [sessionChecking, setSessionChecking] = useState(false);
+  const [sessionRetryCount, setSessionRetryCount] = useState(0);
+  const [usersLoadFailed, setUsersLoadFailed] = useState(false);
+  const [usersChecking, setUsersChecking] = useState(false);
+  const [usersRetryCount, setUsersRetryCount] = useState(0);
   const [activeSection, setActiveSection] = useState<ProfileSectionId>('profile-info');
+  const sessionRetryLockRef = useRef(false);
+  const usersRetryLockRef = useRef(false);
   const userId = user?.id ?? null;
 
   // Auth: same Supabase browser client as header; only redirect when isAuthReady && !user
@@ -423,31 +432,47 @@ export default function ProfilePage() {
     const supabase = createSupabaseBrowserClient();
 
     async function initSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        setSessionCheckFailed(true);
+        setUser(null);
+        setIsAuthReady(true);
+        setSessionChecking(false);
+        sessionRetryLockRef.current = false;
+        return;
+      }
+      setSessionCheckFailed(false);
       setUser(session?.user ?? null);
       setIsAuthReady(true);
+      setSessionChecking(false);
+      sessionRetryLockRef.current = false;
     }
 
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) setSessionCheckFailed(false);
       setUser(session?.user ?? null);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [sessionRetryCount]);
 
   // Redirect only after auth is ready and we're sure there is no session (double-check before redirect to avoid race)
   useEffect(() => {
-    if (!isAuthReady || user !== null) return;
+    if (!isAuthReady || user !== null || sessionCheckFailed) return;
 
     const supabase = createSupabaseBrowserClient();
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (cancelled) return;
+      if (error) {
+        setSessionCheckFailed(true);
+        return;
+      }
       if (session?.user) {
         setUser(session.user);
       } else {
@@ -458,7 +483,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthReady, user, router]);
+  }, [isAuthReady, user, sessionCheckFailed, router]);
 
   // Load profile data when user is set
   useEffect(() => {
@@ -474,7 +499,16 @@ export default function ProfilePage() {
           .eq('auth_user_id', userId)
           .maybeSingle();
 
-        const resolvedUsersRow: UsersRow | null = userDataError ? null : userData;
+        if (userDataError) {
+          console.error('Error loading profile user:', userDataError);
+          setUsersLoadFailed(true);
+          setUsersRow(null);
+          setProfile(null);
+          return;
+        }
+
+        setUsersLoadFailed(false);
+        const resolvedUsersRow: UsersRow | null = userData;
         setUsersRow(resolvedUsersRow);
 
         if (resolvedUsersRow?.id) {
@@ -490,14 +524,20 @@ export default function ProfilePage() {
         }
       } catch (error) {
         console.error('Error loading profile:', error);
+        setUsersLoadFailed(true);
+        setUsersRow(null);
+        setProfile(null);
       } finally {
+        setUsersChecking(false);
+        usersRetryLockRef.current = false;
         setLoading(false);
       }
     };
 
     setLoading(true);
+    setUsersChecking(true);
     loadProfile();
-  }, [userId]);
+  }, [userId, usersRetryCount]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -513,8 +553,37 @@ export default function ProfilePage() {
     };
   }, []);
 
+  const retrySessionCheck = () => {
+    if (sessionRetryLockRef.current || sessionChecking) return;
+    sessionRetryLockRef.current = true;
+    setSessionChecking(true);
+    setSessionRetryCount((count) => count + 1);
+  };
+
+  const retryUsersLoad = () => {
+    if (usersRetryLockRef.current || usersChecking || !usersLoadFailed) return;
+    usersRetryLockRef.current = true;
+    setUsersChecking(true);
+    setUsersRetryCount((count) => count + 1);
+  };
+
   // Do not redirect while auth is not ready; show skeleton
-  if (!isAuthReady || (user && loading)) {
+  if (sessionCheckFailed) {
+    return (
+      <div className="profile-page">
+        <HeaderClientWrapper />
+        <div className="auth-check-error">
+          <HomeSectionLoadError
+            message="Oturum doğrulanamadı. Bağlantı sorunu olabilir. Lütfen tekrar deneyin."
+            loading={sessionChecking}
+            onRetry={retrySessionCheck}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthReady || (user && loading && !usersLoadFailed)) {
     return (
       <div className="profile-page">
         <HeaderClientWrapper />
@@ -528,6 +597,21 @@ export default function ProfilePage() {
   // After ready: if no user, redirect runs above; avoid flash by not rendering content
   if (!user) {
     return null;
+  }
+
+  if (usersLoadFailed) {
+    return (
+      <div className="profile-page">
+        <HeaderClientWrapper />
+        <div className="auth-check-error">
+          <HomeSectionLoadError
+            message="Profil bilgileri yüklenemedi. Bağlantı sorunu olabilir. Lütfen tekrar deneyin."
+            loading={usersChecking}
+            onRetry={retryUsersLoad}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

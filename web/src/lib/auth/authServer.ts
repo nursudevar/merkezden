@@ -63,3 +63,37 @@ export async function getCurrentUserRole(): Promise<{
     isAdmin,
   };
 }
+
+export type InstitutionPanelAccessStatus = "anonymous" | "unauthorized" | "allowed" | "error";
+
+function isMissingAuthSessionError(error: { message?: string; name?: string } | null): boolean {
+  if (!error) return false;
+  const name = String(error.name ?? "");
+  const message = String(error.message ?? "").toLowerCase();
+  return name === "AuthSessionMissingError" || message.includes("auth session missing");
+}
+
+/** Kurum paneli kapısı. getCurrentUserRole sözleşmesini değiştirmez. */
+export async function resolveInstitutionPanelAccess(): Promise<InstitutionPanelAccessStatus> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+
+  if (userErr) {
+    if (isMissingAuthSessionError(userErr)) return "anonymous";
+    return "error";
+  }
+  if (!user) return "anonymous";
+
+  const { data: row, error: rowErr } = await supabase
+    .from("users")
+    .select("user_type")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (rowErr) return "error";
+  if (row?.user_type === "institution") return "allowed";
+  return "unauthorized";
+}

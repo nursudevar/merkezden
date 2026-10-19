@@ -224,40 +224,76 @@
 }
 
 .category-filter-search-wrapper {
-  position: relative;
   display: flex;
   align-items: center;
-}
-
-.category-filter-search-icon {
-  position: absolute;
-  left: 16px;
-  color: $text-zinc-500;
-  z-index: 1;
-  pointer-events: none;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .category-filter-search-input {
-  width: 100%;
-  height: 44px;
-  padding-left: 44px;
-  padding-right: 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  height: 34px;
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border: 1px solid $border-light;
+  border-right: 0;
   background-color: #f9fafb;
+  padding: 0 14px;
   font-size: $text-sm;
+  font-weight: $font-medium;
   color: $default-text-color;
+  @include shadow-sm;
   @include transition;
-  transition-property: border-color, box-shadow;
-
-  &:focus {
-    outline: none;
-    border-color: $purple-main;
-    box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
-  }
 
   &::placeholder {
     color: $text-placeholder;
+  }
+
+  &:hover {
+    border-color: $purple-main;
+    box-shadow: 0 2px 8px rgba($purple-main, 0.1);
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: $purple-main;
+    box-shadow: 0 2px 8px rgba($purple-main, 0.1);
+  }
+}
+
+.category-filter-search-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  width: 20%;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0 9999px 9999px 0;
+  background: linear-gradient(to right, $purple-main, $purple-light, $purple-dark);
+  color: $bg-white;
+  box-shadow: 0 2px 4px rgba($purple-main, 0.2);
+  cursor: pointer;
+  @include transition-colors;
+
+  &:hover {
+    background: linear-gradient(to right, $purple-dark, $purple-main, $purple-light);
+    box-shadow: 0 4px 8px rgba($purple-main, 0.3);
+  }
+
+  .category-filter-search-button-icon {
+    width: 20px;
+    height: 20px;
+    color: $bg-white;
+    stroke: currentColor;
   }
 }
 
@@ -337,6 +373,34 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.instructor-category-select-panel {
+  position: fixed;
+  z-index: 10100;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: $bg-white;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.instructor-category-select-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+}
+
+.instructor-category-select-option--selected {
+  background-color: rgba(109, 93, 252, 0.1);
+  color: $purple-main;
+  font-weight: $font-semibold;
 }
 
 .category-filter-multiselect-option {
@@ -759,17 +823,6 @@
     gap: 8px;
   }
 
-  .category-filter-search-input {
-    height: 34px;
-    min-height: 34px;
-    padding-left: 40px;
-    padding-right: 14px;
-  }
-
-  .category-filter-search-icon {
-    left: 14px;
-  }
-
   .category-filter-select {
     height: 40px;
     min-height: 40px;
@@ -809,7 +862,7 @@
     flex: 0 0 auto;
     height: 35px;
     min-height: 35px;
-    padding: 0 14px;
+    padding: 0 28px 0 14px;
     border-radius: 12px;
     border: 1px solid rgba(0, 0, 0, 0.1);
     background-color: #fff;
@@ -837,5 +890,438 @@
       border-color: $purple-main;
       box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
     }
+  }
+}
+
+/*
+ * Aralık kutuları — kategori sayfası Aylık Fiyat Aralığı ölçüsü:
+ * yükseklik 35px, yatay padding 14px, radius 12px, 1px border,
+ * 14px / 500, iki eşit sütun, aralık 8px.
+ * Sayısal kutularda sağ padding, artırma/azaltma kontrollerine yer açar.
+ * Saat seçicisinin rengi ve ikonu korunur.
+ */
+.category-page-layout:not(.haritada-ara-page) {
+  .category-filter-working-hours-range,
+  .category-filter-price-inputs:not(.price-range-slider-inputs) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    position: relative;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Uzun çizgi 8px aralığa sığmıyor; kutu yüksekliği ve yazı ölçüsü korunur. */
+  .category-filter-working-hours-range,
+  .category-filter-section:has(> .category-filter-price-separator) .category-filter-price-inputs {
+    gap: 18px;
+  }
+
+  .category-filter-working-hours-range > .category-filter-price-separator,
+  .category-filter-price-inputs:not(.price-range-slider-inputs) > .category-filter-price-separator {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 1;
+    margin: 0;
+    line-height: 1;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .category-filter-working-hours-range .working-hours-picker__trigger {
+    box-sizing: border-box;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border-width: 1px;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    line-height: 1.2;
+  }
+
+  .category-filter-price-inputs:not(.price-range-slider-inputs) .category-filter-price-input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 28px 0 14px;
+    border-radius: 12px;
+    border-width: 1px;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  .category-filter-number-control {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .category-filter-number-control > input {
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .category-filter-number-control__steps {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: 18px;
+    overflow: hidden;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0 11px 11px 0;
+  }
+
+  .category-filter-number-control__step {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: $text-placeholder;
+    cursor: pointer;
+    line-height: 0;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    &:hover {
+      background: rgba($purple-main, 0.06);
+      color: $purple-main;
+    }
+  }
+}
+
+.category-page-layout--instructors {
+  .price-range-slider-filter:not(.age-range-slider-filter) .price-range-slider-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 28px 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    box-shadow: none;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    line-height: 1.2;
+    text-align: left;
+    color: $default-text-color;
+
+    &::placeholder {
+      color: $text-placeholder;
+      text-align: left;
+      font-weight: $font-medium;
+    }
+
+    &:hover {
+      border-color: rgba($purple-main, 0.4);
+      box-shadow: none;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      border-color: $purple-main;
+      box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+    }
+  }
+
+  .age-range-slider-filter .price-range-slider-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 28px 0 14px;
+    border-radius: 12px;
+    border-width: 1px;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    line-height: 1.2;
+    text-align: left;
+  }
+}
+
+/*
+ * Kategori ve eğitmen sayfası accordion’u — ana sayfa `.category-accordion` ölçüleri.
+ * Panel genişliği (320px) ve kart yatay padding’i değiştirilmez.
+ * 14px yatay margin aşağıda kategori ve eğitmen sayfalarında sıfırlanır.
+ * Üst içerik gap’i 14px; ardışık sekmelerde -2px ile aralık 12px olur.
+ */
+.category-page-layout:not(.haritada-ara-page) {
+  .category-filter-collapse {
+    width: auto;
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+
+  .category-filter-collapse + .category-filter-collapse {
+    margin-top: -2px;
+  }
+
+  .category-filter-collapse__header {
+    position: relative;
+    box-sizing: border-box;
+    height: 50px;
+    min-height: 50px;
+    gap: 12px;
+    padding: 0 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(20, 25, 40, 0.08);
+    background-color: $bg-card;
+    box-shadow: none;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    line-height: normal;
+    letter-spacing: normal;
+    text-transform: none;
+    color: $default-text-color;
+    @include transition;
+    transition-property: background-color, border-color, box-shadow;
+
+    &:hover {
+      background-color: $bg-card-hover;
+      border-color: rgba(20, 25, 40, 0.08);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: rgba(20, 25, 40, 0.08);
+      box-shadow: 0 0 0 3px rgba($purple-violet-dark, 0.25);
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 10px;
+      bottom: 10px;
+      width: 3px;
+      border-radius: 999px;
+      background-color: #6d5dfc;
+      opacity: 0;
+      transform: scaleY(0.9);
+      pointer-events: none;
+      @include transition;
+      transition-property: opacity, transform;
+    }
+  }
+
+  .category-filter-collapse--open .category-filter-collapse__header {
+    background-color: $bg-card;
+    border-color: rgba(20, 25, 40, 0.14);
+    box-shadow: none;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+
+    &:hover {
+      background-color: $bg-card-hover;
+      border-color: rgba(20, 25, 40, 0.14);
+    }
+
+    &::before {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+
+  .category-filter-collapse__title {
+    gap: 10px;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    letter-spacing: normal;
+    text-transform: none;
+    color: $default-text-color;
+  }
+
+  .category-filter-collapse__title-icon {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    flex: 0 0 22px;
+    color: $default-text-color;
+  }
+
+  .category-filter-collapse__chevron {
+    width: 16px;
+    height: 16px;
+    color: $text-placeholder;
+    @include transition;
+    transition-property: transform;
+  }
+
+  .category-filter-collapse__content {
+    padding: 12px 16px 16px;
+    border: 1px solid rgba(20, 25, 40, 0.14);
+    border-top: 0;
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+    font-size: $text-sm;
+  }
+
+  .category-filter-collapse .category-filter-section {
+    gap: 0;
+  }
+
+  .category-filter-section-checkboxes:not(.category-filter-section-checkboxes--single):not(
+      .category-filter-section-checkboxes--age-special
+    ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .category-filter-checkbox-option:not(.category-filter-checkbox-option--age-special):not(
+      .category-filter-multiselect-option
+    ) {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    gap: 0;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid $border-light;
+    background-color: $bg-white;
+    background-image: none;
+    box-shadow: none;
+    font-size: 12px;
+    font-weight: $font-medium;
+    line-height: 14px;
+    color: $text-zinc-900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    @include transition;
+    transition-property: background-color, border-color, box-shadow, color;
+
+    &:hover {
+      background-color: $bg-white;
+      border-color: $purple-main;
+      box-shadow: 0 0 0 1px rgba($purple-main, 0.12);
+    }
+
+    .category-filter-checkbox-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .category-filter-checkbox-label {
+      font-size: 12px;
+      font-weight: $font-medium;
+      line-height: 14px;
+      color: $text-zinc-900;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .category-filter-checkbox-option.category-filter-checkbox-option--selected:not(.category-filter-checkbox-option--age-special):not(.category-filter-multiselect-option) {
+    background: linear-gradient(to right, $purple-main, $purple-light, $purple-dark);
+    border-color: $purple-main;
+    color: $bg-white;
+    box-shadow: 0 2px 4px rgba($purple-main, 0.2);
+
+    .category-filter-checkbox-label {
+      color: $bg-white;
+      font-weight: $font-medium;
+    }
+
+    &:hover {
+      background: linear-gradient(to right, $purple-main, $purple-light, $purple-dark);
+      border-color: $purple-main;
+      box-shadow: 0 0 0 1px rgba($purple-main, 0.12);
+    }
+  }
+
+  .category-filter-show-more {
+    align-self: stretch;
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px dashed $border-dashed;
+    background-color: transparent;
+    box-shadow: none;
+    font-size: 13px;
+    font-weight: $font-medium;
+    line-height: normal;
+    color: $text-light;
+    text-align: center;
+    text-decoration: none;
+    @include transition-colors;
+
+    &:hover {
+      background-color: transparent;
+      border-color: $border-default;
+      color: $text-light;
+      text-decoration: none;
+    }
+  }
+
+  .category-filter-collapse .category-filter-show-more {
+    margin-top: 12px;
+  }
+
+  .category-filter-collapse--surucu .category-filter-section-title {
+    display: none;
+  }
+}
+
+/*
+ * Kategori ve eğitmen sayfaları: accordion’u içeri alan yatay boşluk
+ * `.category-filter-collapse` üzerindeki `margin-left/right: 14px` kuralıdır.
+ * Üstteki filtre kutuları bu margin’i almadığı için başlıklar daha içeride kalıyordu.
+ * Eğitmen sayfası `:not(.category-page-layout--instructors)` ile bu kuralın dışındaydı.
+ * Panel padding’ine dokunulmaz.
+ */
+.category-page-layout:not(.haritada-ara-page) {
+  .category-filter-collapse {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .category-filter-collapse:not(.category-filter-collapse--open) .category-filter-collapse__title-icon {
+    color: #6d5dfc;
   }
 }

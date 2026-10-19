@@ -23,12 +23,12 @@ export const PUBLIC_INSTRUCTORS_TABLE = "public_instructors" as const;
 
 /** instructors tablosu ile uyumlu güvenli sütunlar (tc, owner_auth_id vb. yok) */
 export const PUBLIC_INSTRUCTOR_ROW_SELECT =
-  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, mahalle_id, address, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, email, phone, is_approved, is_active";
+  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, mahalle_id, address, profile_picture, experience_years, working_hours_start, working_hours_end, website, email, phone, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT}, slug`;
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE =
-  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, mahalle_id, profile_picture, experience_years, education_level, working_hours_start, working_hours_end, website, is_approved, is_active";
+  "id, name, surname, branch, school, department, bio, about, il_id, ilce_id, mahalle_id, profile_picture, experience_years, working_hours_start, working_hours_end, website, is_approved, is_active";
 
 export const PUBLIC_INSTRUCTOR_ROW_SELECT_BASE_WITH_SLUG = `${PUBLIC_INSTRUCTOR_ROW_SELECT_BASE}, slug`;
 
@@ -51,7 +51,6 @@ export type PublicInstructorRow = {
   address?: string | null;
   profile_picture?: string | null;
   experience_years?: number | null;
-  education_level?: string | null;
   working_hours_start?: string | null;
   working_hours_end?: string | null;
   website?: string | null;

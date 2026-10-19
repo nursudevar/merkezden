@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import Image from "next/image";
 import Link from "next/link";
 import { Building2, GraduationCap, Heart, MapPin, Phone } from "lucide-react";
@@ -60,6 +61,9 @@ export type InstitutionMapSearchExperienceProps = {
   instructorFavoriteActionLoadingIds?: Set<number>;
   isAuthenticated?: boolean;
   focusTarget?: InstitutionMapFocusTarget | null;
+  markerLoadFailed?: boolean;
+  markerLoading?: boolean;
+  onRetryMarkerLoad?: () => void;
 };
 
 export function InstitutionMapSearchExperience({
@@ -73,6 +77,9 @@ export function InstitutionMapSearchExperience({
   instructorFavoriteActionLoadingIds,
   isAuthenticated = false,
   focusTarget = null,
+  markerLoadFailed = false,
+  markerLoading = false,
+  onRetryMarkerLoad,
 }: InstitutionMapSearchExperienceProps) {
   const [mapBounds, setMapBounds] = useState<InstitutionMapViewportBounds | null>(null);
   const [visibleInstitutionCount, setVisibleInstitutionCount] = useState(VISIBLE_INSTITUTION_PAGE_SIZE);
@@ -103,10 +110,17 @@ export function InstitutionMapSearchExperience({
         </h1>
       </div>
       <div className="institution-map-modal-body institution-map-modal-body--with-list institution-map-modal-body--page">
+        {markerLoadFailed ? (
+          <HomeSectionLoadError
+            message="Harita yüklenemedi. Lütfen tekrar deneyin."
+            loading={markerLoading}
+            onRetry={() => onRetryMarkerLoad?.()}
+          />
+        ) : null}
         <InstitutionLocationsMap
           variant="modal"
           markers={markers}
-          loading={loading}
+          loading={loading && !markerLoadFailed}
           renderEmptyMap
           onBoundsChange={handleBoundsChange}
           focusTarget={focusTarget}
@@ -129,13 +143,13 @@ export function InstitutionMapSearchExperience({
               </p>
             </div>
           </div>
-          {loading ? (
+          {loading && !markerLoadFailed ? (
             <div className="map-modal-visible-institutions-state">Sonuçlar yükleniyor...</div>
-          ) : visibleMarkers.length === 0 ? (
+          ) : visibleMarkers.length === 0 && !markerLoadFailed ? (
             <div className="map-modal-visible-institutions-state">
               Bu harita alanında gösterilecek sonuç bulunamadı.
             </div>
-          ) : (
+          ) : visibleMarkers.length > 0 ? (
             <>
               <div className="map-modal-visible-institutions-grid">
                 {renderedVisibleMarkers.map((marker) => {
@@ -256,7 +270,7 @@ export function InstitutionMapSearchExperience({
                 </div>
               ) : null}
             </>
-          )}
+          ) : null}
         </section>
       </div>
     </div>

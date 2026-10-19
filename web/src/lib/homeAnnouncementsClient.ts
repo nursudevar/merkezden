@@ -129,11 +129,16 @@ function resolveInstructorOwnerName(instructor: PublicInstructorOwnerRow | null 
 async function attachInstructorOwnerLocationAds(
   rows: PublicInstructorOwnerRow[],
 ): Promise<PublicInstructorOwnerRow[]> {
-  const maps = await buildLocationAdMaps(rows);
-  return rows.map((row) => {
-    const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, maps);
-    return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
-  });
+  try {
+    const maps = await buildLocationAdMaps(rows);
+    return rows.map((row) => {
+      const { ilAd, ilceAd } = lookupLocationAds(row.il_id, row.ilce_id, maps);
+      return { ...row, locationIlAd: ilAd, locationIlceAd: ilceAd };
+    });
+  } catch (error) {
+    console.warn("[home-announcements] instructor location labels", error);
+    return rows;
+  }
 }
 
 function firstJoin<T>(value: T | T[] | null | undefined): T | null {
@@ -372,14 +377,19 @@ function mapInstitutionRowToPageItem(row: InstitutionAnnouncementRow): Announcem
 async function attachAnnouncementLocationLabels(
   items: AnnouncementsPageItem[],
 ): Promise<AnnouncementsPageItem[]> {
-  const maps = await buildLocationAdMaps(items);
-  return items.map((item) => {
-    const { ilAd, ilceAd } = lookupLocationAds(item.il_id, item.ilce_id, maps);
-    return {
-      ...item,
-      locationLabel: formatAnnouncementLocationLabel(ilAd, ilceAd),
-    };
-  });
+  try {
+    const maps = await buildLocationAdMaps(items);
+    return items.map((item) => {
+      const { ilAd, ilceAd } = lookupLocationAds(item.il_id, item.ilce_id, maps);
+      return {
+        ...item,
+        locationLabel: formatAnnouncementLocationLabel(ilAd, ilceAd),
+      };
+    });
+  } catch (error) {
+    console.warn("[home-announcements] announcement location labels", error);
+    return items;
+  }
 }
 
 async function fetchPublicInstitutionAnnouncementItems(
@@ -418,7 +428,7 @@ export async function fetchHomeAnnouncements(
 
   return {
     items,
-    error: institutionResult.error ?? null,
+    error: institutionResult.error ?? instructorResult.error ?? null,
   };
 }
 

@@ -4,7 +4,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolvePublicInstructorProfilePictureUrl } from '@/lib/publicInstructorDetailClient';
-import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from '@/lib/instructorFeaturesClient';
+import { formatInstitutionPriceRangeDisplay } from '@/lib/institutionPriceRangeFilter';
 import {
   PUBLIC_INSTRUCTOR_LIST_SELECT,
   getPublicInstructorDetailHref,
@@ -488,11 +488,6 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
     if (Number.isFinite(id) && id > 0) byId.set(id, row);
   }
 
-  const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-    uniqueIds,
-    supabase,
-  );
-
   return uniqueIds
     .map((id): FavoriteInstructor | null => {
       const row = byId.get(id);
@@ -505,7 +500,7 @@ export async function getMyFavoriteInstructors(): Promise<FavoriteInstructor[]> 
         branch: String(row.branch ?? '').trim() || null,
         school: String(row.school ?? '').trim() || null,
         location: buildPublicInstructorLocation(row),
-        priceRange: priceLabelsByInstructorId.get(id) ?? null,
+        priceRange: formatInstitutionPriceRangeDisplay(row.min_fiyat, row.max_fiyat),
         profilePictureUrl:
           resolvePublicInstructorProfilePictureUrl(String(row.profile_picture ?? '').trim(), supabase) || null,
         detailUrl: getPublicInstructorDetailHref(row.slug, id),

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { fetchInstructorPriceRangeLabelsByInstructorIdsClient } from "@/lib/instructorFeaturesClient";
 import {
   fetchFeaturedPublicInstructors,
   mapPublicInstructorToFeaturedItem,
@@ -96,22 +95,8 @@ export function HomeFeaturedInstitutionsMarquee({
         }
       }
 
-      const instructorIds = instructorRows
-        .map((row) => Number(row.id))
-        .filter((id) => Number.isFinite(id) && id > 0);
-      const instructorPriceLabels = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-        instructorIds,
-        supabase,
-      );
-
       const instructors = instructorRows
-        .map((row) =>
-          mapPublicInstructorToFeaturedItem(
-            row,
-            supabase,
-            instructorPriceLabels.get(Number(row.id)),
-          ),
-        )
+        .map((row) => mapPublicInstructorToFeaturedItem(row, supabase))
         .filter((item): item is FeaturedInstructorItem => item !== null);
 
       const institutions =

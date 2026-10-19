@@ -40,6 +40,10 @@
   font-size: $text-base;
   color: $text-zinc-600;
   line-height: 1.5;
+
+  & + & {
+    margin-top: 12px;
+  }
 }
 
 .app-modal-error {
@@ -114,4 +118,38 @@
   .app-modal-title {
     color: $red-error;
   }
+}
+
+.app-modal-content--success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 28px;
+}
+
+.app-modal-success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: $bg-light-purple;
+  color: $purple-primary;
+}
+
+.app-modal-success-message {
+  margin: 16px 24px 0;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-zinc-900;
+  line-height: 1.45;
+}
+
+.app-modal-footer--single {
+  justify-content: center;
+  width: 100%;
+  border-top: none;
+  margin-top: 8px;
 }

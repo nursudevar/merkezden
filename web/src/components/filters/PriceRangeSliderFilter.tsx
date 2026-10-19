@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui";
+import { FilterNumericStepper } from "@/components/filters/FilterNumericStepper";
 import {
   INSTITUTION_PRICE_FILTER_MAX,
   INSTITUTION_PRICE_FILTER_MIN,
@@ -30,6 +31,8 @@ type PriceRangeSliderFilterProps = {
   max?: number;
   step?: number;
   className?: string;
+  /** Kategori ve eğitmen filtresinde artırma/azaltma. Ana sayfada kapalı kalır. */
+  steppers?: boolean;
 };
 
 function parseInputValue(value: string): number | null {
@@ -61,6 +64,7 @@ export function PriceRangeSliderFilter({
   min = INSTITUTION_PRICE_FILTER_MIN,
   max = INSTITUTION_PRICE_FILTER_MAX,
   className = "",
+  steppers = false,
 }: PriceRangeSliderFilterProps) {
   const minDigits = value?.min != null && Number.isFinite(value.min) ? String(value.min) : "";
   const maxDigits = value?.max != null && Number.isFinite(value.max) ? String(value.max) : "";
@@ -88,27 +92,51 @@ export function PriceRangeSliderFilter({
       <div className="price-range-slider-inputs">
         <label className="price-range-slider-field">
           <span className="price-range-slider-label">Minimum Fiyat</span>
-          <Input
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            value={minDigits}
-            onChange={(event) => handleMinInputChange(event.target.value)}
-            placeholder="Min"
-            className="price-range-slider-input"
-          />
+          {steppers ? (
+            <FilterNumericStepper
+              value={minDigits}
+              onValueChange={handleMinInputChange}
+              minValue={min}
+              maxValue={max}
+              placeholder="Min"
+              ariaLabel="Minimum fiyat"
+              className="price-range-slider-input"
+            />
+          ) : (
+            <Input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={minDigits}
+              onChange={(event) => handleMinInputChange(event.target.value)}
+              placeholder="Min"
+              className="price-range-slider-input"
+            />
+          )}
         </label>
         <label className="price-range-slider-field">
           <span className="price-range-slider-label">Maksimum Fiyat</span>
-          <Input
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            value={maxDigits}
-            onChange={(event) => handleMaxInputChange(event.target.value)}
-            placeholder="Max"
-            className="price-range-slider-input"
-          />
+          {steppers ? (
+            <FilterNumericStepper
+              value={maxDigits}
+              onValueChange={handleMaxInputChange}
+              minValue={min}
+              maxValue={max}
+              placeholder="Max"
+              ariaLabel="Maksimum fiyat"
+              className="price-range-slider-input"
+            />
+          ) : (
+            <Input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={maxDigits}
+              onChange={(event) => handleMaxInputChange(event.target.value)}
+              placeholder="Max"
+              className="price-range-slider-input"
+            />
+          )}
         </label>
       </div>
     </div>

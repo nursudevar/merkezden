@@ -175,9 +175,14 @@ export async function resolveInstitutionSlugFromUsersClient(
 
 export type AppUserType = "individual" | "institution" | "instructor";
 
-export async function resolveUserTypeFromUsersClient(
+export type UserTypeResolution =
+  | { status: "resolved"; userType: AppUserType }
+  | { status: "missing" }
+  | { status: "error" };
+
+export async function resolveUserTypeResolutionFromUsersClient(
   authUid: string
-): Promise<AppUserType | null> {
+): Promise<UserTypeResolution> {
   try {
     const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase
@@ -188,18 +193,26 @@ export async function resolveUserTypeFromUsersClient(
 
     if (error) {
       console.warn("[authBrowserClient] resolveUserType", error);
-      return null;
+      return { status: "error" };
     }
 
     const type = data?.user_type;
     if (type === "individual" || type === "institution" || type === "instructor") {
-      return type;
+      return { status: "resolved", userType: type };
     }
-    return null;
+    return { status: "missing" };
   } catch (err) {
     console.warn("[authBrowserClient] resolveUserType", err);
-    return null;
+    return { status: "error" };
   }
+}
+
+export async function resolveUserTypeFromUsersClient(
+  authUid: string
+): Promise<AppUserType | null> {
+  const resolution = await resolveUserTypeResolutionFromUsersClient(authUid);
+  if (resolution.status === "resolved") return resolution.userType;
+  return null;
 }
 
 export async function resolveIndividualNameFromUsersClient(authUid: string): Promise<string> {
@@ -232,11 +245,19 @@ export async function resolveIndividualNameFromUsersClient(authUid: string): Pro
   }
 }
 
-export async function resolveIsAdminFromUserRolesClient(authUid: string): Promise<boolean> {
+export type AdminRoleResolution =
+  | { status: "resolved"; isAdmin: boolean }
+  | { status: "error" };
+
+export async function resolveIsAdminResolutionFromUserRolesClient(
+  authUid: string,
+): Promise<AdminRoleResolution> {
   try {
     const supabase = createSupabaseBrowserClient();
 
-    const queryByColumn = async (column: "user_id" | "auth_user_id"): Promise<boolean | null> => {
+    const queryByColumn = async (
+      column: "user_id" | "auth_user_id",
+    ): Promise<boolean | "missing" | "error"> => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
@@ -246,24 +267,32 @@ export async function resolveIsAdminFromUserRolesClient(authUid: string): Promis
 
       if (error) {
         if (isLikelyMissingColumnError({ message: error.message, code: error.code })) {
-          return null;
+          return "missing";
         }
         console.warn(`[authBrowserClient] resolveIsAdmin (${column})`, error);
-        return false;
+        return "error";
       }
 
       return Array.isArray(data) && data.length > 0;
     };
 
     const byUserId = await queryByColumn("user_id");
-    if (byUserId !== null) return byUserId;
+    if (byUserId === "error") return { status: "error" };
+    if (byUserId !== "missing") return { status: "resolved", isAdmin: byUserId };
 
     const byAuthUserId = await queryByColumn("auth_user_id");
-    return byAuthUserId ?? false;
+    if (byAuthUserId === "error") return { status: "error" };
+    if (byAuthUserId === "missing") return { status: "resolved", isAdmin: false };
+    return { status: "resolved", isAdmin: byAuthUserId };
   } catch (err) {
     console.warn("[authBrowserClient] resolveIsAdmin", err);
-    return false;
+    return { status: "error" };
   }
+}
+
+export async function resolveIsAdminFromUserRolesClient(authUid: string): Promise<boolean> {
+  const resolution = await resolveIsAdminResolutionFromUserRolesClient(authUid);
+  return resolution.status === "resolved" ? resolution.isAdmin : false;
 }
 
 /**

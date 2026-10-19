@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchAllInstitutionMapMarkers,
   type InstitutionMapMarker,
@@ -18,10 +18,20 @@ export function useAllInstitutionMapMarkers(options?: UseAllInstitutionMapMarker
   const deferUntilIdle = options?.deferUntilIdle ?? false;
   const [markers, setMarkers] = useState<InstitutionMapMarker[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryLockRef = useRef(false);
+
+  const retry = useCallback(() => {
+    if (retryLockRef.current || loading) return;
+    retryLockRef.current = true;
+    setRetryCount((count) => count + 1);
+  }, [loading]);
 
   useEffect(() => {
     if (!enabled) {
       setLoading(true);
+      setError(false);
       return;
     }
 
@@ -33,8 +43,17 @@ export function useAllInstitutionMapMarkers(options?: UseAllInstitutionMapMarker
       setLoading(true);
       try {
         const next = await fetchAllInstitutionMapMarkers();
-        if (!cancelled) setMarkers(next);
+        if (cancelled) return;
+        setMarkers(next);
+        setError(false);
+      } catch (fetchError) {
+        console.error("[home-map] marker load error:", fetchError);
+        if (!cancelled) {
+          setMarkers([]);
+          setError(true);
+        }
       } finally {
+        retryLockRef.current = false;
         if (!cancelled) setLoading(false);
       }
     };
@@ -59,7 +78,7 @@ export function useAllInstitutionMapMarkers(options?: UseAllInstitutionMapMarker
       }
       if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
     };
-  }, [enabled, deferUntilIdle]);
+  }, [enabled, deferUntilIdle, retryCount]);
 
-  return { markers, loading };
+  return { markers, loading, error, retry };
 }

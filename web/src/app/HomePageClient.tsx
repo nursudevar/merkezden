@@ -15,6 +15,7 @@ import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
 import { HomeFilterTipsBox } from "@/components/home/HomeFilterTipsBox";
 import { HomeLocationSelect } from "@/components/home/HomeLocationSelect";
+import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import { HeaderWithSearch } from "@/components/layout/header.client";
 import SearchResults from "@/components/SearchResults";
 import LoginModal from "@/components/LoginModal";
@@ -410,6 +411,22 @@ export default function HomePageClient() {
   const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
   const [ilceler, setIlceler] = useState<TurkiyeLocationOption[]>([]);
   const [mahalleler, setMahalleler] = useState<TurkiyeLocationOption[]>([]);
+  const [illerLoading, setIllerLoading] = useState(true);
+  const [ilcelerLoading, setIlcelerLoading] = useState(false);
+  const [mahallelerLoading, setMahallelerLoading] = useState(false);
+  const [illerFailed, setIllerFailed] = useState(false);
+  const [ilcelerFailed, setIlcelerFailed] = useState(false);
+  const [mahallelerFailed, setMahallelerFailed] = useState(false);
+  const [illerRetryCount, setIllerRetryCount] = useState(0);
+  const [ilcelerRetryCount, setIlcelerRetryCount] = useState(0);
+  const [mahallelerRetryCount, setMahallelerRetryCount] = useState(0);
+  const illerRetryLockRef = useRef(false);
+  const ilcelerRetryLockRef = useRef(false);
+  const mahallelerRetryLockRef = useRef(false);
+  const [categoryLoading, setCategoryLoading] = useState(true);
+  const [categoryFailed, setCategoryFailed] = useState(false);
+  const [categoryRetryCount, setCategoryRetryCount] = useState(0);
+  const categoryRetryLockRef = useRef(false);
   const [defaultIlId, setDefaultIlId] = useState("");
   const [selectedIlId, setSelectedIlId] = useState("");
   const [selectedIlceId, setSelectedIlceId] = useState("");
@@ -446,7 +463,7 @@ export default function HomePageClient() {
   const [mainCategoryCards, setMainCategoryCards] = useState<MainCategoryCard[]>([]);
   const mapMarkersSectionRef = useRef<HTMLDivElement>(null);
   const [loadHomeMapMarkers, setLoadHomeMapMarkers] = useState(false);
-  const { markers: institutionMapMarkers, loading: institutionMapLoading } = useAllInstitutionMapMarkers({
+  const { markers: institutionMapMarkers, loading: institutionMapLoading, error: institutionMapFailed, retry: retryInstitutionMap } = useAllInstitutionMapMarkers({
     enabled: loadHomeMapMarkers,
     deferUntilIdle: true,
   });
@@ -743,6 +760,7 @@ export default function HomePageClient() {
 
   useEffect(() => {
     let cancelled = false;
+    setIllerLoading(true);
     void (async () => {
       try {
         const rows = await fetchIller();
@@ -751,82 +769,139 @@ export default function HomePageClient() {
         const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
         if (ankaraId) setDefaultIlId(ankaraId);
         setSelectedIlId((current) => current || ankaraId);
+        setIllerFailed(false);
       } catch (error) {
         console.error("İller yüklenemedi:", error);
-        if (!cancelled) setIller([]);
+        if (!cancelled) setIllerFailed(true);
+      } finally {
+        illerRetryLockRef.current = false;
+        if (!cancelled) setIllerLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [illerRetryCount]);
 
   useEffect(() => {
     const ilId = parseLocationId(selectedIlId);
     if (ilId == null) {
       setIlceler([]);
+      setIlcelerFailed(false);
+      setIlcelerLoading(false);
       return;
     }
 
     let cancelled = false;
+    setIlcelerLoading(true);
     void (async () => {
       try {
         const rows = await fetchIlcelerByIlId(ilId);
-        if (!cancelled) setIlceler(rows);
+        if (cancelled) return;
+        setIlceler(rows);
+        setIlcelerFailed(false);
       } catch (error) {
         console.error("İlçeler yüklenemedi:", error);
-        if (!cancelled) setIlceler([]);
+        if (!cancelled) {
+          setIlceler([]);
+          setIlcelerFailed(true);
+        }
+      } finally {
+        ilcelerRetryLockRef.current = false;
+        if (!cancelled) setIlcelerLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedIlId]);
+  }, [selectedIlId, ilcelerRetryCount]);
 
   useEffect(() => {
     const ilceId = parseLocationId(selectedIlceId);
     if (ilceId == null) {
       setMahalleler([]);
+      setMahallelerFailed(false);
+      setMahallelerLoading(false);
       return;
     }
 
     let cancelled = false;
+    setMahallelerLoading(true);
     void (async () => {
       try {
         const rows = await fetchMahallelerByIlceId(ilceId);
-        if (!cancelled) setMahalleler(rows);
+        if (cancelled) return;
+        setMahalleler(rows);
+        setMahallelerFailed(false);
       } catch (error) {
         console.error("Mahalleler yüklenemedi:", error);
-        if (!cancelled) setMahalleler([]);
+        if (!cancelled) {
+          setMahalleler([]);
+          setMahallelerFailed(true);
+        }
+      } finally {
+        mahallelerRetryLockRef.current = false;
+        if (!cancelled) setMahallelerLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedIlceId]);
+  }, [selectedIlceId, mahallelerRetryCount]);
+
+  const retryIller = useCallback(() => {
+    if (illerRetryLockRef.current || illerLoading) return;
+    illerRetryLockRef.current = true;
+    setIllerRetryCount((count) => count + 1);
+  }, [illerLoading]);
+
+  const retryIlceler = useCallback(() => {
+    if (ilcelerRetryLockRef.current || ilcelerLoading) return;
+    ilcelerRetryLockRef.current = true;
+    setIlcelerRetryCount((count) => count + 1);
+  }, [ilcelerLoading]);
+
+  const retryMahalleler = useCallback(() => {
+    if (mahallelerRetryLockRef.current || mahallelerLoading) return;
+    mahallelerRetryLockRef.current = true;
+    setMahallelerRetryCount((count) => count + 1);
+  }, [mahallelerLoading]);
+
+  const retryCategories = useCallback(() => {
+    if (categoryRetryLockRef.current || categoryLoading) return;
+    categoryRetryLockRef.current = true;
+    setCategoryRetryCount((count) => count + 1);
+  }, [categoryLoading]);
 
   useEffect(() => {
     let cancelled = false;
+    setCategoryLoading(true);
     (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const [categoryRes, typeRes] = await Promise.all([
-        supabase
-          .from("institution_categories")
-          .select("id, name, slug, is_active")
-          .eq("is_active", true)
-          .order("name", { ascending: true }),
-        supabase
-          .from("institution_types")
-          .select("id, name, category_id, is_active")
-          .eq("is_active", true)
-          .order("name", { ascending: true }),
-      ]);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const [categoryRes, typeRes] = await Promise.all([
+          supabase
+            .from("institution_categories")
+            .select("id, name, slug, is_active")
+            .eq("is_active", true)
+            .order("name", { ascending: true }),
+          supabase
+            .from("institution_types")
+            .select("id, name, category_id, is_active")
+            .eq("is_active", true)
+            .order("name", { ascending: true }),
+        ]);
 
-      if (cancelled || categoryRes.error || typeRes.error) return;
+        if (cancelled) return;
+        if (categoryRes.error || typeRes.error) {
+          console.error("Kategoriler yüklenemedi:", categoryRes.error ?? typeRes.error);
+          setCategoryFailed(true);
+          return;
+        }
 
-      const categories = ((categoryRes.data ?? []) as CategoryRow[])
+        const categories = ((categoryRes.data ?? []) as CategoryRow[])
         .map((category) => {
           const name = String(category.name ?? "").trim();
           const slug = String(category.slug ?? "").trim();
@@ -880,12 +955,20 @@ export default function HomePageClient() {
       });
 
       setMainCategoryCards(orderedCards);
+      setCategoryFailed(false);
+      } catch (error) {
+        console.error("Kategoriler yüklenemedi:", error);
+        if (!cancelled) setCategoryFailed(true);
+      } finally {
+        categoryRetryLockRef.current = false;
+        if (!cancelled) setCategoryLoading(false);
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categoryRetryCount]);
 
   const handleHeaderSearchChange = (value: string) => {
     setQuery(value);
@@ -940,11 +1023,22 @@ export default function HomePageClient() {
             </CardHeader>
             <CardContent className="filter-sidebar-content">
               <div ref={mapMarkersSectionRef}>
-                <InstitutionMapSearchSection
-                  markers={institutionMapMarkers}
-                  loading={institutionMapLoading}
-                  showSeparatorAfter
-                />
+                {institutionMapFailed ? (
+                  <>
+                    <HomeSectionLoadError
+                      message="Harita yüklenemedi. Lütfen tekrar deneyin."
+                      loading={institutionMapLoading}
+                      onRetry={retryInstitutionMap}
+                    />
+                    <Separator />
+                  </>
+                ) : (
+                  <InstitutionMapSearchSection
+                    markers={institutionMapMarkers}
+                    loading={institutionMapLoading}
+                    showSeparatorAfter
+                  />
+                )}
               </div>
               <div className="filter-section">
                 <div className="filter-section-title">
@@ -1016,6 +1110,27 @@ export default function HomePageClient() {
                         allLabel="Tüm Mahalleler"
                         onValueChange={handleMahalleChange}
                       />
+                      {illerFailed ? (
+                        <HomeSectionLoadError
+                          message="İller yüklenemedi. Lütfen tekrar deneyin."
+                          loading={illerLoading}
+                          onRetry={retryIller}
+                        />
+                      ) : null}
+                      {ilcelerFailed ? (
+                        <HomeSectionLoadError
+                          message="İlçeler yüklenemedi. Lütfen tekrar deneyin."
+                          loading={ilcelerLoading}
+                          onRetry={retryIlceler}
+                        />
+                      ) : null}
+                      {mahallelerFailed ? (
+                        <HomeSectionLoadError
+                          message="Mahalleler yüklenemedi. Lütfen tekrar deneyin."
+                          loading={mahallelerLoading}
+                          onRetry={retryMahalleler}
+                        />
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -1157,6 +1272,13 @@ export default function HomePageClient() {
                   />
                   <span>Kategori</span>
                 </div>
+                {categoryFailed ? (
+                  <HomeSectionLoadError
+                    message="Kategoriler yüklenemedi. Lütfen tekrar deneyin."
+                    loading={categoryLoading}
+                    onRetry={retryCategories}
+                  />
+                ) : null}
                 {isClientMounted ? (
                 <Accordion type="single" value={openCategoryId} onValueChange={(v) => setOpenCategoryId(v ?? "")} collapsible>
                   {sidebarCategoryGroups.map((group) => {
@@ -1283,8 +1405,13 @@ export default function HomePageClient() {
             <header className="home-main-categories-header">
               <h2 className="home-main-categories-title">Ana Kategoriler</h2>
             </header>
-            
-
+            {categoryFailed ? (
+              <HomeSectionLoadError
+                message="Kategoriler yüklenemedi. Lütfen tekrar deneyin."
+                loading={categoryLoading}
+                onRetry={retryCategories}
+              />
+            ) : (
             <div className="home-main-categories-slider">
               <div className="categories-scroller home-main-categories-grid">
                 {mainCategoryCards.filter((category) => !isDriverCourseCategory(category.name, category.slug)).map((category) => {
@@ -1301,6 +1428,7 @@ export default function HomePageClient() {
                 })}
               </div>
             </div>
+            )}
           </section>
 
           <HomeDrivingSchoolsSection />

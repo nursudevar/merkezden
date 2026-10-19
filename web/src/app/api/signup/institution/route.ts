@@ -929,7 +929,7 @@ export async function POST(request: Request) {
           official_email: email,
           source: "auto",
         })
-        .select("id")
+        .select("id, owner_auth_id")
         .maybeSingle();
 
       const insertedId = parseInstitutionId(insertedRow?.id);
@@ -986,6 +986,17 @@ export async function POST(request: Request) {
         });
       } else {
         institutionId = insertedId;
+        const insertedOwnerAuthId = String(insertedRow?.owner_auth_id ?? "").trim();
+        if (insertedOwnerAuthId !== authUserId) {
+          return jsonError({
+            status: 500,
+            step: "institution_insert",
+            error: "Kurumsal hesap oluşturulurken bir hata oluştu.",
+            code: "institution_owner_not_confirmed",
+            details: `owner_auth_id was not confirmed after insert;institutionId=${insertedId}`,
+            hint: "auth user/institution row were not deleted",
+          });
+        }
       }
     }
 
@@ -1000,20 +1011,23 @@ export async function POST(request: Request) {
     }
 
     if (needsOwnerAuthId) {
-      const { error: ownerPatchError } = await serviceSupabase
+      const { data: ownerRow, error: ownerPatchError } = await serviceSupabase
         .from("institutions")
         .update({ owner_auth_id: authUserId })
         .eq("id", institutionId)
         .eq("user_id", publicUserId)
-        .is("owner_auth_id", null);
-      if (ownerPatchError) {
+        .is("owner_auth_id", null)
+        .select("id, owner_auth_id")
+        .maybeSingle();
+      const patchedOwnerAuthId = String(ownerRow?.owner_auth_id ?? "").trim();
+      if (ownerPatchError || patchedOwnerAuthId !== authUserId) {
         return jsonError({
           status: 500,
           step: "institution_insert",
           error: "Kurumsal hesap oluşturulurken bir hata oluştu.",
           code: supabaseErrorCode(ownerPatchError, "institution_owner_patch_failed"),
           logError: ownerPatchError,
-          details: `failed to complete owner_auth_id;institutionId=${institutionId}`,
+          details: `failed to complete owner_auth_id;institutionId=${institutionId};ownerConfirmed=${patchedOwnerAuthId === authUserId}`,
         });
       }
     }
@@ -1122,13 +1136,15 @@ export async function POST(request: Request) {
       })
       .eq("id", institutionId)
       .select(
-        "id, tax_certificate_document_path, trade_registry_document_path, authorization_document_path, legal_structure",
+        "id, owner_auth_id, tax_certificate_document_path, trade_registry_document_path, authorization_document_path, legal_structure",
       )
       .maybeSingle();
 
+    const updatedOwnerAuthId = String(updatedRow?.owner_auth_id ?? "").trim();
     if (
       updateError ||
       !updatedRow?.id ||
+      updatedOwnerAuthId !== authUserId ||
       !updatedRow.tax_certificate_document_path ||
       !updatedRow.trade_registry_document_path ||
       (authorizationPath && !updatedRow.authorization_document_path)
@@ -1140,7 +1156,7 @@ export async function POST(request: Request) {
         error: "Kurumsal hesap oluşturulurken bir hata oluştu.",
         code: supabaseErrorCode(updateError, "institution_update_failed"),
         logError: updateError,
-        details: `institutionId=${institutionId};hasUpdatedRow=${Boolean(updatedRow?.id)};hasTaxPath=${Boolean(updatedRow?.tax_certificate_document_path)};hasTradePath=${Boolean(updatedRow?.trade_registry_document_path)}`,
+        details: `institutionId=${institutionId};hasUpdatedRow=${Boolean(updatedRow?.id)};ownerConfirmed=${updatedOwnerAuthId === authUserId};hasTaxPath=${Boolean(updatedRow?.tax_certificate_document_path)};hasTradePath=${Boolean(updatedRow?.trade_registry_document_path)}`,
         hint: "uploaded institution verification objects will be removed; auth user/institution row were not deleted",
       });
     }

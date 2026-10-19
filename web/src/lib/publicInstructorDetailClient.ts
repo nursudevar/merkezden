@@ -3,6 +3,7 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INSTRUCTOR_MEDIA_BUCKET } from "@/lib/instructorMediaClient";
 import {
+  fetchAllQueryPages,
   INSTRUCTOR_FEATURE_ENTRIES_TABLE,
   INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE,
   type InstructorFeatureGroupRow,
@@ -13,7 +14,13 @@ import {
   type PublicInstructorFeatureSection,
 } from "@/lib/instructorPublicFeatures";
 import {
+  fetchInstructorHighlightRowsClient,
+  resolvePublicHighlightItems,
+  type PublicHighlightDisplayItem,
+} from "@/lib/featureHighlightsPublic";
+import {
   fetchPublicInstructorByParamClient,
+  PUBLIC_INSTRUCTORS_TABLE,
   publicInstructorDisplayName,
   type PublicInstructorRow,
 } from "@/lib/publicInstructorClient";
@@ -71,7 +78,6 @@ export function buildInstructorProfileSummaryLines(
           ? `${row.experience_years} yıl`
           : null,
     },
-    { label: "Eğitim Seviyesi", value: row.education_level ?? null },
   ];
 
   return lines
@@ -199,25 +205,49 @@ export async function fetchPublicInstructorAnnouncementsClient(
 export async function fetchPublicInstructorFeatureDisplayClient(
   instructorId: number,
   supabaseArg?: ReturnType<typeof createSupabaseBrowserClient>,
+  known?: { categorySlug?: string | null },
 ): Promise<{
   academicLines: PublicInstructorFeatureLine[];
   sections: PublicInstructorFeatureSection[];
   universityLabel: string | null;
+  loadFailed: boolean;
+  highlightItems: PublicHighlightDisplayItem[];
 }> {
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
-  const empty = { academicLines: [], sections: [], universityLabel: null };
+  const empty = {
+    academicLines: [],
+    sections: [],
+    universityLabel: null,
+    loadFailed: false,
+    highlightItems: [] as PublicHighlightDisplayItem[],
+  };
 
-  const { data: instructorRow, error: instructorError } = await supabase
-    .from("instructors")
-    .select("category_id")
+  const profileSelect = "category_id, min_fiyat, max_fiyat, working_hours_start, working_hours_end";
+  const publicProfile = await supabase
+    .from(PUBLIC_INSTRUCTORS_TABLE)
+    .select(profileSelect)
     .eq("id", instructorId)
     .maybeSingle();
-
-  if (instructorError && !isUnauthorizedSupabaseError(instructorError)) {
-    console.warn("[instructor][detail][category]", serializeSupabaseError(instructorError));
+  let instructorRow = publicProfile.data as {
+    category_id?: number | null;
+    min_fiyat?: number | null;
+    max_fiyat?: number | null;
+    working_hours_start?: string | null;
+    working_hours_end?: string | null;
+  } | null;
+  if (!instructorRow) {
+    const privateProfile = await supabase
+      .from("instructors")
+      .select(profileSelect)
+      .eq("id", instructorId)
+      .maybeSingle();
+    if (privateProfile.error && !isUnauthorizedSupabaseError(privateProfile.error)) {
+      console.warn("[instructor][detail][category]", serializeSupabaseError(privateProfile.error));
+    }
+    instructorRow = privateProfile.data;
   }
 
-  let instructorCategorySlug: string | null = null;
+  let instructorCategorySlug = String(known?.categorySlug ?? "").trim() || null;
   const categoryId = instructorRow?.category_id;
   if (categoryId != null && Number.isFinite(Number(categoryId))) {
     const { data: catRow } = await supabase
@@ -226,7 +256,7 @@ export async function fetchPublicInstructorFeatureDisplayClient(
       .eq("id", Number(categoryId))
       .maybeSingle();
     const slug = String(catRow?.slug ?? "").trim();
-    instructorCategorySlug = slug.length > 0 ? slug : null;
+    if (slug.length > 0) instructorCategorySlug = slug;
   }
 
   const [
@@ -240,12 +270,18 @@ export async function fetchPublicInstructorFeatureDisplayClient(
       .select("id, name, slug, display_order, is_active, category_slug")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
-    supabase
-      .from("instructor_feature_definitions")
-      .select("id, group_id, name, slug, input_type, unit, display_order, is_active, show_on_detail")
-      .eq("is_active", true)
-      .eq("show_on_detail", true)
-      .order("display_order", { ascending: true }),
+    fetchAllQueryPages((from, to) =>
+      supabase
+        .from("instructor_feature_definitions")
+        .select(
+          "id, group_id, name, slug, input_type, unit, display_order, is_active, show_on_detail",
+        )
+        .eq("is_active", true)
+        .eq("show_on_detail", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
     supabase
       .from("instructor_feature_choices")
       .select("id, feature_definition_id, name, display_order, is_active")
@@ -274,7 +310,7 @@ export async function fetchPublicInstructorFeatureDisplayClient(
       choicesError: serializeSupabaseError(choicesError),
       entriesError: serializeSupabaseError(entriesError),
     });
-    return empty;
+    return { ...empty, loadFailed: true };
   }
 
   const entries = (entriesData ?? []) as Array<{
@@ -313,31 +349,51 @@ export async function fetchPublicInstructorFeatureDisplayClient(
     category_slug: g.category_slug ?? null,
   }));
 
+  const definitions = (definitionsData ?? []) as Array<{
+    id: number;
+    group_id: number;
+    name: string;
+    slug: string | null;
+    input_type: string;
+    unit: string | null;
+    display_order: number | null;
+  }>;
+  const choices = (choicesData ?? []) as Array<{
+    id: number;
+    feature_definition_id: number;
+    name: string | null;
+    display_order?: number | null;
+  }>;
   const mapped = mapPublicInstructorFeatures({
     groups: rawGroups,
-    definitions: (definitionsData ?? []) as Array<{
-      id: number;
-      group_id: number;
-      name: string;
-      slug: string | null;
-      input_type: string;
-      unit: string | null;
-      display_order: number | null;
-    }>,
-    choices: (choicesData ?? []) as Array<{
-      id: number;
-      feature_definition_id: number;
-      name: string | null;
-      display_order?: number | null;
-    }>,
+    definitions,
+    choices,
     entries,
     entryChoices,
     categorySlug: instructorCategorySlug,
+  });
+
+  const highlightRows = await fetchInstructorHighlightRowsClient(instructorId, supabase);
+  const highlightItems = resolvePublicHighlightItems({
+    rows: highlightRows,
+    definitions,
+    choices,
+    entries,
+    entryChoices,
+    entity: "instructor",
+    minFiyat: (instructorRow as { min_fiyat?: number | null } | null)?.min_fiyat ?? null,
+    maxFiyat: (instructorRow as { max_fiyat?: number | null } | null)?.max_fiyat ?? null,
+    workingHoursStart:
+      (instructorRow as { working_hours_start?: string | null } | null)?.working_hours_start ?? null,
+    workingHoursEnd:
+      (instructorRow as { working_hours_end?: string | null } | null)?.working_hours_end ?? null,
   });
 
   return {
     academicLines: mapped.academicLines,
     sections: mapped.sections,
     universityLabel: null,
+    loadFailed: false,
+    highlightItems,
   };
 }

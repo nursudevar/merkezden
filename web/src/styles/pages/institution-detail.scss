@@ -309,6 +309,7 @@
     width: 100%;
     min-width: 0;
     min-height: 0;
+    margin-bottom: 0px;
   }
 
   .institution-logo-section {
@@ -1074,6 +1075,13 @@
 
   svg {
     flex-shrink: 0;
+  }
+
+  .institution-tab-icon {
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
+    object-fit: contain;
   }
 }
 

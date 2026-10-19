@@ -18,7 +18,7 @@ import {
   type InstructorCategoryFilterPayload,
 } from "@/components/category/instructorCategoryFilterTypes";
 import type { CategoryResultItem } from "@/components/category/useCategoryInstitutions";
-import { instructorPriceLabelOverlapsUserRange } from "@/lib/institutionPriceRangeFilter";
+import { formatInstitutionPriceRangeDisplay } from "@/lib/institutionPriceRangeFilter";
 import {
   fetchActiveFeaturedInstructorOrderMap,
   sortWithFeaturedPriority,
@@ -26,13 +26,12 @@ import {
 } from "@/lib/featuredAccountsClient";
 import {
   fetchInstructorFeatureCategoriesClient,
-  fetchInstructorPriceRangeLabelsByInstructorIdsClient,
-  formatInstructorPriceRangeDisplay,
   type InstructorFeatureCategoryRow,
 } from "@/lib/instructorFeaturesClient";
 import {
   fetchPublicInstructorsForListing,
   hasInstructorCategoryFilterPayload,
+  instructorStoredPriceOverlapsSelectedRange,
   resolveInstructorIdsFromInstructorCategoryFilterPayload,
 } from "@/lib/publicInstructorSearch";
 import { parseLocationId } from "@/lib/turkiyeLocationsClient";
@@ -51,6 +50,8 @@ type InstructorDirectoryRow = PublicInstructorRow &
     is_active?: boolean | null;
     is_approved?: boolean | null;
     category_id?: number | null;
+    min_fiyat?: number | null;
+    max_fiyat?: number | null;
   };
 
 type InstructorListItem = {
@@ -62,6 +63,8 @@ type InstructorListItem = {
   locationLabel: string;
   imageUrl: string;
   priceLabel: string;
+  minFiyat: number | null;
+  maxFiyat: number | null;
   categoryId: number | null;
 };
 
@@ -74,7 +77,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "ODTÜ Matematik Öğretmenliği",
     locationLabel: "Çankaya / Ankara",
     imageUrl: "",
-    priceLabel: "1000-5000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -85,7 +90,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Hacettepe İngiliz Dili ve Edebiyatı",
     locationLabel: "Yenimahalle / Ankara",
     imageUrl: "",
-    priceLabel: "5000-10000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -96,7 +103,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Ankara Üniversitesi Türk Dili",
     locationLabel: "Etimesgut / Ankara",
     imageUrl: "",
-    priceLabel: "0-1000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -107,7 +116,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Bilkent Fizik",
     locationLabel: "Balgat / Ankara",
     imageUrl: "",
-    priceLabel: "1000-5000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -118,7 +129,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Gazi Kimya Öğretmenliği",
     locationLabel: "Keçiören / Ankara",
     imageUrl: "",
-    priceLabel: "5000-10000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -129,7 +142,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Ege Üniversitesi Biyoloji",
     locationLabel: "Mamak / Ankara",
     imageUrl: "",
-    priceLabel: "10000-50000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -140,7 +155,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Selçuk Üniversitesi Matematik",
     locationLabel: "Sincan / Ankara",
     imageUrl: "",
-    priceLabel: "1000-5000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
   {
@@ -151,7 +168,9 @@ const TEMP_MOCK_INSTRUCTORS: InstructorListItem[] = [
     schoolLabel: "Marmara Üniversitesi Alman Dili",
     locationLabel: "Çayyolu / Ankara",
     imageUrl: "",
-    priceLabel: "5000-10000 TL",
+    priceLabel: "",
+    minFiyat: null,
+    maxFiyat: null,
     categoryId: null,
   },
 ];
@@ -191,10 +210,14 @@ function buildInstructorLocation(row: InstructorDirectoryRow): string {
   return district || city;
 }
 
+function storedInstructorPrice(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(Number(value))) return null;
+  return Number(value);
+}
+
 function mapInstructorRowToListItem(
   row: InstructorDirectoryRow,
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  priceLabel?: string,
 ): InstructorListItem | null {
   const id = Number(row.id);
   if (!Number.isFinite(id) || id <= 0) return null;
@@ -202,6 +225,9 @@ function mapInstructorRowToListItem(
   const displayName = buildInstructorDisplayName(row);
   const hrefKey = String(row.slug ?? "").trim() || String(id);
   if (!displayName || !hrefKey) return null;
+
+  const minFiyat = storedInstructorPrice(row.min_fiyat);
+  const maxFiyat = storedInstructorPrice(row.max_fiyat);
 
   return {
     id,
@@ -214,7 +240,9 @@ function mapInstructorRowToListItem(
       String(row.profile_picture ?? "").trim(),
       supabase,
     ),
-    priceLabel: formatInstructorPriceRangeDisplay(priceLabel ?? ""),
+    priceLabel: formatInstitutionPriceRangeDisplay(minFiyat, maxFiyat) ?? "Fiyat belirtilmedi",
+    minFiyat,
+    maxFiyat,
     categoryId: Number.isFinite(Number(row.category_id)) ? Number(row.category_id) : null,
   };
 }
@@ -339,23 +367,8 @@ export function AllInstructorsPageClient() {
         });
         if (cancelled) return;
 
-        const instructorIds = rows
-          .map((row) => Number(row.id))
-          .filter((id) => Number.isFinite(id) && id > 0);
-        const priceLabelsByInstructorId = await fetchInstructorPriceRangeLabelsByInstructorIdsClient(
-          instructorIds,
-          supabase,
-        );
-        if (cancelled) return;
-
         const mappedItems = rows
-          .map((row) =>
-            mapInstructorRowToListItem(
-              row as InstructorDirectoryRow,
-              supabase,
-              priceLabelsByInstructorId.get(Number(row.id)),
-            ),
-          )
+          .map((row) => mapInstructorRowToListItem(row as InstructorDirectoryRow, supabase))
           .filter((item): item is InstructorListItem => item !== null);
 
         setItems(withTemporaryMockInstructors(mappedItems));
@@ -400,12 +413,10 @@ export function AllInstructorsPageClient() {
         if (!haystack.includes(search)) return false;
       }
 
-      if (priceRange) {
-        const overlapRange = {
-          min: priceRange.min ?? 0,
-          max: priceRange.max ?? Number.POSITIVE_INFINITY,
-        };
-        if (!instructorPriceLabelOverlapsUserRange(item.priceLabel, overlapRange)) return false;
+      if (
+        !instructorStoredPriceOverlapsSelectedRange(item.minFiyat, item.maxFiyat, priceRange)
+      ) {
+        return false;
       }
 
       return true;
