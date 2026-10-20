@@ -358,6 +358,7 @@ export function buildInstructorFilterFieldsForListingCategory(
         "sanat",
         "mesleki-egitim",
         "kurs-sinava-hazirlik",
+        "patili-dostlar",
       ].includes(String(selectedCategorySlug ?? "").trim().toLocaleLowerCase("tr-TR")),
     },
   );
@@ -677,7 +678,14 @@ export function isInstructorDersSeviyesiBooleanOption(feature: {
 export function isInstructorDersSeviyesiExcludedCategorySlug(
   slug: string | null | undefined,
 ): boolean {
-  return normalizeInstructorGroupCategorySlug(slug) === "ozel-egitim";
+  const normalized = normalizeInstructorGroupCategorySlug(slug);
+  return normalized === "ozel-egitim" || normalized === "patili-dostlar";
+}
+
+export function isInstructorPatiliDostlarCategorySlug(
+  slug: string | null | undefined,
+): boolean {
+  return normalizeInstructorGroupCategorySlug(slug) === "patili-dostlar";
 }
 
 export const INSTRUCTOR_EGITMEN_PROFILI_LABEL = "Eğitmen Profili";

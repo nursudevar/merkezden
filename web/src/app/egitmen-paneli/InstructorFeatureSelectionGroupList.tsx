@@ -71,6 +71,27 @@ function globalBaslicaCommonFieldSlot(feature: {
   return null;
 }
 
+function patiliBaslicaFeatureSlot(feature: {
+  name?: string | null;
+  slug?: string | null;
+  input_type?: string | null;
+}): number {
+  if (isInstructorEgitimDiliFeature(feature)) return 10;
+
+  const name = normalizeInstructorPanelFeatureKey(feature.name ?? "");
+  const slug = normalizeInstructorPanelFeatureKey(feature.slug ?? "");
+
+  if (name === "evcil hayvan turu" || slug.includes("evcil hayvan turu")) {
+    return 20;
+  }
+
+  if (isInstructorHizmetTipiFeature(feature)) return 30;
+  if (isInstructorHizmetYeriBooleanOption(feature)) return 40;
+  if (isInstructorEgitmenProfiliFeature(feature)) return 50;
+
+  return 100;
+}
+
 function sortGlobalBaslicaPanelFeatures<
   T extends { name?: string | null; slug?: string | null; input_type?: string | null },
 >(features: T[]): T[] {
@@ -222,7 +243,9 @@ type InstructorFeatureSelectionGroupListProps = {
   setStudentAgeRangeError?: Dispatch<SetStateAction<string | null>>;
   baslicaPriceRange?: ReactNode;
   baslicaAvailableHours?: ReactNode;
+  patiliDostlarOrder?: boolean;
   onLessonDurationPanelError?: (message: string | null) => void;
+
 };
 
 export function InstructorFeatureSelectionGroupList({
@@ -247,6 +270,7 @@ export function InstructorFeatureSelectionGroupList({
   setStudentAgeRangeError,
   baslicaPriceRange = null,
   baslicaAvailableHours = null,
+  patiliDostlarOrder = false,
   onLessonDurationPanelError,
 }: InstructorFeatureSelectionGroupListProps) {
   const [lessonDurationDraft, setLessonDurationDraft] = useState<string | null>(null);
@@ -355,15 +379,29 @@ export function InstructorFeatureSelectionGroupList({
         const groupCategorySlug = String(group.category_slug ?? "")
           .trim()
           .toLocaleLowerCase("tr-TR");
+
+const isPatiliBaslicaOrder =
+patiliDostlarOrder &&
+groupCategorySlug === "patili-dostlar" &&
+isInstructorBaslicaFeatureGroupName(group.name);
+
         const keepDefinitionOrder =
           groupCategorySlug === "surucu-kursu" || groupCategorySlug === "ozel-egitim";
-        const featuresToRender = isGlobalBaslicaOrder
-          ? sortGlobalBaslicaPanelFeatures(visibleFeatures)
-          : hasSpecialNonOptionFeature || keepDefinitionOrder
-            ? visibleFeatures
-            : sortPanelOptionItemsByLabel(visibleFeatures, (feature) =>
-                getDisplayFeatureName(feature.name),
-              );
+        
+const featuresToRender = isPatiliBaslicaOrder
+? [...visibleFeatures].sort(
+    (a, b) =>
+      patiliBaslicaFeatureSlot(a) - patiliBaslicaFeatureSlot(b)
+  )
+: isGlobalBaslicaOrder
+  ? sortGlobalBaslicaPanelFeatures(visibleFeatures)
+  : hasSpecialNonOptionFeature || keepDefinitionOrder
+    ? visibleFeatures
+    : sortPanelOptionItemsByLabel(
+        visibleFeatures,
+        (feature) => getDisplayFeatureName(feature.name),
+      );
+
         const ageMinFeature = visibleFeatures.find((f) => isStudentAgeMinFeature(f));
         const ageMaxFeature = visibleFeatures.find((f) => isStudentAgeMaxFeature(f));
         const durationMinFeature = featuresToRender.find((feature) =>
@@ -388,13 +426,14 @@ export function InstructorFeatureSelectionGroupList({
           : isGlobalBaslicaOrder
             ? lastIndexWithGlobalBaslicaSlotAtMost(featuresToRender, 10)
             : findLastBaslicaPriceAnchorIndex(featuresToRender);
-        const placeHoursInOrder =
-          isGlobalBaslicaOrder &&
-          baslicaAvailableHours != null &&
-          group.id === baslicaPresentationGroupId;
-        const hoursAnchorIndex = placeHoursInOrder
-          ? firstIndexOfHighestGlobalBaslicaSlotAtMost(featuresToRender, 50)
-          : -1;
+            const placeHoursInOrder =
+            (isGlobalBaslicaOrder || isPatiliBaslicaOrder) &&
+            baslicaAvailableHours != null &&
+            group.id === baslicaPresentationGroupId;
+            const hoursAnchorIndex =
+            placeHoursInOrder && !isPatiliBaslicaOrder
+              ? firstIndexOfHighestGlobalBaslicaSlotAtMost(featuresToRender, 50)
+              : -1;
         let pricePlaced = false;
         let hoursPlaced = false;
         const prependGlobalPrice = placePriceHere && isGlobalBaslicaOrder && priceAnchorIndex < 0;
@@ -1139,9 +1178,13 @@ export function InstructorFeatureSelectionGroupList({
                 index,
                 );
               })}
-              {!isGlobalBaslicaOrder && group.id === baslicaPresentationGroupId
-                ? baslicaAvailableHours
-                : null}
+              
+{!isGlobalBaslicaOrder &&
+ !isPatiliBaslicaOrder &&
+ group.id === baslicaPresentationGroupId
+  ? baslicaAvailableHours
+  : null}
+
               {isGlobalBaslicaOrder && placeHoursInOrder && !hoursPlaced ? baslicaAvailableHours : null}
               {placePriceHere && !pricePlaced ? baslicaPriceRange : null}
             </div>

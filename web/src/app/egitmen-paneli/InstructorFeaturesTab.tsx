@@ -31,10 +31,15 @@ import {
   fetchInstructorOwnedCategoryIdClient,
   getDisplayInstructorFeatureName,
   isInstructorBaslicaFeatureGroupName,
+  isInstructorDenemeDersiFeature,
   isInstructorDersSeviyesiBooleanOption,
   isInstructorDersSeviyesiExcludedCategorySlug,
+  isInstructorEgitimDiliFeature,
+  isInstructorEgitmenProfiliFeature,
+  isInstructorHizmetTipiFeature,
   isInstructorHizmetYeriBooleanOption,
   isInstructorPanelHiddenFeature,
+  isInstructorPatiliDostlarCategorySlug,
   isInstructorPriceRangeFeature,
   projectInstructorDefinitionsWithGlobalEgitimDili,
   parseInstructorCategoryId,
@@ -528,6 +533,8 @@ export function InstructorFeaturesTab({
     return resolveInstructorCategorySlug(selectedCategoryNumericId, categories);
   }, [categories, selectedCategoryNumericId]);
 
+  const isPatiliDostlar = isInstructorPatiliDostlarCategorySlug(instructorCategorySlug);
+
   const categoryDisplayName = useMemo(() => {
     return resolveInstructorCategoryDisplayName(selectedCategoryNumericId, categories);
   }, [categories, selectedCategoryNumericId]);
@@ -649,14 +656,34 @@ export function InstructorFeaturesTab({
       );
   }, [featureDefinitions, featureGroups, instructorCategorySlug]);
 
+
+const visibleGroupsWithFeatures = useMemo(() => {
+  if (!isPatiliDostlar) return groupsWithFeatures;
+
+  return groupsWithFeatures
+    .filter(({ group }) => {
+      const name = group.name.trim().toLocaleLowerCase("tr-TR");
+      return name !== "fiziki imkanlar";
+    })
+    .map((item) => ({
+      ...item,
+      features: item.features.filter((feature) =>
+        !isInstructorDenemeDersiFeature(feature) &&
+        !isInstructorDersSeviyesiBooleanOption(feature) &&
+        !isLessonDurationRangeNumberFeature(feature) &&
+        !isInstructorPriceRangeFeature(feature)
+      ),
+    }));
+}, [groupsWithFeatures, isPatiliDostlar]);
+
   // Üst alan: global gruplar + category-specific Başlıca (Patili Başlıca kategori seçiminin hemen altında).
   // Alt alan: diğer category-specific gruplar (Fiziki İmkanlar, Ödeme Seçenekleri, …).
-  const upperGroups = groupsWithFeatures.filter(({ group }) => {
+  const upperGroups = visibleGroupsWithFeatures.filter(({ group }) => {
     const hasCategorySlug = Boolean((group.category_slug ?? "").trim());
     if (!hasCategorySlug) return true;
     return isInstructorBaslicaFeatureGroupName(group.name);
   });
-  const lowerGroupsUnsorted = groupsWithFeatures.filter(({ group }) => {
+  const lowerGroupsUnsorted = visibleGroupsWithFeatures.filter(({ group }) => {
     const hasCategorySlug = Boolean((group.category_slug ?? "").trim());
     if (!hasCategorySlug) return false;
     return !isInstructorBaslicaFeatureGroupName(group.name);
@@ -716,7 +743,7 @@ export function InstructorFeaturesTab({
     const skip = (feature: { id: number; slug?: string | null; input_type: string }) =>
       isStudentAgeRangeNumberFeature(feature) || isLessonDurationRangeNumberFeature(feature);
     const candidates = collectFilledFeatureHighlightCandidates({
-      groups: groupsWithFeatures,
+      groups: visibleGroupsWithFeatures,
       form,
       choices: featureChoices,
       displayName: getDisplayInstructorFeatureName,
@@ -743,10 +770,15 @@ export function InstructorFeaturesTab({
     }
     const durationDefs = findLessonDurationRangeDefinitions(featureDefinitions);
     const durationIds = new Set(featureIdsToSave);
-    if (
-      (durationDefs.min && durationIds.has(durationDefs.min.id)) ||
-      (durationDefs.max && durationIds.has(durationDefs.max.id))
-    ) {
+    
+if (
+  !isPatiliDostlar &&
+  (
+    (durationDefs.min && durationIds.has(durationDefs.min.id)) ||
+    (durationDefs.max && durationIds.has(durationDefs.max.id))
+  )
+) {
+
       const minRaw = durationDefs.min
         ? Number(String(form.numberValues[durationDefs.min.id] ?? "").trim())
         : Number.NaN;
@@ -787,7 +819,7 @@ export function InstructorFeaturesTab({
       parsePriceInputToIntOrNull(minFiyat),
       parsePriceInputToIntOrNull(maxFiyat),
     );
-    if (priceValue) {
+    if (!isPatiliDostlar && priceValue) {
       candidates.push(
         combinedHighlightCandidate({
           kind: "profile",
@@ -808,6 +840,8 @@ export function InstructorFeaturesTab({
     form,
     groupsWithFeatures,
     instructorCategorySlug,
+    isPatiliDostlar,
+    visibleGroupsWithFeatures,
     maxFiyat,
     minFiyat,
   ]);
@@ -1321,10 +1355,13 @@ export function InstructorFeaturesTab({
         {hasSelectedCategory && groupsWithFeatures.length === 0 ? (
           <p className="egitmen-panel-features-empty-text">Aktif özellik grubu bulunamadı.</p>
         ) : null}
-        <InstructorFeatureSelectionGroupList
-          groups={upperGroups}
-          baslicaPriceRange={priceRangeField}
-          baslicaAvailableHours={availableHoursField}
+        
+<InstructorFeatureSelectionGroupList
+  groups={upperGroups}
+  baslicaPriceRange={isPatiliDostlar ? null : priceRangeField}
+  baslicaAvailableHours={availableHoursField}
+  patiliDostlarOrder={isPatiliDostlar}
+
           onLessonDurationPanelError={setLessonDurationPanelError}
           {...selectionListProps}
         />
@@ -1495,8 +1532,9 @@ export function InstructorFeaturesTab({
           ) : null}
           <InstructorFeatureSelectionGroupList
             groups={upperGroups}
-            baslicaPriceRange={priceRangeField}
+            baslicaPriceRange={isPatiliDostlar ? null : priceRangeField}
             baslicaAvailableHours={availableHoursField}
+            patiliDostlarOrder={isPatiliDostlar}
             onLessonDurationPanelError={setLessonDurationPanelError}
             {...selectionListProps}
           />
