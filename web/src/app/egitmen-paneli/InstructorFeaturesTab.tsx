@@ -541,7 +541,9 @@ export function InstructorFeaturesTab({
 
   const groupsWithFeatures = useMemo((): InstructorFeatureSelectionGroup[] => {
     const showStudentAge = isInstructorPanelStudentAgeCategorySlug(instructorCategorySlug);
-    const showDersSeviyesi = !isInstructorDersSeviyesiExcludedCategorySlug(instructorCategorySlug);
+    const showDersSeviyesi =
+  isPatiliDostlar ||
+  !isInstructorDersSeviyesiExcludedCategorySlug(instructorCategorySlug);
     const visibleGroups = resolveInstructorFeatureGroupsForActiveCategory(
       featureGroups,
       instructorCategorySlug,

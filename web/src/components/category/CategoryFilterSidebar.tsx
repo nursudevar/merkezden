@@ -280,22 +280,25 @@ const OZEL_EGITIM_CATEGORY_SLUG = "ozel-egitim";
 const SURUCU_KURSU_CATEGORY_SLUG = "surucu-kursu";
 
 /** Eğitmen public filtre — Patili Dostlar şema alan sırası (fiyat Hizmet Yeri sonrası inject). */
+
 const PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER = [
   "evcil hayvan turu",
   "hizmet turu",
   "hizmet tipi",
+  "egitim ozellikleri",
   "hizmet yeri",
-  "fiziki imkanlar",
+  "egitmen profili",
   "egitim dili",
-  "deneme dersi mevcuttur",
   "odeme secenekleri",
 ] as const;
+
 
 const PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER_KEYS = new Set<string>(
   PATILI_DOSTLAR_INSTRUCTOR_FILTER_ORDER,
 );
 
 /** Global Başlıca öğrenci/ders + hedef dışı alanlar — Patili'de gizlenir. */
+
 const PATILI_DOSTLAR_HIDDEN_FILTER_NAMES = new Set([
   "ogrenci yasi",
   "ders seviyesi",
@@ -303,11 +306,22 @@ const PATILI_DOSTLAR_HIDDEN_FILTER_NAMES = new Set([
   "egitim seviyesi",
   "egitmenin seviyesi",
   "ders suresi",
+  "deneme dersi mevcuttur",
+  "fiziki imkanlar",
   "musait saat baslangic",
   "musait saat bitis",
   "musait saat baslangic bitis",
-  "egitim ozellikleri",
 ]);
+
+
+const PATILI_DOSTLAR_INSTRUCTOR_COLLAPSED_FILTER_KEYS = new Set<string>([
+  "hizmet yeri",
+  "musait saat araligi",
+  "egitmen profili",
+  "egitim dili",
+  "odeme secenekleri",
+]);
+
 
 /** Eğitmen public filtre — yalnızca Kurs & Sınava Hazırlık. Yaş ve fiyat Özel Ders Türleri ardına enjekte edilir. */
 const KURS_SINAVA_HAZIRLIK_INSTRUCTOR_FILTER_ORDER = [
@@ -5409,28 +5423,59 @@ function CategoryFilterSidebarView({
                           return wrapped;
                         }
 
-                        if (isPatiliDostlarInstructorCategory) {
-                          const patiliOrderKey = normalizePatiliDostlarFilterOrderKey(field.name);
-                          const shouldInjectPatiliPrice =
-                            patiliOrderKey === "hizmet yeri" ||
-                            (!patiliHasHizmetYeriField && patiliOrderKey === "hizmet tipi");
-                          if (shouldInjectPatiliPrice) {
-                            return (
-                              <Fragment key={`patili-dostlar-slot-${sectionKey}`}>
-                                {section}
-                                {renderInstructorPriceFilterSection("patili-dostlar")}
-                              </Fragment>
-                            );
-                          }
-                          if (patiliOrderKey === "fiziki imkanlar") {
-                            return (
-                              <Fragment key={`patili-dostlar-hours-${sectionKey}`}>
-                                {section}
-                                {renderInstructorAvailableHoursFilterSection("patili-dostlar")}
-                              </Fragment>
-                            );
-                          }
-                        }
+                        
+if (isPatiliDostlarInstructorCategory) {
+  const patiliOrderKey = normalizePatiliDostlarFilterOrderKey(field.name);
+
+  const wrapPatiliCollapse = (
+    node: ReactNode,
+    orderKey: string,
+    title: string,
+    collapseKey: string,
+  ): ReactNode => {
+    if (!PATILI_DOSTLAR_INSTRUCTOR_COLLAPSED_FILTER_KEYS.has(orderKey)) {
+      return node;
+    }
+
+    return (
+      <CategoryFilterCollapse
+        key={`patili-instructor-collapse-${orderKey}-${collapseKey}`}
+        title={title}
+        className="category-filter-collapse--surucu"
+      >
+        {node}
+      </CategoryFilterCollapse>
+    );
+  };
+
+  const wrapped = wrapPatiliCollapse(
+    section,
+    patiliOrderKey,
+    instructorFieldSectionTitle,
+    sectionKey,
+  );
+
+  const injectHours =
+    patiliOrderKey === "hizmet yeri" ||
+    (!patiliHasHizmetYeriField && patiliOrderKey === "hizmet tipi");
+
+  if (injectHours) {
+    return (
+      <Fragment key={`patili-dostlar-hours-${sectionKey}`}>
+        {wrapped}
+        {wrapPatiliCollapse(
+          renderInstructorAvailableHoursFilterSection("patili-dostlar"),
+          "musait saat araligi",
+          "MÜSAİT SAAT ARALIĞI",
+          "hours",
+        )}
+      </Fragment>
+    );
+  }
+
+  return wrapped;
+}
+
 
                         return section;
                       };
