@@ -4897,28 +4897,41 @@ function CategoryFilterSidebarView({
 ) : null}
 
 
-          {showSchoolSubcategoryFilters &&
-          selectedSubcategoryIds.has(String(LISE_INSTITUTION_TYPE_ID)) ? (
-            <div className="category-filter-section">
-              <CategoryFilterSectionTitle title="LİSE TÜRÜ" />
-              <div className="category-filter-section-inputs">
-                <CategoryFilterMultiSelect
-                  options={sortCheckboxOptionsByLabel(
-                    [...HIGH_SCHOOL_TYPE_OPTIONS],
-                    (o) => o.label,
-                  ).map((option) => ({
-                    value: option.slug,
-                    label: option.label,
-                  }))}
-                  selectedValues={Array.from(selectedHighSchoolTypes)}
-                  onToggleValue={toggleHighSchoolType}
-                  placeholder="Lise türü seç"
-                  ariaLabel="Lise türü seçimi"
-                  selectedCountNoun="tür"
-                />
-              </div>
-            </div>
-          ) : null}
+          
+{showSchoolSubcategoryFilters &&
+selectedSubcategoryIds.has(String(LISE_INSTITUTION_TYPE_ID)) ? (
+  <div className="category-filter-section">
+    <CategoryFilterSectionTitle title="LİSE TÜRÜ" />
+    <div className={checkboxListClassName(HIGH_SCHOOL_TYPE_OPTIONS.length)}>
+      {sortCheckboxOptionsByLabel(
+        [...HIGH_SCHOOL_TYPE_OPTIONS],
+        (option) => option.label,
+      ).map((option) => {
+        const isChecked = selectedHighSchoolTypes.has(option.slug);
+
+        return (
+          <label
+            key={option.slug}
+            className={`category-filter-checkbox-option${
+              isChecked ? " category-filter-checkbox-option--selected" : ""
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={() => toggleHighSchoolType(option.slug)}
+              className="category-filter-checkbox-input"
+            />
+            <span className="category-filter-checkbox-label">
+              {option.label}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
+) : null}
+
 
           {hasInstructorFeatureMode ? (
             <div className="category-filter-section">
