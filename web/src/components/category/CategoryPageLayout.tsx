@@ -191,7 +191,6 @@ export default function CategoryPageLayout({
     >
       <div className="category-page-layout-container">
         {/* Ana content container genişliğini paylaşır (filtre sol + sonuç sağ kenarı). */}
-        <CategorySeoIntro />
 
         <aside className="category-page-layout-sidebar">
           <CategoryFilterSidebar
@@ -256,6 +255,7 @@ export default function CategoryPageLayout({
             />
           </div>
         </div>
+        <CategorySeoIntro />
       </div>
     </div>
   );
