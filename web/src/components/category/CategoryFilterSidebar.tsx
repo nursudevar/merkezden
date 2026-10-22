@@ -4867,29 +4867,35 @@ function CategoryFilterSidebarView({
             </div>
           </div>
 
-          {showSchoolSubcategoryFilters && subcategoryTypes.length > 0 ? (
-            <div className="category-filter-section">
-              <CategoryFilterSectionTitle title="OKUL TÜRÜ" />
-              <div className="category-filter-section-inputs">
-                <CategoryFilterMultiSelect
-                  options={sortCheckboxOptionsByLabel(subcategoryTypes, (t) => t.name).map(
-                    (type) => ({
-                      value: String(type.id),
-                      label: type.name,
-                    }),
-                  )}
-                  selectedValues={Array.from(selectedSubcategoryIds)}
-                  onToggleValue={(value) => {
-                    const id = Number(value);
-                    if (Number.isFinite(id) && id > 0) toggleSchoolSubcategory(id);
-                  }}
-                  placeholder="Okul türü seç"
-                  ariaLabel="Okul türü seçimi"
-                  selectedCountNoun="tür"
-                />
-              </div>
-            </div>
-          ) : null}
+         
+{showSchoolSubcategoryFilters && subcategoryTypes.length > 0 ? (
+  <div className="category-filter-section">
+    <CategoryFilterSectionTitle title="OKUL TÜRÜ" />
+    <div className={checkboxListClassName(subcategoryTypes.length)}>
+      {sortCheckboxOptionsByLabel(subcategoryTypes, (t) => t.name).map((type) => {
+        const isChecked = selectedSubcategoryIds.has(String(type.id));
+
+        return (
+          <label
+            key={type.id}
+            className={`category-filter-checkbox-option${
+              isChecked ? " category-filter-checkbox-option--selected" : ""
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={() => toggleSchoolSubcategory(type.id)}
+              className="category-filter-checkbox-input"
+            />
+            <span className="category-filter-checkbox-label">{type.name}</span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
+) : null}
+
 
           {showSchoolSubcategoryFilters &&
           selectedSubcategoryIds.has(String(LISE_INSTITUTION_TYPE_ID)) ? (
