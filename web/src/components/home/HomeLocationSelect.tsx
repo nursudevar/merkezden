@@ -58,7 +58,7 @@ export function HomeLocationSelect({
       <SelectContent
         className="select-content home-location-dropdown"
         side="bottom"
-        avoidCollisions={false}
+        collisionPadding={8}
       >
         <div
           className="home-location-dropdown-search"

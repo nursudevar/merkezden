@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { CalendarDays, Globe, MapPin, X } from "lucide-react";
 import "@/styles/components/announcement-detail-modal.scss";
 
@@ -50,19 +49,13 @@ export default function AnnouncementDetailModal({
   onClose,
   announcement,
 }: AnnouncementDetailModalProps) {
-  const router = useRouter();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
   useEffect(() => {
-    if (!isOpen) {
-      setIsRedirecting(false);
-      return;
-    }
+    if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isRedirecting) onClose();
+      if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKey);
 
@@ -70,7 +63,7 @@ export default function AnnouncementDetailModal({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKey);
     };
-  }, [isOpen, onClose, isRedirecting]);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !announcement) return null;
 
@@ -81,7 +74,7 @@ export default function AnnouncementDetailModal({
   return (
     <div
       className="announcement-modal-overlay"
-      onClick={isRedirecting ? undefined : onClose}
+      onClick={onClose}
       role="presentation"
     >
       <div
@@ -89,15 +82,12 @@ export default function AnnouncementDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="announcement-modal-title"
-        aria-busy={isRedirecting}
         onClick={(event) => {
           event.stopPropagation();
-          if (isRedirecting) return;
           if ((event.target as HTMLElement).closest("a, button")) return;
           const ownerHref = (announcement.ownerHref ?? "").trim();
           if (!ownerHref) return;
-          setIsRedirecting(true);
-          router.push(ownerHref);
+          window.open(ownerHref, "_blank", "noopener,noreferrer");
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -112,7 +102,6 @@ export default function AnnouncementDetailModal({
           type="button"
           className="announcement-modal-close"
           aria-label="Kapat"
-          disabled={isRedirecting}
           onClick={onClose}
         >
           <X size={18} />
@@ -185,11 +174,6 @@ export default function AnnouncementDetailModal({
           </div>
         </div>
       </div>
-      {isRedirecting ? (
-        <div className="announcement-modal-redirecting" role="status" aria-live="polite">
-          Yükleniyor...
-        </div>
-      ) : null}
     </div>
   );
 }

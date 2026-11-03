@@ -216,6 +216,8 @@ export default function CategoryResultsCard({
     return (
       <Link
         href={href}
+        target="_blank"
+        rel="noopener noreferrer"
         className={cardClassName}
         aria-label={`${name} detayları`}
       >

@@ -4480,7 +4480,7 @@ function CategoryFilterSidebarView({
               <SelectContent
                 className="select-content home-location-dropdown"
                 side="bottom"
-                avoidCollisions={false}
+                collisionPadding={8}
               >
                 <SelectItem value={CLEAR_SINGLE_SELECT_VALUE} className="select-item">
                   Tümü
@@ -4798,7 +4798,7 @@ function CategoryFilterSidebarView({
                     <SelectContent
                       className="select-content home-location-dropdown"
                       side="bottom"
-                      avoidCollisions={false}
+                      collisionPadding={8}
                     >
                       {iller.map((row) => (
                         <SelectItem key={row.id} value={String(row.id)} className="select-item">
@@ -4823,7 +4823,7 @@ function CategoryFilterSidebarView({
                     <SelectContent
                       className="select-content home-location-dropdown"
                       side="bottom"
-                      avoidCollisions={false}
+                      collisionPadding={8}
                     >
                       <SelectItem value={CATEGORY_ALL_ILCELER_VALUE} className="select-item">
                         Tüm İlçeler
@@ -4851,7 +4851,7 @@ function CategoryFilterSidebarView({
                     <SelectContent
                       className="select-content home-location-dropdown"
                       side="bottom"
-                      avoidCollisions={false}
+                      collisionPadding={8}
                     >
                       <SelectItem value={CATEGORY_ALL_MAHALLELER_VALUE} className="select-item">
                         Tüm Mahalleler
@@ -5625,7 +5625,7 @@ if (isPatiliDostlarInstructorCategory) {
                                 <SelectContent
                                   className="select-content home-location-dropdown"
                                   side="bottom"
-                                  avoidCollisions={false}
+                                  collisionPadding={8}
                                 >
                                   <SelectItem
                                     value={CLEAR_SINGLE_SELECT_VALUE}

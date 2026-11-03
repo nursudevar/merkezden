@@ -36,6 +36,8 @@ export function FeaturedInstructorCardLink({
   return (
     <Link
       href={instructor.href}
+      target="_blank"
+      rel="noopener noreferrer"
       className="featured-institution-card featured-institution-card--instructor"
       aria-label={`${instructor.name} detayları`}
       aria-hidden={isDuplicate}

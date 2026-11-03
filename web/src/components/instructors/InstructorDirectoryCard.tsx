@@ -132,7 +132,13 @@ export default function InstructorDirectoryCard({
 
   if (href) {
     return (
-      <Link href={href} className="instructor-directory-card" aria-label={`${name} detayları`}>
+      <Link
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="instructor-directory-card"
+        aria-label={`${name} detayları`}
+      >
         {cardContent}
       </Link>
     );

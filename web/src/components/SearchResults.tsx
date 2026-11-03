@@ -724,6 +724,8 @@ export default function SearchResults({
             <Link
               key={result.id}
               href={result.detailUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="search-result-card"
               aria-label={`${result.name} detayları`}
               onClick={onResultClick}

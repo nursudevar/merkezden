@@ -421,7 +421,7 @@ export default function InstructorComparePageClient() {
           </p>
         ) : showEmpty ? (
           <div className="institution-compare-empty">
-            <p>Karşılaştırma için en az 2 onaylı eğitmen gerekli.</p>
+            <p>Karşılaştırma için en az 2 eğitmen gerekli.</p>
           </div>
         ) : (
           <div className="institution-compare-scroll">
@@ -487,7 +487,12 @@ export default function InstructorComparePageClient() {
                               {column.summary}
                             </p>
                           ) : null}
-                          <Link href={column.profileHref} className="institution-compare-profile-link">
+                          <Link
+                            href={column.profileHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="institution-compare-profile-link"
+                          >
                             Profili Gör
                           </Link>
                         </div>

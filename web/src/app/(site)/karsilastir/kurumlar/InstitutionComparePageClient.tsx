@@ -328,7 +328,7 @@ export default function InstitutionComparePageClient() {
           </p>
         ) : showEmpty ? (
           <div className="institution-compare-empty">
-            <p>Karşılaştırma için en az 2 onaylı kurum gerekli.</p>
+            <p>Karşılaştırma için en az 2 kurum gerekli.</p>
           </div>
         ) : (
           <div className="institution-compare-scroll">
@@ -385,7 +385,12 @@ export default function InstitutionComparePageClient() {
                         {column.location ? (
                           <p className="institution-compare-meta">{column.location}</p>
                         ) : null}
-                        <Link href={column.profileHref} className="institution-compare-profile-link">
+                        <Link
+                          href={column.profileHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="institution-compare-profile-link"
+                        >
                           Profili Gör
                         </Link>
                       </div>

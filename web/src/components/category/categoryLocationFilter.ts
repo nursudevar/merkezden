@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  clearLocationPreference,
+  readLocationPreference,
+  writeLocationPreference,
+} from "@/lib/locationPreferenceStorage";
+import {
   fetchIller,
   fetchIlcelerByIlId,
   fetchMahallelerByIlceId,
@@ -60,6 +65,18 @@ function applyLocationSearch(nextSearch: string) {
   window.history.replaceState(window.history.state, "", nextUrl);
 }
 
+export function searchHasExplicitLocation(search: string): boolean {
+  const params = readSearchParams(search);
+  return Boolean(
+    readSlugParam(params, IL_SLUG_PARAM) ||
+      readSlugParam(params, ILCE_SLUG_PARAM) ||
+      readSlugParam(params, MAHALLE_SLUG_PARAM) ||
+      String(params.get(LEGACY_IL_ID_PARAM) ?? "").trim() ||
+      String(params.get(LEGACY_ILCE_ID_PARAM) ?? "").trim() ||
+      String(params.get(LEGACY_MAHALLE_ID_PARAM) ?? "").trim(),
+  );
+}
+
 export async function resolveCategoryLocationFromSearch(
   search: string,
 ): Promise<CategoryLocationFilterValue> {
@@ -102,6 +119,70 @@ export async function resolveCategoryLocationFromSearch(
   return normalizeLocationValue({ ilId, ilceId, mahalleId });
 }
 
+export async function persistCategoryLocationPreference(
+  location: CategoryLocationFilterValue,
+): Promise<void> {
+  const normalized = normalizeLocationValue(location);
+  const iller = await fetchIller();
+  const defaultIlId = findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD);
+  const selectedIlId = parseLocationId(normalized.ilId) ?? parseLocationId(defaultIlId);
+  if (selectedIlId == null) {
+    clearLocationPreference();
+    return;
+  }
+  const ilSlug = findLocationSlugById(iller, selectedIlId);
+  if (!ilSlug) {
+    clearLocationPreference();
+    return;
+  }
+
+  let ilceSlug = "";
+  const selectedIlceId = parseLocationId(normalized.ilceId);
+  if (selectedIlceId != null) {
+    const ilceler = await fetchIlcelerByIlId(selectedIlId);
+    if (ilceler.some((row) => row.id === selectedIlceId)) {
+      ilceSlug = findLocationSlugById(ilceler, selectedIlceId);
+    }
+  }
+
+  writeLocationPreference({ ilSlug, ilceSlug });
+}
+
+export async function resolvePreferredCategoryLocation(
+  search: string,
+): Promise<CategoryLocationFilterValue> {
+  if (searchHasExplicitLocation(search)) {
+    const fromUrl = await resolveCategoryLocationFromSearch(search);
+    if (fromUrl.ilId || fromUrl.ilceId || fromUrl.mahalleId) {
+      await persistCategoryLocationPreference(fromUrl);
+      return fromUrl;
+    }
+  }
+
+  const preference = readLocationPreference();
+  if (preference?.ilSlug) {
+    const prefParams = new URLSearchParams();
+    prefParams.set(IL_SLUG_PARAM, preference.ilSlug);
+    if (preference.ilceSlug) prefParams.set(ILCE_SLUG_PARAM, preference.ilceSlug);
+    const fromPreference = await resolveCategoryLocationFromSearch(`?${prefParams.toString()}`);
+    if (fromPreference.ilId) {
+      await persistCategoryLocationPreference(fromPreference);
+      return fromPreference;
+    }
+    clearLocationPreference();
+  }
+
+  const iller = await fetchIller();
+  const ankaraId = findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD);
+  const defaults = normalizeLocationValue({
+    ilId: ankaraId,
+    ilceId: "",
+    mahalleId: "",
+  });
+  await persistCategoryLocationPreference(defaults);
+  return defaults;
+}
+
 export async function writeCategoryLocationToSearch(
   currentSearch: string,
   location: CategoryLocationFilterValue,
@@ -120,12 +201,8 @@ export async function writeCategoryLocationToSearch(
   const selectedIlId = parseLocationId(normalized.ilId) ?? parseLocationId(defaultIlId);
   const selectedIlceId = parseLocationId(normalized.ilceId);
   const selectedMahalleId = parseLocationId(normalized.mahalleId);
-  const isDefaultAnkaraOnly =
-    (normalized.ilId === "" || normalized.ilId === defaultIlId) &&
-    selectedIlceId == null &&
-    selectedMahalleId == null;
 
-  if (!isDefaultAnkaraOnly && selectedIlId != null) {
+  if (selectedIlId != null) {
     const ilSlug = findLocationSlugById(iller, selectedIlId);
     if (ilSlug) params.set(IL_SLUG_PARAM, ilSlug);
   }
@@ -170,7 +247,7 @@ export function useCategoryLocationFilterState(): {
   const writeGenerationRef = useRef(0);
 
   const syncLocationFromSearch = useCallback(async (search: string, normalizeUrl: boolean) => {
-    const resolved = await resolveCategoryLocationFromSearch(search);
+    const resolved = await resolvePreferredCategoryLocation(search);
     setLocationState(resolved);
     if (normalizeUrl) {
       const generation = ++writeGenerationRef.current;
@@ -185,7 +262,7 @@ export function useCategoryLocationFilterState(): {
     void (async () => {
       try {
         const search = typeof window === "undefined" ? "" : window.location.search;
-        const resolved = await resolveCategoryLocationFromSearch(search);
+        const resolved = await resolvePreferredCategoryLocation(search);
         if (cancelled) return;
         setLocationState(resolved);
         const generation = ++writeGenerationRef.current;
@@ -199,7 +276,7 @@ export function useCategoryLocationFilterState(): {
     })();
 
     const onPopState = () => {
-      void syncLocationFromSearch(window.location.search, false);
+      void syncLocationFromSearch(window.location.search, true);
     };
     window.addEventListener("popstate", onPopState);
     return () => {
@@ -214,6 +291,7 @@ export function useCategoryLocationFilterState(): {
     const generation = ++writeGenerationRef.current;
     void (async () => {
       if (typeof window === "undefined") return;
+      await persistCategoryLocationPreference(normalized);
       const nextSearch = await writeCategoryLocationToSearch(window.location.search, normalized);
       if (generation !== writeGenerationRef.current) return;
       applyLocationSearch(nextSearch);

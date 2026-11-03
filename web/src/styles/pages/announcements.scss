@@ -3,10 +3,8 @@
 
 .announcements-page {
   @include site-content-container;
-  /* Dikey spacing sayfaya özel; yatay gutter mixin (footer referansı). */
   padding-block: 8px 56px;
 
-  /* Breadcrumb, üst layout ve Tüm Duyurular aynı sol/sağ kenarı paylaşsın */
   > * {
     width: 100%;
     max-width: 100%;
@@ -16,10 +14,9 @@
   }
 }
 
-/* Breadcrumb içerik kapsayıcısıyla aynı sol hizada olsun (çift padding/width yok). */
 .announcements-page-breadcrumb {
-  padding-top: 12px;
-  padding-bottom: 16px;
+  padding-top: 6px;
+  padding-bottom: 6px;
 
   .category-breadcrumb,
   .category-breadcrumb-container {

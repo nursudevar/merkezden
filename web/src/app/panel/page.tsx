@@ -582,7 +582,6 @@ function PanelContent() {
     Partial<Record<"facebookUrl" | "instagramUrl" | "xUrl" | "linkedinUrl", string>>
   >({});
   const [showInstitutionProfileSuccessPopup, setShowInstitutionProfileSuccessPopup] = useState(false);
-  const [institutionIsApproved, setInstitutionIsApproved] = useState<boolean>(false);
   const [institutionTypeId, setInstitutionTypeId] = useState<string>("");
   const [highSchoolType, setHighSchoolType] = useState<string>("");
   const [schoolAltCategoryError, setSchoolAltCategoryError] = useState<string | null>(null);
@@ -1303,7 +1302,6 @@ interface InstitutionDetailPreparedData {
         setInstitutionRecordMissing(false);
 
         setInstitutionId(String(row.id));
-        setInstitutionIsApproved(row.is_approved === true);
         setInstitutionTypeId(
           typeof row.institution_type_id === "number" ? String(row.institution_type_id) : ""
         );
@@ -3010,21 +3008,14 @@ interface InstitutionDetailPreparedData {
             );
             const choiceFeatureIdSet = new Set(choiceBasedFeatures.map((f) => f.id));
 
-            const [entriesRes, instVerifiedRes] = await Promise.all([
-              supabase
-                .from("institution_feature_entries")
-                .select("id, feature_definition_id, boolean_answer, text_answer, number_answer, selected_choice_id")
-                .eq("institution_id", refreshId)
-                .in("feature_definition_id", persistedFeatureDefinitionIdList),
-              supabase.from("institutions").select("is_approved").eq("id", refreshId).maybeSingle(),
-            ]);
+            const { data: entriesData, error: entriesError } = await supabase
+              .from("institution_feature_entries")
+              .select("id, feature_definition_id, boolean_answer, text_answer, number_answer, selected_choice_id")
+              .eq("institution_id", refreshId)
+              .in("feature_definition_id", persistedFeatureDefinitionIdList);
 
-            if (!instVerifiedRes.error) {
-              setInstitutionIsApproved(instVerifiedRes.data?.is_approved === true);
-            }
-
-            if (!entriesRes.error && entriesRes.data) {
-              const freshRows = (entriesRes.data as InstitutionFeatureEntryRow[]) ?? [];
+            if (!entriesError && entriesData) {
+              const freshRows = (entriesData as InstitutionFeatureEntryRow[]) ?? [];
               setInstitutionFeatureEntries((prev) => {
                 const rest = prev.filter((e) => !persistedIdSet.has(e.feature_definition_id));
                 return [...rest, ...freshRows];
@@ -3051,15 +3042,6 @@ interface InstitutionDetailPreparedData {
                   prev.filter((c) => !oldEntryIdsToReplace.has(c.institution_feature_entry_id))
                 );
               }
-            }
-          } else {
-            const { data: instRow, error: instError } = await supabase
-              .from("institutions")
-              .select("is_approved")
-              .eq("id", refreshId)
-              .maybeSingle();
-            if (!instError) {
-              setInstitutionIsApproved(instRow?.is_approved === true);
             }
           }
         }
@@ -3508,9 +3490,6 @@ interface InstitutionDetailPreparedData {
                 {!institutionProfileLoaded ? "Yükleniyor…" : institutionName || "Kurum Hesabı"}
               </h2>
               <p className="panel-sidebar-institution-role">Kurumsal Üye</p>
-              {institutionIsApproved ? (
-                <span className="panel-sidebar-institution-badge">Doğrulanmış Hesap</span>
-              ) : null}
             </div>
             <nav className="panel-sidebar-nav">
               {PANEL_TABS.filter((tab) => tab.id !== "settings").map((tab) => (

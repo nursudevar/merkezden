@@ -1,7 +1,6 @@
 import type { ComponentType } from "react";
 import {
   BarChart3,
-  Check,
   FileText,
   ImagePlus,
   ListFilter,
@@ -115,10 +114,5 @@ export const INSTRUCTOR_SIGNUP_FEATURES: SignupFeatureItem[] = [
     title: "AI Asistan",
     description: "Meko AI algoritması ile öne çıkın.",
     icon: Sparkles,
-  },
-  {
-    title: "Onaylı Eğitmen",
-    description: "Nitelikli ve doğrulanmış eğitmenlerden oluşan profesyonel bir topluluğun parçası olun.",
-    icon: Check,
   },
 ];

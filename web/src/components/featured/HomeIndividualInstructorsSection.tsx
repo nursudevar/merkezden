@@ -400,6 +400,8 @@ export function HomeIndividualInstructorsSection({
                 <Link
                   key={`${item.id}-${index}`}
                   href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="home-individual-instructor-item"
                   tabIndex={isDuplicate ? -1 : undefined}
                   aria-hidden={isDuplicate ? true : undefined}

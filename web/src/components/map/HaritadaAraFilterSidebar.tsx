@@ -178,7 +178,7 @@ export function HaritadaAraFilterSidebar({
                   <SelectContent
                     className="select-content home-location-dropdown"
                     side="bottom"
-                    avoidCollisions={false}
+                    collisionPadding={8}
                   >
                     <SelectItem value={ALL_CITIES_VALUE} className="select-item">
                       Tüm Şehirler
@@ -213,7 +213,7 @@ export function HaritadaAraFilterSidebar({
                   <SelectContent
                     className="select-content home-location-dropdown"
                     side="bottom"
-                    avoidCollisions={false}
+                    collisionPadding={8}
                   >
                     <SelectItem value={ALL_DISTRICTS_VALUE} className="select-item">
                       Tüm İlçeler
@@ -248,7 +248,7 @@ export function HaritadaAraFilterSidebar({
                   <SelectContent
                     className="select-content home-location-dropdown"
                     side="bottom"
-                    avoidCollisions={false}
+                    collisionPadding={8}
                   >
                     <SelectItem value={ALL_NEIGHBORHOODS_VALUE} className="select-item">
                       Tüm Mahalleler

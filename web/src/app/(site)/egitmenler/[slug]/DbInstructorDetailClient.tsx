@@ -9,15 +9,14 @@ import {
   MapPin,
   CheckCircle2,
   BookOpen,
-  Phone,
   Globe,
   X,
-  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Megaphone,
   CalendarDays,
   ImageOff,
   Layers,
-  Mail,
   Heart,
   Facebook,
   Instagram,
@@ -56,8 +55,8 @@ import InstructorShareButton from "./InstructorShareButton";
 import { InstructorCompareToggleButton } from "@/components/compare/InstructorCompareToggleButton";
 import { getAnnouncementTagBadgeClassName } from "@/lib/announcementTags";
 import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
-import { getCategoryIcon, getCategoryLogoSrc } from "@/lib/categoryHelpers";
 import { toLocationIdString } from "@/lib/turkiyeLocationsClient";
+import ProfileContactRevealButtons from "@/components/profile/ProfileContactRevealButtons";
 import LoginModal from "@/components/LoginModal";
 import { AppNoticeBar } from "@/components/AppNoticeBar";
 import { useListingFavorites } from "@/hooks/useListingFavorites";
@@ -172,6 +171,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const [extraBranchesStatus, setExtraBranchesStatus] = useState<ExtraBranchesLoadStatus>("idle");
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
+  const [profileGalleryIndex, setProfileGalleryIndex] = useState(0);
   const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementDetailItem | null>(null);
   const {
     user,
@@ -187,6 +187,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const closeGalleryModal = useCallback(() => {
     setIsGalleryModalOpen(false);
     setActiveViewerIndex(null);
+    setGalleryFilter("all");
   }, []);
   useGalleryModalEffects(isGalleryModalOpen, closeGalleryModal);
 
@@ -362,17 +363,28 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const email = String(row?.email ?? "").trim();
   const phone = String(row?.phone ?? "").trim();
   const website = String(row?.website ?? "").trim();
-  const socialLinks = [
-    { label: "Facebook", value: String(row?.facebook_url ?? "").trim() },
-    { label: "Instagram", value: String(row?.instagram_url ?? "").trim() },
-    { label: "X", value: String(row?.x_url ?? "").trim() },
-    { label: "Linkedin", value: String(row?.linkedin_url ?? "").trim() },
-  ].filter((item) => item.value);
-  const address = String(row?.address ?? "").trim();
+  const facebookUrl = String(row?.facebook_url ?? "").trim();
+  const instagramUrl = String(row?.instagram_url ?? "").trim();
+  const xUrl = String(row?.x_url ?? "").trim();
+  const linkedinUrl = String(row?.linkedin_url ?? "").trim();
+  const toExternalHref = (value: string) =>
+    value.startsWith("http") ? value : `https://${value}`;
+  const profileSocialLinks = [
+    website
+      ? { label: "Web Sitesi", href: toExternalHref(website), Icon: Globe }
+      : null,
+    facebookUrl
+      ? { label: "Facebook", href: toExternalHref(facebookUrl), Icon: Facebook }
+      : null,
+    instagramUrl
+      ? { label: "Instagram", href: toExternalHref(instagramUrl), Icon: Instagram }
+      : null,
+    xUrl ? { label: "X", href: toExternalHref(xUrl), Icon: Twitter } : null,
+    linkedinUrl
+      ? { label: "LinkedIn", href: toExternalHref(linkedinUrl), Icon: Linkedin }
+      : null,
+  ].filter((item): item is { label: string; href: string; Icon: typeof Globe } => item != null);
   const categoryName = String(row?.category_name ?? "").trim();
-  const categorySlug = String(row?.category_slug ?? "").trim();
-  const categoryLogoSrc = categoryName ? getCategoryLogoSrc(categoryName, categorySlug) : null;
-  const CategoryIcon = getCategoryIcon(categoryName, categorySlug);
   const hasPhoto = Boolean(photoUrl) && !photoLoadFailed;
   const instructorNumericId =
     typeof row?.id === "number" && Number.isInteger(row.id) && row.id > 0 ? row.id : null;
@@ -420,12 +432,17 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const schoolValue =
     mappedInfoLines.find((line) => profileFactLabel(line.label) === "mezun olunan okul")?.value ??
     "";
-  const generalInfoRows = collapseHizmetYeriRows(
-    mappedInfoLines.filter((line) => {
-      const key = profileFactLabel(line.label);
-      return key !== "branş" && key !== "mezun olunan okul";
-    }),
-  );
+  const generalInfoRows = [
+    ...(categoryName ? [{ label: "Kategori", value: categoryName }] : []),
+    ...(branchValue ? [{ label: "Branş", value: branchValue }] : []),
+    ...(schoolValue ? [{ label: "Üniversite", value: schoolValue }] : []),
+    ...collapseHizmetYeriRows(
+      mappedInfoLines.filter((line) => {
+        const key = profileFactLabel(line.label);
+        return key !== "branş" && key !== "mezun olunan okul";
+      }),
+    ),
+  ];
   const hasGeneralInfo = generalInfoRows.length > 0;
   const featureNavSections = useMemo(
     () => featureSections.filter((section) => section.badges.length > 0),
@@ -434,11 +451,13 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
   const hasFeatureSections = featureNavSections.length > 0;
   const hasAnnouncements = announcements.length > 0;
   const hasGallery = galleryUrls.length > 0;
+  const safeProfileGalleryIndex =
+    galleryUrls.length > 0 ? Math.min(profileGalleryIndex, galleryUrls.length - 1) : 0;
+  const selectedProfileImage = galleryUrls[safeProfileGalleryIndex] ?? null;
   const galleryThumbImages = galleryUrls.slice(1, 5);
   const filteredGalleryUrls = galleryFilter === "video" ? [] : galleryUrls;
   const showPublicExtraBranches =
     extraBranchesStatus === "ready" && publicExtraBranches.length > 0;
-  const hasContactBar = Boolean(address || phone || email || website || socialLinks.length > 0);
   const topRowClassName = [
     "institution-top-row",
     !hasGallery && hasGeneralInfo ? "institution-top-row--no-gallery" : "",
@@ -530,12 +549,67 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
     setShowAllAnnouncements(false);
   }, [slugOrId]);
 
-  useEffect(() => {
-    if (activeViewerIndex == null) return;
-    if (activeViewerIndex >= filteredGalleryUrls.length) {
-      setActiveViewerIndex(filteredGalleryUrls.length > 0 ? 0 : null);
+  const openGalleryModal = useCallback(() => {
+    setGalleryFilter("all");
+    if (galleryUrls.length === 0) {
+      setActiveViewerIndex(null);
+      setIsGalleryModalOpen(true);
+      return;
     }
-  }, [activeViewerIndex, filteredGalleryUrls.length]);
+    setActiveViewerIndex(safeProfileGalleryIndex);
+    setIsGalleryModalOpen(true);
+  }, [galleryUrls.length, safeProfileGalleryIndex]);
+
+  const handleGalleryFilterChange = useCallback(
+    (nextFilter: "all" | "photo" | "video") => {
+      const currentUrl =
+        activeViewerIndex !== null ? filteredGalleryUrls[activeViewerIndex] ?? null : null;
+      const nextUrls = nextFilter === "video" ? [] : galleryUrls;
+      setGalleryFilter(nextFilter);
+      if (nextUrls.length === 0) {
+        setActiveViewerIndex(null);
+        return;
+      }
+      if (currentUrl) {
+        const nextIndex = nextUrls.indexOf(currentUrl);
+        setActiveViewerIndex(nextIndex >= 0 ? nextIndex : 0);
+        return;
+      }
+      setActiveViewerIndex(0);
+    },
+    [activeViewerIndex, filteredGalleryUrls, galleryUrls],
+  );
+
+  const showPreviousProfileImage = useCallback(() => {
+    if (galleryUrls.length <= 1) return;
+    setProfileGalleryIndex((current) => (current - 1 + galleryUrls.length) % galleryUrls.length);
+  }, [galleryUrls.length]);
+
+  const showNextProfileImage = useCallback(() => {
+    if (galleryUrls.length <= 1) return;
+    setProfileGalleryIndex((current) => (current + 1) % galleryUrls.length);
+  }, [galleryUrls.length]);
+
+  useEffect(() => {
+    if (galleryUrls.length === 0) {
+      setProfileGalleryIndex(0);
+      return;
+    }
+    if (profileGalleryIndex >= galleryUrls.length) {
+      setProfileGalleryIndex(0);
+    }
+  }, [galleryUrls.length, profileGalleryIndex]);
+
+  useEffect(() => {
+    if (!isGalleryModalOpen) return;
+    if (filteredGalleryUrls.length === 0) {
+      if (activeViewerIndex !== null) setActiveViewerIndex(null);
+      return;
+    }
+    if (activeViewerIndex === null || activeViewerIndex >= filteredGalleryUrls.length) {
+      setActiveViewerIndex(0);
+    }
+  }, [activeViewerIndex, filteredGalleryUrls, isGalleryModalOpen]);
 
   const formatAnnouncementDateTr = useCallback((iso: string | null): string => {
     if (!iso) return "";
@@ -584,10 +658,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
 
   const visibleAnnouncements = showAllAnnouncements ? announcements : announcements.slice(0, 2);
   const canToggleAnnouncements = announcements.length > 2;
-  const isViewerMode =
-    activeViewerIndex !== null &&
-    activeViewerIndex >= 0 &&
-    activeViewerIndex < filteredGalleryUrls.length;
 
   const renderAnnouncementArticle = (item: PublicInstructorAnnouncementItem) => {
     const detail: AnnouncementDetailItem = {
@@ -736,36 +806,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                 ) : null}
                 <div className="institution-info">
                   <h1 className="institution-name">{displayName}</h1>
-                  {categoryName || row.is_approved === true ? (
-                    <div className="institution-profile-badges">
-                      {categoryName ? (
-                        <div className="institution-profile-category-badge">
-                          {categoryLogoSrc ? (
-                            <Image
-                              src={categoryLogoSrc}
-                              alt=""
-                              width={22}
-                              height={22}
-                              className="institution-profile-category-badge-icon"
-                            />
-                          ) : (
-                            <CategoryIcon
-                              className="institution-profile-category-badge-glyph"
-                              size={16}
-                              aria-hidden
-                            />
-                          )}
-                          <span>{categoryName}</span>
-                        </div>
-                      ) : null}
-                      {row.is_approved === true ? (
-                        <div className="institution-meta-item institution-meta-verified institution-meta-badge institution-meta-badge--verified">
-                          <CheckCircle2 size={18} />
-                          <span>Onaylı Eğitmen</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
                   {location ? (
                     <div className="institution-meta">
                       <div className="institution-meta-item">
@@ -774,20 +814,27 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                       </div>
                     </div>
                   ) : null}
-                  {branchValue || schoolValue ? (
-                    <div className="instructor-profile-fact-badges">
-                      {branchValue ? (
-                        <span className="instructor-profile-fact-badge">{branchValue}</span>
-                      ) : null}
-                      {schoolValue ? (
-                        <span className="instructor-profile-fact-badge">{schoolValue}</span>
-                      ) : null}
-                    </div>
-                  ) : null}
                 </div>
               </div>
-              {instructorNumericId != null ? (
-                <div className="institution-profile-actions">
+              {profileSocialLinks.length > 0 ? (
+                <div className="institution-profile-socials" aria-label="Sosyal bağlantılar">
+                  {profileSocialLinks.map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="institution-contact-bar-social-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={item.label}
+                    >
+                      <item.Icon size={16} />
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+              <div className="institution-profile-actions">
+                <ProfileContactRevealButtons phone={phone} email={email} />
+                {instructorNumericId != null ? (
                   <button
                     type="button"
                     className={`institution-profile-action${
@@ -809,20 +856,20 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                     />
                     <span>{isInstructorFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}</span>
                   </button>
-                  {instructorSlug ? (
-                    <InstructorCompareToggleButton
-                      labeled
-                      className="institution-compare-toggle--profile"
-                      item={{
-                        id: instructorNumericId,
-                        name: displayName,
-                        slug: instructorSlug,
-                        imageUrl: hasPhoto ? photoUrl : undefined,
-                      }}
-                    />
-                  ) : null}
-                </div>
-              ) : null}
+                ) : null}
+                {instructorNumericId != null && instructorSlug ? (
+                  <InstructorCompareToggleButton
+                    labeled
+                    className="institution-compare-toggle--profile"
+                    item={{
+                      id: instructorNumericId,
+                      name: displayName,
+                      slug: instructorSlug,
+                      imageUrl: hasPhoto ? photoUrl : undefined,
+                    }}
+                  />
+                ) : null}
+              </div>
             </CardContent>
           </Card>
 
@@ -835,48 +882,72 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                     <button
                       type="button"
                       className="institution-section-link institution-gallery-view-all-btn"
-                      onClick={() => setIsGalleryModalOpen(true)}
+                      onClick={openGalleryModal}
                     >
                       tümünü gör
                     </button>
                   </div>
-                  <div className="institution-top-gallery-media">
-                    {galleryUrls[0] ? (
-                      <div
-                        className="institution-top-gallery-main"
-                        onClick={() => setIsGalleryModalOpen(true)}
-                      >
+                  {selectedProfileImage ? (
+                    <div className="institution-top-gallery-media">
+                      <div className="institution-top-gallery-main">
                         <Image
-                          src={galleryUrls[0]}
+                          src={selectedProfileImage}
                           alt={`${displayName} galeri görseli`}
                           fill
                           className="institution-gallery-image"
                           sizes="(max-width: 1024px) 100vw, 48vw"
                           unoptimized
                         />
+                        {galleryUrls.length > 1 ? (
+                          <>
+                            <button
+                              type="button"
+                              className="institution-top-gallery-nav institution-top-gallery-nav--prev"
+                              aria-label="Önceki görsel"
+                              onClick={showPreviousProfileImage}
+                            >
+                              <ChevronLeft size={20} />
+                            </button>
+                            <button
+                              type="button"
+                              className="institution-top-gallery-nav institution-top-gallery-nav--next"
+                              aria-label="Sonraki görsel"
+                              onClick={showNextProfileImage}
+                            >
+                              <ChevronRight size={20} />
+                            </button>
+                          </>
+                        ) : null}
                       </div>
-                    ) : null}
-                    {galleryThumbImages.length > 0 ? (
-                      <div className="institution-top-gallery-thumbs">
-                        {galleryThumbImages.map((imageUrl, thumbIndex) => (
-                          <div
-                            key={`${imageUrl}-${thumbIndex}`}
-                            className="institution-top-gallery-thumb"
-                            onClick={() => setIsGalleryModalOpen(true)}
-                          >
-                            <Image
-                              src={imageUrl}
-                              alt={`${displayName} galeri görseli`}
-                              fill
-                              className="institution-gallery-image"
-                              sizes="(max-width: 1024px) 25vw, 12vw"
-                              unoptimized
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
+                      {galleryThumbImages.length > 0 ? (
+                        <div className="institution-top-gallery-thumbs">
+                          {galleryThumbImages.map((imageUrl, thumbIndex) => {
+                            const absoluteIndex = thumbIndex + 1;
+                            const isActive = absoluteIndex === safeProfileGalleryIndex;
+                            return (
+                              <button
+                                key={`${imageUrl}-${thumbIndex}`}
+                                type="button"
+                                className={`institution-top-gallery-thumb${isActive ? " institution-top-gallery-thumb--active" : ""}`}
+                                aria-label={`${absoluteIndex + 1}. görsel`}
+                                aria-pressed={isActive}
+                                onClick={() => setProfileGalleryIndex(absoluteIndex)}
+                              >
+                                <Image
+                                  src={imageUrl}
+                                  alt={`${displayName} galeri görseli`}
+                                  fill
+                                  className="institution-gallery-image"
+                                  sizes="(max-width: 1024px) 25vw, 12vw"
+                                  unoptimized
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             </section>
@@ -900,98 +971,6 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
         </div>
 
         <FeatureHighlightsPublicSection items={highlightItems} />
-
-        {hasContactBar ? (
-          <div className="institution-contact-bar">
-            {address ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--address">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <MapPin size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">ADRES</div>
-                  <div className="institution-contact-bar-value">{address}</div>
-                </div>
-              </div>
-            ) : null}
-            {phone ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--phone">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <Phone size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">TELEFON</div>
-                  <a
-                    href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                    className="institution-contact-bar-value institution-contact-bar-link"
-                  >
-                    {phone}
-                  </a>
-                </div>
-              </div>
-            ) : null}
-            {email ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--email">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <Mail size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">E-POSTA</div>
-                  <a
-                    href={`mailto:${email}`}
-                    className="institution-contact-bar-value institution-contact-bar-link"
-                  >
-                    {email}
-                  </a>
-                </div>
-              </div>
-            ) : null}
-            {website ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--website">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <Globe size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">WEB SİTESİ</div>
-                  <a
-                    href={website.startsWith("http") ? website : `https://${website}`}
-                    className="institution-contact-bar-value institution-contact-bar-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {website}
-                  </a>
-                </div>
-              </div>
-            ) : null}
-            {socialLinks.length > 0 ? (
-              <div className="institution-contact-bar-social">
-                {socialLinks.map((item) => {
-                  const SocialIcon =
-                    item.label === "Facebook"
-                      ? Facebook
-                      : item.label === "Instagram"
-                        ? Instagram
-                        : item.label === "Linkedin"
-                          ? Linkedin
-                          : Twitter;
-                  return (
-                    <a
-                      key={item.label}
-                      href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
-                      className="institution-contact-bar-social-link"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={item.label}
-                    >
-                      <SocialIcon size={16} />
-                    </a>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         {hasAnyNavTab ? (
           <div className="institution-tabs-sticky">
@@ -1206,7 +1185,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
             }}
           >
             <div
-              className={`institution-gallery-modal${isViewerMode ? " institution-gallery-modal--viewer" : ""}`}
+              className="institution-gallery-modal institution-gallery-modal--viewer"
               role="dialog"
               aria-modal="true"
               aria-labelledby="instructor-gallery-modal-title"
@@ -1219,45 +1198,34 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                   <p className="institution-gallery-modal-subtitle">{displayName}</p>
                 </div>
                 <div className="institution-gallery-modal-header-actions">
-                  {isViewerMode && activeViewerIndex !== null ? (
-                    <>
-                      <button
-                        type="button"
-                        className="institution-gallery-viewer-back"
-                        onClick={() => setActiveViewerIndex(null)}
-                      >
-                        <ArrowLeft size={16} />
-                        Galeriye dön
-                      </button>
-                      <span className="institution-gallery-viewer-counter">
-                        {activeViewerIndex + 1} / {filteredGalleryUrls.length}
-                      </span>
-                    </>
-                  ) : (
-                    <div className="institution-gallery-modal-filters" role="tablist" aria-label="Galeri filtreleri">
-                      <button
-                        type="button"
-                        className={`institution-gallery-modal-filter ${galleryFilter === "all" ? "institution-gallery-modal-filter--active" : ""}`}
-                        onClick={() => setGalleryFilter("all")}
-                      >
-                        Tümü
-                      </button>
-                      <button
-                        type="button"
-                        className={`institution-gallery-modal-filter ${galleryFilter === "photo" ? "institution-gallery-modal-filter--active" : ""}`}
-                        onClick={() => setGalleryFilter("photo")}
-                      >
-                        Fotoğraf
-                      </button>
-                      <button
-                        type="button"
-                        className={`institution-gallery-modal-filter ${galleryFilter === "video" ? "institution-gallery-modal-filter--active" : ""}`}
-                        onClick={() => setGalleryFilter("video")}
-                      >
-                        Video
-                      </button>
-                    </div>
-                  )}
+                  <div className="institution-gallery-modal-filters" role="tablist" aria-label="Galeri filtreleri">
+                    <button
+                      type="button"
+                      className={`institution-gallery-modal-filter ${galleryFilter === "all" ? "institution-gallery-modal-filter--active" : ""}`}
+                      onClick={() => handleGalleryFilterChange("all")}
+                    >
+                      Tümü
+                    </button>
+                    <button
+                      type="button"
+                      className={`institution-gallery-modal-filter ${galleryFilter === "photo" ? "institution-gallery-modal-filter--active" : ""}`}
+                      onClick={() => handleGalleryFilterChange("photo")}
+                    >
+                      Fotoğraf
+                    </button>
+                    <button
+                      type="button"
+                      className={`institution-gallery-modal-filter ${galleryFilter === "video" ? "institution-gallery-modal-filter--active" : ""}`}
+                      onClick={() => handleGalleryFilterChange("video")}
+                    >
+                      Video
+                    </button>
+                  </div>
+                  {activeViewerIndex !== null && filteredGalleryUrls.length > 0 ? (
+                    <span className="institution-gallery-viewer-counter">
+                      {activeViewerIndex + 1} / {filteredGalleryUrls.length}
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     className="institution-gallery-modal-close"
@@ -1268,39 +1236,17 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
                   </button>
                 </div>
               </div>
-              {filteredGalleryUrls.length > 0 ? (
-                isViewerMode && activeViewerIndex !== null ? (
-                  <GalleryMediaViewer
-                    items={filteredGalleryUrls.map((url, index) => ({
-                      id: `${url}-${index}`,
-                      url,
-                      mediaType: "photo" as const,
-                      alt: `${displayName} galeri görseli ${index + 1}`,
-                    }))}
-                    activeIndex={activeViewerIndex}
-                    onIndexChange={setActiveViewerIndex}
-                  />
-                ) : (
-                  <div className="institution-gallery-modal-grid">
-                    {filteredGalleryUrls.map((url, index) => (
-                      <button
-                        key={`${url}-${index}`}
-                        type="button"
-                        className="institution-gallery-modal-item institution-gallery-modal-item--photo"
-                        onClick={() => setActiveViewerIndex(index)}
-                      >
-                        <Image
-                          src={url}
-                          alt={`${displayName} galeri görseli ${index + 1}`}
-                          fill
-                          className="institution-gallery-image"
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                          unoptimized
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )
+              {filteredGalleryUrls.length > 0 && activeViewerIndex !== null ? (
+                <GalleryMediaViewer
+                  items={filteredGalleryUrls.map((url, index) => ({
+                    id: `${url}-${index}`,
+                    url,
+                    mediaType: "photo" as const,
+                    alt: `${displayName} galeri görseli ${index + 1}`,
+                  }))}
+                  activeIndex={activeViewerIndex}
+                  onIndexChange={setActiveViewerIndex}
+                />
               ) : (
                 <div className="institution-gallery-modal-empty">{EMPTY_TEXT}</div>
               )}

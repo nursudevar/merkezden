@@ -247,7 +247,7 @@ function AnnouncementsFilterSidebar({
                 <SelectContent
                   className="select-content home-location-dropdown"
                   side="bottom"
-                  avoidCollisions={false}
+                  collisionPadding={8}
                 >
                   <SelectItem value={ANNOUNCEMENTS_ALL_ILLER_VALUE} className="select-item">
                     Tüm İller
@@ -272,7 +272,7 @@ function AnnouncementsFilterSidebar({
                 <SelectContent
                   className="select-content home-location-dropdown"
                   side="bottom"
-                  avoidCollisions={false}
+                  collisionPadding={8}
                 >
                   <SelectItem value={CATEGORY_ALL_ILCELER_VALUE} className="select-item">
                     Tüm İlçeler

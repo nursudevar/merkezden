@@ -229,6 +229,8 @@ export function HomePurpleFeaturedMarquee() {
             <Link
               key={`${card.id}-${index}`}
               href={getInstitutionDetailHref({ slug: card.slug, source: card.source })}
+              target="_blank"
+              rel="noopener noreferrer"
               className="purple-featured-card"
               aria-label={card.title}
               aria-hidden={isDuplicate ? true : undefined}

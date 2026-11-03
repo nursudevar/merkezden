@@ -31,10 +31,6 @@
 .instructor-description { @extend .institution-description; }
 .instructor-meta { @extend .institution-meta; }
 .instructor-meta-item { @extend .institution-meta-item; }
-.instructor-meta-badge { @extend .institution-meta-badge; }
-.instructor-meta-badge--branch { @extend .institution-meta-badge--subcategory; }
-.instructor-meta-badge--title { @extend .institution-meta-badge--category; }
-.instructor-meta-verified { @extend .institution-meta-verified; }
 .instructor-actions { @extend .institution-actions; }
 .instructor-tabs-sticky { @extend .institution-tabs-sticky; }
 .instructor-tabs-list { @extend .institution-tabs-list; }
@@ -325,42 +321,5 @@
 .instructor-detail-page {
   .institution-top-gallery-media {
     flex: 0 0 auto;
-  }
-}
-
-.instructor-profile-fact-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin: 0;
-}
-
-.instructor-profile-fact-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  max-width: 100%;
-  padding: 5px 12px;
-  border: 1px solid rgba($purple-main, 0.22);
-  border-radius: 999px;
-  color: $purple-main;
-  font-size: 12px;
-  font-weight: $font-bold;
-  line-height: 1;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
-.institution-contact-bar-item--email {
-  flex: 1 1 200px;
-}
-
-@media (max-width: 640px) {
-  .institution-contact-bar-item--email {
-    flex: 1 1 auto;
-    width: 100%;
   }
 }

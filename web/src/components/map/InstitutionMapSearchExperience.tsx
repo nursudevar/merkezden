@@ -247,7 +247,12 @@ export function InstitutionMapSearchExperience({
                               Ara
                             </a>
                           ) : null}
-                          <Link href={detailHref} className="map-modal-institution-detail">
+                          <Link
+                            href={detailHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="map-modal-institution-detail"
+                          >
                             {isInstructor ? "Profil" : "Detay"}
                           </Link>
                         </div>

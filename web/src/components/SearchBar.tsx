@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui";
 import { Button } from "@/components/ui";
-import {
-  PLACEHOLDER_SLIDE_STAGGER_MS,
-  useTypewriterPlaceholder,
-} from "@/hooks/useTypewriterPlaceholder";
+import { useTypewriterPlaceholder } from "@/hooks/useTypewriterPlaceholder";
 
 interface SearchBarProps {
   value: string;
@@ -35,14 +32,14 @@ export default function SearchBar({
   const useAnimatedPlaceholder = Boolean(typewriterPlaceholders?.length);
   const showLeadingSearchIcon = useAnimatedPlaceholder;
   const animatedEnabled = useAnimatedPlaceholder && !isFocused && value.length === 0;
-  const { text: animatedText, cycleKey } = useTypewriterPlaceholder(
+  const { text: animatedText } = useTypewriterPlaceholder(
     typewriterPlaceholders ?? [],
     {
       enabled: animatedEnabled,
     },
   );
 
-  const characters = animatedEnabled && animatedText ? Array.from(animatedText) : [];
+  const showAnimatedText = animatedEnabled && animatedText.length > 0;
 
   const input = (
     <Input
@@ -67,25 +64,11 @@ export default function SearchBar({
             className="search-bar-input-icon"
           />
           {input}
-          {characters.length > 0 ? (
-            <span className="search-bar-animated-placeholder" aria-hidden="true">
-              {characters.map((char, index) => (
-                <span
-                  key={`${cycleKey}-${index}`}
-                  className="search-bar-animated-placeholder-char"
-                >
-                  <span
-                    className="search-bar-animated-placeholder-char-inner"
-                    style={{
-                      animationDelay: `${index * PLACEHOLDER_SLIDE_STAGGER_MS}ms`,
-                    }}
-                  >
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                </span>
-              ))}
-            </span>
-          ) : null}
+          {showAnimatedText ? (
+  <span className="search-bar-animated-placeholder" aria-hidden="true">
+    {animatedText}
+  </span>
+) : null}
         </div>
       ) : (
         input

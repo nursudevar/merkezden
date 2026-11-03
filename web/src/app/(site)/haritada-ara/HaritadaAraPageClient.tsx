@@ -38,7 +38,8 @@ import {
   type TurkiyeLocationOption,
 } from "@/lib/turkiyeLocationsClient";
 import {
-  resolveCategoryLocationFromSearch,
+  persistCategoryLocationPreference,
+  resolvePreferredCategoryLocation,
   writeCategoryLocationToSearch,
 } from "@/components/category/categoryLocationFilter";
 import {
@@ -376,7 +377,7 @@ export function HaritadaAraPageClient() {
     if (!locationDefaultsReady) return;
     let cancelled = false;
     void (async () => {
-      const resolved = await resolveCategoryLocationFromSearch(searchKey ? `?${searchKey}` : "");
+      const resolved = await resolvePreferredCategoryLocation(searchKey ? `?${searchKey}` : "");
       if (cancelled) return;
       const q = String(new URLSearchParams(searchKey).get("q") ?? "").trim();
       const nextIlId = resolved.ilId || defaultIlId;
@@ -613,6 +614,11 @@ export function HaritadaAraPageClient() {
       setSelectedIlceId("");
       setSelectedMahalleId("");
       setMahalleler([]);
+      void persistCategoryLocationPreference({
+        ilId,
+        ilceId: "",
+        mahalleId: "",
+      });
       clearNearbyMode();
       setMapFocus({
         lat: DEFAULT_MAP_CENTER.lat,
@@ -633,6 +639,11 @@ export function HaritadaAraPageClient() {
       setSelectedIlceId(ilceId);
       setSelectedMahalleId("");
       if (!ilceId) setMahalleler([]);
+      void persistCategoryLocationPreference({
+        ilId: selectedIlId,
+        ilceId,
+        mahalleId: "",
+      });
       clearNearbyMode();
       closeDrawerAndScrollToResults();
 
@@ -868,6 +879,11 @@ export function HaritadaAraPageClient() {
     setSelectedMahalleId("");
     setMahalleler([]);
     setSelectedIlId(defaultIlId);
+    void persistCategoryLocationPreference({
+      ilId: defaultIlId,
+      ilceId: "",
+      mahalleId: "",
+    });
     setSelectedKurumTuru([]);
     setSelectedCategorySlugs([]);
     clearNearbyMode();

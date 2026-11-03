@@ -71,7 +71,7 @@
 
 .category-page-layout {
   width: 100%;
-  padding: 16px 0 60px;
+  padding: 6px 0 60px;
   background-color: transparent;
 
   @media (max-width: 768px) {
@@ -236,15 +236,6 @@
   }
 }
 
-/*
- * Kategori ve eğitmen liste sayfalarında sol filtre, ana sayfa ile aynı yatay alanı kaplar.
- * Ölçüler ana sayfadan (masaüstü, viewport içi hesaplanmış kutu):
- * - `.filter-sidebar` genişliği 320px, margin 0, dış padding 0
- * - içerik yatay inset 18px, içerik kutusu 284px
- * - sağ içerikle `column-gap` / flex `gap` 32px
- * Kartın 1px border'ı korunur; padding-inline 17px ile inset 1px + 17px = 18px kalır.
- * Drawer kopyası `.category-page-layout-sidebar` dışında olduğu için bu kurala girmez.
- */
 @media (min-width: 1024px) {
   .category-page-layout:not(.haritada-ara-page) {
     .category-page-layout-sidebar .category-filter-sidebar {

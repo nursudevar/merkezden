@@ -1,78 +1,63 @@
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect, useState } from "react";
 
 type UseTypewriterPlaceholderOptions = {
   enabled: boolean;
-  /** Metin tamamen göründükten sonra sonraki metne geçmeden önceki bekleme (ms) */
   pauseMs?: number;
 };
 
-/** Karakterler arası stagger — slide-up animasyonu */
-export const PLACEHOLDER_SLIDE_STAGGER_MS = 28;
-/** Tek karakter slide süresi */
-export const PLACEHOLDER_SLIDE_DURATION_MS = 480;
-
 export type AnimatedPlaceholderState = {
   text: string;
-  /** Metin değişince animasyonu yeniden başlatmak için */
-  cycleKey: number;
 };
 
-/**
- * Placeholder metinlerini sırayla döndürür.
- * Eski daktilo efekti kaldırıldı; tam metin + CSS slide-up ile gösterilir.
- * Geçiş zamanlaması: animasyon süresi + stagger + pauseMs.
- */
+const TYPE_SPEED_MS = 5;
+
 export function useTypewriterPlaceholder(
   texts: readonly string[],
-  { enabled, pauseMs = 100 }: UseTypewriterPlaceholderOptions,
+  { enabled, pauseMs = 1200 }: UseTypewriterPlaceholderOptions,
 ): AnimatedPlaceholderState {
-  const [textIndex, setTextIndex] = useState(0);
-  const [cycleKey, setCycleKey] = useState(0);
-  const textIndexRef = useRef(0);
+  const [state, setState] = useState({
+    textIndex: 0,
+    charIndex: 0,
+  });
 
   useEffect(() => {
     if (!enabled || texts.length === 0) {
-      textIndexRef.current = 0;
-      setTextIndex(0);
-      setCycleKey(0);
+      setState((prev) =>
+        prev.textIndex === 0 && prev.charIndex === 0
+          ? prev
+          : { textIndex: 0, charIndex: 0 }
+      );
       return;
     }
 
-    textIndexRef.current = 0;
-    setTextIndex(0);
-    setCycleKey((key) => key + 1);
+    const characters = Array.from(texts[state.textIndex] ?? "");
+    const completed = state.charIndex >= characters.length;
 
-    let timeoutId = 0;
+    const timeoutId = window.setTimeout(() => {
+      if (completed) {
+        setState({
+          textIndex: (state.textIndex + 1) % texts.length,
+          charIndex: 0,
+        });
+      } else {
+        setState((prev) => ({
+          ...prev,
+          charIndex: prev.charIndex + 1,
+        }));
+      }
+    }, completed ? pauseMs : TYPE_SPEED_MS);
 
-    const scheduleNext = () => {
-      const current = texts[textIndexRef.current] ?? "";
-      const charCount = Array.from(current).length;
-      const revealMs =
-        PLACEHOLDER_SLIDE_DURATION_MS +
-        Math.max(0, charCount - 1) * PLACEHOLDER_SLIDE_STAGGER_MS;
-
-      timeoutId = window.setTimeout(() => {
-        const nextIndex = (textIndexRef.current + 1) % texts.length;
-        textIndexRef.current = nextIndex;
-        setTextIndex(nextIndex);
-        setCycleKey((key) => key + 1);
-        scheduleNext();
-      }, revealMs + pauseMs);
-    };
-
-    scheduleNext();
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [enabled, texts, pauseMs]);
+    return () => window.clearTimeout(timeoutId);
+  }, [enabled, texts, state, pauseMs]);
 
   if (!enabled || texts.length === 0) {
-    return { text: "", cycleKey: 0 };
+    return { text: "" };
   }
 
   return {
-    text: texts[textIndex] ?? "",
-    cycleKey,
+    text: Array.from(texts[state.textIndex] ?? "")
+      .slice(0, state.charIndex)
+      .join(""),
   };
 }

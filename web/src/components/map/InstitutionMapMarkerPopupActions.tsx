@@ -76,7 +76,12 @@ export function InstitutionMapMarkerPopupActions({
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
-      <Link href={detailHref} className="institution-locations-popup-detail">
+      <Link
+        href={detailHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="institution-locations-popup-detail"
+      >
         Detayları Gör
       </Link>
       <button

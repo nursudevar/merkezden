@@ -35,6 +35,10 @@ import {
 } from "@/lib/favorites/favoritesClient";
 import { getCategoryHref, HOME_MAIN_CATEGORY_ORDER } from "@/lib/categoryHelpers";
 import {
+  persistCategoryLocationPreference,
+  resolvePreferredCategoryLocation,
+} from "@/components/category/categoryLocationFilter";
+import {
   fetchIlcelerByIlId,
   fetchIller,
   fetchMahallelerByIlceId,
@@ -768,7 +772,11 @@ export default function HomePageClient() {
         setIller(rows);
         const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
         if (ankaraId) setDefaultIlId(ankaraId);
-        setSelectedIlId((current) => current || ankaraId);
+        const preferred = await resolvePreferredCategoryLocation("");
+        if (cancelled) return;
+        setSelectedIlId(preferred.ilId || ankaraId);
+        setSelectedIlceId(preferred.ilceId);
+        setSelectedMahalleId("");
         setIllerFailed(false);
       } catch (error) {
         console.error("İller yüklenemedi:", error);
@@ -980,6 +988,11 @@ export default function HomePageClient() {
     setSelectedIlceId("");
     setSelectedMahalleId("");
     setMahalleler([]);
+    void persistCategoryLocationPreference({
+      ilId: value,
+      ilceId: "",
+      mahalleId: "",
+    });
     scrollToResultsOnMobile();
   };
 
@@ -988,6 +1001,11 @@ export default function HomePageClient() {
     setSelectedIlceId(nextIlceId);
     setSelectedMahalleId("");
     if (!nextIlceId) setMahalleler([]);
+    void persistCategoryLocationPreference({
+      ilId: selectedIlId,
+      ilceId: nextIlceId,
+      mahalleId: "",
+    });
     scrollToResultsOnMobile();
   };
 
@@ -1001,6 +1019,11 @@ export default function HomePageClient() {
     setSelectedIlceId("");
     setSelectedMahalleId("");
     setMahalleler([]);
+    void persistCategoryLocationPreference({
+      ilId: defaultIlId,
+      ilceId: "",
+      mahalleId: "",
+    });
   };
 
   return (

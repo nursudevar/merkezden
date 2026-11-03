@@ -180,6 +180,8 @@ export function FavoritesSection() {
                     <Link
                       key={inst.id}
                       href={detailHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="favorite-card"
                       aria-label={`${title} detayları`}
                     >
@@ -245,6 +247,8 @@ export function FavoritesSection() {
                     <Link
                       key={instructor.id}
                       href={instructor.detailUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="favorite-card"
                       aria-label={`${instructor.name} detayları`}
                     >

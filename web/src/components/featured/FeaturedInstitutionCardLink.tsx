@@ -35,6 +35,8 @@ export function FeaturedInstitutionCardLink({
         slug: institution.slug,
         source: institution.source || undefined,
       })}
+      target="_blank"
+      rel="noopener noreferrer"
       className="featured-institution-card"
       aria-label={`${institution.name} detayları`}
       aria-hidden={isDuplicate}

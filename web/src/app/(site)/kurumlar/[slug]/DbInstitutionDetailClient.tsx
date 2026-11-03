@@ -10,11 +10,10 @@ import {
   Heart,
   CheckCircle2,
   BookOpen,
-  Phone,
   Globe,
   X,
-  ArrowLeft,
-  Play,
+  ChevronLeft,
+  ChevronRight,
   Megaphone,
   CalendarDays,
   ImageOff,
@@ -67,11 +66,12 @@ import {
 import { STUDENT_AGE_RANGE_LABEL } from "@/lib/studentAgeRangeFeature";
 import CategoryBreadcrumb from "@/components/category/CategoryBreadcrumb";
 import { InstitutionCompareToggleButton } from "@/components/compare/InstitutionCompareToggleButton";
+import ProfileContactRevealButtons from "@/components/profile/ProfileContactRevealButtons";
 import LoginModal from "@/components/LoginModal";
 import { AppNoticeBar } from "@/components/AppNoticeBar";
 import { useListingFavorites } from "@/hooks/useListingFavorites";
 import { SELF_FAVORITE_MESSAGE } from "@/lib/favorites/favoritesClient";
-import { getCategoryHref, getCategoryIcon, getCategoryLogoSrc } from "@/lib/categoryHelpers";
+import { getCategoryHref } from "@/lib/categoryHelpers";
 import { toLocationIdString } from "@/lib/turkiyeLocationsClient";
 
 function getFeatureGroupAnchorId(
@@ -109,6 +109,7 @@ type DbInstitutionRow = {
   district: string | null;
   address: string | null;
   official_phone: string | null;
+  official_email?: string | null;
   website: string | null;
   facebook_url?: string | null;
   instagram_url?: string | null;
@@ -308,6 +309,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
   const [activeViewerIndex, setActiveViewerIndex] = useState<number | null>(null);
+  const [profileGalleryIndex, setProfileGalleryIndex] = useState(0);
   const [publicFeatureSections, setPublicFeatureSections] = useState<PublicFeatureGroupSection[]>([]);
   const [highlightItems, setHighlightItems] = useState<PublicHighlightDisplayItem[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
@@ -346,7 +348,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("institutions")
         .select(
-          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, min_fiyat, max_fiyat, il_id, ilce_id, mahalle_id, category:institution_categories(name, slug), institution_type:institution_types(id, name, category:institution_categories(name, slug))"
+          "id, slug, institution_name, type, high_school_type, category_id, city, district, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, subheading, about, logo, is_approved, working_hours_start, working_hours_end, min_fiyat, max_fiyat, il_id, ilce_id, mahalle_id, category:institution_categories(name, slug), institution_type:institution_types(id, name, category:institution_categories(name, slug))"
         )
         .eq("slug", slug)
         .eq("is_approved", true)
@@ -545,10 +547,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     : row?.category ?? null;
   const categoryName = (institutionCategoryRow?.name ?? "").trim();
   const institutionCategorySlug = (institutionCategoryRow?.slug ?? "").trim();
-  const categoryLogoSrc = categoryName
-    ? getCategoryLogoSrc(categoryName, institutionCategorySlug)
-    : null;
-  const CategoryIcon = getCategoryIcon(categoryName, institutionCategorySlug);
   const isOkulCategory = institutionCategorySlug === OKUL_CATEGORY_SLUG;
   const categoryListingHref = getCategoryHref(categoryName, institutionCategorySlug) ?? "";
   const schoolLevelLabel = (institutionTypeRow?.name ?? "").trim();
@@ -557,20 +555,46 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       ? institutionTypeRow.id
       : null;
   const highSchoolLabel = getHighSchoolTypeLabel(row?.high_school_type);
-  const institutionTypeText = isOkulCategory
-    ? [schoolLevelLabel, highSchoolLabel].filter(Boolean).join(" · ")
-    : "";
   const subheading = (row?.subheading ?? "").trim();
   const about = (row?.about ?? "").trim();
-  const address = (row?.address ?? "").trim();
   const phone = (row?.official_phone ?? "").trim();
+  const email = String(row?.official_email ?? "").trim();
   const website = (row?.website ?? "").trim();
-  const socialLinks = [
-    { label: "Facebook", value: String(row?.facebook_url ?? "").trim() },
-    { label: "Instagram", value: String(row?.instagram_url ?? "").trim() },
-    { label: "X", value: String(row?.x_url ?? "").trim() },
-    { label: "Linkedin", value: String(row?.linkedin_url ?? "").trim() },
-  ].filter((item) => item.value);
+  const toExternalHref = (value: string) =>
+    value.startsWith("http") ? value : `https://${value}`;
+  const profileSocialLinks = [
+    website
+      ? { label: "Web Sitesi", href: toExternalHref(website), Icon: Globe }
+      : null,
+    String(row?.facebook_url ?? "").trim()
+      ? {
+          label: "Facebook",
+          href: toExternalHref(String(row?.facebook_url ?? "").trim()),
+          Icon: Facebook,
+        }
+      : null,
+    String(row?.instagram_url ?? "").trim()
+      ? {
+          label: "Instagram",
+          href: toExternalHref(String(row?.instagram_url ?? "").trim()),
+          Icon: Instagram,
+        }
+      : null,
+    String(row?.x_url ?? "").trim()
+      ? {
+          label: "X",
+          href: toExternalHref(String(row?.x_url ?? "").trim()),
+          Icon: Twitter,
+        }
+      : null,
+    String(row?.linkedin_url ?? "").trim()
+      ? {
+          label: "LinkedIn",
+          href: toExternalHref(String(row?.linkedin_url ?? "").trim()),
+          Icon: Linkedin,
+        }
+      : null,
+  ].filter((item): item is { label: string; href: string; Icon: typeof Globe } => item != null);
   const emptyText = "Henüz içerik girilmedi.";
   const workingHoursText = formatWorkingHoursRange(row?.working_hours_start, row?.working_hours_end);
   const hasLogo = Boolean((row?.logo ?? "").trim()) && Boolean(logoUrl) && !logoLoadFailed;
@@ -587,10 +611,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     if (galleryFilter === "video") return mediaItems.filter((item) => item.mediaType === "video");
     return mediaItems;
   }, [galleryFilter, mediaItems]);
-  const isViewerMode =
-    activeViewerIndex !== null &&
-    activeViewerIndex >= 0 &&
-    activeViewerIndex < filteredModalItems.length;
   const [academicLines, setAcademicLines] = useState<AcademicFeatureLine[]>([]);
   const showPublicExtraBranches = !isOkulCategory && publicExtraBranches.length > 0;
   const hasGallery = mediaItems.length > 0;
@@ -599,7 +619,11 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     [publicFeatureSections],
   );
   const hasFeatureSections = featureNavSections.length > 0;
-  const hasContactBar = Boolean(address || phone || website || socialLinks.length > 0);
+  const safeProfileGalleryIndex =
+    galleryImages.length > 0
+      ? Math.min(profileGalleryIndex, galleryImages.length - 1)
+      : 0;
+  const selectedProfileImage = galleryImages[safeProfileGalleryIndex] ?? null;
   const galleryThumbImages = galleryImages.slice(1, 5);
   const monthlyPriceText = formatInstitutionPriceRangeDisplay(row?.min_fiyat, row?.max_fiyat);
   const generalInfoRows = buildInstitutionGeneralInfoRows({
@@ -962,6 +986,58 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
     setIsGalleryModalOpen(false);
   }, []);
 
+  const openGalleryModal = useCallback(() => {
+    setGalleryFilter("all");
+    if (mediaItems.length === 0) {
+      setActiveViewerIndex(null);
+      setIsGalleryModalOpen(true);
+      return;
+    }
+    const selectedUrl = galleryImages[safeProfileGalleryIndex] ?? galleryImages[0] ?? null;
+    const matchedIndex = selectedUrl
+      ? mediaItems.findIndex((item) => item.url === selectedUrl)
+      : 0;
+    setActiveViewerIndex(matchedIndex >= 0 ? matchedIndex : 0);
+    setIsGalleryModalOpen(true);
+  }, [galleryImages, mediaItems, safeProfileGalleryIndex]);
+
+  const handleGalleryFilterChange = useCallback(
+    (nextFilter: "all" | "photo" | "video") => {
+      const currentItem =
+        activeViewerIndex !== null ? filteredModalItems[activeViewerIndex] ?? null : null;
+      const nextItems =
+        nextFilter === "photo"
+          ? mediaItems.filter((item) => item.mediaType === "photo")
+          : nextFilter === "video"
+            ? mediaItems.filter((item) => item.mediaType === "video")
+            : mediaItems;
+      setGalleryFilter(nextFilter);
+      if (nextItems.length === 0) {
+        setActiveViewerIndex(null);
+        return;
+      }
+      if (currentItem) {
+        const nextIndex = nextItems.findIndex((item) => item.id === currentItem.id);
+        setActiveViewerIndex(nextIndex >= 0 ? nextIndex : 0);
+        return;
+      }
+      setActiveViewerIndex(0);
+    },
+    [activeViewerIndex, filteredModalItems, mediaItems],
+  );
+
+  const showPreviousProfileImage = useCallback(() => {
+    if (galleryImages.length <= 1) return;
+    setProfileGalleryIndex(
+      (current) => (current - 1 + galleryImages.length) % galleryImages.length,
+    );
+  }, [galleryImages.length]);
+
+  const showNextProfileImage = useCallback(() => {
+    if (galleryImages.length <= 1) return;
+    setProfileGalleryIndex((current) => (current + 1) % galleryImages.length);
+  }, [galleryImages.length]);
+
   useGalleryModalEffects(isGalleryModalOpen, closeGalleryModal);
 
   useEffect(() => {
@@ -972,15 +1048,25 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
   }, [isGalleryModalOpen]);
 
   useEffect(() => {
-    if (activeViewerIndex === null) return;
-    if (filteredModalItems.length === 0) {
-      setActiveViewerIndex(null);
+    if (galleryImages.length === 0) {
+      setProfileGalleryIndex(0);
       return;
     }
-    if (activeViewerIndex >= filteredModalItems.length) {
+    if (profileGalleryIndex >= galleryImages.length) {
+      setProfileGalleryIndex(0);
+    }
+  }, [galleryImages.length, profileGalleryIndex]);
+
+  useEffect(() => {
+    if (!isGalleryModalOpen) return;
+    if (filteredModalItems.length === 0) {
+      if (activeViewerIndex !== null) setActiveViewerIndex(null);
+      return;
+    }
+    if (activeViewerIndex === null || activeViewerIndex >= filteredModalItems.length) {
       setActiveViewerIndex(0);
     }
-  }, [activeViewerIndex, filteredModalItems]);
+  }, [activeViewerIndex, filteredModalItems, isGalleryModalOpen]);
 
   if (loading) {
     return (
@@ -1171,88 +1257,70 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                 <div className="institution-info">
                   <h1 className="institution-name">{name}</h1>
                   {subheading ? <p className="institution-description">{subheading}</p> : null}
-                  {categoryName || row.is_approved === true ? (
-                    <div className="institution-profile-badges">
-                      {categoryName ? (
-                        <div className="institution-profile-category-badge">
-                          {categoryLogoSrc ? (
-                            <Image
-                              src={categoryLogoSrc}
-                              alt=""
-                              width={22}
-                              height={22}
-                              className="institution-profile-category-badge-icon"
-                            />
-                          ) : (
-                            <CategoryIcon
-                              className="institution-profile-category-badge-glyph"
-                              size={16}
-                              aria-hidden
-                            />
-                          )}
-                          <span>{categoryName}</span>
-                        </div>
-                      ) : null}
-                      {row.is_approved === true ? (
-                        <div className="institution-meta-item institution-meta-verified institution-meta-badge institution-meta-badge--verified">
-                          <CheckCircle2 size={18} />
-                          <span>Onaylı Kurum</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {hasLocation || institutionTypeText ? (
+                  {hasLocation ? (
                     <div className="institution-meta">
-                      {hasLocation ? (
-                        <div className="institution-meta-item">
-                          <MapPin size={18} />
-                          <span>{location}</span>
-                        </div>
-                      ) : null}
-                      {institutionTypeText ? (
-                        <div className="institution-meta-item">
-                          <span className="institution-meta-badge">{institutionTypeText}</span>
-                        </div>
-                      ) : null}
+                      <div className="institution-meta-item">
+                        <MapPin size={18} />
+                        <span>{location}</span>
+                      </div>
                     </div>
                   ) : null}
                 </div>
               </div>
-              {institutionNumericId != null && institutionSlug ? (
-                <div className="institution-profile-actions">
-                  <button
-                    type="button"
-                    className={`institution-profile-action${
-                      isInstitutionFavorite ? " institution-profile-action--active" : ""
-                    }`}
-                    aria-label={isInstitutionFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
-                    disabled={isFavoriteActionLoading || (Boolean(user) && !favoritesEnabled)}
-                    onClick={(event) => {
-                      void handleFavoriteToggle(institutionNumericId, event);
-                    }}
-                  >
-                    <Heart
-                      className={
-                        isInstitutionFavorite
-                          ? "heart-favorite-icon heart-favorite-icon--active"
-                          : "heart-favorite-icon"
-                      }
-                      aria-hidden
-                    />
-                    <span>{isInstitutionFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}</span>
-                  </button>
-                  <InstitutionCompareToggleButton
-                    labeled
-                    className="institution-compare-toggle--profile"
-                    item={{
-                      id: institutionNumericId,
-                      name,
-                      slug: institutionSlug,
-                      imageUrl: hasLogo ? logoUrl : undefined,
-                    }}
-                  />
+              {profileSocialLinks.length > 0 ? (
+                <div className="institution-profile-socials" aria-label="Sosyal bağlantılar">
+                  {profileSocialLinks.map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="institution-contact-bar-social-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={item.label}
+                    >
+                      <item.Icon size={16} />
+                    </a>
+                  ))}
                 </div>
               ) : null}
+              <div className="institution-profile-actions">
+                <ProfileContactRevealButtons phone={phone} email={email} />
+                {institutionNumericId != null && institutionSlug ? (
+                  <>
+                    <button
+                      type="button"
+                      className={`institution-profile-action${
+                        isInstitutionFavorite ? " institution-profile-action--active" : ""
+                      }`}
+                      aria-label={isInstitutionFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}
+                      disabled={isFavoriteActionLoading || (Boolean(user) && !favoritesEnabled)}
+                      onClick={(event) => {
+                        void handleFavoriteToggle(institutionNumericId, event);
+                      }}
+                    >
+                      <Heart
+                        className={
+                          isInstitutionFavorite
+                            ? "heart-favorite-icon heart-favorite-icon--active"
+                            : "heart-favorite-icon"
+                        }
+                        aria-hidden
+                      />
+                      <span>{isInstitutionFavorite ? "Favorilerden kaldır" : "Favorilere ekle"}</span>
+                    </button>
+                    <InstitutionCompareToggleButton
+                      labeled
+                      className="institution-compare-toggle--profile"
+                      item={{
+                        id: institutionNumericId,
+                        name,
+                        slug: institutionSlug,
+                        imageUrl: hasLogo ? logoUrl : undefined,
+                      }}
+                    />
+                  </>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
 
@@ -1265,49 +1333,68 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                     <button
                       type="button"
                       className="institution-section-link institution-gallery-view-all-btn"
-                      onClick={() => setIsGalleryModalOpen(true)}
+                      onClick={openGalleryModal}
                     >
                       tümünü gör
                     </button>
                   </div>
-                  {galleryImages.length > 0 ? (
+                  {galleryImages.length > 0 && selectedProfileImage ? (
                     <div className="institution-top-gallery-media">
-                      {galleryImages[0] ? (
-                        <div
-                          className="institution-top-gallery-main"
-                          onClick={() => {
-                            if (!galleryImages[0]) return;
-                            setIsGalleryModalOpen(true);
-                          }}
-                        >
-                          <Image
-                            src={galleryImages[0]}
-                            alt={`${name} galeri görseli`}
-                            fill
-                            className="institution-gallery-image"
-                            sizes="(max-width: 1024px) 100vw, 48vw"
-                            unoptimized
-                          />
-                        </div>
-                      ) : null}
+                      <div className="institution-top-gallery-main">
+                        <Image
+                          src={selectedProfileImage}
+                          alt={`${name} galeri görseli`}
+                          fill
+                          className="institution-gallery-image"
+                          sizes="(max-width: 1024px) 100vw, 48vw"
+                          unoptimized
+                        />
+                        {galleryImages.length > 1 ? (
+                          <>
+                            <button
+                              type="button"
+                              className="institution-top-gallery-nav institution-top-gallery-nav--prev"
+                              aria-label="Önceki görsel"
+                              onClick={showPreviousProfileImage}
+                            >
+                              <ChevronLeft size={20} />
+                            </button>
+                            <button
+                              type="button"
+                              className="institution-top-gallery-nav institution-top-gallery-nav--next"
+                              aria-label="Sonraki görsel"
+                              onClick={showNextProfileImage}
+                            >
+                              <ChevronRight size={20} />
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
                       {galleryThumbImages.length > 0 ? (
                         <div className="institution-top-gallery-thumbs">
-                          {galleryThumbImages.map((imageUrl, thumbIndex) => (
-                            <div
-                              key={`${imageUrl}-${thumbIndex}`}
-                              className="institution-top-gallery-thumb"
-                              onClick={() => setIsGalleryModalOpen(true)}
-                            >
-                              <Image
-                                src={imageUrl}
-                                alt={`${name} galeri görseli`}
-                                fill
-                                className="institution-gallery-image"
-                                sizes="(max-width: 1024px) 25vw, 12vw"
-                                unoptimized
-                              />
-                            </div>
-                          ))}
+                          {galleryThumbImages.map((imageUrl, thumbIndex) => {
+                            const absoluteIndex = thumbIndex + 1;
+                            const isActive = absoluteIndex === safeProfileGalleryIndex;
+                            return (
+                              <button
+                                key={`${imageUrl}-${thumbIndex}`}
+                                type="button"
+                                className={`institution-top-gallery-thumb${isActive ? " institution-top-gallery-thumb--active" : ""}`}
+                                aria-label={`${absoluteIndex + 1}. görsel`}
+                                aria-pressed={isActive}
+                                onClick={() => setProfileGalleryIndex(absoluteIndex)}
+                              >
+                                <Image
+                                  src={imageUrl}
+                                  alt={`${name} galeri görseli`}
+                                  fill
+                                  className="institution-gallery-image"
+                                  sizes="(max-width: 1024px) 25vw, 12vw"
+                                  unoptimized
+                                />
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : null}
                     </div>
@@ -1335,82 +1422,6 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         </div>
 
         <FeatureHighlightsPublicSection items={highlightItems} />
-
-        {hasContactBar ? (
-          <div className="institution-contact-bar">
-            {address ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--address">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <MapPin size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">ADRES</div>
-                  <div className="institution-contact-bar-value">{address}</div>
-                </div>
-              </div>
-            ) : null}
-            {phone ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--phone">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <Phone size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">TELEFON</div>
-                  <a
-                    href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                    className="institution-contact-bar-value institution-contact-bar-link"
-                  >
-                    {phone}
-                  </a>
-                </div>
-              </div>
-            ) : null}
-            {website ? (
-              <div className="institution-contact-bar-item institution-contact-bar-item--website">
-                <span className="institution-contact-bar-icon" aria-hidden>
-                  <Globe size={16} />
-                </span>
-                <div className="institution-contact-bar-copy">
-                  <div className="institution-contact-bar-label">WEB SİTESİ</div>
-                  <a
-                    href={website.startsWith("http") ? website : `https://${website}`}
-                    className="institution-contact-bar-value institution-contact-bar-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {website}
-                  </a>
-                </div>
-              </div>
-            ) : null}
-            {socialLinks.length > 0 ? (
-              <div className="institution-contact-bar-social">
-                {socialLinks.map((item) => {
-                  const SocialIcon =
-                    item.label === "Facebook"
-                      ? Facebook
-                      : item.label === "Instagram"
-                        ? Instagram
-                        : item.label === "Linkedin"
-                          ? Linkedin
-                          : Twitter;
-                  return (
-                    <a
-                      key={item.label}
-                      href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
-                      className="institution-contact-bar-social-link"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={item.label}
-                    >
-                      <SocialIcon size={16} />
-                    </a>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         {hasAnyNavTab ? (
         <div className="institution-tabs-sticky">
@@ -1634,7 +1645,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             }}
           >
             <div
-              className={`institution-gallery-modal${isViewerMode ? " institution-gallery-modal--viewer" : ""}`}
+              className="institution-gallery-modal institution-gallery-modal--viewer"
               role="dialog"
               aria-modal="true"
               aria-labelledby="institution-gallery-modal-title"
@@ -1647,45 +1658,34 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   </p>
                 </div>
                 <div className="institution-gallery-modal-header-actions">
-                  {isViewerMode ? (
-                    <>
-                      <button
-                        type="button"
-                        className="institution-gallery-viewer-back"
-                        onClick={() => setActiveViewerIndex(null)}
-                      >
-                        <ArrowLeft size={16} />
-                        Galeriye dön
-                      </button>
-                      <span className="institution-gallery-viewer-counter">
-                        {activeViewerIndex + 1} / {filteredModalItems.length}
-                      </span>
-                    </>
-                  ) : (
-                    <div className="institution-gallery-modal-filters" role="tablist" aria-label="Galeri filtreleri">
-                      <button
-                        type="button"
-                        className={`institution-gallery-modal-filter ${galleryFilter === "all" ? "institution-gallery-modal-filter--active" : ""}`}
-                        onClick={() => setGalleryFilter("all")}
-                      >
-                        Tümü
-                      </button>
-                      <button
-                        type="button"
-                        className={`institution-gallery-modal-filter ${galleryFilter === "photo" ? "institution-gallery-modal-filter--active" : ""}`}
-                        onClick={() => setGalleryFilter("photo")}
-                      >
-                        Fotoğraf
-                      </button>
-                      <button
-                        type="button"
-                        className={`institution-gallery-modal-filter ${galleryFilter === "video" ? "institution-gallery-modal-filter--active" : ""}`}
-                        onClick={() => setGalleryFilter("video")}
-                      >
-                        Video
-                      </button>
-                    </div>
-                  )}
+                  <div className="institution-gallery-modal-filters" role="tablist" aria-label="Galeri filtreleri">
+                    <button
+                      type="button"
+                      className={`institution-gallery-modal-filter ${galleryFilter === "all" ? "institution-gallery-modal-filter--active" : ""}`}
+                      onClick={() => handleGalleryFilterChange("all")}
+                    >
+                      Tümü
+                    </button>
+                    <button
+                      type="button"
+                      className={`institution-gallery-modal-filter ${galleryFilter === "photo" ? "institution-gallery-modal-filter--active" : ""}`}
+                      onClick={() => handleGalleryFilterChange("photo")}
+                    >
+                      Fotoğraf
+                    </button>
+                    <button
+                      type="button"
+                      className={`institution-gallery-modal-filter ${galleryFilter === "video" ? "institution-gallery-modal-filter--active" : ""}`}
+                      onClick={() => handleGalleryFilterChange("video")}
+                    >
+                      Video
+                    </button>
+                  </div>
+                  {activeViewerIndex !== null && filteredModalItems.length > 0 ? (
+                    <span className="institution-gallery-viewer-counter">
+                      {activeViewerIndex + 1} / {filteredModalItems.length}
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     className="institution-gallery-modal-close"
@@ -1696,53 +1696,17 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
                   </button>
                 </div>
               </div>
-              {filteredModalItems.length > 0 ? (
-                isViewerMode && activeViewerIndex !== null ? (
-                  <GalleryMediaViewer
-                    items={filteredModalItems.map((item, index) => ({
-                      id: item.id,
-                      url: item.url,
-                      mediaType: item.mediaType,
-                      alt: `${name} galeri görseli ${index + 1}`,
-                    }))}
-                    activeIndex={activeViewerIndex}
-                    onIndexChange={setActiveViewerIndex}
-                  />
-                ) : (
-                  <div className="institution-gallery-modal-grid">
-                    {filteredModalItems.map((item, index) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`institution-gallery-modal-item institution-gallery-modal-item--${item.mediaType}`}
-                        onClick={() => setActiveViewerIndex(index)}
-                      >
-                        {item.mediaType === "video" ? (
-                          <>
-                            <video
-                              className="institution-gallery-modal-video"
-                              src={item.url}
-                              preload="metadata"
-                              muted
-                            />
-                            <div className="institution-gallery-modal-video-overlay" aria-hidden>
-                              <Play size={46}  />
-                            </div>
-                          </>
-                        ) : (
-                          <Image
-                            src={item.url}
-                            alt={`${name} galeri görseli ${index + 1}`}
-                            fill
-                            className="institution-gallery-image"
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                            unoptimized
-                          />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )
+              {filteredModalItems.length > 0 && activeViewerIndex !== null ? (
+                <GalleryMediaViewer
+                  items={filteredModalItems.map((item, index) => ({
+                    id: item.id,
+                    url: item.url,
+                    mediaType: item.mediaType,
+                    alt: `${name} galeri görseli ${index + 1}`,
+                  }))}
+                  activeIndex={activeViewerIndex}
+                  onIndexChange={setActiveViewerIndex}
+                />
               ) : (
                 <div className="institution-gallery-modal-empty">{emptyText}</div>
               )}

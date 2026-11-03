@@ -893,13 +893,6 @@
   }
 }
 
-/*
- * Aralık kutuları — kategori sayfası Aylık Fiyat Aralığı ölçüsü:
- * yükseklik 35px, yatay padding 14px, radius 12px, 1px border,
- * 14px / 500, iki eşit sütun, aralık 8px.
- * Sayısal kutularda sağ padding, artırma/azaltma kontrollerine yer açar.
- * Saat seçicisinin rengi ve ikonu korunur.
- */
 .category-page-layout:not(.haritada-ara-page) {
   .category-filter-working-hours-range,
   .category-filter-price-inputs:not(.price-range-slider-inputs) {

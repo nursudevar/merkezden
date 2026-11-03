@@ -83,22 +83,6 @@
   vertical-align: bottom;
 }
 
-.search-bar-animated-placeholder-char-inner {
-  display: inline-block;
-  animation: search-bar-placeholder-slide-up 480ms cubic-bezier(0.625, 0.05, 0, 1) both;
-  will-change: transform;
-}
-
-@keyframes search-bar-placeholder-slide-up {
-  from {
-    transform: translateY(100%);
-  }
-
-  to {
-    transform: translateY(0);
-  }
-}
-
 .search-bar-button {
   height: 48px;
   @include rounded-full;
@@ -179,6 +163,7 @@
     right: 16px;
     font-size: 14px;
   }
+
 
   .search-bar-input-icon {
     left: 10px;
@@ -1461,15 +1446,20 @@
   min-width: var(--radix-select-trigger-width);
 }
 
-/* Ana sayfa Konum filtreleri (Şehir/İlçe/Mahalle): aşağı doğru açılsın ve her zaman üstte kalsın */
+/* Konum filtreleri (İl/İlçe/Mahalle): portal + collision; viewport alanına göre yükseklik */
 .home-location-dropdown,
 .select-content-popper.home-location-dropdown {
   z-index: 10100 !important;
+  max-height: min(320px, var(--radix-select-content-available-height, 85vh));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .select-content-popper.home-location-dropdown .select-viewport {
   height: auto !important;
-  max-height: min(320px, var(--radix-select-content-available-height, 85vh));
+  max-height: none;
   min-height: 0;
 }
 
