@@ -181,3 +181,261 @@
     font-size: 16px;
   }
 }
+
+// --- Sürücü Kursları banner (carousel slide) -------------------------------
+
+@keyframes home-driving-meko-drive {
+  from {
+    left: 0;
+    transform: translate(-100%, -50%);
+  }
+
+  to {
+    left: 100%;
+    transform: translate(0, -50%);
+  }
+}
+
+.hero-search--with-driving-slide {
+  .hero-search-container {
+    height: 240px;
+
+    @media (max-width: 639px) {
+      height: 220px;
+    }
+  }
+}
+
+.home-driving-schools-section {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border-radius: 24px;
+  min-height: 240px;
+  height: auto;
+  background-image: url("/images/merkezden-lg-gray-bg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  padding: 28px 24px;
+  overflow: hidden;
+  margin: 0;
+  box-sizing: border-box;
+  @include home-main-category-conic-border(
+    23px,
+    22.5px,
+    url("/images/surucu-kursu-bg-light-2.png") center / cover no-repeat,
+    false
+  );
+
+  @media (max-width: 639px) {
+    min-height: 220px;
+    padding: 22px 16px;
+    border-radius: 16px;
+
+    &::after {
+      border-radius: 15px;
+    }
+  }
+}
+
+.home-driving-schools-section--carousel {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border-radius: 0;
+
+  &::after {
+    border-radius: 0;
+  }
+}
+
+.home-driving-schools-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.home-driving-schools-header-main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.home-driving-schools-header-text {
+  position: relative;
+  z-index: 2;
+  flex: 0 1 auto;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.driver-courses-content {
+  pointer-events: auto;
+}
+
+.home-driving-schools-title,
+.driver-courses-title {
+  font-size: 42px;
+  font-weight: $font-bold;
+  margin: 0 0 8px;
+  line-height: 1.2;
+  text-align: center;
+  color: #2b2f37;
+}
+
+.driver-courses-subtitle {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: $font-medium;
+  line-height: 1.45;
+  color: #2b2f37;
+  max-width: 40ch;
+  text-align: center;
+}
+
+.driver-courses-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @include rounded-xl;
+  padding: 10px 24px;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  line-height: $leading-normal;
+  white-space: nowrap;
+  text-align: center;
+  text-decoration: none;
+  text-transform: none;
+  cursor: pointer;
+  border: 1px solid rgba($purple-main, 0.6);
+  background-color: transparent;
+  color: $purple-main;
+  box-shadow: none;
+  @include transition;
+  transition-property: transform, background-color, color, border-color;
+
+  &:hover {
+    background-color: rgba($purple-main, 0.07);
+    border-color: rgba($purple-main, 0.85);
+    color: $purple-main;
+    box-shadow: none;
+    opacity: 1;
+    text-decoration: none;
+  }
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 639px) {
+    padding: 12px 16px;
+    font-size: $text-sm;
+  }
+}
+
+.home-driving-schools-media {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-driving-schools-meko-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 100%;
+  min-height: 180px;
+  max-height: 180px;
+  width: auto;
+  display: flex;
+  align-items: center;
+  animation: home-driving-meko-drive 5s linear infinite;
+  will-change: left, transform;
+}
+
+.home-driving-schools-meko-video {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  background: transparent;
+}
+
+@media (max-width: 1023px) {
+  .home-driving-schools-meko-track {
+    height: 65%;
+    min-height: 120px;
+    max-height: 150px;
+  }
+
+  .home-driving-schools-header-text {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 767px) {
+  .home-driving-schools-title,
+  .driver-courses-title {
+    font-size: 26px;
+  }
+
+  .driver-courses-subtitle {
+    font-size: 12px;
+    max-width: 36ch;
+    margin-bottom: 10px;
+  }
+
+  .home-driving-schools-meko-track {
+    height: 60%;
+    min-height: 100px;
+    max-height: 130px;
+    animation-duration: 6s;
+  }
+}
+
+@media (max-width: 639px) {
+  .home-driving-schools-header-text {
+    max-width: 100%;
+  }
+
+  .driver-courses-subtitle {
+    max-width: 100%;
+  }
+
+  .home-driving-schools-meko-track {
+    height: 55%;
+    min-height: 90px;
+    max-height: 110px;
+    animation-duration: 5s;
+  }
+}

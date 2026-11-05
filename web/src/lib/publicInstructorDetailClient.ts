@@ -24,6 +24,7 @@ import {
   publicInstructorDisplayName,
   type PublicInstructorRow,
 } from "@/lib/publicInstructorClient";
+import { announcementPublicationCutoffIso } from "@/lib/announcementPublication";
 import {
   buildLocationAdMaps,
   formatAnnouncementLocationLabel,
@@ -45,7 +46,7 @@ export type PublicInstructorAnnouncementItem = {
   content: string;
   imageUrl: string | null;
   linkUrl: string | null;
-  createdAt: string | null;
+  publishedAt: string | null;
   announcementTag: string | null;
   locationLabel: string | null;
   il_id: number | null;
@@ -153,10 +154,12 @@ export async function fetchPublicInstructorAnnouncementsClient(
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("instructor_announcements")
-    .select("id, title, content, image_url, link_url, announcement_tag, created_at, il_id, ilce_id")
+    .select("id, title, content, image_url, link_url, announcement_tag, published_at, il_id, ilce_id")
     .eq("instructor_id", instructorId)
     .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .not("published_at", "is", null)
+    .gt("published_at", announcementPublicationCutoffIso())
+    .order("published_at", { ascending: false });
 
   if (error) {
     console.warn("[instructor][detail][announcements]", serializeSupabaseError(error));
@@ -170,7 +173,7 @@ export async function fetchPublicInstructorAnnouncementsClient(
     image_url: string | null;
     link_url: string | null;
     announcement_tag: string | null;
-    created_at: string | null;
+    published_at: string | null;
     il_id?: number | null;
     ilce_id?: number | null;
   }>);
@@ -190,7 +193,7 @@ export async function fetchPublicInstructorAnnouncementsClient(
         content: String(row.content ?? "").trim(),
         imageUrl: row.image_url ? String(row.image_url).trim() || null : null,
         linkUrl: row.link_url ? String(row.link_url).trim() || null : null,
-        createdAt: row.created_at ? String(row.created_at) : null,
+        publishedAt: row.published_at ? String(row.published_at) : null,
         announcementTag: row.announcement_tag ? String(row.announcement_tag).trim() || null : null,
         locationLabel: formatAnnouncementLocationLabel(ilAd, ilceAd) || null,
         il_id,

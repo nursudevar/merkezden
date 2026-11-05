@@ -30,6 +30,7 @@ import {
   updateInstructorAnnouncementClient,
   type InstructorAnnouncementRow,
 } from "@/lib/instructorAnnouncementsClient";
+import { isAnnouncementExpiredWhileActive } from "@/lib/announcementPublication";
 import {
   ANNOUNCEMENT_TAG_OPTIONS,
   ANNOUNCEMENT_TAG_REQUIRED_ERROR,
@@ -508,15 +509,23 @@ export function InstructorAnnouncementsTab({
                       {formatInstructorAnnouncementDate(row.created_at)}
                     </td>
                     <td className="egitmen-panel-announcements-td">
-                      <span
-                        className={
-                          row.is_active
-                            ? "egitmen-panel-announcements-badge egitmen-panel-announcements-badge--published"
-                            : "egitmen-panel-announcements-badge egitmen-panel-announcements-badge--passive"
-                        }
-                      >
-                        {row.is_active ? "Yayında" : "Pasif"}
-                      </span>
+                      {(() => {
+                        const expired = isAnnouncementExpiredWhileActive(
+                          row.is_active,
+                          row.published_at,
+                        );
+                        return (
+                          <span
+                            className={
+                              row.is_active && !expired
+                                ? "egitmen-panel-announcements-badge egitmen-panel-announcements-badge--published"
+                                : "egitmen-panel-announcements-badge egitmen-panel-announcements-badge--passive"
+                            }
+                          >
+                            {expired ? "Süresi Doldu" : row.is_active ? "Yayında" : "Pasif"}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="egitmen-panel-announcements-td egitmen-panel-announcements-td--actions">
                       <button
@@ -705,6 +714,13 @@ export function InstructorAnnouncementsTab({
                     <option value="active">Aktif</option>
                     <option value="inactive">Pasif</option>
                   </select>
+                  {editingRow &&
+                  isAnnouncementExpiredWhileActive(editingRow.is_active, editingRow.published_at) ? (
+                    <p className="egitmen-panel-media-upload-subtitle">
+                      Süresi doldu. İçerik düzenlenebilir. Yeniden yayın, kayıt pasife alındıktan
+                      sonra tek adımda yapılır.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="egitmen-panel-form-field egitmen-panel-announcement-image-field">
                   <input

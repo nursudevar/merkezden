@@ -154,3 +154,70 @@ $site-content-inline-padding: 24px;
   }
 }
 
+/// Ana kategori kartları / sürücü kursu banner renkli conic border.
+/// `$animated: false` → aynı gradient, dönüş/animasyon yok.
+@mixin home-main-category-conic-border(
+  $inner-radius,
+  $hover-inner-radius,
+  $fill-background,
+  $animated: true
+) {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -45%;
+    z-index: -2;
+    background: conic-gradient(
+      from 0deg,
+      #6d5dfc 0%,
+      #7f56d9 22%,
+      #e879f9 42%,
+      #ff9807 68%,
+      #ffb347 82%,
+      #6d5dfc 100%
+    );
+    @if $animated {
+      animation: home-main-category-border-spin 2s linear infinite;
+    } @else {
+      animation: none;
+    }
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: $inner-radius;
+    background: $fill-background;
+    pointer-events: none;
+    @if $animated {
+      transition: inset 0.25s ease, border-radius 0.25s ease;
+    } @else {
+      transition: none;
+    }
+  }
+
+  @if $animated {
+    &:hover::before {
+      animation-duration: 7s;
+    }
+
+    &:hover::after {
+      inset: 1.5px;
+      border-radius: $hover-inner-radius;
+    }
+
+    @media (max-width: 768px) {
+      &::before {
+        animation-duration: 18s;
+      }
+
+      &:hover::before {
+        animation-duration: 10s;
+      }
+    }
+  }
+}
+

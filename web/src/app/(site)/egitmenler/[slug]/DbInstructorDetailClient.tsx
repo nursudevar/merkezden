@@ -665,7 +665,7 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
       title: item.title,
       content: item.content,
       imageUrl: item.imageUrl,
-      createdAt: item.createdAt,
+      publishedAt: item.publishedAt,
       institutionName: displayName,
       linkUrl: item.linkUrl,
       announcementTag: item.announcementTag,
@@ -737,10 +737,10 @@ export default function DbInstructorDetailClient({ slugOrId }: { slugOrId: strin
             {item.content ? buildAnnouncementExcerpt(item.content, 220) : ""}
           </p>
           <div className="institution-announcement-meta">
-            {item.createdAt ? (
+            {item.publishedAt ? (
               <span className="institution-announcement-meta-item">
                 <CalendarDays className="institution-announcement-meta-icon" size={14} />
-                <span>{formatAnnouncementDateTr(item.createdAt)}</span>
+                <span>{formatAnnouncementDateTr(item.publishedAt)}</span>
               </span>
             ) : null}
             {item.locationLabel ? (

@@ -155,7 +155,7 @@ export function HomeAnnouncementsMarquee() {
         title: activeAnnouncement.title,
         content: activeAnnouncement.content,
         imageUrl: activeAnnouncement.imageUrl,
-        createdAt: activeAnnouncement.createdAt,
+        publishedAt: activeAnnouncement.publishedAt,
         institutionName: activeAnnouncement.ownerName,
         linkUrl: activeAnnouncement.linkUrl,
         ownerHref: activeAnnouncement.ownerHref,
@@ -222,7 +222,9 @@ export function HomeAnnouncementsMarquee() {
 
         {showCarousel ? (
           <div className="duyurular-view-all">
-            <Link href="/duyurular">Tüm Duyuruları Görüntüle →</Link>
+            <Link href="/duyurular" target="_blank" rel="noopener noreferrer">
+              Tüm Duyuruları Görüntüle →
+            </Link>
           </div>
         ) : null}
       </section>

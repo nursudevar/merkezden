@@ -13,6 +13,7 @@ import CategoryHero from "./CategoryHero";
 import CategoryResultsList from "./CategoryResultsList";
 import CategorySeoIntro from "./CategorySeoIntro";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
+import { HomeDrivingSchoolsSection } from "@/components/featured/HomeDrivingSchoolsSection";
 import type { CategoryResultItem } from "./useCategoryInstitutions";
 import type { SchoolCategoryFilterPayload } from "./schoolCategoryFilterTypes";
 import {
@@ -203,7 +204,14 @@ export default function CategoryPageLayout({
         </aside>
 
         <div className="category-page-layout-results">
-          <HomeHeroSearchBanner titleAs="div" />
+          <HomeHeroSearchBanner
+            titleAs="div"
+            leadingSlide={
+              categorySlug === "surucu-kursu" ? (
+                <HomeDrivingSchoolsSection variant="carousel-slide" />
+              ) : undefined
+            }
+          />
 
           <button
             className="category-page-layout-filter-toggle"

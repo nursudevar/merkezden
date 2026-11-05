@@ -10,7 +10,7 @@ import {
 export const INSTRUCTOR_ANNOUNCEMENTS_TABLE = "instructor_announcements" as const;
 
 const INSTRUCTOR_ANNOUNCEMENT_ROW_SELECT =
-  "id, instructor_id, owner_auth_id, title, content, image_url, image_path, link_url, announcement_tag, il_id, ilce_id, is_active, created_at, updated_at";
+  "id, instructor_id, owner_auth_id, title, content, image_url, image_path, link_url, announcement_tag, il_id, ilce_id, is_active, published_at, created_at, updated_at";
 
 export type InstructorAnnouncementRow = {
   id: number;
@@ -25,6 +25,7 @@ export type InstructorAnnouncementRow = {
   il_id: number | null;
   ilce_id: number | null;
   is_active: boolean;
+  published_at: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -69,6 +70,80 @@ export function normalizeAnnouncementLinkUrl(url: string): string | null {
   const trimmed = String(url ?? "").trim();
   if (!trimmed) return null;
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+const INSTRUCTOR_ANNOUNCEMENT_STORAGE_PATH = /^instructors\/\d+\/announcements\/[^/]+$/;
+
+function resolveInstructorAnnouncementStoragePath(
+  imagePath: string | null | undefined,
+  imageUrl: string | null | undefined,
+): string | null {
+  const rawPath = String(imagePath ?? "").trim();
+  const path = rawPath
+    ? rawPath.includes("://")
+      ? extractStoragePathFromPublicUrl(rawPath, INSTRUCTOR_MEDIA_BUCKET)
+      : rawPath.replace(/^\/+/, "")
+    : extractStoragePathFromPublicUrl(String(imageUrl ?? ""), INSTRUCTOR_MEDIA_BUCKET);
+  if (!path || path.includes("..") || path.includes("\\") || !INSTRUCTOR_ANNOUNCEMENT_STORAGE_PATH.test(path)) {
+    return null;
+  }
+  return path;
+}
+
+function announcementImageLikePattern(path: string): string {
+  return `%${path.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+}
+
+async function otherAnnouncementReferencesImage(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  path: string,
+  imageUrl: string | null,
+): Promise<boolean | null> {
+  const like = announcementImageLikePattern(path);
+  const checks = [
+    supabase.from(INSTRUCTOR_ANNOUNCEMENTS_TABLE).select("id").eq("image_path", path).limit(1),
+    supabase.from(INSTRUCTOR_ANNOUNCEMENTS_TABLE).select("id").ilike("image_url", like).limit(1),
+    supabase.from("announcements").select("id").ilike("announcement_image_url", like).limit(1),
+    supabase.from("admin_announcements").select("id").eq("image_path", path).limit(1),
+    supabase.from("admin_announcements").select("id").ilike("announcement_image_url", like).limit(1),
+  ];
+  if (imageUrl) {
+    checks.push(
+      supabase.from(INSTRUCTOR_ANNOUNCEMENTS_TABLE).select("id").eq("image_url", imageUrl).limit(1),
+      supabase.from("announcements").select("id").eq("announcement_image_url", imageUrl).limit(1),
+      supabase.from("admin_announcements").select("id").eq("announcement_image_url", imageUrl).limit(1),
+    );
+  }
+
+  for (const query of checks) {
+    const { data, error } = await query;
+    if (error) {
+      console.warn("[instructor-announcements] image reference check:", error);
+      return null;
+    }
+    if ((data ?? []).length > 0) return true;
+  }
+  return false;
+}
+
+async function removeUnreferencedAnnouncementImage(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  imagePath: string | null | undefined,
+  imageUrl: string | null | undefined,
+) {
+  const path = resolveInstructorAnnouncementStoragePath(imagePath, imageUrl);
+  if (!path) return;
+  const referenced = await otherAnnouncementReferencesImage(
+    supabase,
+    path,
+    String(imageUrl ?? "").trim() || null,
+  );
+  if (referenced !== false) return;
+  try {
+    await removeAnnouncementImageQuietly(supabase, path, null);
+  } catch (cleanupError) {
+    console.warn("[instructor-announcements] image storage remove:", cleanupError);
+  }
 }
 
 async function removeAnnouncementImageQuietly(
@@ -162,7 +237,7 @@ export async function createInstructorAnnouncementClient(
     .select(INSTRUCTOR_ANNOUNCEMENT_ROW_SELECT)
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error("[instructor-announcements] create:", error);
     if (image_path) {
       await removeAnnouncementImageQuietly(supabase, image_path, image_url);
@@ -251,9 +326,9 @@ export async function updateInstructorAnnouncementClient(
 
   if (input.removeImage || input.imageFile) {
     if (previousPath && previousPath !== image_path) {
-      await removeAnnouncementImageQuietly(supabase, previousPath, previousUrl);
+      await removeUnreferencedAnnouncementImage(supabase, previousPath, previousUrl);
     } else if (input.removeImage && !input.imageFile && previousPath) {
-      await removeAnnouncementImageQuietly(supabase, previousPath, previousUrl);
+      await removeUnreferencedAnnouncementImage(supabase, previousPath, previousUrl);
     }
   }
 
@@ -268,23 +343,25 @@ export async function deleteInstructorAnnouncementClient(
 ): Promise<{ error: string | null }> {
   const supabase = supabaseArg ?? createSupabaseBrowserClient();
 
-  await removeAnnouncementImageQuietly(
-    supabase,
-    announcement.image_path,
-    announcement.image_url,
-  );
-
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from(INSTRUCTOR_ANNOUNCEMENTS_TABLE)
     .delete()
     .eq("id", announcement.id)
     .eq("instructor_id", instructorId)
-    .eq("owner_auth_id", authUid);
+    .eq("owner_auth_id", authUid)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    console.error("[instructor-announcements] delete:", error);
+  if (error || !data) {
+    console.error("[instructor-announcements] delete:", error ?? "no row returned");
     return { error: INSTRUCTOR_ANNOUNCEMENT_ERROR };
   }
+
+  await removeUnreferencedAnnouncementImage(
+    supabase,
+    announcement.image_path,
+    announcement.image_url,
+  );
 
   return { error: null };
 }

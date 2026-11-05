@@ -231,6 +231,8 @@ export default function Footer() {
                     <Link
                       key={link.id}
                       href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="homepage-footer-extension-tag"
                     >
                       {link.name}

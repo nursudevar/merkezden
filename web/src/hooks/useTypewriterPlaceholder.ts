@@ -10,7 +10,7 @@ export type AnimatedPlaceholderState = {
   text: string;
 };
 
-const TYPE_SPEED_MS = 5;
+const TYPE_SPEED_MS = 35;
 
 export function useTypewriterPlaceholder(
   texts: readonly string[],

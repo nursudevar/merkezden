@@ -5,12 +5,16 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
 import {
   type HomeFeaturedAccountItem,
-  fetchHomeFeaturedAccountsFromFeaturedAccounts,
+  invalidateHomeFeaturedAccountsShared,
+  loadHomeFeaturedAccountsShared,
 } from "./featuredInstitutions";
 import { FeaturedInstitutionCardLink } from "./FeaturedInstitutionCardLink";
 import { FeaturedInstructorCardLink } from "./FeaturedInstructorCardLink";
 
-const FEATURED_PAGE_SIZE = 16;
+/** Desktop: 5 kart × 2 satır — sayfa başına. */
+const FEATURED_PAGE_SIZE = 10;
+
+type FeaturedTab = "institutions" | "instructors";
 
 function getVisiblePageNumbers(currentPage: number, totalPages: number): number[] {
   if (totalPages <= 3) {
@@ -45,6 +49,7 @@ export function HomeFeaturedInstitutionsList({
   const [featuredFailed, setFeaturedFailed] = useState(false);
   const [featuredRetryCount, setFeaturedRetryCount] = useState(0);
   const featuredRetryLockRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<FeaturedTab>("institutions");
   const [currentPage, setCurrentPage] = useState(1);
   const [brokenInstitutionImageIds, setBrokenInstitutionImageIds] = useState<Set<number>>(
     () => new Set(),
@@ -53,6 +58,7 @@ export function HomeFeaturedInstitutionsList({
     () => new Set(),
   );
   const featuredListRef = useRef<HTMLDivElement>(null);
+  const tablistRef = useRef<HTMLDivElement>(null);
 
   const scrollToFeaturedList = useCallback(() => {
     const listElement = featuredListRef.current;
@@ -72,7 +78,7 @@ export function HomeFeaturedInstitutionsList({
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const featuredAccounts = await fetchHomeFeaturedAccountsFromFeaturedAccounts(supabase);
+        const featuredAccounts = await loadHomeFeaturedAccountsShared(supabase);
         if (cancelled) return;
         if (featuredAccounts.failed) {
           setAllFeaturedAccounts([]);
@@ -102,14 +108,25 @@ export function HomeFeaturedInstitutionsList({
   const retryFeaturedAccounts = useCallback(() => {
     if (featuredRetryLockRef.current || featuredLoading) return;
     featuredRetryLockRef.current = true;
+    invalidateHomeFeaturedAccountsShared();
     setFeaturedRetryCount((count) => count + 1);
   }, [featuredLoading]);
 
-  const totalItems = allFeaturedAccounts.length;
+  const filteredAccounts = useMemo(() => {
+    const kind = activeTab === "institutions" ? "institution" : "instructor";
+    return allFeaturedAccounts.filter((entry) => entry.kind === kind);
+  }, [activeTab, allFeaturedAccounts]);
+
+  const totalItems = filteredAccounts.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / FEATURED_PAGE_SIZE));
   const showPagination = totalItems > FEATURED_PAGE_SIZE;
   const hasPrev = currentPage > 1;
   const hasNext = currentPage < totalPages;
+
+  const handleTabChange = useCallback((nextTab: FeaturedTab) => {
+    setActiveTab(nextTab);
+    setCurrentPage(1);
+  }, []);
 
   const handleFeaturedPageChange = useCallback(
     (nextPage: number) => {
@@ -134,12 +151,45 @@ export function HomeFeaturedInstitutionsList({
   const paginatedFeaturedAccounts = useMemo(() => {
     const safePage = Math.min(Math.max(currentPage, 1), Math.max(totalPages, 1));
     const start = (safePage - 1) * FEATURED_PAGE_SIZE;
-    return allFeaturedAccounts.slice(start, start + FEATURED_PAGE_SIZE);
-  }, [allFeaturedAccounts, currentPage, totalPages]);
+    return filteredAccounts.slice(start, start + FEATURED_PAGE_SIZE);
+  }, [filteredAccounts, currentPage, totalPages]);
+
+  const handleTabKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>, tab: FeaturedTab) => {
+      const tabs: FeaturedTab[] = ["institutions", "instructors"];
+      const currentIndex = tabs.indexOf(tab);
+      let nextIndex = currentIndex;
+
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        event.preventDefault();
+        nextIndex = (currentIndex + 1) % tabs.length;
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        event.preventDefault();
+        nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        nextIndex = 0;
+      } else if (event.key === "End") {
+        event.preventDefault();
+        nextIndex = tabs.length - 1;
+      } else {
+        return;
+      }
+
+      const nextTab = tabs[nextIndex];
+      handleTabChange(nextTab);
+      const buttons = tablistRef.current?.querySelectorAll<HTMLButtonElement>("[role='tab']");
+      buttons?.[nextIndex]?.focus();
+    },
+    [handleTabChange],
+  );
 
   if (featuredFailed) {
     return (
-      <section className="featured-institutions-list-section featured-institutions-section" aria-labelledby="home-featured-institutions-list-heading">
+      <section
+        className="featured-institutions-list-section featured-institutions-section"
+        aria-labelledby="home-featured-institutions-list-heading"
+      >
         <div className="featured-institutions-header">
           <div className="featured-institutions-header-left">
             <h2 className="featured-institutions-title" id="home-featured-institutions-list-heading">
@@ -170,64 +220,124 @@ export function HomeFeaturedInstitutionsList({
           </h2>
         </div>
       </div>
-      <div className="featured-institutions-body">
-        <div ref={featuredListRef} id="home-featured-grid" className="featured-institutions-list">
-          {paginatedFeaturedAccounts.map((entry) => {
-            if (entry.kind === "institution") {
-              const institution = entry.institution;
+
+      <div
+        className="home-featured-tabs"
+        role="tablist"
+        aria-label="Öne çıkan içerik türü"
+        ref={tablistRef}
+      >
+        <button
+          type="button"
+          role="tab"
+          id="home-featured-tab-institutions"
+          className={`home-featured-tab${
+            activeTab === "institutions" ? " home-featured-tab--active" : ""
+          }`}
+          aria-selected={activeTab === "institutions"}
+          aria-controls="home-featured-panel-institutions"
+          tabIndex={activeTab === "institutions" ? 0 : -1}
+          onClick={() => handleTabChange("institutions")}
+          onKeyDown={(event) => handleTabKeyDown(event, "institutions")}
+        >
+          Öne Çıkan Kurumlar
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="home-featured-tab-instructors"
+          className={`home-featured-tab${
+            activeTab === "instructors" ? " home-featured-tab--active" : ""
+          }`}
+          aria-selected={activeTab === "instructors"}
+          aria-controls="home-featured-panel-instructors"
+          tabIndex={activeTab === "instructors" ? 0 : -1}
+          onClick={() => handleTabChange("instructors")}
+          onKeyDown={(event) => handleTabKeyDown(event, "instructors")}
+        >
+          Öne Çıkan Eğitmenler
+        </button>
+      </div>
+
+      <div
+        className="featured-institutions-body"
+        role="tabpanel"
+        id={
+          activeTab === "institutions"
+            ? "home-featured-panel-institutions"
+            : "home-featured-panel-instructors"
+        }
+        aria-labelledby={
+          activeTab === "institutions"
+            ? "home-featured-tab-institutions"
+            : "home-featured-tab-instructors"
+        }
+      >
+        {paginatedFeaturedAccounts.length === 0 ? (
+          <p className="home-featured-empty">
+            {activeTab === "institutions"
+              ? "Öne çıkan kurum bulunamadı."
+              : "Öne çıkan eğitmen bulunamadı."}
+          </p>
+        ) : (
+          <div ref={featuredListRef} id="home-featured-grid" className="featured-institutions-list">
+            {paginatedFeaturedAccounts.map((entry) => {
+              if (entry.kind === "institution") {
+                const institution = entry.institution;
+                const canRenderImage =
+                  Boolean(institution.imageUrl) && !brokenInstitutionImageIds.has(institution.id);
+                const isFavorite = favoriteIds.has(institution.id);
+                const isActionLoading = favoriteActionLoadingIds.has(institution.id);
+
+                return (
+                  <FeaturedInstitutionCardLink
+                    key={`institution-${institution.id}`}
+                    institution={institution}
+                    isFavorite={isFavorite}
+                    isActionLoading={isActionLoading}
+                    favoritesEnabled={favoritesEnabled}
+                    isAuthenticated={isAuthenticated}
+                    canRenderImage={canRenderImage}
+                    onToggleFavorite={onToggleFavorite}
+                    onImageError={() =>
+                      setBrokenInstitutionImageIds((prev) => {
+                        const next = new Set(prev);
+                        next.add(institution.id);
+                        return next;
+                      })
+                    }
+                  />
+                );
+              }
+
+              const instructor = entry.instructor;
               const canRenderImage =
-                Boolean(institution.imageUrl) && !brokenInstitutionImageIds.has(institution.id);
-              const isFavorite = favoriteIds.has(institution.id);
-              const isActionLoading = favoriteActionLoadingIds.has(institution.id);
+                Boolean(instructor.imageUrl) && !brokenInstructorImageIds.has(instructor.id);
+              const isFavorite = favoriteInstructorIds.has(instructor.id);
+              const isActionLoading = favoriteInstructorActionLoadingIds.has(instructor.id);
 
               return (
-                <FeaturedInstitutionCardLink
-                  key={`institution-${institution.id}`}
-                  institution={institution}
+                <FeaturedInstructorCardLink
+                  key={`instructor-${instructor.id}`}
+                  instructor={instructor}
                   isFavorite={isFavorite}
                   isActionLoading={isActionLoading}
                   favoritesEnabled={favoritesEnabled}
                   isAuthenticated={isAuthenticated}
                   canRenderImage={canRenderImage}
-                  onToggleFavorite={onToggleFavorite}
+                  onToggleFavorite={onToggleInstructorFavorite}
                   onImageError={() =>
-                    setBrokenInstitutionImageIds((prev) => {
+                    setBrokenInstructorImageIds((prev) => {
                       const next = new Set(prev);
-                      next.add(institution.id);
+                      next.add(instructor.id);
                       return next;
                     })
                   }
                 />
               );
-            }
-
-            const instructor = entry.instructor;
-            const canRenderImage =
-              Boolean(instructor.imageUrl) && !brokenInstructorImageIds.has(instructor.id);
-            const isFavorite = favoriteInstructorIds.has(instructor.id);
-            const isActionLoading = favoriteInstructorActionLoadingIds.has(instructor.id);
-
-            return (
-              <FeaturedInstructorCardLink
-                key={`instructor-${instructor.id}`}
-                instructor={instructor}
-                isFavorite={isFavorite}
-                isActionLoading={isActionLoading}
-                favoritesEnabled={favoritesEnabled}
-                isAuthenticated={isAuthenticated}
-                canRenderImage={canRenderImage}
-                onToggleFavorite={onToggleInstructorFavorite}
-                onImageError={() =>
-                  setBrokenInstructorImageIds((prev) => {
-                    const next = new Set(prev);
-                    next.add(instructor.id);
-                    return next;
-                  })
-                }
-              />
-            );
-          })}
-        </div>
+            })}
+          </div>
+        )}
 
         {showPagination ? (
           <nav className="featured-institutions-pagination" aria-label="Öne çıkanlar sayfalama">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import Footer from "@/components/layout/Footer";
+import { AppSidebar } from "@/components/layout/AppSidebar";
 import { ClampedTextTooltipGlobal } from "@/components/ClampedTextTooltipGlobal";
 import { InstitutionCompareProvider } from "@/components/compare/InstitutionCompareProvider";
 import { InstitutionCompareBar } from "@/components/compare/InstitutionCompareBar";
@@ -46,6 +47,7 @@ export default function RootLayout({
         <InstitutionCompareProvider>
           <InstructorCompareProvider>
             <CompareConflictNoticeProvider>
+              <AppSidebar />
               {children}
               <InstitutionCompareBar />
               <InstructorCompareBar />

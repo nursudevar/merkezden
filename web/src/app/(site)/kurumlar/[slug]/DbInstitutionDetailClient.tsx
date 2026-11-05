@@ -53,6 +53,7 @@ import ShareButton from "./ShareButton";
 import AnnouncementDetailModal, {
   type AnnouncementDetailItem,
 } from "@/components/AnnouncementDetailModal";
+import { announcementPublicationCutoffIso } from "@/lib/announcementPublication";
 import {
   buildLocationAdMaps,
   formatAnnouncementLocationLabel,
@@ -430,11 +431,13 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
       const { data, error: qErr } = await supabase
         .from("announcements")
         .select(
-          "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, il_id, ilce_id, institution:institutions(institution_name)"
+          "id, title, content, announcement_image_url, link_url, announcement_tag, published_at, il_id, ilce_id, institution:institutions(institution_name)"
         )
         .eq("institution_id", row.id)
         .eq("is_active", true)
-        .order("created_at", { ascending: false });
+        .not("published_at", "is", null)
+        .gt("published_at", announcementPublicationCutoffIso())
+        .order("published_at", { ascending: false });
 
       if (cancelled) return;
 
@@ -454,7 +457,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
         announcement_image_url: string | null;
         link_url: string | null;
         announcement_tag: string | null;
-        created_at: string | null;
+        published_at: string | null;
         il_id?: number | null;
         ilce_id?: number | null;
         institution:
@@ -481,7 +484,7 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             imageUrl: r.announcement_image_url
               ? String(r.announcement_image_url).trim() || null
               : null,
-            createdAt: r.created_at ? String(r.created_at) : null,
+            publishedAt: r.published_at ? String(r.published_at) : null,
             institutionName: String(inst?.institution_name ?? "").trim(),
             linkUrl: r.link_url ? String(r.link_url).trim() || null : null,
             announcementTag: r.announcement_tag
@@ -1172,10 +1175,10 @@ export default function DbInstitutionDetailClient({ slug }: { slug: string }) {
             {item.content ? buildAnnouncementExcerpt(item.content, 220) : ""}
           </p>
           <div className="institution-announcement-meta">
-            {item.createdAt ? (
+            {item.publishedAt ? (
               <span className="institution-announcement-meta-item">
                 <CalendarDays className="institution-announcement-meta-icon" size={14} />
-                <span>{formatAnnouncementDateTr(item.createdAt)}</span>
+                <span>{formatAnnouncementDateTr(item.publishedAt)}</span>
               </span>
             ) : null}
             {item.locationLabel ? (

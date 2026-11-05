@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   fetchActiveHomepageBanners,
   type PublicHomepageBanner,
@@ -204,12 +211,23 @@ function HeroBannerSlideContent({
 
 type HeroTitleAs = "h1" | "p" | "div";
 
+type CarouselSlide =
+  | { kind: "db"; id: string; banner: HeroBannerSlide }
+  | { kind: "custom"; id: string; content: ReactNode };
+
+const LEADING_DRIVING_SLIDE_ID = "driving-schools";
+
 interface HomeHeroSearchBannerProps {
   /** Semantic title tag. Use non-h1 on pages that already have a page H1. */
   titleAs?: HeroTitleAs;
+  /** Optional first carousel slide (e.g. Sürücü Kursları banner on /surucu-kursu). */
+  leadingSlide?: ReactNode;
 }
 
-export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerProps = {}) {
+export function HomeHeroSearchBanner({
+  titleAs = "h1",
+  leadingSlide,
+}: HomeHeroSearchBannerProps = {}) {
   const [dbBanners, setDbBanners] = useState<PublicHomepageBanner[]>(() => cachedActiveBanners);
   const [hasFetched, setHasFetched] = useState(hasCachedFetch);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -226,6 +244,7 @@ export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerPro
   const isPausedRef = useRef(false);
   const intervalRef = useRef<number | null>(null);
   const prevBannerListKeyRef = useRef(getBannerListKey(cachedActiveBanners));
+  const hasLeadingSlide = Boolean(leadingSlide);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
@@ -235,12 +254,30 @@ export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerPro
     if (dbBanners.length > 0) {
       return dbBanners.map(mapPublicBanner);
     }
+    // Leading custom slide varken fallback ekleme; aksi halde tek slide fallback.
+    if (hasLeadingSlide) return [];
     return [{ ...FALLBACK_BANNER, isFallback: true }];
-  }, [dbBanners]);
+  }, [dbBanners, hasLeadingSlide]);
 
-  const bannerCount = sourceBanners.length;
-  const enableCarousel = hasFetched && dbBanners.length > 1;
-  const bannerListKey = useMemo(() => getBannerListKey(dbBanners), [dbBanners]);
+  const sourceSlides = useMemo<CarouselSlide[]>(() => {
+    const dbSlides: CarouselSlide[] = sourceBanners.map((banner) => ({
+      kind: "db",
+      id: banner.id,
+      banner,
+    }));
+    if (!leadingSlide) return dbSlides;
+    return [
+      { kind: "custom", id: LEADING_DRIVING_SLIDE_ID, content: leadingSlide },
+      ...dbSlides,
+    ];
+  }, [leadingSlide, sourceBanners]);
+
+  const bannerCount = sourceSlides.length;
+  const enableCarousel = hasFetched && bannerCount > 1;
+  const bannerListKey = useMemo(
+    () => `${hasLeadingSlide ? `${LEADING_DRIVING_SLIDE_ID}\0` : ""}${getBannerListKey(dbBanners)}`,
+    [dbBanners, hasLeadingSlide],
+  );
 
   useEffect(() => {
     bannerCountRef.current = bannerCount;
@@ -370,35 +407,35 @@ export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerPro
   }, [clearAutoplayInterval]);
 
   const trackSlides = useMemo(() => {
-    if (!enableCarousel) return sourceBanners;
-    return [...sourceBanners, sourceBanners[0]];
-  }, [enableCarousel, sourceBanners]);
+    if (!enableCarousel) return sourceSlides;
+    return [...sourceSlides, sourceSlides[0]];
+  }, [enableCarousel, sourceSlides]);
 
   const safeActiveIndex = useMemo(() => {
     if (!enableCarousel) return 0;
-    const maxIndex = sourceBanners.length;
+    const maxIndex = sourceSlides.length;
     if (activeIndex < 0 || activeIndex > maxIndex) return 0;
     return activeIndex;
-  }, [activeIndex, enableCarousel, sourceBanners.length]);
+  }, [activeIndex, enableCarousel, sourceSlides.length]);
 
   const dotActiveIndex =
-    enableCarousel && safeActiveIndex >= sourceBanners.length ? 0 : safeActiveIndex;
+    enableCarousel && safeActiveIndex >= sourceSlides.length ? 0 : safeActiveIndex;
 
   const goToSlide = useCallback(
     (index: number, withTransition = true) => {
-      if (!enableCarousel || sourceBanners.length <= 1) return;
+      if (!enableCarousel || sourceSlides.length <= 1) return;
       const normalized =
-        ((index % sourceBanners.length) + sourceBanners.length) % sourceBanners.length;
+        ((index % sourceSlides.length) + sourceSlides.length) % sourceSlides.length;
       setTransitionEnabled(withTransition);
       setActiveIndex(normalized);
       restartAutoplay();
     },
-    [enableCarousel, restartAutoplay, sourceBanners.length],
+    [enableCarousel, restartAutoplay, sourceSlides.length],
   );
 
   const handleTrackTransitionEnd = useCallback(() => {
     if (!enableCarousel) return;
-    if (activeIndexRef.current !== sourceBanners.length) return;
+    if (activeIndexRef.current !== sourceSlides.length) return;
 
     setTransitionEnabled(false);
     setActiveIndex(0);
@@ -409,12 +446,32 @@ export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerPro
         setTransitionEnabled(true);
       });
     });
-  }, [enableCarousel, sourceBanners.length]);
+  }, [enableCarousel, sourceSlides.length]);
 
-  const displayBanner = sourceBanners[0] ?? { ...FALLBACK_BANNER, isFallback: true };
+  const renderSlideContent = (slide: CarouselSlide, isActive: boolean) => {
+    if (slide.kind === "custom") return slide.content;
+    return (
+      <HeroBannerSlideContent
+        banner={slide.banner}
+        isActive={isActive}
+        isTabHidden={isTabHidden}
+        prefersReducedMotion={prefersReducedMotion}
+        titleAs={titleAs}
+      />
+    );
+  };
+
+  const displaySlide = sourceSlides[0];
 
   return (
-    <section className="hero-search">
+    <section
+      className={[
+        "hero-search",
+        hasLeadingSlide ? "hero-search--with-driving-slide" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div
         className="hero-search-container"
         onMouseEnter={() => setIsHoverPaused(true)}
@@ -431,37 +488,26 @@ export function HomeHeroSearchBanner({ titleAs = "h1" }: HomeHeroSearchBannerPro
             style={{ transform: `translate3d(-${safeActiveIndex * 100}%, 0, 0)` }}
             onTransitionEnd={handleTrackTransitionEnd}
           >
-            {trackSlides.map((banner, index) => (
+            {trackSlides.map((slide, index) => (
               <div
-                key={`${banner.id}-${index}`}
+                key={`${slide.id}-${index}`}
                 className="hero-search-slide"
-                aria-hidden={index !== safeActiveIndex && index !== sourceBanners.length}
+                aria-hidden={index !== safeActiveIndex && index !== sourceSlides.length}
               >
-                <HeroBannerSlideContent
-                  banner={banner}
-                  isActive={index === safeActiveIndex}
-                  isTabHidden={isTabHidden}
-                  prefersReducedMotion={prefersReducedMotion}
-                  titleAs={titleAs}
-                />
+                {renderSlideContent(slide, index === safeActiveIndex)}
               </div>
             ))}
           </div>
-        ) : (
-          <HeroBannerSlideContent
-            banner={displayBanner}
-            isTabHidden={isTabHidden}
-            prefersReducedMotion={prefersReducedMotion}
-            titleAs={titleAs}
-          />
-        )}
+        ) : displaySlide ? (
+          renderSlideContent(displaySlide, true)
+        ) : null}
       </div>
 
       {enableCarousel ? (
         <div className="hero-search-dots" role="tablist" aria-label="Banner seçimi">
-          {sourceBanners.map((banner, index) => (
+          {sourceSlides.map((slide, index) => (
             <button
-              key={banner.id}
+              key={slide.id}
               type="button"
               role="tab"
               className={[

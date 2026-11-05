@@ -88,7 +88,7 @@ export function HomeBlogSection() {
       </div>
 
       <div className="blog-section-button-wrapper">
-        <Link href="/blog-yazilari">
+        <Link href="/blog-yazilari" target="_blank" rel="noopener noreferrer">
           <button type="button" className="blog-section-button">
             Daha fazlasını gör
           </button>

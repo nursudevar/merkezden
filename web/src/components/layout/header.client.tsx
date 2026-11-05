@@ -26,6 +26,8 @@ import {
   UserPlus,
   ListOrdered,
 } from "lucide-react";
+import { HeaderAnnouncementBell } from "@/components/layout/HeaderAnnouncementBell";
+import { QuickAccessMobileAccordion } from "@/components/layout/QuickAccessMobileAccordion";
 
 const NASIL_CALISIR_HREF = "/nasil-calisir";
 
@@ -74,6 +76,8 @@ interface HeaderWithSearchClientProps {
   searchTypewriterPlaceholders?: readonly string[];
   searchButtonText?: string;
   showSearchButton?: boolean;
+  /** Ana sayfa arama focus öneri paneli. */
+  enableSearchFocusSuggestions?: boolean;
   /** Opsiyonel orta alan (ör. yalnızca blog sayfası BlogSearch). */
   headerCenter?: ReactNode;
 }
@@ -93,6 +97,7 @@ export function HeaderWithSearchClient({
   searchTypewriterPlaceholders,
   searchButtonText,
   showSearchButton = true,
+  enableSearchFocusSuggestions = false,
   headerCenter,
 }: HeaderWithSearchClientProps) {
   const welcomeName =
@@ -182,6 +187,8 @@ export function HeaderWithSearchClient({
             <div className="header-brand">
               <HeaderBrandLogo />
             </div>
+            <div className="header-mobile-tools">
+            <HeaderAnnouncementBell placement="mobile" />
             <div className="header-hamburger header-hamburger-mobile" ref={menuRef}>
               <button
                 type="button"
@@ -228,6 +235,7 @@ export function HeaderWithSearchClient({
                         </div>
                       </div>
                     ))}
+                  <QuickAccessMobileAccordion onNavigate={() => setMenuOpen(false)} />
                   {user && userType === "individual" && shouldShowCTA && (
                     <Link href={getCTAHref()} className="header-hamburger-link" onClick={() => setMenuOpen(false)}>
                       <User className="header-hamburger-icon" aria-hidden />
@@ -301,6 +309,7 @@ export function HeaderWithSearchClient({
                 </div>
               )}
             </div>
+            </div>
           </div>
           {(headerCenter || onSearchChange) && (
             <div className={`header-search${headerCenter ? " header-search--blog" : ""}`}>
@@ -312,6 +321,7 @@ export function HeaderWithSearchClient({
                   typewriterPlaceholders={searchTypewriterPlaceholders}
                   buttonText={searchButtonText || "ARA"}
                   showButton={showSearchButton}
+                  enableFocusSuggestions={enableSearchFocusSuggestions}
                 />
               )}
             </div>
@@ -334,6 +344,7 @@ export function HeaderWithSearchClient({
               </>
             ) : (
               <div className="header-actions-auth">
+                <HeaderAnnouncementBell placement="desktop" />
                 <Link href="/giris">
                   <Button className="button-primary btn-gradient-primary" variant="default">
                     GİRİŞ YAP
@@ -352,6 +363,8 @@ export function HeaderWithSearchClient({
               </div>
             )}
             {user ? (
+            <>
+            <HeaderAnnouncementBell placement="desktop" />
             <div className={`header-actions-desktop-menu ${desktopMenuOpen ? "is-open" : ""}`} ref={menuRefDesktop}>
                 <Button
                   type="button"
@@ -461,6 +474,7 @@ export function HeaderWithSearchClient({
                 </div>
               )}
             </div>
+            </>
             ) : null}
           </div>
         </div>
@@ -514,6 +528,7 @@ interface HeaderWithSearchProps {
   searchTypewriterPlaceholders?: readonly string[];
   searchButtonText?: string;
   showSearchButton?: boolean;
+  enableSearchFocusSuggestions?: boolean;
 }
 
 export function HeaderWithSearch({
@@ -523,6 +538,7 @@ export function HeaderWithSearch({
   searchTypewriterPlaceholders,
   searchButtonText,
   showSearchButton,
+  enableSearchFocusSuggestions = false,
 }: HeaderWithSearchProps) {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userType, setUserType] = useState<AppUserType | null>(null);
@@ -695,6 +711,7 @@ export function HeaderWithSearch({
       searchTypewriterPlaceholders={searchTypewriterPlaceholders}
       searchButtonText={searchButtonText}
       showSearchButton={showSearchButton}
+      enableSearchFocusSuggestions={enableSearchFocusSuggestions}
     />
   );
 }

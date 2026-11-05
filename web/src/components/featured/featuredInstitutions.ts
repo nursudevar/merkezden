@@ -31,52 +31,6 @@ export type HomeFeaturedAccountItem =
   | { kind: "institution"; institution: FeaturedInstitution }
   | { kind: "instructor"; instructor: FeaturedInstructorItem };
 
-/** Öne çıkanlar sayfasındaki 8 ana kategori bölümü */
-export const FEATURED_PAGE_CATEGORY_SECTIONS: ReadonlyArray<{
-  heading: string;
-  matchKeys: readonly string[];
-}> = [
-  { heading: "Okul Kategorisinde Öne Çıkanlar", matchKeys: ["okul"] },
-  {
-    heading: "Kurs & Sınava Hazırlık Kategorisinde Öne Çıkanlar",
-    matchKeys: ["kurs sinava hazirlik", "kurs ve sinava hazirlik", "sinava hazirlik"],
-  },
-  { heading: "Özel Eğitim Kategorisinde Öne Çıkanlar", matchKeys: ["ozel egitim"] },
-  { heading: "Kişisel Gelişim Kategorisinde Öne Çıkanlar", matchKeys: ["kisisel gelisim"] },
-  { heading: "Mesleki Eğitim Kategorisinde Öne Çıkanlar", matchKeys: ["mesleki egitim"] },
-  { heading: "Spor Kategorisinde Öne Çıkanlar", matchKeys: ["spor"] },
-  { heading: "Sanat Kategorisinde Öne Çıkanlar", matchKeys: ["sanat"] },
-  {
-    heading: "Yabancı Dil Kategorisinde Öne Çıkanlar",
-    matchKeys: ["yabanci dil", "yabanci diller"],
-  },
-];
-
-export function normalizeCategoryKeyForFeatured(value: string): string {
-  return String(value ?? "")
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ı/g, "i")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-export function institutionMatchesFeaturedCategory(
-  institution: { bodyMainCategory: string },
-  matchKeys: readonly string[],
-): boolean {
-  const nameKey = normalizeCategoryKeyForFeatured(institution.bodyMainCategory);
-  return matchKeys.some((k) => {
-    const key = normalizeCategoryKeyForFeatured(k);
-    if (!key) return false;
-    if (nameKey === key) return true;
-    if (nameKey.includes(key)) return true;
-    if (key.includes(nameKey) && nameKey.length >= 4) return true;
-    return false;
-  });
-}
-
 function resolveInstitutionCategoryName(row: Record<string, unknown>): string {
   const typeJoin = row.institution_type;
   const typeRow = Array.isArray(typeJoin) ? typeJoin[0] : typeJoin;
@@ -401,6 +355,40 @@ export async function fetchHomeFeaturedAccountsFromFeaturedAccounts(
   }
 
   return { items: result, failed: false };
+}
+
+type HomeFeaturedAccountsLoadResult = {
+  items: HomeFeaturedAccountItem[];
+  failed: boolean;
+};
+
+/** Ana sayfa oturumu boyunca tek fetch — panel aç/kapa yeni Supabase sorgusu üretmez. */
+let homeFeaturedAccountsShared: Promise<HomeFeaturedAccountsLoadResult> | null = null;
+let homeFeaturedAccountsResolved: HomeFeaturedAccountsLoadResult | null = null;
+
+export function loadHomeFeaturedAccountsShared(
+  supabase: SupabaseBrowser,
+): Promise<HomeFeaturedAccountsLoadResult> {
+  if (homeFeaturedAccountsResolved) {
+    return Promise.resolve(homeFeaturedAccountsResolved);
+  }
+  if (!homeFeaturedAccountsShared) {
+    homeFeaturedAccountsShared = fetchHomeFeaturedAccountsFromFeaturedAccounts(supabase)
+      .then((result) => {
+        homeFeaturedAccountsResolved = result;
+        return result;
+      })
+      .finally(() => {
+        homeFeaturedAccountsShared = null;
+      });
+  }
+  return homeFeaturedAccountsShared;
+}
+
+/** Öne çıkanlar listesi retry öncesi paylaşılan sonucu geçersiz kılar. */
+export function invalidateHomeFeaturedAccountsShared(): void {
+  homeFeaturedAccountsShared = null;
+  homeFeaturedAccountsResolved = null;
 }
 
 export async function fetchHomeFeaturedPinnedInstructorRow(

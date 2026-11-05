@@ -208,14 +208,24 @@ export function HomeMainCategoryCard({
   return (
     <article className="home-main-category-card">
       {categoryHref ? (
-        <Link href={categoryHref} className="home-main-category-card-nav">
+        <Link
+          href={categoryHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="home-main-category-card-nav"
+        >
           {categoryNavContent}
         </Link>
       ) : (
         <div className="home-main-category-card-nav">{categoryNavContent}</div>
       )}
       {categoryHref ? (
-        <Link href={categoryHref} className="home-main-category-card-more-btn">
+        <Link
+          href={categoryHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="home-main-category-card-more-btn"
+        >
           Daha Fazla Gör
         </Link>
       ) : null}

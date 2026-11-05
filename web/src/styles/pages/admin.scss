@@ -1587,6 +1587,27 @@
   }
 }
 
+.admin-announcements-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 30px 0;
+
+  @media (max-width: 640px) {
+    padding: 16px 20px 0;
+  }
+
+  .admin-announcements-pagination {
+    padding: 0;
+  }
+}
+
+.admin-announcements-audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .admin-main-card-content--announcements {
   padding: 0px 0 20px;
 

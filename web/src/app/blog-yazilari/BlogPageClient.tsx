@@ -412,7 +412,13 @@ function PostList({ posts, emptyMessage }: PostListProps) {
   return (
     <div className="blog-posts-list">
       {posts.map((post, index) => (
-        <Link key={post.slug || index} href={`/blog-yazilari/${post.slug}`} className="blog-list-item-link">
+        <Link
+          key={post.slug || index}
+          href={`/blog-yazilari/${post.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="blog-list-item-link"
+        >
           <article className="blog-list-item">
             <div className="blog-list-item-image-wrapper">
               <Image

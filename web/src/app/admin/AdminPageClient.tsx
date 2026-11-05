@@ -25,6 +25,8 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { AdminAnnouncementsTab, type AdminAnnouncementsTabHandle } from "./AdminAnnouncementsTab";
+import { isAnnouncementExpiredWhileActive } from "@/lib/announcementPublication";
 import { AdminHomepageBannersTab } from "./AdminHomepageBannersTab";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
@@ -53,6 +55,15 @@ import {
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import { fetchInstructorEgitmenProfiliLabelsByInstructorIds } from "@/lib/instructorFeaturesClient";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  extractStoragePathFromPublicUrl,
+  INSTRUCTOR_MEDIA_BUCKET,
+} from "@/lib/instructorMediaClient";
+import {
+  INSTRUCTOR_ANNOUNCEMENT_LINK_URL_ERROR,
+  isValidOptionalAnnouncementLinkUrl,
+  normalizeAnnouncementLinkUrl,
+} from "@/lib/instructorAnnouncementsClient";
 import {
   fetchIller,
   fetchIlcelerByIlId,
@@ -228,14 +239,19 @@ type InstructorEditForm = {
   ilceId: string;
 };
 
+type AnnouncementListSource = "institution" | "instructor";
+
 type AnnouncementListRow = {
   id: string;
   title: string | null;
   content: string | null;
   announcement_image_url: string | null;
+  image_path: string | null;
   link_url: string | null;
   created_at: string | null;
+  published_at: string | null;
   is_active: boolean | null;
+  source: AnnouncementListSource;
 };
 
 type AnnouncementEditForm = {
@@ -278,7 +294,13 @@ type DeleteConfirmTarget =
   | { type: "individual-user"; id: number }
   | { type: "institution"; id: number }
   | { type: "instructor"; id: number }
-  | { type: "announcement"; id: string }
+  | {
+      type: "announcement";
+      id: string;
+      source: AnnouncementListSource;
+      imageUrl: string | null;
+      imagePath: string | null;
+    }
   | { type: "blog-post"; id: string };
 
 type ApprovalDecisionTarget = {
@@ -376,6 +398,111 @@ function useAdminModalBackdropClose() {
   }, []);
 
   return { onBackdropPointerDown, getBackdropClickHandler };
+}
+
+function AnnouncementListThumb({ url }: { url: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const trimmed = String(url ?? "").trim();
+
+  if (!trimmed || failed) {
+    return (
+      <div className="egitmen-panel-announcements-thumb egitmen-panel-announcements-thumb--fallback" aria-hidden>
+        <ImageIcon className="egitmen-panel-announcements-thumb-icon" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={trimmed}
+      alt=""
+      className="egitmen-panel-announcements-thumb egitmen-panel-announcements-thumb--image"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+const INSTITUTION_ANNOUNCEMENT_BUCKET = "institution-media";
+const INSTITUTION_ANNOUNCEMENT_PATH = /^institutions\/\d+\/announcements\/[^/]+$/;
+const INSTRUCTOR_ANNOUNCEMENT_PATH = /^instructors\/\d+\/announcements\/[^/]+$/;
+
+function isAnnouncementStoragePath(path: string, pattern: RegExp): boolean {
+  return !path.includes("..") && !path.includes("\\") && pattern.test(path);
+}
+
+function resolveDeletedAnnouncementImage(
+  source: AnnouncementListSource,
+  imageUrl: string | null,
+  imagePath: string | null,
+): { bucket: string; path: string } | null {
+  if (source === "institution") {
+    const path = extractStoragePathFromPublicUrl(
+      String(imageUrl ?? ""),
+      INSTITUTION_ANNOUNCEMENT_BUCKET,
+    );
+    if (!path || !isAnnouncementStoragePath(path, INSTITUTION_ANNOUNCEMENT_PATH)) return null;
+    return { bucket: INSTITUTION_ANNOUNCEMENT_BUCKET, path };
+  }
+
+  const rawPath = String(imagePath ?? "").trim();
+  const path = rawPath
+    ? rawPath.includes("://")
+      ? extractStoragePathFromPublicUrl(rawPath, INSTRUCTOR_MEDIA_BUCKET)
+      : rawPath.replace(/^\/+/, "")
+    : extractStoragePathFromPublicUrl(String(imageUrl ?? ""), INSTRUCTOR_MEDIA_BUCKET);
+  if (!path || !isAnnouncementStoragePath(path, INSTRUCTOR_ANNOUNCEMENT_PATH)) return null;
+  return { bucket: INSTRUCTOR_MEDIA_BUCKET, path };
+}
+
+function announcementImageLikePattern(path: string): string {
+  const escaped = path.replace(/[\\%_]/g, (char) => `\\${char}`);
+  return `%${escaped}%`;
+}
+
+async function otherAnnouncementReferencesImage(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  path: string,
+  imageUrl: string | null,
+): Promise<boolean | null> {
+  const like = announcementImageLikePattern(path);
+  const checks = [
+    supabase.from("announcements").select("id").ilike("announcement_image_url", like).limit(1),
+    supabase.from("instructor_announcements").select("id").eq("image_path", path).limit(1),
+    supabase.from("instructor_announcements").select("id").ilike("image_url", like).limit(1),
+  ];
+  if (imageUrl) {
+    checks.push(
+      supabase.from("announcements").select("id").eq("announcement_image_url", imageUrl).limit(1),
+      supabase.from("instructor_announcements").select("id").eq("image_url", imageUrl).limit(1),
+    );
+  }
+
+  for (const query of checks) {
+    const { data, error } = await query;
+    if (error) {
+      console.error("[admin] announcement image reference check", error);
+      return null;
+    }
+    if ((data ?? []).length > 0) return true;
+  }
+  return false;
+}
+
+async function removeUnreferencedAnnouncementImage(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  source: AnnouncementListSource,
+  imageUrl: string | null,
+  imagePath: string | null,
+) {
+  const target = resolveDeletedAnnouncementImage(source, imageUrl, imagePath);
+  if (!target) return;
+
+  const referenced = await otherAnnouncementReferencesImage(supabase, target.path, imageUrl);
+  if (referenced !== false) return;
+
+  const { error } = await supabase.storage.from(target.bucket).remove([target.path]);
+  if (error) console.error("[admin] announcement image cleanup", error);
 }
 
 function formatAnnouncementDate(value: string | null): string {
@@ -592,6 +719,10 @@ export default function AdminPageClient() {
   const [approvalDecisionError, setApprovalDecisionError] = useState<string | null>(null);
   const [approvalDecisionLoading, setApprovalDecisionLoading] = useState(false);
   const [approvalSuccessMessage, setApprovalSuccessMessage] = useState<string | null>(null);
+  const [announcementAudience, setAnnouncementAudience] = useState<
+    "admin" | AnnouncementListSource
+  >("admin");
+  const adminAnnouncementsRef = useRef<AdminAnnouncementsTabHandle>(null);
   const [announcementsList, setAnnouncementsList] = useState<AnnouncementListRow[]>([]);
   const [announcementsListLoading, setAnnouncementsListLoading] = useState(false);
   const [announcementsListError, setAnnouncementsListError] = useState<string | null>(null);
@@ -692,18 +823,24 @@ export default function AdminPageClient() {
       "id"
     );
 
-    void loadCount(
-      "announcements",
-      (count) => {
-        setAnnouncementsCount(count);
-        setAnnouncementsError(null);
-      },
-      () => {
+    void (async () => {
+      const [institutionRes, instructorRes, adminRes] = await Promise.all([
+        supabase.from("announcements").select("id", { count: "exact", head: true }),
+        supabase.from("instructor_announcements").select("id", { count: "exact", head: true }),
+        supabase.from("admin_announcements").select("id", { count: "exact", head: true }),
+      ]);
+      if (cancelled) return;
+      if (institutionRes.error || instructorRes.error || adminRes.error) {
         setAnnouncementsCount(null);
         setAnnouncementsError("Duyuru sayısı alınamadı.");
-      },
-      () => setAnnouncementsLoading(false)
-    );
+      } else {
+        setAnnouncementsCount(
+          (institutionRes.count ?? 0) + (instructorRes.count ?? 0) + (adminRes.count ?? 0),
+        );
+        setAnnouncementsError(null);
+      }
+      setAnnouncementsLoading(false);
+    })();
 
     void loadCount(
       "instructors",
@@ -1243,9 +1380,10 @@ export default function AdminPageClient() {
   }, [activeTab, pendingApprovalsReloadKey]);
 
   useEffect(() => {
-    if (activeTab !== "announcements") return;
+    if (activeTab !== "announcements" || announcementAudience === "admin") return;
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
+    const listSource: AnnouncementListSource = announcementAudience;
 
     const loadAnnouncementsPage = async () => {
       setAnnouncementsListLoading(true);
@@ -1254,13 +1392,22 @@ export default function AdminPageClient() {
       const from = (announcementsPage - 1) * ANNOUNCEMENTS_PAGE_SIZE;
       const to = from + ANNOUNCEMENTS_PAGE_SIZE - 1;
 
-      let announcementsQuery = supabase
-        .from("announcements")
-        .select(
-          "id, title, content, announcement_image_url, link_url, created_at, is_active",
-          { count: "exact" }
-        )
-        .order("created_at", { ascending: false });
+      const announcementsQueryBase =
+        listSource === "instructor"
+          ? supabase
+              .from("instructor_announcements")
+              .select(
+                "id, title, content, image_url, image_path, link_url, created_at, published_at, is_active",
+                { count: "exact" },
+              )
+          : supabase
+              .from("announcements")
+              .select(
+                "id, title, content, announcement_image_url, link_url, created_at, published_at, is_active",
+                { count: "exact" },
+              );
+
+      let announcementsQuery = announcementsQueryBase.order("created_at", { ascending: false });
 
       const normalizedSearch = announcementsSearchQuery.trim();
       if (normalizedSearch.length > 0) {
@@ -1281,7 +1428,23 @@ export default function AdminPageClient() {
         return;
       }
 
-      setAnnouncementsList((data ?? []) as AnnouncementListRow[]);
+      setAnnouncementsList(
+        ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+          id: String(row.id ?? ""),
+          title: (row.title as string | null) ?? null,
+          content: (row.content as string | null) ?? null,
+          announcement_image_url:
+            String(
+              (listSource === "instructor" ? row.image_url : row.announcement_image_url) ?? "",
+            ).trim() || null,
+          image_path: String(row.image_path ?? "").trim() || null,
+          link_url: (row.link_url as string | null) ?? null,
+          created_at: (row.created_at as string | null) ?? null,
+          published_at: (row.published_at as string | null) ?? null,
+          is_active: row.is_active === true,
+          source: listSource,
+        })),
+      );
       setAnnouncementsTotalCount(count ?? 0);
       setAnnouncementsListLoading(false);
     };
@@ -1291,7 +1454,7 @@ export default function AdminPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, announcementsPage, announcementsReloadKey, announcementsSearchQuery]);
+  }, [activeTab, announcementAudience, announcementsPage, announcementsReloadKey, announcementsSearchQuery]);
 
   useEffect(() => {
     if (activeTab !== "blog-posts") return;
@@ -2111,24 +2274,44 @@ export default function AdminPageClient() {
       setAnnouncementEditError("İçerik zorunludur.");
       return;
     }
+    if (!isValidOptionalAnnouncementLinkUrl(announcementEditForm.announcementImageUrl)) {
+      setAnnouncementEditError("Lütfen geçerli bir görsel adresi girin.");
+      return;
+    }
+    if (!isValidOptionalAnnouncementLinkUrl(announcementEditForm.linkUrl)) {
+      setAnnouncementEditError(INSTRUCTOR_ANNOUNCEMENT_LINK_URL_ERROR);
+      return;
+    }
 
     setAnnouncementEditSaving(true);
     setAnnouncementEditError(null);
     const supabase = createSupabaseBrowserClient();
 
     try {
-      const { error } = await supabase
-        .from("announcements")
-        .update({
-          title,
-          content,
-          announcement_image_url: announcementEditForm.announcementImageUrl.trim() || null,
-          link_url: announcementEditForm.linkUrl.trim() || null,
-          is_active: announcementEditForm.isActive,
-        })
-        .eq("id", editingAnnouncement.id);
+      const imageUrl = normalizeAnnouncementLinkUrl(announcementEditForm.announcementImageUrl);
+      const payload = {
+        title,
+        content,
+        link_url: normalizeAnnouncementLinkUrl(announcementEditForm.linkUrl),
+        is_active: announcementEditForm.isActive,
+      };
+      const { data, error } =
+        editingAnnouncement.source === "instructor"
+          ? await supabase
+              .from("instructor_announcements")
+              .update({ ...payload, image_url: imageUrl })
+              .eq("id", Number(editingAnnouncement.id))
+              .select("id")
+              .maybeSingle()
+          : await supabase
+              .from("announcements")
+              .update({ ...payload, announcement_image_url: imageUrl })
+              .eq("id", editingAnnouncement.id)
+              .select("id")
+              .maybeSingle();
 
-      if (error) {
+      if (error || !data) {
+        console.error("[admin] announcement update", error ?? "no row returned");
         setAnnouncementEditError("Duyuru güncellenemedi.");
         return;
       }
@@ -2140,9 +2323,20 @@ export default function AdminPageClient() {
     }
   };
 
-  const handleRequestDeleteAnnouncement = (announcementId: string) => {
+  const handleRequestDeleteAnnouncement = (
+    announcementId: string,
+    source: AnnouncementListSource,
+    imageUrl: string | null,
+    imagePath: string | null,
+  ) => {
     setDeleteConfirmError(null);
-    setDeleteConfirmTarget({ type: "announcement", id: announcementId });
+    setDeleteConfirmTarget({
+      type: "announcement",
+      id: announcementId,
+      source,
+      imageUrl,
+      imagePath,
+    });
   };
 
   const handleOpenIndividualUserEdit = (row: IndividualUserListRow) => {
@@ -2447,10 +2641,35 @@ export default function AdminPageClient() {
       setDeletingAnnouncementId(announcementId);
       setDeleteConfirmError(null);
       try {
-        const { error } = await supabase.from("announcements").delete().eq("id", announcementId);
-        if (error) {
+        const { data, error } =
+          deleteConfirmTarget.source === "instructor"
+            ? await supabase
+                .from("instructor_announcements")
+                .delete()
+                .eq("id", Number(announcementId))
+                .select("id")
+                .maybeSingle()
+            : await supabase
+                .from("announcements")
+                .delete()
+                .eq("id", announcementId)
+                .select("id")
+                .maybeSingle();
+        if (error || !data) {
+          console.error("[admin] announcement delete", error ?? "no row returned");
           setDeleteConfirmError("Duyuru silinirken bir hata oluştu.");
           return;
+        }
+
+        try {
+          await removeUnreferencedAnnouncementImage(
+            supabase,
+            deleteConfirmTarget.source,
+            deleteConfirmTarget.imageUrl,
+            deleteConfirmTarget.imagePath,
+          );
+        } catch (cleanupError) {
+          console.error("[admin] announcement image cleanup", cleanupError);
         }
 
         const nextTotal = Math.max(0, announcementsTotalCount - 1);
@@ -2589,8 +2808,9 @@ export default function AdminPageClient() {
       id: row.id,
       title: String(row.title ?? "").trim() || "-",
       contentPreview: buildAnnouncementContentPreview(row.content),
-      linkUrl: String(row.link_url ?? "").trim() || "-",
+      imageUrl: String(row.announcement_image_url ?? "").trim() || null,
       isActive: row.is_active === true,
+      expired: isAnnouncementExpiredWhileActive(row.is_active === true, row.published_at),
       createdAt: formatAnnouncementDate(row.created_at),
       sourceRow: row,
     }));
@@ -3587,118 +3807,192 @@ export default function AdminPageClient() {
           {activeTab === "announcements" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content admin-main-card-content--announcements">
-                <div className="admin-main-card-header admin-main-card-header--announcements">
-                  <div className="admin-announcements-header-left">
-                    <h1 className="admin-main-card-title">Duyurular</h1>
-                    <span className="admin-announcements-total-badge">
-                      {`${announcementsTotalCount.toLocaleString("tr-TR")} TOPLAM`}
-                    </span>
-                  </div>
-                  <div className="admin-announcements-header-actions">
-                    <div className="admin-announcements-header-search">
-                      <input
-                        type="text"
-                        className="admin-announcements-page-search-input"
-                        value={announcementsSearchInput}
-                        onChange={(event) => setAnnouncementsSearchInput(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            handleAnnouncementSearch();
-                          }
-                        }}
-                        placeholder="Duyuru ara"
-                      />
-                      <button
-                        type="button"
-                        className="admin-announcements-page-jump-btn"
-                        onClick={handleAnnouncementSearch}
-                      >
-                        Ara
-                      </button>
+                <div className="egitmen-panel-announcements-header">
+                  <div className="egitmen-panel-announcements-header-left">
+                    <Megaphone className="egitmen-panel-main-card-icon" aria-hidden />
+                    <div className="egitmen-panel-announcements-header-text">
+                      <h2 className="egitmen-panel-main-card-title">İçerikler &amp; Duyurular</h2>
+                      <p className="egitmen-panel-announcements-subtitle">
+                        {announcementAudience === "admin"
+                          ? "Merkezden duyurularını buradan yönetin."
+                          : announcementAudience === "institution"
+                            ? "Kurum profillerinde yayınlanan duyuruları buradan yönetin."
+                            : "Eğitmen profillerinde yayınlanan duyuruları buradan yönetin."}
+                      </p>
                     </div>
                   </div>
+                  {announcementAudience === "admin" ? (
+                    <button
+                      type="button"
+                      className="egitmen-panel-announcements-add-btn"
+                      onClick={() => adminAnnouncementsRef.current?.openCreate()}
+                    >
+                      <Plus className="egitmen-panel-announcements-add-btn-icon" aria-hidden />
+                      Yeni Duyuru
+                    </button>
+                  ) : null}
                 </div>
 
-                {announcementsListLoading ? (
-                  <div className="admin-announcements-empty">Yükleniyor...</div>
+                <div className="admin-announcements-panel-body">
+                <div className="admin-announcements-audience" role="tablist" aria-label="Duyuru türü">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={announcementAudience === "admin"}
+                    className={`admin-approval-requests-filter-btn${
+                      announcementAudience === "admin" ? " admin-approval-requests-filter-btn--active" : ""
+                    }`}
+                    onClick={() => {
+                      setAnnouncementAudience("admin");
+                      setAnnouncementsPage(1);
+                      setAnnouncementsPageInput("1");
+                    }}
+                  >
+                    Admin Duyuruları
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={announcementAudience === "institution"}
+                    className={`admin-approval-requests-filter-btn${
+                      announcementAudience === "institution"
+                        ? " admin-approval-requests-filter-btn--active"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      setAnnouncementAudience("institution");
+                      setAnnouncementsPage(1);
+                      setAnnouncementsPageInput("1");
+                    }}
+                  >
+                    Kurum Duyuruları
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={announcementAudience === "instructor"}
+                    className={`admin-approval-requests-filter-btn${
+                      announcementAudience === "instructor"
+                        ? " admin-approval-requests-filter-btn--active"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      setAnnouncementAudience("instructor");
+                      setAnnouncementsPage(1);
+                      setAnnouncementsPageInput("1");
+                    }}
+                  >
+                    Eğitmen Duyuruları
+                  </button>
+                </div>
+
+                {announcementAudience === "admin" ? (
+                  <AdminAnnouncementsTab ref={adminAnnouncementsRef} />
+                ) : null}
+
+                {announcementAudience !== "admin" ? (
+                  <>
+                  <div className="admin-announcements-header-search">
+                    <input
+                      type="text"
+                      className="admin-announcements-page-search-input"
+                      value={announcementsSearchInput}
+                      onChange={(event) => setAnnouncementsSearchInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          handleAnnouncementSearch();
+                        }
+                      }}
+                      placeholder="Duyuru ara"
+                    />
+                    <button
+                      type="button"
+                      className="admin-announcements-page-jump-btn"
+                      onClick={handleAnnouncementSearch}
+                    >
+                      Ara
+                    </button>
+                  </div>
+                  {announcementsListLoading ? (
+                  <p className="egitmen-panel-form-loading">Yükleniyor…</p>
                 ) : announcementsListError ? (
                   <div className="admin-announcements-empty">{announcementsListError}</div>
                 ) : announcementsRows.length === 0 ? (
-                  <div className="admin-announcements-empty">Duyuru bulunamadı.</div>
+                  <div className="egitmen-panel-announcements-empty">
+                    <p className="egitmen-panel-announcements-empty-title">Duyuru bulunamadı.</p>
+                    <p className="egitmen-panel-announcements-empty-desc">
+                      Bu sekmede gösterilecek duyuru yok.
+                    </p>
+                  </div>
                 ) : (
                   <>
-                    <div className="admin-announcements-table-wrap">
-                      <table className="admin-announcements-table">
-                        <colgroup>
-                          <col className="admin-announcements-col-title" />
-                          <col className="admin-announcements-col-content" />
-                          <col className="admin-announcements-col-link" />
-                          <col className="admin-announcements-col-status" />
-                          <col className="admin-announcements-col-date" />
-                          <col className="admin-announcements-col-action" />
-                          <col className="admin-announcements-col-action" />
-                        </colgroup>
+                    <div className="egitmen-panel-announcements-table-wrap">
+                      <table className="egitmen-panel-announcements-table">
                         <thead>
                           <tr>
-                            <th>Başlık</th>
-                            <th>İçerik</th>
-                            <th>Link</th>
-                            <th>Durum</th>
-                            <th>Tarih</th>
-                            <th>Düzenle</th>
-                            <th>Sil</th>
+                            <th className="egitmen-panel-announcements-th egitmen-panel-announcements-th--image">
+                              Görsel
+                            </th>
+                            <th className="egitmen-panel-announcements-th">Başlık</th>
+                            <th className="egitmen-panel-announcements-th">İçerik</th>
+                            <th className="egitmen-panel-announcements-th">Tarih</th>
+                            <th className="egitmen-panel-announcements-th">Aktiflik Durumu</th>
+                            <th className="egitmen-panel-announcements-th egitmen-panel-announcements-th--actions">
+                              İşlemler
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {announcementsRows.map((row) => (
-                            <tr key={row.id}>
-                              <td>
-                                <span className="admin-announcements-table-clip" title={row.title}>
-                                  {row.title}
-                                </span>
+                            <tr key={`${row.sourceRow.source}-${row.id}`} className="egitmen-panel-announcements-tr">
+                              <td className="egitmen-panel-announcements-td egitmen-panel-announcements-td--image">
+                                <AnnouncementListThumb key={row.imageUrl ?? ""} url={row.imageUrl} />
                               </td>
-                              <td>
-                                <span className="admin-announcements-table-clip" title={row.contentPreview}>
+                              <td className="egitmen-panel-announcements-td egitmen-panel-announcements-td--title">
+                                {row.title}
+                              </td>
+                              <td className="egitmen-panel-announcements-td egitmen-panel-announcements-td--desc">
+                                <span className="egitmen-panel-announcements-desc-clamp" title={row.contentPreview}>
                                   {row.contentPreview}
                                 </span>
                               </td>
-                              <td>
-                                <span className="admin-announcements-table-clip" title={row.linkUrl}>
-                                  {row.linkUrl}
-                                </span>
-                              </td>
-                              <td>
+                              <td className="egitmen-panel-announcements-td">{row.createdAt}</td>
+                              <td className="egitmen-panel-announcements-td">
                                 <span
                                   className={
-                                    row.isActive
-                                      ? "admin-announcements-status-badge admin-announcements-status-badge--active"
-                                      : "admin-announcements-status-badge"
+                                    row.isActive && !row.expired
+                                      ? "egitmen-panel-announcements-badge egitmen-panel-announcements-badge--published"
+                                      : "egitmen-panel-announcements-badge egitmen-panel-announcements-badge--passive"
                                   }
                                 >
-                                  {row.isActive ? "Aktif" : "Pasif"}
+                                  {row.expired ? "Süresi Doldu" : row.isActive ? "Yayında" : "Pasif"}
                                 </span>
                               </td>
-                              <td>{row.createdAt}</td>
-                              <td className="admin-announcements-table-action-cell">
+                              <td className="egitmen-panel-announcements-td egitmen-panel-announcements-td--actions">
                                 <button
                                   type="button"
-                                  className="admin-announcements-action-btn"
+                                  className="egitmen-panel-announcements-action-btn"
                                   onClick={() => handleOpenAnnouncementEdit(row.sourceRow)}
                                   aria-label="Duyuru düzenle"
                                 >
-                                  <PencilLine size={16} />
+                                  <PencilLine className="egitmen-panel-announcements-action-icon" aria-hidden />
                                 </button>
-                              </td>
-                              <td className="admin-announcements-table-action-cell">
                                 <button
                                   type="button"
-                                  className="admin-announcements-action-btn admin-announcements-action-btn--danger"
-                                  onClick={() => handleRequestDeleteAnnouncement(row.id)}
+                                  className="egitmen-panel-announcements-action-btn"
+                                  onClick={() =>
+                                    handleRequestDeleteAnnouncement(
+                                      row.id,
+                                      row.sourceRow.source,
+                                      row.sourceRow.announcement_image_url,
+                                      row.sourceRow.image_path,
+                                    )
+                                  }
                                   disabled={deletingAnnouncementId === row.id}
                                   aria-label="Duyuru sil"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 className="egitmen-panel-announcements-action-icon" aria-hidden />
                                 </button>
                               </td>
                             </tr>
@@ -3762,7 +4056,10 @@ export default function AdminPageClient() {
                       </div>
                     </div>
                   </>
-                )}
+                  )}
+                  </>
+                ) : null}
+                </div>
               </CardContent>
             </Card>
           ) : null}
@@ -4571,6 +4868,7 @@ export default function AdminPageClient() {
                 </div>
                 <form
                   className="admin-announcements-modal-form"
+                  noValidate
                   onSubmit={(event) => {
                     event.preventDefault();
                     void handleSaveAnnouncementEdit();
@@ -4605,7 +4903,9 @@ export default function AdminPageClient() {
                   <label className="admin-announcements-modal-field">
                     <span>Görsel URL</span>
                     <input
-                      type="url"
+                      type="text"
+                      inputMode="url"
+                      autoComplete="url"
                       value={announcementEditForm.announcementImageUrl}
                       onChange={(event) =>
                         setAnnouncementEditForm((prev) => ({
@@ -4619,7 +4919,9 @@ export default function AdminPageClient() {
                   <label className="admin-announcements-modal-field">
                     <span>Link URL</span>
                     <input
-                      type="url"
+                      type="text"
+                      inputMode="url"
+                      autoComplete="url"
                       value={announcementEditForm.linkUrl}
                       onChange={(event) =>
                         setAnnouncementEditForm((prev) => ({

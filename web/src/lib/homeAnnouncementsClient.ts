@@ -6,6 +6,7 @@ import {
 import { PUBLIC_INSTRUCTORS_TABLE } from "@/lib/publicInstructorClient";
 import { publicInstructorDisplayName } from "@/lib/publicInstructorClient";
 import { normalizeAnnouncementTag } from "@/lib/announcementTags";
+import { announcementPublicationCutoffIso } from "@/lib/announcementPublication";
 import {
   buildLocationAdMaps,
   formatAnnouncementLocationLabel,
@@ -22,7 +23,7 @@ export type HomeAnnouncementItem = {
   content: string;
   linkUrl: string | null;
   imageUrl: string | null;
-  createdAt: string | null;
+  publishedAt: string | null;
   ownerName: string;
   announcementTag: string | null;
   ownerHref: string | null;
@@ -34,7 +35,7 @@ export type AnnouncementsPageItem = {
   title: string;
   content: string;
   imageUrl: string | null;
-  createdAt: string | null;
+  publishedAt: string | null;
   ownerName: string;
   locationLabel: string;
   il_id: number | null;
@@ -72,7 +73,7 @@ type InstructorAnnouncementRow = {
   image_path: string | null;
   link_url: string | null;
   announcement_tag: string | null;
-  created_at: string | null;
+  published_at: string | null;
   il_id?: number | null;
   ilce_id?: number | null;
 };
@@ -102,13 +103,13 @@ type InstitutionAnnouncementRow = {
   announcement_image_url: string | null;
   link_url: string | null;
   announcement_tag: string | null;
-  created_at: string | null;
+  published_at: string | null;
   il_id?: number | null;
   ilce_id?: number | null;
   institution: InstitutionOwnerJoin | InstitutionOwnerJoin[] | null;
 };
 
-function parseCreatedAtMs(iso: string | null): number {
+function parsePublishedAtMs(iso: string | null): number {
   if (!iso) return 0;
   const ms = new Date(iso).getTime();
   return Number.isNaN(ms) ? 0 : ms;
@@ -262,9 +263,11 @@ async function fetchPublicInstructorAnnouncementRows(
 ): Promise<{ rows: InstructorAnnouncementRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("instructor_announcements")
-    .select("id, instructor_id, title, content, image_url, image_path, link_url, announcement_tag, created_at, il_id, ilce_id")
+    .select("id, instructor_id, title, content, image_url, image_path, link_url, announcement_tag, published_at, il_id, ilce_id")
     .eq("is_active", true)
-    .order("created_at", { ascending: false })
+    .not("published_at", "is", null)
+    .gt("published_at", announcementPublicationCutoffIso())
+    .order("published_at", { ascending: false })
     .limit(rowLimit);
 
   if (error) return { rows: [], error };
@@ -303,7 +306,7 @@ async function fetchPublicInstructorAnnouncementItems(
         content: String(row.content ?? "").trim(),
         linkUrl: normalizeOptionalUrl(row.link_url),
         imageUrl: resolveInstructorAnnouncementImageUrl(supabase, row.image_url, row.image_path),
-        createdAt: row.created_at ? String(row.created_at) : null,
+        publishedAt: row.published_at ? String(row.published_at) : null,
         ownerName: resolveInstructorOwnerName(instructor),
         announcementTag: normalizeAnnouncementTag(row.announcement_tag),
         ownerHref: `/egitmenler/${encodeURIComponent(String(instructor.slug ?? "").trim() || String(instructorId))}`,
@@ -327,10 +330,12 @@ async function fetchPublicInstitutionAnnouncementRows(
   const { data, error } = await supabase
     .from("announcements")
     .select(
-      `id, title, content, announcement_image_url, link_url, announcement_tag, created_at, il_id, ilce_id, institution:institutions(${institutionSelect})`,
+      `id, title, content, announcement_image_url, link_url, announcement_tag, published_at, il_id, ilce_id, institution:institutions(${institutionSelect})`,
     )
     .eq("is_active", true)
-    .order("created_at", { ascending: false })
+    .not("published_at", "is", null)
+    .gt("published_at", announcementPublicationCutoffIso())
+    .order("published_at", { ascending: false })
     .limit(rowLimit);
 
   if (error) return { rows: [], error };
@@ -352,7 +357,7 @@ function mapInstitutionRowToHomeItem(row: InstitutionAnnouncementRow): HomeAnnou
     content: String(row.content ?? "").trim(),
     linkUrl: normalizeOptionalUrl(row.link_url),
     imageUrl: normalizeOptionalUrl(row.announcement_image_url),
-    createdAt: row.created_at ? String(row.created_at) : null,
+    publishedAt: row.published_at ? String(row.published_at) : null,
     ownerName: String(institution?.institution_name ?? "").trim(),
     announcementTag: normalizeAnnouncementTag(row.announcement_tag),
     ownerHref: String(institution?.slug ?? "").trim()
@@ -423,7 +428,7 @@ export async function fetchHomeAnnouncements(
   }
 
   const items = [...institutionResult.items, ...instructorResult.items]
-    .sort((a, b) => parseCreatedAtMs(b.createdAt) - parseCreatedAtMs(a.createdAt))
+    .sort((a, b) => parsePublishedAtMs(b.publishedAt) - parsePublishedAtMs(a.publishedAt))
     .slice(0, limit);
 
   return {
@@ -479,7 +484,7 @@ export async function fetchAnnouncementsPageItems(
         title,
         content: String(row.content ?? "").trim(),
         imageUrl: resolveInstructorAnnouncementImageUrl(supabase, row.image_url, row.image_path),
-        createdAt: row.created_at ? String(row.created_at) : null,
+        publishedAt: row.published_at ? String(row.published_at) : null,
         ownerName: resolveInstructorOwnerName(instructor),
         locationLabel: "",
         il_id: parseLocationId(row.il_id),
@@ -494,7 +499,7 @@ export async function fetchAnnouncementsPageItems(
 
   const items = await attachAnnouncementLocationLabels(
     [...institutionItems, ...instructorItems].sort(
-      (a, b) => parseCreatedAtMs(b.createdAt) - parseCreatedAtMs(a.createdAt),
+      (a, b) => parsePublishedAtMs(b.publishedAt) - parsePublishedAtMs(a.publishedAt),
     ),
   );
 

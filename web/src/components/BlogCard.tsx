@@ -14,7 +14,12 @@ type BlogCardProps = {
 
 export default function BlogCard({ title, excerpt, imageUrl, slug, compact = false }: BlogCardProps) {
   return (
-    <Link href={`/blog-yazilari/${slug}`} className="blog-card-link">
+    <Link
+      href={`/blog-yazilari/${slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="blog-card-link"
+    >
       <article className={`blog-card-new${compact ? " blog-card-new--compact" : ""}`}>
         <div className="blog-card-image-wrapper">
           <Image

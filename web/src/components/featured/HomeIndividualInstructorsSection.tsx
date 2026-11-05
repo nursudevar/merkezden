@@ -372,7 +372,12 @@ export function HomeIndividualInstructorsSection({
                 </button>
               </div>
             ) : null}
-            <Link href="/egitmenler" className="home-individual-instructors-all-link">
+            <Link
+              href="/egitmenler"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="home-individual-instructors-all-link"
+            >
               tümünü gör
             </Link>
           </div>

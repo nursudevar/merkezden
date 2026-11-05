@@ -645,7 +645,7 @@ function AnnouncementsPageContent() {
           title: activeAnnouncement.title,
           content: activeAnnouncement.content,
           imageUrl: activeAnnouncement.imageUrl,
-          createdAt: activeAnnouncement.createdAt,
+          publishedAt: activeAnnouncement.publishedAt,
           institutionName: activeAnnouncement.ownerName,
           linkUrl: activeAnnouncement.linkUrl,
           announcementTag: activeAnnouncement.announcementTag,
@@ -736,10 +736,10 @@ function AnnouncementsPageContent() {
                             </p>
                           ) : null}
                           <div className="announcement-featured-meta">
-                            {formatAnnouncementDateTr(featured.createdAt) ? (
+                            {formatAnnouncementDateTr(featured.publishedAt) ? (
                               <span className="announcement-meta-item">
                                 <CalendarDays className="announcement-meta-icon" />
-                                {formatAnnouncementDateTr(featured.createdAt)}
+                                {formatAnnouncementDateTr(featured.publishedAt)}
                               </span>
                             ) : null}
                             {featured.locationLabel ? (

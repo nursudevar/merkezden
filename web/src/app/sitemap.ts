@@ -34,7 +34,6 @@ const STATIC_ENTRIES: readonly StaticSitemapItem[] = [
   { path: "/haritada-ara", changeFrequency: "daily", priority: 0.9 },
   { path: "/duyurular", changeFrequency: "daily", priority: 0.7 },
   { path: "/blog-yazilari", changeFrequency: "daily", priority: 0.7 },
-  { path: "/one-cikanlar", changeFrequency: "weekly", priority: 0.7 },
   { path: "/nasil-calisir", changeFrequency: "monthly", priority: 0.6 },
   { path: "/uyelik", changeFrequency: "monthly", priority: 0.6 },
   { path: "/hakkimizda", changeFrequency: "monthly", priority: 0.5 },

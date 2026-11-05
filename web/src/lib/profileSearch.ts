@@ -1,3 +1,5 @@
+import { announcementPublicationCutoffIso } from "@/lib/announcementPublication";
+
 type SupabaseLike = {
   from: (table: string) => any;
 };
@@ -142,7 +144,9 @@ export async function resolveInstitutionIdsByProfileSearch(
     supabase
       .from("announcements")
       .select("institution_id, title, content")
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .not("published_at", "is", null)
+      .gt("published_at", announcementPublicationCutoffIso()),
   ]);
 
   if (typeRes.error || groupRes.error || defRes.error || choiceRes.error || entryRes.error || announcementRes.error) {
@@ -306,7 +310,9 @@ export async function resolveInstructorIdsByProfileSearch(
     supabase
       .from("instructor_announcements")
       .select("instructor_id, title, content")
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .not("published_at", "is", null)
+      .gt("published_at", announcementPublicationCutoffIso()),
   ]);
 
   if (groupRes.error || defRes.error || choiceRes.error || entryRes.error || announcementRes.error) {

@@ -52,7 +52,12 @@ export function InstitutionMapSearchSection({
             <Image src="/images/map.svg" alt="Kurum Haritası" width={20} height={20} />
             <span>Kurum Haritası</span>
           </div>
-          <Link href="/haritada-ara" className="institution-map-detail-link">
+          <Link
+            href="/haritada-ara"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="institution-map-detail-link"
+          >
             Haritada Ara
           </Link>
         </div>

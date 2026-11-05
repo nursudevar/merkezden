@@ -9,7 +9,7 @@ export type AnnouncementDetailItem = {
   title: string;
   content: string;
   imageUrl: string | null;
-  createdAt: string | null;
+  publishedAt: string | null;
   institutionName: string;
   linkUrl: string | null;
   announcementTag?: string | null;
@@ -67,7 +67,7 @@ export default function AnnouncementDetailModal({
 
   if (!isOpen || !announcement) return null;
 
-  const dateText = formatAnnouncementDateTr(announcement.createdAt);
+  const dateText = formatAnnouncementDateTr(announcement.publishedAt);
   const trimmedLink = (announcement.linkUrl ?? "").trim();
   const hasLink = trimmedLink.length > 0;
 

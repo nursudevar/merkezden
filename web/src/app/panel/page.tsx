@@ -110,6 +110,7 @@ import {
   LISE_INSTITUTION_TYPE_ID,
   OKUL_CATEGORY_SLUG,
 } from "@/lib/schoolInstitutionTypes";
+import { isAnnouncementExpiredWhileActive } from "@/lib/announcementPublication";
 import {
   ANNOUNCEMENT_TAG_OPTIONS,
   ANNOUNCEMENT_TAG_REQUIRED_ERROR,
@@ -654,6 +655,7 @@ function PanelContent() {
     preview: string;
     date: string;
     isActive: boolean;
+    publishedAt: string | null;
     imageUrl: string | null;
     linkUrl: string | null;
     announcementTag: string | null;
@@ -946,6 +948,7 @@ interface InstitutionDetailPreparedData {
     link_url: string | null;
     announcement_tag: string | null;
     created_at: string | null;
+    published_at?: string | null;
     is_active: boolean | null;
     il_id?: number | null;
     ilce_id?: number | null;
@@ -960,6 +963,7 @@ interface InstitutionDetailPreparedData {
       preview: buildAnnouncementPreview(content),
       date: formatAnnouncementDate(row.created_at),
       isActive: row.is_active === true,
+      publishedAt: row.published_at ? String(row.published_at) : null,
       imageUrl: row.announcement_image_url,
       linkUrl: linkTrimmed || null,
       announcementTag: normalizeAnnouncementTag(row.announcement_tag),
@@ -986,7 +990,7 @@ interface InstitutionDetailPreparedData {
         const { data, error } = await supabase
           .from("announcements")
           .select(
-            "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, is_active, il_id, ilce_id",
+            "id, title, content, announcement_image_url, link_url, announcement_tag, created_at, published_at, is_active, il_id, ilce_id",
           )
           .eq("institution_id", instId)
           .order("created_at", { ascending: false });
@@ -1004,6 +1008,7 @@ interface InstitutionDetailPreparedData {
           link_url: string | null;
           announcement_tag: string | null;
           created_at: string | null;
+          published_at?: string | null;
           is_active: boolean | null;
           il_id?: number | null;
           ilce_id?: number | null;
@@ -3270,6 +3275,27 @@ interface InstitutionDetailPreparedData {
 
       const is_active = announcementForm.isActive;
 
+      const saveInstitutionAnnouncement = async (fields: {
+        title: string;
+        content: string;
+        link_url: string | null;
+        announcement_tag: string;
+        il_id: number | null;
+        ilce_id: number | null;
+        announcement_image_url?: string | null;
+      }) => {
+        if (!editingAnnouncementId) return { error: new Error("Duyuru bulunamadı.") };
+        const { data, error } = await supabase
+          .from("announcements")
+          .update({ ...fields, is_active })
+          .eq("id", editingAnnouncementId)
+          .eq("institution_id", instId)
+          .select("id")
+          .maybeSingle();
+        if (error || !data) return { error: error ?? new Error("Duyuru bulunamadı.") };
+        return { error: null };
+      };
+
       if (editingAnnouncementId) {
         if (announcementImageFile) {
           const up = await uploadAnnouncementImage(announcementImageFile, supabase, instId);
@@ -3280,20 +3306,15 @@ interface InstitutionDetailPreparedData {
           const newUrl = up.url;
           const newPath = tryGetInstitutionMediaPathFromUrl(newUrl);
 
-          const { error: updateError } = await supabase
-            .from("announcements")
-            .update({
-              title,
-              content,
-              link_url,
-              announcement_tag,
-              is_active,
-              il_id,
-              ilce_id,
-              announcement_image_url: newUrl,
-            })
-            .eq("id", editingAnnouncementId)
-            .eq("institution_id", instId);
+          const { error: updateError } = await saveInstitutionAnnouncement({
+            title,
+            content,
+            link_url,
+            announcement_tag,
+            il_id,
+            ilce_id,
+            announcement_image_url: newUrl,
+          });
 
           if (updateError) {
             console.error("Announcement update error:", updateError);
@@ -3307,26 +3328,35 @@ interface InstitutionDetailPreparedData {
 
           if (existingRow?.imageUrl) {
             const oldPath = tryGetInstitutionMediaPathFromUrl(existingRow.imageUrl);
-            if (oldPath && oldPath !== newPath) {
-              const { error: removeError } = await supabase.storage.from("institution-media").remove([oldPath]);
-              if (removeError) console.error("Announcement old image storage delete error:", removeError);
+            if (
+              oldPath &&
+              oldPath !== newPath &&
+              !oldPath.includes("..") &&
+              /^institutions\/\d+\/announcements\/[^/]+$/.test(oldPath)
+            ) {
+              const { data: refs, error: refError } = await supabase
+                .from("announcements")
+                .select("id")
+                .eq("announcement_image_url", existingRow.imageUrl)
+                .limit(1);
+              if (refError) {
+                console.error("Announcement image reference check:", refError);
+              } else if ((refs ?? []).length === 0) {
+                const { error: removeError } = await supabase.storage.from("institution-media").remove([oldPath]);
+                if (removeError) console.error("Announcement old image storage delete error:", removeError);
+              }
             }
           }
         } else if (announcementImageRemovePending) {
-          const { error: updateError } = await supabase
-            .from("announcements")
-            .update({
-              title,
-              content,
-              link_url,
-              announcement_tag,
-              is_active,
-              il_id,
-              ilce_id,
-              announcement_image_url: null,
-            })
-            .eq("id", editingAnnouncementId)
-            .eq("institution_id", instId);
+          const { error: updateError } = await saveInstitutionAnnouncement({
+            title,
+            content,
+            link_url,
+            announcement_tag,
+            il_id,
+            ilce_id,
+            announcement_image_url: null,
+          });
 
           if (updateError) {
             console.error("Announcement update error:", updateError);
@@ -3336,25 +3366,29 @@ interface InstitutionDetailPreparedData {
 
           if (existingRow?.imageUrl) {
             const oldPath = tryGetInstitutionMediaPathFromUrl(existingRow.imageUrl);
-            if (oldPath) {
-              const { error: removeError } = await supabase.storage.from("institution-media").remove([oldPath]);
-              if (removeError) console.error("Announcement image storage delete error:", removeError);
+            if (oldPath && !oldPath.includes("..") && /^institutions\/\d+\/announcements\/[^/]+$/.test(oldPath)) {
+              const { data: refs, error: refError } = await supabase
+                .from("announcements")
+                .select("id")
+                .eq("announcement_image_url", existingRow.imageUrl)
+                .limit(1);
+              if (refError) {
+                console.error("Announcement image reference check:", refError);
+              } else if ((refs ?? []).length === 0) {
+                const { error: removeError } = await supabase.storage.from("institution-media").remove([oldPath]);
+                if (removeError) console.error("Announcement image storage delete error:", removeError);
+              }
             }
           }
         } else {
-          const { error: updateError } = await supabase
-            .from("announcements")
-            .update({
-              title,
-              content,
-              link_url,
-              announcement_tag,
-              is_active,
-              il_id,
-              ilce_id,
-            })
-            .eq("id", editingAnnouncementId)
-            .eq("institution_id", instId);
+          const { error: updateError } = await saveInstitutionAnnouncement({
+            title,
+            content,
+            link_url,
+            announcement_tag,
+            il_id,
+            ilce_id,
+          });
 
           if (updateError) {
             console.error("Announcement update error:", updateError);
@@ -3422,22 +3456,45 @@ interface InstitutionDetailPreparedData {
     const supabase = createSupabaseBrowserClient();
     setAnnouncementsError(null);
 
-    const { error: deleteError } = await supabase
+    const { data: deletedRow, error: deleteError } = await supabase
       .from("announcements")
       .delete()
       .eq("id", row.id)
-      .eq("institution_id", instId);
+      .eq("institution_id", instId)
+      .select("id")
+      .maybeSingle();
 
-    if (deleteError) {
-      console.error("Announcement delete error:", deleteError);
+    if (deleteError || !deletedRow) {
+      console.error("Announcement delete error:", deleteError ?? "no row returned");
       setAnnouncementsError("Duyuru silinemedi.");
       setAnnouncementDeletingId(null);
       return;
     }
 
-    if (row.imageUrl) {
-      const path = tryGetInstitutionMediaPathFromUrl(row.imageUrl);
-      if (path) {
+    const path = tryGetInstitutionMediaPathFromUrl(row.imageUrl);
+    const announcementPath = /^institutions\/\d+\/announcements\/[^/]+$/;
+    if (path && !path.includes("..") && !path.includes("\\") && announcementPath.test(path)) {
+      const like = `%${path.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+      const referenceChecks = [
+        supabase.from("announcements").select("id").eq("announcement_image_url", row.imageUrl).limit(1),
+        supabase.from("announcements").select("id").ilike("announcement_image_url", like).limit(1),
+        supabase.from("instructor_announcements").select("id").ilike("image_url", like).limit(1),
+        supabase.from("admin_announcements").select("id").ilike("announcement_image_url", like).limit(1),
+      ];
+      let referenced: boolean | null = false;
+      for (const query of referenceChecks) {
+        const { data: refs, error: refError } = await query;
+        if (refError) {
+          console.error("Announcement image reference check:", refError);
+          referenced = null;
+          break;
+        }
+        if ((refs ?? []).length > 0) {
+          referenced = true;
+          break;
+        }
+      }
+      if (referenced === false) {
         const { error: removeError } = await supabase.storage.from("institution-media").remove([path]);
         if (removeError) console.error("Announcement image storage delete error:", removeError);
       }
@@ -4052,15 +4109,23 @@ interface InstitutionDetailPreparedData {
                                 </td>
                                 <td className="panel-announcements-td">{row.date}</td>
                                 <td className="panel-announcements-td">
-                                  <span
-                                    className={
-                                      row.isActive
-                                        ? "panel-announcements-badge panel-announcements-badge--published"
-                                        : "panel-announcements-badge panel-announcements-badge--draft"
-                                    }
-                                  >
-                                    {row.isActive ? "Yayında" : "Aktif Değil"}
-                                  </span>
+                                  {(() => {
+                                    const expired = isAnnouncementExpiredWhileActive(
+                                      row.isActive,
+                                      row.publishedAt,
+                                    );
+                                    return (
+                                      <span
+                                        className={
+                                          row.isActive && !expired
+                                            ? "panel-announcements-badge panel-announcements-badge--published"
+                                            : "panel-announcements-badge panel-announcements-badge--draft"
+                                        }
+                                      >
+                                        {expired ? "Süresi Doldu" : row.isActive ? "Yayında" : "Aktif Değil"}
+                                      </span>
+                                    );
+                                  })()}
                                 </td>
                                 <td className="panel-announcements-td panel-announcements-td-actions">
                                   <button
@@ -5033,6 +5098,28 @@ interface InstitutionDetailPreparedData {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  {editingAnnouncementId
+                    ? (() => {
+                        const editingRow = announcementsList.find(
+                          (row) => row.id === editingAnnouncementId,
+                        );
+                        if (
+                          !editingRow ||
+                          !isAnnouncementExpiredWhileActive(
+                            editingRow.isActive,
+                            editingRow.publishedAt,
+                          )
+                        ) {
+                          return null;
+                        }
+                        return (
+                          <p className="panel-media-upload-subtitle">
+                            Süresi doldu. İçerik düzenlenebilir. Yeniden yayın, kayıt pasife
+                            alındıktan sonra tek adımda yapılır.
+                          </p>
+                        );
+                      })()
+                    : null}
                 </div>
                 <div className="panel-institution-form-field panel-announcement-image-field">
                   <input

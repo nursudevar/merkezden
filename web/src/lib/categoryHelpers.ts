@@ -41,6 +41,7 @@ export const HOME_MAIN_CATEGORY_ORDER = [
   "MESLEKİ EĞİTİM",
   "ÖZEL EĞİTİM",
   "SÜRÜCÜ KURSU",
+  "PATİLİ DOSTLAR",
 ] as const;
 
 export function sortByHomeMainCategoryOrder<T extends { name: string }>(items: T[]): T[] {

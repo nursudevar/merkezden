@@ -3,9 +3,26 @@ import MekoChromaVideo from "@/components/MekoChromaVideo";
 
 const DRIVING_SCHOOLS_HREF = "/surucu-kursu";
 
-export function HomeDrivingSchoolsSection() {
+type HomeDrivingSchoolsSectionProps = {
+  /** Carousel slide: fills parent height, no outer spacing. */
+  variant?: "section" | "carousel-slide";
+};
+
+export function HomeDrivingSchoolsSection({
+  variant = "section",
+}: HomeDrivingSchoolsSectionProps = {}) {
+  const isCarouselSlide = variant === "carousel-slide";
+
   return (
-    <section className="home-driving-schools-section" aria-labelledby="home-driving-schools-title">
+    <section
+      className={[
+        "home-driving-schools-section",
+        isCarouselSlide ? "home-driving-schools-section--carousel" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-labelledby="home-driving-schools-title"
+    >
       <div className="home-driving-schools-header driver-courses-content">
         <div className="home-driving-schools-header-main">
           <div className="home-driving-schools-header-text">
@@ -19,7 +36,12 @@ export function HomeDrivingSchoolsSection() {
               Sana en uygun sürücü kursunu keşfet, eğitim seçeneklerini karşılaştır ve yola güvenle
               başla.
             </p>
-            <Link href={DRIVING_SCHOOLS_HREF} className="driver-courses-link">
+            <Link
+              href={DRIVING_SCHOOLS_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="driver-courses-link"
+            >
               Sürücü Kurslarını Keşfet
             </Link>
           </div>
