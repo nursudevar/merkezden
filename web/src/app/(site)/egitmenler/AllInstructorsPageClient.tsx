@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   publicInstructorDisplayName,
@@ -247,6 +247,58 @@ function mapInstructorRowToListItem(
   };
 }
 
+const INSTRUCTOR_CATEGORY_PARAM = "kategori";
+const INSTRUCTOR_SEARCH_PARAM_ORDER = ["kategori", "il", "ilce", "mahalle"] as const;
+
+function orderInstructorSearch(search: string): string {
+  const source = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const prioritized = new Map<string, string[]>();
+  const rest: Array<[string, string]> = [];
+  for (const [key, value] of source.entries()) {
+    if ((INSTRUCTOR_SEARCH_PARAM_ORDER as readonly string[]).includes(key)) {
+      const values = prioritized.get(key);
+      if (values) values.push(value);
+      else prioritized.set(key, [value]);
+    } else {
+      rest.push([key, value]);
+    }
+  }
+  const ordered = new URLSearchParams();
+  for (const key of INSTRUCTOR_SEARCH_PARAM_ORDER) {
+    for (const value of prioritized.get(key) ?? []) ordered.append(key, value);
+  }
+  for (const [key, value] of rest) ordered.append(key, value);
+  return ordered.toString();
+}
+
+function readInstructorCategoryParam(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get(INSTRUCTOR_CATEGORY_PARAM)?.trim() ?? "";
+}
+
+function writeInstructorCategoryParam(slug: string, mode: "push" | "replace") {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams(window.location.search);
+  if (slug) params.set(INSTRUCTOR_CATEGORY_PARAM, slug);
+  else params.delete(INSTRUCTOR_CATEGORY_PARAM);
+  const ordered = orderInstructorSearch(params.toString());
+  const next = `${window.location.pathname}${ordered ? `?${ordered}` : ""}${window.location.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (next === current) return;
+  if (mode === "push") window.history.pushState(window.history.state, "", next);
+  else window.history.replaceState(window.history.state, "", next);
+}
+
+function resolveInstructorCategorySlug(
+  raw: string,
+  categories: InstructorFeatureCategoryRow[],
+): string | null {
+  const slug = raw.trim();
+  if (!slug) return "";
+  const known = categories.some((row) => String(row.slug ?? "").trim() === slug);
+  return known ? slug : null;
+}
+
 export function AllInstructorsPageClient() {
   const [items, setItems] = useState<InstructorListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,6 +315,32 @@ export function AllInstructorsPageClient() {
     priceRange: null,
   });
   const { location, setLocation, locationReady } = useCategoryLocationFilterState();
+
+  useEffect(() => {
+    const { pushState, replaceState } = window.history;
+    const orderUrl = (url?: string | URL | null) => {
+      if (url == null) return url;
+      const parsed = new URL(typeof url === "string" ? url : url.href, window.location.href);
+      if (parsed.origin !== window.location.origin || parsed.pathname !== "/egitmenler") return url;
+      const search = orderInstructorSearch(parsed.search);
+      return `${parsed.pathname}${search ? `?${search}` : ""}${parsed.hash}`;
+    };
+    window.history.pushState = (data, unused, url) => {
+      pushState.call(window.history, data, unused, orderUrl(url));
+    };
+    window.history.replaceState = (data, unused, url) => {
+      replaceState.call(window.history, data, unused, orderUrl(url));
+    };
+
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const ordered = orderUrl(current);
+    if (ordered !== current) replaceState.call(window.history, window.history.state, "", ordered);
+
+    return () => {
+      window.history.pushState = pushState;
+      window.history.replaceState = replaceState;
+    };
+  }, []);
   const [instructorFeatureFilters, setInstructorFeatureFilters] =
     useState<InstructorCategoryFilterPayload>(EMPTY_INSTRUCTOR_CATEGORY_FILTERS);
   const [featureAllowedIds, setFeatureAllowedIds] = useState<Set<number> | null>(null);
@@ -272,6 +350,20 @@ export function AllInstructorsPageClient() {
     () => JSON.stringify(instructorFeatureFilters),
     [instructorFeatureFilters],
   );
+
+  const categoriesRef = useRef(instructorCategories);
+  categoriesRef.current = instructorCategories;
+  const categoryRef = useRef(filters.category);
+  categoryRef.current = filters.category;
+
+  const applyCategoryFromUrl = useCallback((categories: InstructorFeatureCategoryRow[]) => {
+    if (categories.length === 0) return;
+    const resolved = resolveInstructorCategorySlug(readInstructorCategoryParam(), categories);
+    const nextCategory = resolved ?? "";
+    if (resolved === null) writeInstructorCategoryParam("", "replace");
+    categoryRef.current = nextCategory;
+    setFilters((prev) => (prev.category === nextCategory ? prev : { ...prev, category: nextCategory }));
+  }, []);
 
   const selectedInstructorCategoryId = useMemo(() => {
     const slug = String(filters.category ?? "").trim();
@@ -330,6 +422,7 @@ export function AllInstructorsPageClient() {
 
       if (!categoriesResult.error) {
         setInstructorCategories(categoriesResult.categories);
+        applyCategoryFromUrl(categoriesResult.categories);
       }
 
       if (!featuredOrderResult.error) {
@@ -340,7 +433,28 @@ export function AllInstructorsPageClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyCategoryFromUrl]);
+
+  useEffect(() => {
+    const onPopState = () => applyCategoryFromUrl(categoriesRef.current);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [applyCategoryFromUrl]);
+
+  const handleFilterChange = (next: FilterState) => {
+    const categories = categoriesRef.current;
+    const requested = String(next.category ?? "").trim();
+    if (requested === categoryRef.current) {
+      setFilters(next);
+      return;
+    }
+    const resolved =
+      categories.length === 0 ? requested : resolveInstructorCategorySlug(requested, categories);
+    if (resolved === null) return;
+    categoryRef.current = resolved;
+    writeInstructorCategoryParam(resolved, "push");
+    setFilters({ ...next, category: resolved });
+  };
 
   useEffect(() => {
     if (!locationReady) {
@@ -475,11 +589,12 @@ export function AllInstructorsPageClient() {
       isLoading={loading || featureFilterLoading}
       errorMessage={loadError}
       emptyResultsMessage="Henüz listelenecek eğitmen bulunmuyor."
-      onFilterChange={setFilters}
+      onFilterChange={handleFilterChange}
       instructorModeProps={{
         linkedLocation: location,
         onLinkedLocationChange: setLocation,
         onInstructorFilterPayloadChange: setInstructorFeatureFilters,
+        controlledInstructorCategorySlug: filters.category,
       }}
       extraBreadcrumbItems={
         selectedInstructorCategoryId

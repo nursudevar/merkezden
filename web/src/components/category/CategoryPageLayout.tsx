@@ -83,6 +83,7 @@ interface CategoryPageLayoutProps {
     linkedLocation: CategoryLocationFilterValue;
     onLinkedLocationChange: (value: CategoryLocationFilterValue) => void;
     onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
+    controlledInstructorCategorySlug?: string;
   };
   extraBreadcrumbItems?: PublicBreadcrumbItem[];
 }
@@ -324,6 +325,7 @@ export default function CategoryPageLayout({
           linkedLocation={instructorModeProps.linkedLocation}
           onLinkedLocationChange={handleLinkedLocationChange}
           onInstructorFilterPayloadChange={instructorModeProps.onInstructorFilterPayloadChange}
+          controlledInstructorCategorySlug={instructorModeProps.controlledInstructorCategorySlug}
         >
           {pageBody}
         </InstructorCategoryFilterPanelProvider>

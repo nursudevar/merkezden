@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import {
   fetchActiveHomepageBanners,
   type PublicHomepageBanner,
@@ -233,6 +234,9 @@ export function HomeHeroSearchBanner({
   const [activeIndex, setActiveIndex] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
+  const [isPlaybackPaused, setIsPlaybackPaused] = useState(false);
+  const [suspendHoverPause, setSuspendHoverPause] = useState(false);
+  const hoverPausesPlayback = isHoverPaused && !suspendHoverPause;
   const [isTabHidden, setIsTabHidden] = useState(
     () => typeof document !== "undefined" && document.hidden,
   );
@@ -288,8 +292,8 @@ export function HomeHeroSearchBanner({
   }, [enableCarousel]);
 
   useEffect(() => {
-    isPausedRef.current = isHoverPaused || isTabHidden;
-  }, [isHoverPaused, isTabHidden]);
+    isPausedRef.current = hoverPausesPlayback || isTabHidden || isPlaybackPaused;
+  }, [hoverPausesPlayback, isTabHidden, isPlaybackPaused]);
 
   useEffect(() => {
     const listChanged = prevBannerListKeyRef.current !== bannerListKey;
@@ -366,7 +370,7 @@ export function HomeHeroSearchBanner({
   }, [clearAutoplayInterval, hasFetched, startAutoplayInterval]);
 
   useEffect(() => {
-    if (!hasFetched || !enableCarousel || isHoverPaused || isTabHidden) {
+    if (!hasFetched || !enableCarousel || hoverPausesPlayback || isTabHidden || isPlaybackPaused) {
       clearAutoplayInterval();
       return;
     }
@@ -378,7 +382,8 @@ export function HomeHeroSearchBanner({
     clearAutoplayInterval,
     enableCarousel,
     hasFetched,
-    isHoverPaused,
+    hoverPausesPlayback,
+    isPlaybackPaused,
     isTabHidden,
     startAutoplayInterval,
   ]);
@@ -433,6 +438,17 @@ export function HomeHeroSearchBanner({
     [enableCarousel, restartAutoplay, sourceSlides.length],
   );
 
+  const goToNextSlide = useCallback(() => {
+    if (!enableCarousel || sourceSlides.length <= 1) return;
+    setTransitionEnabled(true);
+    setActiveIndex((prev) => {
+      const count = sourceSlides.length;
+      const current = prev >= count ? 0 : prev;
+      return Math.min(current + 1, count);
+    });
+    restartAutoplay();
+  }, [enableCarousel, restartAutoplay, sourceSlides.length]);
+
   const handleTrackTransitionEnd = useCallback(() => {
     if (!enableCarousel) return;
     if (activeIndexRef.current !== sourceSlides.length) return;
@@ -475,7 +491,10 @@ export function HomeHeroSearchBanner({
       <div
         className="hero-search-container"
         onMouseEnter={() => setIsHoverPaused(true)}
-        onMouseLeave={() => setIsHoverPaused(false)}
+        onMouseLeave={() => {
+          setSuspendHoverPause(false);
+          setIsHoverPaused(false);
+        }}
       >
         {enableCarousel ? (
           <div
@@ -501,28 +520,72 @@ export function HomeHeroSearchBanner({
         ) : displaySlide ? (
           renderSlideContent(displaySlide, true)
         ) : null}
-      </div>
 
-      {enableCarousel ? (
-        <div className="hero-search-dots" role="tablist" aria-label="Banner seçimi">
-          {sourceSlides.map((slide, index) => (
+        {enableCarousel ? (
+          <>
             <button
-              key={slide.id}
               type="button"
-              role="tab"
-              className={[
-                "hero-search-dot",
-                index === dotActiveIndex ? "hero-search-dot--active" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              aria-label={`${index + 1}. banner`}
-              aria-selected={index === dotActiveIndex}
-              onClick={() => goToSlide(index)}
-            />
-          ))}
-        </div>
-      ) : null}
+              className="hero-search-arrow hero-search-arrow--prev"
+              aria-label="Önceki banner"
+              onClick={() => goToSlide(dotActiveIndex - 1)}
+            >
+              <ChevronLeft size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="hero-search-arrow hero-search-arrow--next"
+              aria-label="Sonraki banner"
+              onClick={goToNextSlide}
+            >
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
+            <div className="hero-search-controls">
+              <div className="hero-search-dots" role="tablist" aria-label="Banner seçimi">
+                {sourceSlides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    type="button"
+                    role="tab"
+                    className={[
+                      "hero-search-dot",
+                      index === dotActiveIndex ? "hero-search-dot--active" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    aria-label={`${index + 1}. banner`}
+                    aria-selected={index === dotActiveIndex}
+                    onClick={() => goToSlide(index)}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                className={[
+                  "hero-search-playback",
+                  isPlaybackPaused ? "hero-search-playback--paused" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-label={
+                  isPlaybackPaused ? "Banner kaydırmayı oynat" : "Banner kaydırmayı duraklat"
+                }
+                aria-pressed={isPlaybackPaused}
+                onClick={() => {
+                  if (isPlaybackPaused) setSuspendHoverPause(true);
+                  else setSuspendHoverPause(false);
+                  setIsPlaybackPaused((paused) => !paused);
+                }}
+              >
+                {isPlaybackPaused ? (
+                  <Play size={11} aria-hidden="true" />
+                ) : (
+                  <Pause size={11} aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
     </section>
   );
 }

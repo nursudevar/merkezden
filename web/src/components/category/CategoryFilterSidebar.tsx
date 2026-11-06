@@ -2451,6 +2451,8 @@ type UseCategoryFilterSidebarModelArgs = {
   onSchoolFilterPayloadChange?: (payload: SchoolCategoryFilterPayload) => void;
   onInstructorFilterPayloadChange?: (payload: InstructorCategoryFilterPayload) => void;
   filterSchemaSource?: "institution" | "instructor";
+  /** Yalnızca /egitmenler: verilirse kategori seçimi bu slug ile kontrol edilir. */
+  controlledInstructorCategorySlug?: string;
 };
 
 function useCategoryFilterSidebarModel({
@@ -2467,6 +2469,7 @@ function useCategoryFilterSidebarModel({
   onSchoolFilterPayloadChange,
   onInstructorFilterPayloadChange,
   filterSchemaSource = "institution",
+  controlledInstructorCategorySlug,
 }: UseCategoryFilterSidebarModelArgs) {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
@@ -2478,7 +2481,11 @@ function useCategoryFilterSidebarModel({
   const [localIlId, setLocalIlId] = useState("");
   const [localIlceId, setLocalIlceId] = useState("");
   const [localMahalleId, setLocalMahalleId] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [uncontrolledCategory, setUncontrolledCategory] = useState("");
+  const selectedCategory =
+    controlledInstructorCategorySlug !== undefined
+      ? controlledInstructorCategorySlug
+      : uncontrolledCategory;
   const [priceRange, setPriceRange] = useState<PriceRangeSliderValue>(null);
 
   // DB'den çekilen kategoriye özgü feature group + option verisi
@@ -3356,7 +3363,7 @@ function useCategoryFilterSidebarModel({
       if (isLinkedDistrict) onLinkedDistrictChange?.(updates.district);
       else setDistrict(updates.district);
     }
-    if (updates.category !== undefined) setSelectedCategory(updates.category);
+    if (updates.category !== undefined) setUncontrolledCategory(updates.category);
     if (updates.priceRange !== undefined) setPriceRange(updates.priceRange);
 
     onFilterChange?.(newFilters);
@@ -3723,7 +3730,7 @@ function useCategoryFilterSidebarModel({
     setLocalIlId("");
     setLocalIlceId("");
     setLocalMahalleId("");
-    setSelectedCategory("");
+    setUncontrolledCategory("");
     setPriceRange(null);
     resetCategoryFeatureFilters();
     setSelectedInstructorBoolean({});
@@ -3849,6 +3856,7 @@ export function InstructorCategoryFilterPanelProvider({
   linkedLocation,
   onLinkedLocationChange,
   onInstructorFilterPayloadChange,
+  controlledInstructorCategorySlug,
 }: {
   children: ReactNode;
   config?: CategoryFilterConfig;
@@ -3856,6 +3864,7 @@ export function InstructorCategoryFilterPanelProvider({
   linkedLocation: CategoryLocationFilterValue;
   onLinkedLocationChange: (value: CategoryLocationFilterValue) => void;
   onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
+  controlledInstructorCategorySlug?: string;
 }) {
   const model = useCategoryFilterSidebarModel({
     enabled: true,
@@ -3865,6 +3874,7 @@ export function InstructorCategoryFilterPanelProvider({
     linkedLocation,
     onLinkedLocationChange,
     onInstructorFilterPayloadChange,
+    controlledInstructorCategorySlug,
   });
   return (
     <InstructorCategoryFilterPanelContext.Provider value={model}>
