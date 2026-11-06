@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import CategoryFilterSidebar, {
   CategoryFilterPanelProvider,
@@ -21,6 +21,8 @@ import {
   type CategoryLocationFilterValue,
 } from "./categoryLocationFilter";
 import type { PublicBreadcrumbItem } from "@/lib/publicBreadcrumb";
+import { fetchInstitutionCategoryBySlug } from "@/lib/categoryHelpers";
+import type { PlacementTarget } from "@/lib/advertisementsClient";
 import type { InstructorCategoryFilterPayload } from "./instructorCategoryFilterTypes";
 import { useCategoryInstitutionMapMarkers } from "@/hooks/useCategoryInstitutionMapMarkers";
 import { useListingFavorites } from "@/hooks/useListingFavorites";
@@ -85,6 +87,11 @@ interface CategoryPageLayoutProps {
     onInstructorFilterPayloadChange: (payload: InstructorCategoryFilterPayload) => void;
     controlledInstructorCategorySlug?: string;
   };
+  /**
+   * Yalnızca /egitmenler. Tanımsızken eski banner sorgusu çalışmaz; kategori
+   * çözülene veya slug geçersizken reklam gösterilmez.
+   */
+  instructorHeroPlacement?: PlacementTarget;
   extraBreadcrumbItems?: PublicBreadcrumbItem[];
 }
 
@@ -101,6 +108,7 @@ export default function CategoryPageLayout({
   categorySlug,
   schoolModeProps,
   instructorModeProps,
+  instructorHeroPlacement,
   extraBreadcrumbItems,
 }: CategoryPageLayoutProps) {
   const { markers: categoryMapMarkers, loading: categoryMapLoading } =
@@ -125,6 +133,35 @@ export default function CategoryPageLayout({
 
   const resultsScrollRef = useRef<HTMLDivElement>(null);
   const prevPayloadRef = useRef<SchoolCategoryFilterPayload | null>(null);
+  const isInstructorListing = Boolean(instructorModeProps);
+  const isInstitutionListing = !isInstructorListing && Boolean(categorySlug);
+  const [resolvedCategory, setResolvedCategory] = useState<{ slug: string; id: number | null } | null>(null);
+
+  useEffect(() => {
+    if (!isInstitutionListing || !categorySlug) return;
+    let cancelled = false;
+    void (async () => {
+      const category = await fetchInstitutionCategoryBySlug(categorySlug);
+      if (cancelled) return;
+      const categoryId = category?.id;
+      setResolvedCategory({
+        slug: categorySlug,
+        id: categoryId != null && categoryId > 0 ? categoryId : null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [categorySlug, isInstitutionListing]);
+
+  const institutionCategoryId =
+    isInstitutionListing && resolvedCategory != null && resolvedCategory.slug === categorySlug
+      ? resolvedCategory.id
+      : null;
+  const institutionPlacement = useMemo(() => {
+    if (!isInstitutionListing || institutionCategoryId == null) return undefined;
+    return { placementType: "institution_category" as const, categoryId: institutionCategoryId };
+  }, [institutionCategoryId, isInstitutionListing]);
 
   /**
    * Parent'tan gelen callback'leri ref üzerinden okuyalım ki sarmalanmış
@@ -207,6 +244,7 @@ export default function CategoryPageLayout({
         <div className="category-page-layout-results">
           <HomeHeroSearchBanner
             titleAs="div"
+            placement={isInstructorListing ? instructorHeroPlacement : institutionPlacement}
             leadingSlide={
               categorySlug === "surucu-kursu" ? (
                 <HomeDrivingSchoolsSection variant="carousel-slide" />

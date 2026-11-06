@@ -259,6 +259,32 @@
   }
 }
 
+.hero-search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hero-search-action {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: $bg-white;
+  color: $purple-main;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.hero-search-action--secondary {
+  background: $purple-main;
+  color: $bg-white;
+}
+
 // --- Sürücü Kursları banner (carousel slide) -------------------------------
 
 @keyframes home-driving-meko-drive {

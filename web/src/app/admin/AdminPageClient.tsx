@@ -15,6 +15,7 @@ import {
   Users,
   BookOpenText,
   ImageIcon,
+  Images,
   PencilLine,
   Plus,
   Trash2,
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 import { AdminAnnouncementsTab, type AdminAnnouncementsTabHandle } from "./AdminAnnouncementsTab";
 import { isAnnouncementExpiredWhileActive } from "@/lib/announcementPublication";
-import { AdminHomepageBannersTab } from "./AdminHomepageBannersTab";
+import { AdminAdvertisementsSection } from "./AdminAdvertisementsSection";
 import { HeaderClientWrapper } from "@/components/layout/header.client";
 import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { Card, CardContent } from "@/components/ui";
@@ -93,7 +94,7 @@ type AdminTabId =
   | "approval-requests"
   | "announcements"
   | "blog-posts"
-  | "homepage-banners"
+  | "advertisements"
   | "settings";
 
 type AdminMetricCard = {
@@ -2907,8 +2908,8 @@ export default function AdminPageClient() {
         ? "Duyurular"
         : activeTab === "blog-posts"
           ? "Blog Yazıları"
-          : activeTab === "homepage-banners"
-            ? "Banner Yönetimi"
+          : activeTab === "advertisements"
+            ? "Reklam Yönetimi"
           : activeTab === "settings"
             ? "Ayarlar"
             : "";
@@ -2993,11 +2994,11 @@ export default function AdminPageClient() {
               </button>
               <button
                 type="button"
-                className={`admin-sidebar-nav-item ${activeTab === "homepage-banners" ? "admin-sidebar-nav-item--active" : ""}`}
-                onClick={() => setActiveTab("homepage-banners")}
+                className={`admin-sidebar-nav-item ${activeTab === "advertisements" ? "admin-sidebar-nav-item--active" : ""}`}
+                onClick={() => setActiveTab("advertisements")}
               >
-                <ImageIcon className="admin-sidebar-nav-icon" />
-                <span>Banner Yönetimi</span>
+                <Images className="admin-sidebar-nav-icon" />
+                <span>Reklam Yönetimi</span>
               </button>
               <button
                 type="button"
@@ -5292,7 +5293,7 @@ export default function AdminPageClient() {
             </div>
           ) : null}
 
-          {activeTab === "homepage-banners" ? <AdminHomepageBannersTab /> : null}
+          {activeTab === "advertisements" ? <AdminAdvertisementsSection /> : null}
 
           {activeTab === "settings" ? <ChangePasswordCard /> : null}
 
@@ -5304,7 +5305,7 @@ export default function AdminPageClient() {
           activeTab !== "approval-requests" &&
           activeTab !== "announcements" &&
           activeTab !== "blog-posts" &&
-          activeTab !== "homepage-banners" &&
+          activeTab !== "advertisements" &&
           activeTab !== "settings" ? (
             <Card className="admin-main-card">
               <CardContent className="admin-main-card-content">

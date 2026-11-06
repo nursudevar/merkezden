@@ -9,31 +9,17 @@ import {
   type ReactNode,
 } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import type { AdvertisementButton, PlacementTarget } from "@/lib/advertisementsClient";
 import {
-  fetchActiveHomepageBanners,
-  type PublicHomepageBanner,
-} from "@/lib/homeBannersClient";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+  fetchPublishedHeroSlides,
+  type PublishedHeroSlide,
+} from "@/components/home/publishedHeroSlides";
 
 const AUTO_ADVANCE_MS = 3000;
 
-const FALLBACK_BANNER: PublicHomepageBanner = {
-  id: "fallback",
-  imageUrl: "/images/hero-banner-car.jpg",
-  title: "ÇAYYOLU SÜRÜCÜ KURSU",
-  description: "İLETİŞİME GEÇMEYİ UNUTMAYIN!",
-  mediaType: "image",
-  videoUrl: null,
-};
+type HeroBannerSlide = PublishedHeroSlide;
 
-type HeroBannerSlide = PublicHomepageBanner & {
-  isFallback?: boolean;
-};
-
-let cachedActiveBanners: PublicHomepageBanner[] = [];
-let hasCachedFetch = false;
-
-function getBannerListKey(banners: PublicHomepageBanner[]): string {
+function getBannerListKey(banners: Array<{ id: string }>): string {
   return banners.map((banner) => banner.id).join("\0");
 }
 
@@ -79,10 +65,6 @@ function HeroBannerTitle({
       {gradient ? <span className="hero-search-title-purple">{gradient}</span> : null}
     </TitleTag>
   );
-}
-
-function mapPublicBanner(row: PublicHomepageBanner): HeroBannerSlide {
-  return { ...row, isFallback: false };
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -157,12 +139,14 @@ function HeroBannerSlideContent({
     return (
       <>
         <div className="hero-search-banner-media">
-          <img
-            src={banner.imageUrl}
-            alt=""
-            aria-hidden="true"
-            className="hero-search-banner hero-search-banner--poster"
-          />
+          {banner.imageUrl ? (
+            <img
+              src={banner.imageUrl}
+              alt=""
+              aria-hidden="true"
+              className="hero-search-banner hero-search-banner--poster"
+            />
+          ) : null}
           {showVideo ? (
             <video
               ref={videoRef}
@@ -187,6 +171,7 @@ function HeroBannerSlideContent({
           {displayDescription ? (
             <p className="hero-search-subtitle">{displayDescription}</p>
           ) : null}
+          <HeroBannerActions buttons={banner.buttons} />
         </div>
       </>
     );
@@ -205,8 +190,54 @@ function HeroBannerSlideContent({
         {displayDescription ? (
           <p className="hero-search-subtitle">{displayDescription}</p>
         ) : null}
+        <HeroBannerActions buttons={banner.buttons} />
       </div>
     </>
+  );
+}
+
+function advertisementButtonHref(url: string): { href: string; external: boolean } | null {
+  const value = url.trim();
+  if (!value || /[\u0000-\u001F\u007F\s]/.test(value)) return null;
+
+  if (value.startsWith("/")) {
+    if (value.startsWith("//") || value.includes("://")) return null;
+    return { href: value, external: false };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" || !parsed.hostname.includes(".")) return null;
+  return { href: value, external: true };
+}
+
+function HeroBannerActions({ buttons }: { buttons?: AdvertisementButton[] }) {
+  const visible = (buttons ?? [])
+    .flatMap((button) => {
+      const label = button.label.trim();
+      const href = advertisementButtonHref(button.url);
+      return label && href ? [{ label, ...href }] : [];
+    })
+    .slice(0, 2);
+  if (visible.length === 0) return null;
+  return (
+    <div className="hero-search-actions">
+      {visible.map((button, index) => (
+        <a
+          key={`${button.label}-${button.href}`}
+          className={index === 1 ? "hero-search-action hero-search-action--secondary" : "hero-search-action"}
+          href={button.href}
+          target={button.external ? "_blank" : undefined}
+          rel={button.external ? "noopener noreferrer" : undefined}
+        >
+          {button.label}
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -223,14 +254,26 @@ interface HomeHeroSearchBannerProps {
   titleAs?: HeroTitleAs;
   /** Optional first carousel slide (e.g. Sürücü Kursları banner on /surucu-kursu). */
   leadingSlide?: ReactNode;
+  /** When set, slides come from published advertisements for this placement. */
+  placement?: PlacementTarget;
+}
+
+function placementRequestKey(placement: PlacementTarget | undefined): string | null {
+  if (!placement) return null;
+  if (placement.placementType === "institution_category" || placement.placementType === "instructor_category") {
+    return `${placement.placementType}:${placement.categoryId}`;
+  }
+  return placement.placementType;
 }
 
 export function HomeHeroSearchBanner({
   titleAs = "h1",
   leadingSlide,
+  placement,
 }: HomeHeroSearchBannerProps = {}) {
-  const [dbBanners, setDbBanners] = useState<PublicHomepageBanner[]>(() => cachedActiveBanners);
-  const [hasFetched, setHasFetched] = useState(hasCachedFetch);
+  const [dbBanners, setDbBanners] = useState<HeroBannerSlide[]>([]);
+  const [loadedPlacementKey, setLoadedPlacementKey] = useState<string | null>(null);
+  const [hasFetched, setHasFetched] = useState(() => !placement);
   const [activeIndex, setActiveIndex] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
@@ -247,21 +290,17 @@ export function HomeHeroSearchBanner({
   const enableCarouselRef = useRef(false);
   const isPausedRef = useRef(false);
   const intervalRef = useRef<number | null>(null);
-  const prevBannerListKeyRef = useRef(getBannerListKey(cachedActiveBanners));
+  const prevBannerListKeyRef = useRef("");
   const hasLeadingSlide = Boolean(leadingSlide);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
 
-  const sourceBanners = useMemo<HeroBannerSlide[]>(() => {
-    if (dbBanners.length > 0) {
-      return dbBanners.map(mapPublicBanner);
-    }
-    // Leading custom slide varken fallback ekleme; aksi halde tek slide fallback.
-    if (hasLeadingSlide) return [];
-    return [{ ...FALLBACK_BANNER, isFallback: true }];
-  }, [dbBanners, hasLeadingSlide]);
+  const requestKey = placementRequestKey(placement);
+  const publishedReady = !requestKey || loadedPlacementKey === requestKey;
+  const visibleBanners = placement && publishedReady ? dbBanners : [];
+  const sourceBanners = visibleBanners;
 
   const sourceSlides = useMemo<CarouselSlide[]>(() => {
     const dbSlides: CarouselSlide[] = sourceBanners.map((banner) => ({
@@ -279,8 +318,8 @@ export function HomeHeroSearchBanner({
   const bannerCount = sourceSlides.length;
   const enableCarousel = hasFetched && bannerCount > 1;
   const bannerListKey = useMemo(
-    () => `${hasLeadingSlide ? `${LEADING_DRIVING_SLIDE_ID}\0` : ""}${getBannerListKey(dbBanners)}`,
-    [dbBanners, hasLeadingSlide],
+    () => `${hasLeadingSlide ? `${LEADING_DRIVING_SLIDE_ID}\0` : ""}${getBannerListKey(visibleBanners)}`,
+    [hasLeadingSlide, visibleBanners],
   );
 
   useEffect(() => {
@@ -315,26 +354,21 @@ export function HomeHeroSearchBanner({
   }, [bannerListKey, bannerCount, enableCarousel]);
 
   useEffect(() => {
+    if (!placement || !requestKey) return;
     let cancelled = false;
-    const supabase = createSupabaseBrowserClient();
 
     void (async () => {
-      const { banners, error } = await fetchActiveHomepageBanners(supabase);
+      const result = await fetchPublishedHeroSlides(placement);
       if (cancelled) return;
-
-      if (!error) {
-        cachedActiveBanners = banners;
-        setDbBanners(banners);
-      }
-
-      hasCachedFetch = true;
+      setDbBanners(result.error ? [] : result.slides);
+      setLoadedPlacementKey(requestKey);
       setHasFetched(true);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [placement, requestKey]);
 
   const clearAutoplayInterval = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -478,6 +512,10 @@ export function HomeHeroSearchBanner({
   };
 
   const displaySlide = sourceSlides[0];
+  const publishedSettled = placement ? publishedReady && hasFetched : hasFetched;
+  const placementHasNoSlides = publishedSettled && sourceSlides.length === 0;
+
+  if (placementHasNoSlides) return null;
 
   return (
     <section

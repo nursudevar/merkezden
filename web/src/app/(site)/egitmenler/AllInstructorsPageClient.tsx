@@ -8,6 +8,8 @@ import {
 } from "@/lib/publicInstructorClient";
 import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructorDetailClient";
 import CategoryPageLayout from "@/components/category/CategoryPageLayout";
+import { INSTRUCTOR_GENERAL_AD_PLACEMENT } from "@/components/home/publishedHeroSlides";
+import type { PlacementTarget } from "@/lib/advertisementsClient";
 import type { FilterState } from "@/components/category/CategoryFilterSidebar";
 import {
   resolveCategoryListingIlId,
@@ -307,6 +309,8 @@ export function AllInstructorsPageClient() {
     () => new Map(),
   );
   const [instructorCategories, setInstructorCategories] = useState<InstructorFeatureCategoryRow[]>([]);
+  const [instructorCategoriesLoaded, setInstructorCategoriesLoaded] = useState(false);
+  const [instructorCategoryUnresolved, setInstructorCategoryUnresolved] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     city: "",
@@ -373,6 +377,19 @@ export function AllInstructorsPageClient() {
     return Number.isFinite(categoryId) && categoryId > 0 ? categoryId : null;
   }, [filters.category, instructorCategories]);
 
+  const instructorHeroPlacement = useMemo<PlacementTarget | undefined>(() => {
+    if (!instructorCategoriesLoaded || instructorCategoryUnresolved) return undefined;
+    const slug = String(filters.category ?? "").trim();
+    if (!slug) return INSTRUCTOR_GENERAL_AD_PLACEMENT;
+    if (selectedInstructorCategoryId == null) return undefined;
+    return { placementType: "instructor_category", categoryId: selectedInstructorCategoryId };
+  }, [
+    filters.category,
+    instructorCategoriesLoaded,
+    instructorCategoryUnresolved,
+    selectedInstructorCategoryId,
+  ]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -420,10 +437,14 @@ export function AllInstructorsPageClient() {
       ]);
       if (cancelled) return;
 
-      if (!categoriesResult.error) {
+      if (!categoriesResult.error && categoriesResult.categories.length > 0) {
         setInstructorCategories(categoriesResult.categories);
         applyCategoryFromUrl(categoriesResult.categories);
+        setInstructorCategoryUnresolved(false);
+      } else {
+        setInstructorCategoryUnresolved(Boolean(readInstructorCategoryParam()));
       }
+      setInstructorCategoriesLoaded(true);
 
       if (!featuredOrderResult.error) {
         setFeaturedInstructorOrderMap(featuredOrderResult.orderMap);
@@ -596,6 +617,7 @@ export function AllInstructorsPageClient() {
         onInstructorFilterPayloadChange: setInstructorFeatureFilters,
         controlledInstructorCategorySlug: filters.category,
       }}
+      instructorHeroPlacement={instructorHeroPlacement}
       extraBreadcrumbItems={
         selectedInstructorCategoryId
           ? instructorCategories

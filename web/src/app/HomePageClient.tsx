@@ -18,6 +18,7 @@ import { HomeIndividualInstructorsSection } from "@/components/featured/HomeIndi
 import { HomePurpleFeaturedMarquee } from "@/components/featured/HomePurpleFeaturedMarquee";
 import { HomeMainCategoryCard } from "@/components/home/HomeMainCategoryCard";
 import { HomeHeroSearchBanner } from "@/components/home/HomeHeroSearchBanner";
+import { HOMEPAGE_AD_PLACEMENT } from "@/components/home/publishedHeroSlides";
 import { HomeCalendarAnnouncementsSection } from "@/components/home/HomeCalendarAnnouncementsSection";
 import { HomeHowItWorksSection } from "@/components/home/HomeHowItWorksSection";
 import { HomeMapSearchPromoBanner } from "@/components/home/HomeMapSearchPromoBanner";
@@ -387,7 +388,7 @@ export default function HomePageClient() {
         <main className="main-content">
           {showDefaultHomeContent ? (
             <>
-              <HomeHeroSearchBanner />
+              <HomeHeroSearchBanner placement={HOMEPAGE_AD_PLACEMENT} />
 
               <section className="home-main-categories">
                 <header className="home-main-categories-header">
