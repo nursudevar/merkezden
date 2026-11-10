@@ -65,6 +65,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectMo
 import { InstructorCategorySelect } from "@/components/category/InstructorCategorySelect";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  CATEGORY_ALL_ILLER_VALUE,
   CATEGORY_ALL_ILCELER_VALUE,
   CATEGORY_ALL_MAHALLELER_VALUE,
   EMPTY_CATEGORY_LOCATION_FILTER,
@@ -74,8 +75,6 @@ import {
   fetchIller,
   fetchIlcelerByIlId,
   fetchMahallelerByIlceId,
-  findLocationIdByAd,
-  HOME_DEFAULT_CITY_AD,
   parseLocationId,
   type TurkiyeLocationOption,
 } from "@/lib/turkiyeLocationsClient";
@@ -116,7 +115,15 @@ import {
   sanitizeLessonDurationInput,
 } from "@/lib/instructorLessonDurationFeature";
 import { InstitutionMapSearchSection } from "@/components/map/InstitutionMapSearchSection";
+import type { InstitutionMapFocusTarget } from "@/components/map/InstitutionLocationsMap";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import {
+  defaultMapFocusView,
+  resolveCityMapView,
+  resolveDistrictMapView,
+  resolveNeighborhoodMapView,
+  type LocationMapFocusView,
+} from "@/lib/districtMapView";
 import { CategoryFilterMultiSelect } from "./CategoryFilterMultiSelect";
 import {
   HIGH_SCHOOL_TYPE_OPTIONS,
@@ -2477,7 +2484,6 @@ function useCategoryFilterSidebarModel({
   const [iller, setIller] = useState<TurkiyeLocationOption[]>([]);
   const [ilceler, setIlceler] = useState<TurkiyeLocationOption[]>([]);
   const [mahalleler, setMahalleler] = useState<TurkiyeLocationOption[]>([]);
-  const [defaultIlId, setDefaultIlId] = useState("");
   const [localIlId, setLocalIlId] = useState("");
   const [localIlceId, setLocalIlceId] = useState("");
   const [localMahalleId, setLocalMahalleId] = useState("");
@@ -2569,7 +2575,7 @@ function useCategoryFilterSidebarModel({
   const displayDistrict = isLinkedDistrict ? (linkedDistrict ?? "") : district;
   const usesInstitutionLocationFilters = enabled;
   const displayIlId = usesInstitutionLocationFilters
-    ? (isLinkedLocation ? linkedLocation?.ilId || defaultIlId : localIlId || defaultIlId)
+    ? (isLinkedLocation ? (linkedLocation?.ilId ?? "") : localIlId)
     : "";
   const displayIlceId = usesInstitutionLocationFilters
     ? (isLinkedLocation ? (linkedLocation?.ilceId ?? "") : localIlceId)
@@ -2594,7 +2600,6 @@ function useCategoryFilterSidebarModel({
   useEffect(() => {
     if (!usesInstitutionLocationFilters) {
       setIller([]);
-      setDefaultIlId("");
       return;
     }
 
@@ -2604,8 +2609,6 @@ function useCategoryFilterSidebarModel({
         const rows = await fetchIller();
         if (cancelled) return;
         setIller(rows);
-        const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
-        if (ankaraId) setDefaultIlId(ankaraId);
       } catch (error) {
         console.error("İller yüklenemedi:", error);
         if (!cancelled) setIller([]);
@@ -2673,7 +2676,8 @@ function useCategoryFilterSidebarModel({
 
   const handleIlChange = useCallback(
     (value: string) => {
-      emitLocation({ ilId: value, ilceId: "", mahalleId: "" });
+      const nextIlId = value === CATEGORY_ALL_ILLER_VALUE ? "" : value;
+      emitLocation({ ilId: nextIlId, ilceId: "", mahalleId: "" });
     },
     [emitLocation],
   );
@@ -3664,9 +3668,9 @@ function useCategoryFilterSidebarModel({
   const hasActiveFilters = useMemo(() => {
     if (String(displaySearch ?? "").trim()) return true;
     if (usesInstitutionLocationFilters) {
+      if (String(displayIlId ?? "").trim()) return true;
       if (String(displayIlceId ?? "").trim()) return true;
       if (String(displayMahalleId ?? "").trim()) return true;
-      if (defaultIlId && displayIlId && displayIlId !== defaultIlId) return true;
     }
     if (String(selectedCategory ?? "").trim()) return true;
     if (selectedSubcategoryIds.size > 0) return true;
@@ -3700,7 +3704,6 @@ function useCategoryFilterSidebarModel({
     displayIlId,
     displayIlceId,
     displayMahalleId,
-    defaultIlId,
     usesInstitutionLocationFilters,
     selectedCategory,
     selectedSubcategoryIds,
@@ -4717,6 +4720,91 @@ function CategoryFilterSidebarView({
     };
   }, []);
 
+  const [mapFocusTarget, setMapFocusTarget] = useState<InstitutionMapFocusTarget | null>(null);
+  const mapFocusRequestIdRef = useRef(0);
+  const mapMarkersRef = useRef(mapMarkers);
+  const locationFocusKey = `${displayIlId}|${displayIlceId}|${displayMahalleId}`;
+
+  useEffect(() => {
+    mapMarkersRef.current = mapMarkers;
+  }, [mapMarkers]);
+
+  // Yalnızca konum filtresi değişince odaklan — marker/sayfa değişiminde sıfırlama yok.
+  useEffect(() => {
+    if (mapMarkers === undefined) return;
+
+    const requestId = ++mapFocusRequestIdRef.current;
+    const markers = mapMarkersRef.current ?? [];
+    const parsedIlId = parseLocationId(displayIlId);
+    const parsedIlceId = parseLocationId(displayIlceId);
+    const parsedMahalleId = parseLocationId(displayMahalleId);
+
+    const toFocus = (view: LocationMapFocusView): InstitutionMapFocusTarget => ({
+      lat: view.lat,
+      lng: view.lng,
+      zoom: view.zoom,
+      maxZoom: view.maxZoom,
+      bounds: view.bounds,
+      boundaryGeoJson: view.boundaryGeoJson,
+      token: Date.now(),
+    });
+
+    void (async () => {
+      if (parsedIlId == null) {
+        if (requestId !== mapFocusRequestIdRef.current) return;
+        setMapFocusTarget(toFocus(defaultMapFocusView()));
+        return;
+      }
+
+      const cityAd = iller.find((row) => row.id === parsedIlId)?.ad ?? "";
+      const cityMarkers = markers.filter((marker) => marker.ilId === parsedIlId);
+
+      if (parsedIlceId == null) {
+        const cityView = await resolveCityMapView(cityAd, cityMarkers);
+        if (requestId !== mapFocusRequestIdRef.current) return;
+        setMapFocusTarget(toFocus(cityView ?? defaultMapFocusView()));
+        return;
+      }
+
+      if (parsedMahalleId != null) {
+        const mahalleMarkers = markers.filter(
+          (marker) =>
+            marker.ilId === parsedIlId &&
+            marker.ilceId === parsedIlceId &&
+            marker.mahalleId === parsedMahalleId,
+        );
+        const mahalleView = resolveNeighborhoodMapView(mahalleMarkers);
+        if (mahalleView) {
+          if (requestId !== mapFocusRequestIdRef.current) return;
+          setMapFocusTarget(toFocus(mahalleView));
+          return;
+        }
+      }
+
+      const districtAd = ilceler.find((row) => row.id === parsedIlceId)?.ad ?? "";
+      const districtMarkers = markers.filter(
+        (marker) => marker.ilId === parsedIlId && marker.ilceId === parsedIlceId,
+      );
+      const districtView = await resolveDistrictMapView(cityAd, districtAd, districtMarkers);
+      if (requestId !== mapFocusRequestIdRef.current) return;
+      if (districtView) {
+        setMapFocusTarget(
+          toFocus({
+            bounds: districtView.bounds,
+            maxZoom: districtView.maxZoom,
+            boundaryGeoJson: districtView.boundaryGeoJson,
+          }),
+        );
+        return;
+      }
+
+      const cityView = await resolveCityMapView(cityAd, cityMarkers);
+      if (requestId !== mapFocusRequestIdRef.current) return;
+      if (cityView) setMapFocusTarget(toFocus(cityView));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnızca konum anahtarı; marker ref ile okunur
+  }, [locationFocusKey]);
+
   const hasAdvancedFilters =
     commonFields.length > 0 ||
     patiliBaslicaFields.length > 0 ||
@@ -4730,7 +4818,7 @@ function CategoryFilterSidebarView({
     !hasAdvancedFilters;
 
   const locationIlLabel =
-    iller.find((row) => String(row.id) === displayIlId)?.ad ?? "İl seçin";
+    iller.find((row) => String(row.id) === displayIlId)?.ad ?? "Tüm Türkiye";
   const locationIlceLabel = !displayIlId
     ? "İlçe Seçin"
     : ilceler.find((row) => String(row.id) === displayIlceId)?.ad ?? "Tüm İlçeler";
@@ -4770,6 +4858,7 @@ function CategoryFilterSidebarView({
               loading={mapLoading}
               mapKeyPrefix="category-institution-map"
               showSeparatorAfter
+              focusTarget={mapFocusTarget}
             />
           ) : null}
           <div className="category-filter-section">
@@ -4798,7 +4887,7 @@ function CategoryFilterSidebarView({
                     disabled={iller.length === 0}
                   >
                   <Select
-                    value={displayIlId || ""}
+                    value={displayIlId ? displayIlId : CATEGORY_ALL_ILLER_VALUE}
                     onValueChange={handleIlChange}
                     disabled={iller.length === 0}
                   >
@@ -4810,6 +4899,9 @@ function CategoryFilterSidebarView({
                       side="bottom"
                       collisionPadding={8}
                     >
+                      <SelectItem value={CATEGORY_ALL_ILLER_VALUE} className="select-item">
+                        Tüm Türkiye
+                      </SelectItem>
                       {iller.map((row) => (
                         <SelectItem key={row.id} value={String(row.id)} className="select-item">
                           {row.ad}

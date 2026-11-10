@@ -1,7 +1,11 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { fetchAllPostgrestPages } from "@/lib/postgrestQueryPages";
 
 /** Ana sayfa / SearchResults ile aynı: private = Özel, public = Devlet */
 export type SchoolStatus = "private" | "public";
+
+/** PostgREST GET URL limiti — büyük `id.in.(...)` listeleri 400 üretir. */
+const FEATURE_ENTRY_IN_CHUNK = 150;
 
 /** Haritada Ara URL slug’ları */
 export type KurumTuruSlug = "devlet" | "ozel";
@@ -84,7 +88,11 @@ export function writeKurumTuruSlugsToParams(
   }
 }
 
-async function resolveInstitutionIdsByFeatureChoices(
+/**
+ * Feature definition + choice eşleştiricilerine göre kurum id’leri.
+ * Entry / junction sonuçları PostgREST satır tavanına göre sayfalanır.
+ */
+export async function resolveInstitutionIdsByFeatureChoices(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   matchDefinition: (row: { name?: string | null; slug?: string | null }) => boolean,
   matchChoice: (choiceName: string) => boolean,
@@ -135,31 +143,39 @@ async function resolveInstitutionIdsByFeatureChoices(
     .filter((d) => d.input_type === "single_select" || d.input_type === "multi_select")
     .map((d) => d.id);
   if (choiceDefIds.length > 0) {
-    const { data: choiceEntries, error: e2 } = await supabase
-      .from("institution_feature_entries")
-      .select("id, institution_id")
-      .in("feature_definition_id", choiceDefIds);
+    const entries = await fetchAllPostgrestPages<{ id: number; institution_id: number }>(
+      (from, to) =>
+        supabase
+          .from("institution_feature_entries")
+          .select("id, institution_id")
+          .in("feature_definition_id", choiceDefIds)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
 
-    if (e2) throw e2;
-    const entries = (choiceEntries ?? []) as Array<{ id: number; institution_id: number }>;
     const entryIds = entries.map((e) => e.id).filter((id) => Number.isFinite(id));
     const entryIdToInstitutionId = new Map<number, number>();
     for (const e of entries) {
       entryIdToInstitutionId.set(Number(e.id), Number(e.institution_id));
     }
 
-    if (entryIds.length > 0) {
-      const { data: links, error: e3 } = await supabase
-        .from("institution_feature_entry_choices")
-        .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", entryIds)
-        .in("choice_id", targetIds);
-
-      if (e3) throw e3;
-      for (const row of (links ?? []) as Array<{
+    for (let i = 0; i < entryIds.length; i += FEATURE_ENTRY_IN_CHUNK) {
+      const entryChunk = entryIds.slice(i, i + FEATURE_ENTRY_IN_CHUNK);
+      const links = await fetchAllPostgrestPages<{
         institution_feature_entry_id: number;
         choice_id: number;
-      }>) {
+      }>((from, to) =>
+        supabase
+          .from("institution_feature_entry_choices")
+          .select("institution_feature_entry_id, choice_id")
+          .in("institution_feature_entry_id", entryChunk)
+          .in("choice_id", targetIds)
+          .order("institution_feature_entry_id", { ascending: true })
+          .order("choice_id", { ascending: true })
+          .range(from, to),
+      );
+
+      for (const row of links) {
         const eid = Number(row.institution_feature_entry_id);
         const cid = Number(row.choice_id);
         if (!targetChoiceIds.has(cid)) continue;

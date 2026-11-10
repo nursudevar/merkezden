@@ -47,6 +47,7 @@ import {
   lessonDurationStoredOverlapsSelected,
   parseLessonDurationInput,
 } from "@/lib/instructorLessonDurationFeature";
+import { fetchAllPostgrestPages } from "@/lib/postgrestQueryPages";
 
 export const PUBLIC_INSTRUCTOR_LIST_SELECT =
   "id, slug, name, surname, full_name, address, branch, bio, about, school, department, lesson_type, service_type, website, experience_years, profile_picture, category_id, is_approved, is_active, created_at, il_id, ilce_id, min_fiyat, max_fiyat";
@@ -68,6 +69,8 @@ const PUBLIC_INSTRUCTOR_SEARCH_COLUMNS = [
 
 const QUERY_PAGE_SIZE = 1000;
 const MAX_QUERY_PAGES = 10;
+/** PostgREST GET URL limiti — büyük `id.in.(...)` listeleri 400 üretir. */
+const FEATURE_ENTRY_IN_CHUNK = 150;
 
 export type PublicInstructorListRow = {
   id: number;
@@ -648,28 +651,42 @@ async function resolveInstructorIdsForInstructorChoice(
   choiceId: number,
 ): Promise<Set<number>> {
   const out = new Set<number>();
-  const { data: entries, error: e1 } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("id, instructor_id")
-    .eq("feature_definition_id", definitionId);
-  if (e1) throw e1;
+  const rows = await fetchAllPostgrestPages<{ id: number; instructor_id: number }>((from, to) =>
+    supabase
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+      .select("id, instructor_id")
+      .eq("feature_definition_id", definitionId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
-  const rows = (entries ?? []) as Array<{ id: number; instructor_id: number }>;
   const entryToInstructor = new Map<number, number>();
-  rows.forEach((r) => entryToInstructor.set(Number(r.id), Number(r.instructor_id)));
+  for (const row of rows) {
+    entryToInstructor.set(Number(row.id), Number(row.instructor_id));
+  }
   const entryIds = rows.map((r) => r.id).filter((id) => Number.isFinite(id));
   if (entryIds.length === 0) return out;
 
-  const { data: links, error: e2 } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
-    .select("instructor_feature_entry_id, choice_id")
-    .in("instructor_feature_entry_id", entryIds)
-    .eq("choice_id", choiceId);
-  if (e2) throw e2;
+  for (let i = 0; i < entryIds.length; i += FEATURE_ENTRY_IN_CHUNK) {
+    const entryChunk = entryIds.slice(i, i + FEATURE_ENTRY_IN_CHUNK);
+    const links = await fetchAllPostgrestPages<{
+      instructor_feature_entry_id: number;
+      choice_id: number;
+    }>((from, to) =>
+      supabase
+        .from(INSTRUCTOR_FEATURE_ENTRY_CHOICES_TABLE)
+        .select("instructor_feature_entry_id, choice_id")
+        .in("instructor_feature_entry_id", entryChunk)
+        .eq("choice_id", choiceId)
+        .order("instructor_feature_entry_id", { ascending: true })
+        .order("choice_id", { ascending: true })
+        .range(from, to),
+    );
 
-  for (const row of (links ?? []) as Array<{ instructor_feature_entry_id: number }>) {
-    const iid = entryToInstructor.get(Number(row.instructor_feature_entry_id));
-    if (Number.isFinite(iid)) out.add(iid!);
+    for (const row of links) {
+      const iid = entryToInstructor.get(Number(row.instructor_feature_entry_id));
+      if (Number.isFinite(iid)) out.add(iid!);
+    }
   }
   return out;
 }
@@ -679,13 +696,16 @@ async function resolveInstructorIdsForBooleanDefinition(
   definitionId: number,
 ): Promise<Set<number>> {
   const out = new Set<number>();
-  const { data, error } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("instructor_id")
-    .eq("feature_definition_id", definitionId)
-    .eq("boolean_answer", true);
-  if (error) throw error;
-  for (const row of (data ?? []) as Array<{ instructor_id: number }>) {
+  const rows = await fetchAllPostgrestPages<{ id: number; instructor_id: number }>((from, to) =>
+    supabase
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+      .select("id, instructor_id")
+      .eq("feature_definition_id", definitionId)
+      .eq("boolean_answer", true)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  for (const row of rows) {
     const iid = Number(row.instructor_id);
     if (Number.isFinite(iid)) out.add(iid);
   }
@@ -699,17 +719,21 @@ async function resolveInstructorIdsNumberRangeForDefinition(
   maxBound: number | null,
 ): Promise<Set<number>> {
   const out = new Set<number>();
-  const { data, error } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("instructor_id, number_answer, text_answer")
-    .eq("feature_definition_id", definitionId);
-  if (error) throw error;
-
-  for (const row of (data ?? []) as Array<{
+  const rows = await fetchAllPostgrestPages<{
+    id: number;
     instructor_id: number;
     number_answer: number | null;
     text_answer: string | null;
-  }>) {
+  }>((from, to) =>
+    supabase
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+      .select("id, instructor_id, number_answer, text_answer")
+      .eq("feature_definition_id", definitionId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+
+  for (const row of rows) {
     const iid = Number(row.instructor_id);
     if (!Number.isFinite(iid)) continue;
     let n: number | null = null;
@@ -752,18 +776,22 @@ async function resolveInstructorIdsByLessonDurationOverlap(
   }
   if (minId == null || maxId == null) return out;
 
-  const { data: entries, error: entriesError } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("instructor_id, feature_definition_id, number_answer")
-    .in("feature_definition_id", [minId, maxId]);
-  if (entriesError) throw entriesError;
-
-  const byInstructor = new Map<number, { min: number | null; max: number | null }>();
-  for (const row of (entries ?? []) as Array<{
+  const entries = await fetchAllPostgrestPages<{
+    id: number;
     instructor_id: number;
     feature_definition_id: number;
     number_answer: number | null;
-  }>) {
+  }>((from, to) =>
+    supabase
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+      .select("id, instructor_id, feature_definition_id, number_answer")
+      .in("feature_definition_id", [minId, maxId])
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+
+  const byInstructor = new Map<number, { min: number | null; max: number | null }>();
+  for (const row of entries) {
     const instructorId = Number(row.instructor_id);
     const definitionId = Number(row.feature_definition_id);
     const answer =
@@ -807,10 +835,7 @@ async function resolveInstructorIdsByWorkingHoursFilter(
   const endDb = params.end ? inputHHMMToDbTimeOrNull(params.end) : null;
   if (!startDb && !endDb) return new Set();
 
-  const rows: Array<{ id: number }> = [];
-  let from = 0;
-  for (;;) {
-    const to = from + QUERY_PAGE_SIZE - 1;
+  const rows = await fetchAllPostgrestPages<{ id: number }>((from, to) => {
     let query = supabase.from(PUBLIC_INSTRUCTORS_TABLE).select("id");
     if (startDb) {
       query = query.not("working_hours_start", "is", null).lte("working_hours_start", startDb);
@@ -818,14 +843,8 @@ async function resolveInstructorIdsByWorkingHoursFilter(
     if (endDb) {
       query = query.not("working_hours_end", "is", null).gte("working_hours_end", endDb);
     }
-    const { data, error } = await query.range(from, to);
-    if (error) throw error;
-    const batch = (data ?? []) as Array<{ id: number }>;
-    rows.push(...batch);
-    if (batch.length < QUERY_PAGE_SIZE) break;
-    from += QUERY_PAGE_SIZE;
-    if (from / QUERY_PAGE_SIZE >= MAX_QUERY_PAGES) break;
-  }
+    return query.order("id", { ascending: true }).range(from, to);
+  });
 
   const out = new Set<number>();
   for (const row of rows) {
@@ -1301,14 +1320,17 @@ async function resolveInstructorIdsForSingleSelectChoice(
   if (fromEntryChoices.size > 0) return fromEntryChoices;
 
   const out = new Set<number>();
-  const { data, error } = await supabase
-    .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
-    .select("instructor_id")
-    .eq("feature_definition_id", definitionId)
-    .eq("selected_choice_id", choiceId);
-  if (error) throw error;
+  const rows = await fetchAllPostgrestPages<{ id: number; instructor_id: number }>((from, to) =>
+    supabase
+      .from(INSTRUCTOR_FEATURE_ENTRIES_TABLE)
+      .select("id, instructor_id")
+      .eq("feature_definition_id", definitionId)
+      .eq("selected_choice_id", choiceId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
-  for (const row of (data ?? []) as Array<{ instructor_id: number }>) {
+  for (const row of rows) {
     const instructorId = Number(row.instructor_id);
     if (Number.isFinite(instructorId)) out.add(instructorId);
   }

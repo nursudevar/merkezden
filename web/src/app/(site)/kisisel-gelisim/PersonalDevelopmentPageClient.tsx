@@ -62,7 +62,7 @@ export default function PersonalDevelopmentPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -78,6 +78,9 @@ export default function PersonalDevelopmentPageClient() {
         categorySlug={categorySlug}
         subtitle="Kişisel gelişim ve yaşam becerileri eğitimleri. Potansiyelinizi keşfedin ve kendinizi geliştirin."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

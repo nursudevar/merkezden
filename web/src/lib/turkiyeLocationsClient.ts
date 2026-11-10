@@ -9,6 +9,10 @@ export type TurkiyeLocationOption = {
   slug: string;
 };
 
+/**
+ * @deprecated Listing/breadcrumb varsayılanı değildir (ülke geneli).
+ * Yalnızca geriye dönük import uyumu için tutulur; yeni kod kullanmamalı.
+ */
 export const HOME_DEFAULT_CITY_AD = "Ankara";
 const LOCATION_PAGE_SIZE = 1000;
 

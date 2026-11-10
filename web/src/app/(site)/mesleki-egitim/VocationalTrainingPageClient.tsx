@@ -62,7 +62,7 @@ export default function VocationalTrainingPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -78,6 +78,9 @@ export default function VocationalTrainingPageClient() {
         categorySlug={categorySlug}
         subtitle="Mesleki beceriler ve kariyer gelişimi için eğitim kurumları. İş hayatında başarılı olmak için gerekli eğitimleri alın."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

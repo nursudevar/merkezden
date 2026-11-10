@@ -1,5 +1,6 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
+import { fetchAllPostgrestPages } from "@/lib/postgrestQueryPages";
 
 export type MapAccountType = "institution" | "instructor";
 
@@ -42,7 +43,6 @@ type InstitutionLocationRow = {
   institution_id: number;
   latitude: number | null;
   longitude: number | null;
-  geocode_status: string | null;
 };
 
 type InstitutionRow = {
@@ -116,9 +116,35 @@ export type InstitutionMapMarkerListSource = InstitutionMapMarkerSource & {
 };
 
 const LOCATION_CHUNK = 200;
-/** PostgREST varsayılan max_rows (1000); range ile sayfalama için sayfa boyutu */
-const LOCATION_PAGE_SIZE = 1000;
-const MAX_LOCATION_PAGES = 50;
+/** Aynı anda açık tutulan chunk isteği üst sınırı (Supabase yükünü sınırlar) */
+const LOCATION_FETCH_CONCURRENCY = 4;
+
+async function mapChunksWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<void>,
+): Promise<void> {
+  if (items.length === 0) return;
+  let index = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (index < items.length) {
+        const current = items[index];
+        index += 1;
+        await mapper(current);
+      }
+    }),
+  );
+}
+
+function chunkIds(ids: number[], size: number): number[][] {
+  const chunks: number[][] = [];
+  for (let i = 0; i < ids.length; i += size) {
+    chunks.push(ids.slice(i, i + size));
+  }
+  return chunks;
+}
 
 function toMarkerLocationId(value: unknown): number | null {
   const parsed = Number(value);
@@ -239,6 +265,10 @@ function mergeLocationRowsWithInstitutionRows(
     .filter((item): item is InstitutionMapMarker => Boolean(item));
 }
 
+/** Popup, filtre, arama ve etkileşim için gereken kurum alanları (fazladan kolon yok). */
+const INSTITUTION_MAP_MARKER_SELECT =
+  "id, institution_name, address, official_phone, official_email, logo, slug, city, district, il_id, ilce_id, mahalle_id, institution_type:institution_types(name, category:institution_categories(id, name, slug))";
+
 async function fetchInstitutionRowsByIds(
   institutionIds: number[],
 ): Promise<Map<number, InstitutionRow>> {
@@ -246,20 +276,23 @@ async function fetchInstitutionRowsByIds(
 
   const supabase = createSupabaseBrowserClient();
   const institutionsById = new Map<number, InstitutionRow>();
+  const chunks = chunkIds(institutionIds, LOCATION_CHUNK);
 
-  for (let i = 0; i < institutionIds.length; i += LOCATION_CHUNK) {
-    const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
+  await mapChunksWithConcurrency(chunks, LOCATION_FETCH_CONCURRENCY, async (chunk) => {
     const { data, error } = await supabase
       .from("institutions")
-      .select("id, institution_name, address, official_phone, official_email, logo, slug, city, district, il_id, ilce_id, mahalle_id, institution_type:institution_types(name, category:institution_categories(id, name, slug))")
+      .select(INSTITUTION_MAP_MARKER_SELECT)
       .in("id", chunk)
       .eq("is_approved", true);
 
-    if (error || !Array.isArray(data)) continue;
-    (data as InstitutionRow[]).forEach((row) => {
+    if (error) throw error;
+    if (!Array.isArray(data)) {
+      throw new Error("Institution map marker chunk returned invalid data");
+    }
+    for (const row of data as InstitutionRow[]) {
       institutionsById.set(row.id, row);
-    });
-  }
+    }
+  });
 
   return institutionsById;
 }
@@ -271,48 +304,40 @@ async function fetchSuccessLocationsForIds(
 
   const supabase = createSupabaseBrowserClient();
   const rows: InstitutionLocationRow[] = [];
+  const chunks = chunkIds(institutionIds, LOCATION_CHUNK);
 
-  for (let i = 0; i < institutionIds.length; i += LOCATION_CHUNK) {
-    const chunk = institutionIds.slice(i, i + LOCATION_CHUNK);
+  await mapChunksWithConcurrency(chunks, LOCATION_FETCH_CONCURRENCY, async (chunk) => {
     const { data, error } = await supabase
       .from("institution_locations")
-      .select("institution_id, latitude, longitude, geocode_status")
+      .select("institution_id, latitude, longitude")
       .in("institution_id", chunk)
       .eq("geocode_status", "success")
       .not("latitude", "is", null)
       .not("longitude", "is", null);
 
-    if (error || !Array.isArray(data)) continue;
+    if (error) throw error;
+    if (!Array.isArray(data)) {
+      throw new Error("Institution location chunk returned invalid data");
+    }
     rows.push(...(data as InstitutionLocationRow[]));
-  }
+  });
 
   return dedupeLocationRowsByInstitutionId(rows);
 }
 
 async function fetchAllSuccessLocationRows(): Promise<InstitutionLocationRow[]> {
   const supabase = createSupabaseBrowserClient();
-  const locationRows: InstitutionLocationRow[] = [];
-
-  for (let page = 0; page < MAX_LOCATION_PAGES; page += 1) {
-    const from = page * LOCATION_PAGE_SIZE;
-    const to = from + LOCATION_PAGE_SIZE - 1;
-
-    const { data, error } = await supabase
+  // geocode_status yalnızca filtrede; select'te taşınmaz. Eksik sayfa / hata throw eder.
+  const locationRows = await fetchAllPostgrestPages<InstitutionLocationRow>((from, to) =>
+    supabase
       .from("institution_locations")
-      .select("institution_id, latitude, longitude, geocode_status")
+      .select("institution_id, latitude, longitude")
       .eq("geocode_status", "success")
       .not("latitude", "is", null)
       .not("longitude", "is", null)
       .order("institution_id", { ascending: true })
-      .range(from, to);
-
-    if (error) throw error;
-    if (!Array.isArray(data)) break;
-
-    const batch = data as InstitutionLocationRow[];
-    locationRows.push(...batch);
-    if (batch.length < LOCATION_PAGE_SIZE) break;
-  }
+      .range(from, to),
+  );
 
   return dedupeLocationRowsByInstitutionId(locationRows);
 }

@@ -166,9 +166,13 @@ export function useListingFavorites() {
     };
   }, []);
 
+  // Favori listesi yalnızca auth hazırlığı ve kullanıcı kimliği değişince yüklenir.
+  // TOKEN_REFRESHED aynı id ile yeni User referansı verse bile yeniden fetch edilmez.
+  const userId = user?.id ?? null;
+
   useEffect(() => {
     let cancelled = false;
-    if (!isAuthReady || !user) {
+    if (!isAuthReady || !userId) {
       setFavoriteIds(new Set());
       setFavoriteInstructorIds(new Set());
       setFavoritesEnabled(false);
@@ -205,7 +209,7 @@ export function useListingFavorites() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthReady, user]);
+  }, [isAuthReady, userId]);
 
   return {
     user,

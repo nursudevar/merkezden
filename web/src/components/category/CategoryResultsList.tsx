@@ -26,7 +26,15 @@ interface CategoryResultsListProps {
    * gösterilmiyor; prop API geriye uyum için korunuyor.
    */
   subtitle?: string;
+  /** Sunucu sayfalama modunda yalnızca aktif sayfa kayıtları. */
   results?: CategoryResultItem[];
+  /**
+   * Verildiğinde istemci slice yapılmaz; `results` zaten sayfa dilimidir.
+   * `currentPage` + `onPageChange` ile kontrol edilir.
+   */
+  totalCount?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
   emptyResultsMessage?: string;
@@ -48,6 +56,9 @@ export default function CategoryResultsList({
   categorySlug,
   subtitle,
   results = [],
+  totalCount: totalCountProp,
+  currentPage: currentPageProp,
+  onPageChange,
   isLoading = false,
   errorMessage = null,
   emptyResultsMessage = "Bu kategoriye ait kurum veya eğitmen bulunmuyor.",
@@ -64,23 +75,28 @@ export default function CategoryResultsList({
   void categoryName;
   void subtitle;
 
+  const serverPaged = typeof totalCountProp === "number" && totalCountProp >= 0 && Boolean(onPageChange);
+
   const [viewMode, setViewMode] = useState<ViewMode>("two");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
   const [goToPageInput, setGoToPageInput] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
 
-  /** Arama/filtre değişiminde sıfırla; background hydrate aynı id setinde kalır. */
+  const currentPage = serverPaged
+    ? Math.max(1, currentPageProp ?? 1)
+    : internalPage;
+
+  /** İstemci modunda arama/filtre değişiminde sayfayı sıfırla. */
   const resultsIdentityKey = useMemo(
     () => results.map((result) => result.id).join(","),
     [results],
   );
 
-  /** Sonuç listesi değiştiğinde (arama, filtre veya kategori değişimi) sayfayı 1'e sıfırla. */
   useEffect(() => {
-    setCurrentPage(1);
-  }, [resultsIdentityKey]);
+    if (serverPaged) return;
+    setInternalPage(1);
+  }, [resultsIdentityKey, serverPaged]);
 
-  /** Pagination butonları / filtre reset / clamp sonrası input currentPage ile senkron kalsın. */
   useEffect(() => {
     setGoToPageInput(String(currentPage));
   }, [currentPage]);
@@ -101,7 +117,7 @@ export default function CategoryResultsList({
       ? "category-results-cards category-results-cards--two"
       : "category-results-cards";
 
-  const totalCount = results.length;
+  const totalCount = serverPaged ? totalCountProp! : results.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / CATEGORY_RESULTS_PAGE_SIZE));
   const showPagination = totalCount > CATEGORY_RESULTS_PAGE_SIZE;
   const hasPrev = currentPage > 1;
@@ -110,10 +126,14 @@ export default function CategoryResultsList({
   const handlePageChange = useCallback(
     (nextPage: number) => {
       if (nextPage < 1 || nextPage > totalPages || nextPage === currentPage) return;
-      setCurrentPage(nextPage);
+      if (serverPaged) {
+        onPageChange?.(nextPage);
+      } else {
+        setInternalPage(nextPage);
+      }
       scrollToList();
     },
-    [currentPage, scrollToList, totalPages],
+    [currentPage, onPageChange, scrollToList, serverPaged, totalPages],
   );
 
   const visiblePageNumbers = useMemo(
@@ -123,16 +143,17 @@ export default function CategoryResultsList({
 
   useEffect(() => {
     if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
+      handlePageChange(totalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, handlePageChange, totalPages]);
 
   const safeCurrentPage = Math.min(Math.max(currentPage, 1), Math.max(totalPages, 1));
 
   const visibleResults = useMemo(() => {
+    if (serverPaged) return results;
     const start = (safeCurrentPage - 1) * CATEGORY_RESULTS_PAGE_SIZE;
     return results.slice(start, start + CATEGORY_RESULTS_PAGE_SIZE);
-  }, [results, safeCurrentPage]);
+  }, [results, safeCurrentPage, serverPaged]);
 
   const visibleRangeStart = (safeCurrentPage - 1) * CATEGORY_RESULTS_PAGE_SIZE + 1;
   const visibleRangeEnd = Math.min(safeCurrentPage * CATEGORY_RESULTS_PAGE_SIZE, totalCount);

@@ -62,7 +62,7 @@ export default function SpecialEducationPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -78,6 +78,9 @@ export default function SpecialEducationPageClient() {
         categorySlug={categorySlug}
         subtitle="Özel eğitim ihtiyaçları için uzman eğitim kurumları. Her çocuğun ihtiyacına özel eğitim çözümleri."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

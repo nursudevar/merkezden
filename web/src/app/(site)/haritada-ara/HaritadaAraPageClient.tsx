@@ -23,7 +23,13 @@ import {
   type InstitutionMapMarker,
 } from "@/lib/institutionMapMarkers";
 import { haversineDistanceKm, isValidLatLng } from "@/lib/geoDistance";
-import { resolveDistrictMapView, boundsFromMarkers } from "@/lib/districtMapView";
+import {
+  defaultMapFocusView,
+  resolveCityMapView,
+  resolveDistrictMapView,
+  resolveNeighborhoodMapView,
+  type LocationMapFocusView,
+} from "@/lib/districtMapView";
 import {
   beginUserGeolocationRequest,
   diagnoseGeolocationPreflight,
@@ -32,12 +38,11 @@ import {
   fetchIller,
   fetchIlcelerByIlId,
   fetchMahallelerByIlceId,
-  findLocationIdByAd,
-  HOME_DEFAULT_CITY_AD,
   parseLocationId,
   type TurkiyeLocationOption,
 } from "@/lib/turkiyeLocationsClient";
 import {
+  EMPTY_CATEGORY_LOCATION_FILTER,
   persistCategoryLocationPreference,
   resolvePreferredCategoryLocation,
   writeCategoryLocationToSearch,
@@ -74,9 +79,17 @@ function searchQueryEqual(a: string, b: string): boolean {
 
 const NEARBY_MAP_ZOOM = 13;
 
-/** Harita ilk açılış merkezi / zoom (InstitutionLocationsMap ile aynı). */
-const DEFAULT_MAP_CENTER = { lat: 39.9334, lng: 32.8597 };
-const DEFAULT_MAP_ZOOM = 10;
+function toMapFocusTarget(view: LocationMapFocusView): InstitutionMapFocusTarget {
+  return {
+    lat: view.lat,
+    lng: view.lng,
+    zoom: view.zoom,
+    maxZoom: view.maxZoom,
+    bounds: view.bounds,
+    boundaryGeoJson: view.boundaryGeoJson,
+    token: Date.now(),
+  };
+}
 
 const GEO_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
@@ -135,7 +148,6 @@ export function HaritadaAraPageClient() {
   const resultsScrollRef = useRef<HTMLDivElement>(null);
 
   const [selectedIlId, setSelectedIlId] = useState("");
-  const [defaultIlId, setDefaultIlId] = useState("");
   const [selectedIlceId, setSelectedIlceId] = useState("");
   const [selectedMahalleId, setSelectedMahalleId] = useState("");
   const [selectedKurumTuru, setSelectedKurumTuru] = useState<KurumTuruSlug[]>([]);
@@ -187,8 +199,6 @@ export function HaritadaAraPageClient() {
     [mapCategories],
   );
 
-  const selectedIlAd = iller.find((row) => String(row.id) === selectedIlId)?.ad ?? "";
-  const selectedIlceAd = ilceler.find((row) => String(row.id) === selectedIlceId)?.ad ?? "";
   const selectedIlIdNum = parseLocationId(selectedIlId);
   const selectedIlceIdNum = parseLocationId(selectedIlceId);
   const selectedMahalleIdNum = parseLocationId(selectedMahalleId);
@@ -264,52 +274,74 @@ export function HaritadaAraPageClient() {
       const parsedIlceId = parseLocationId(ilceIdValue);
       const parsedMahalleId = parseLocationId(mahalleIdValue);
 
-      if (parsedIlceId == null) {
-        setMapFocus({
-          lat: DEFAULT_MAP_CENTER.lat,
-          lng: DEFAULT_MAP_CENTER.lng,
-          zoom: DEFAULT_MAP_ZOOM,
-          boundaryGeoJson: null,
-          token: Date.now(),
-        });
-        return;
-      }
-
-      if (parsedMahalleId != null) {
-        const mahalleMarkers = markersRef.current.filter((marker) =>
-          markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, parsedMahalleId),
-        );
-        const bounds = boundsFromMarkers(mahalleMarkers);
-        if (requestId !== districtFocusRequestIdRef.current || !bounds) return;
-        setMapFocus({
-          bounds,
-          boundaryGeoJson: null,
-          token: Date.now(),
-        });
+      // Konum yok → mevcut varsayılan başlangıç
+      if (parsedIlId == null) {
+        setMapFocus(toMapFocusTarget(defaultMapFocusView()));
         return;
       }
 
       const cityAd = illerRef.current.find((row) => row.id === parsedIlId)?.ad ?? "";
-      let districtAd = "";
-      if (parsedIlId != null) {
-        try {
-          const ilceRows = await fetchIlcelerByIlId(parsedIlId);
-          districtAd = ilceRows.find((row) => row.id === parsedIlceId)?.ad ?? "";
-        } catch {
-          districtAd = "";
+
+      // Yalnızca il (veya Tüm İlçeler)
+      if (parsedIlceId == null) {
+        const cityMarkers = markersRef.current.filter((marker) =>
+          markerMatchesLocationIds(marker, parsedIlId, null, null),
+        );
+        const cityView = await resolveCityMapView(cityAd, cityMarkers);
+        if (requestId !== districtFocusRequestIdRef.current) return;
+        if (cityView) {
+          setMapFocus(toMapFocusTarget(cityView));
+          return;
         }
+        setMapFocus(toMapFocusTarget(defaultMapFocusView()));
+        return;
+      }
+
+      // Mahalle seçiliyse önce mahalle bounds
+      if (parsedMahalleId != null) {
+        const mahalleMarkers = markersRef.current.filter((marker) =>
+          markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, parsedMahalleId),
+        );
+        const mahalleView = resolveNeighborhoodMapView(mahalleMarkers);
+        if (requestId !== districtFocusRequestIdRef.current) return;
+        if (mahalleView) {
+          setMapFocus(toMapFocusTarget(mahalleView));
+          return;
+        }
+        // Marker yoksa ilçe seviyesine düş
+      }
+
+      let districtAd = "";
+      try {
+        const ilceRows = await fetchIlcelerByIlId(parsedIlId);
+        districtAd = ilceRows.find((row) => row.id === parsedIlceId)?.ad ?? "";
+      } catch {
+        districtAd = "";
       }
 
       const districtMarkers = markersRef.current.filter((marker) =>
         markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, null),
       );
-      const view = await resolveDistrictMapView(cityAd, districtAd, districtMarkers);
-      if (requestId !== districtFocusRequestIdRef.current || !view) return;
-      setMapFocus({
-        bounds: view.bounds,
-        boundaryGeoJson: view.boundaryGeoJson,
-        token: Date.now(),
-      });
+      const districtView = await resolveDistrictMapView(cityAd, districtAd, districtMarkers);
+      if (requestId !== districtFocusRequestIdRef.current) return;
+      if (districtView) {
+        setMapFocus(
+          toMapFocusTarget({
+            bounds: districtView.bounds,
+            maxZoom: districtView.maxZoom,
+            boundaryGeoJson: districtView.boundaryGeoJson,
+          }),
+        );
+        return;
+      }
+
+      // İlçe çözülemezse ile geri dön
+      const cityMarkers = markersRef.current.filter((marker) =>
+        markerMatchesLocationIds(marker, parsedIlId, null, null),
+      );
+      const cityView = await resolveCityMapView(cityAd, cityMarkers);
+      if (requestId !== districtFocusRequestIdRef.current) return;
+      if (cityView) setMapFocus(toMapFocusTarget(cityView));
     },
     [],
   );
@@ -323,8 +355,6 @@ export function HaritadaAraPageClient() {
         if (cancelled) return;
         setIller(rows);
         illerRef.current = rows;
-        const ankaraId = findLocationIdByAd(rows, HOME_DEFAULT_CITY_AD);
-        if (ankaraId) setDefaultIlId(ankaraId);
         setIllerPhase("ready");
         locationDefaultsReadyRef.current = true;
         setLocationDefaultsReady(true);
@@ -380,7 +410,7 @@ export function HaritadaAraPageClient() {
       const resolved = await resolvePreferredCategoryLocation(searchKey ? `?${searchKey}` : "");
       if (cancelled) return;
       const q = String(new URLSearchParams(searchKey).get("q") ?? "").trim();
-      const nextIlId = resolved.ilId || defaultIlId;
+      const nextIlId = resolved.ilId || "";
       const nextIlceId = nextIlId ? resolved.ilceId : "";
       const nextMahalleId = nextIlceId ? resolved.mahalleId : "";
       setSelectedIlId(nextIlId);
@@ -405,14 +435,14 @@ export function HaritadaAraPageClient() {
         );
       }
       lastHydratedSearchKeyRef.current = searchKey;
-      if (nextIlceId || nextMahalleId) {
+      if (nextIlId) {
         void focusMapForLocation(nextIlId, nextIlceId, nextMahalleId);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [defaultIlId, focusMapForLocation, mapCategoriesKey, locationDefaultsReady, searchKey]);
+  }, [focusMapForLocation, mapCategoriesKey, locationDefaultsReady, searchKey]);
 
   useEffect(() => {
     if (!locationDefaultsReady) return;
@@ -609,7 +639,6 @@ export function HaritadaAraPageClient() {
 
   const handleIlChange = useCallback(
     (ilId: string) => {
-      districtFocusRequestIdRef.current += 1;
       setSelectedIlId(ilId);
       setSelectedIlceId("");
       setSelectedMahalleId("");
@@ -620,22 +649,14 @@ export function HaritadaAraPageClient() {
         mahalleId: "",
       });
       clearNearbyMode();
-      setMapFocus({
-        lat: DEFAULT_MAP_CENTER.lat,
-        lng: DEFAULT_MAP_CENTER.lng,
-        zoom: DEFAULT_MAP_ZOOM,
-        boundaryGeoJson: null,
-        token: Date.now(),
-      });
+      void focusMapForLocation(ilId, "", "");
       closeDrawerAndScrollToResults();
     },
-    [clearNearbyMode, closeDrawerAndScrollToResults],
+    [clearNearbyMode, closeDrawerAndScrollToResults, focusMapForLocation],
   );
 
   const handleIlceChange = useCallback(
     (ilceId: string) => {
-      districtFocusRequestIdRef.current += 1;
-      const requestId = districtFocusRequestIdRef.current;
       setSelectedIlceId(ilceId);
       setSelectedMahalleId("");
       if (!ilceId) setMahalleler([]);
@@ -645,103 +666,25 @@ export function HaritadaAraPageClient() {
         mahalleId: "",
       });
       clearNearbyMode();
+      void focusMapForLocation(selectedIlId, ilceId, "");
       closeDrawerAndScrollToResults();
-
-      if (!ilceId.trim()) {
-        setMapFocus({
-          lat: DEFAULT_MAP_CENTER.lat,
-          lng: DEFAULT_MAP_CENTER.lng,
-          zoom: DEFAULT_MAP_ZOOM,
-          boundaryGeoJson: null,
-          token: Date.now(),
-        });
-        return;
-      }
-
-      const parsedIlId = parseLocationId(selectedIlId);
-      const parsedIlceId = parseLocationId(ilceId);
-      const cityAd = selectedIlAd;
-      const districtAd = ilceler.find((row) => row.id === parsedIlceId)?.ad ?? "";
-
-      void (async () => {
-        const districtMarkers = markers.filter((marker) =>
-          markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, null),
-        );
-        const view = await resolveDistrictMapView(cityAd, districtAd, districtMarkers);
-        if (requestId !== districtFocusRequestIdRef.current || !view) return;
-
-        setMapFocus({
-          bounds: view.bounds,
-          boundaryGeoJson: view.boundaryGeoJson,
-          token: Date.now(),
-        });
-      })();
     },
-    [clearNearbyMode, closeDrawerAndScrollToResults, markers, selectedIlId, selectedIlAd, ilceler],
+    [clearNearbyMode, closeDrawerAndScrollToResults, focusMapForLocation, selectedIlId],
   );
 
   const handleMahalleChange = useCallback(
     (mahalleId: string) => {
-      districtFocusRequestIdRef.current += 1;
-      const requestId = districtFocusRequestIdRef.current;
       setSelectedMahalleId(mahalleId);
       clearNearbyMode();
+      void focusMapForLocation(selectedIlId, selectedIlceId, mahalleId);
       closeDrawerAndScrollToResults();
-
-      if (!mahalleId.trim()) {
-        if (!selectedIlceId.trim()) {
-          setMapFocus({
-            lat: DEFAULT_MAP_CENTER.lat,
-            lng: DEFAULT_MAP_CENTER.lng,
-            zoom: DEFAULT_MAP_ZOOM,
-            boundaryGeoJson: null,
-            token: Date.now(),
-          });
-          return;
-        }
-
-        const parsedIlId = parseLocationId(selectedIlId);
-        const parsedIlceId = parseLocationId(selectedIlceId);
-        void (async () => {
-          const districtMarkers = markers.filter((marker) =>
-            markerMatchesLocationIds(marker, parsedIlId, parsedIlceId, null),
-          );
-          const view = await resolveDistrictMapView(selectedIlAd, selectedIlceAd, districtMarkers);
-          if (requestId !== districtFocusRequestIdRef.current || !view) return;
-          setMapFocus({
-            bounds: view.bounds,
-            boundaryGeoJson: view.boundaryGeoJson,
-            token: Date.now(),
-          });
-        })();
-        return;
-      }
-
-      const parsedMahalleId = parseLocationId(mahalleId);
-      const mahalleMarkers = markers.filter((marker) =>
-        markerMatchesLocationIds(
-          marker,
-          parseLocationId(selectedIlId),
-          parseLocationId(selectedIlceId),
-          parsedMahalleId,
-        ),
-      );
-      const bounds = boundsFromMarkers(mahalleMarkers);
-      if (!bounds) return;
-      setMapFocus({
-        bounds,
-        boundaryGeoJson: null,
-        token: Date.now(),
-      });
     },
     [
       clearNearbyMode,
       closeDrawerAndScrollToResults,
-      markers,
+      focusMapForLocation,
       selectedIlId,
       selectedIlceId,
-      selectedIlAd,
-      selectedIlceAd,
     ],
   );
 
@@ -822,23 +765,22 @@ export function HaritadaAraPageClient() {
 
   const hasActiveFilters = useMemo(() => {
     if (searchQuery.trim() || appliedSearchQuery.trim()) return true;
+    if (selectedIlId) return true;
     if (selectedIlceId) return true;
     if (selectedMahalleId) return true;
     if (selectedKurumTuru.length > 0) return true;
     if (selectedCategorySlugs.length > 0) return true;
     if (nearbyActive) return true;
-    if (defaultIlId && selectedIlId !== defaultIlId) return true;
     return false;
   }, [
     searchQuery,
     appliedSearchQuery,
+    selectedIlId,
     selectedIlceId,
     selectedMahalleId,
     selectedKurumTuru,
     selectedCategorySlugs,
     nearbyActive,
-    selectedIlId,
-    defaultIlId,
   ]);
 
   const handleKurumTuruToggle = useCallback((slug: KurumTuruSlug) => {
@@ -877,25 +819,16 @@ export function HaritadaAraPageClient() {
     setAppliedSearchQuery("");
     setSelectedIlceId("");
     setSelectedMahalleId("");
+    setIlceler([]);
     setMahalleler([]);
-    setSelectedIlId(defaultIlId);
-    void persistCategoryLocationPreference({
-      ilId: defaultIlId,
-      ilceId: "",
-      mahalleId: "",
-    });
+    setSelectedIlId("");
+    void persistCategoryLocationPreference(EMPTY_CATEGORY_LOCATION_FILTER);
     setSelectedKurumTuru([]);
     setSelectedCategorySlugs([]);
     clearNearbyMode();
-    setMapFocus({
-      lat: DEFAULT_MAP_CENTER.lat,
-      lng: DEFAULT_MAP_CENTER.lng,
-      zoom: DEFAULT_MAP_ZOOM,
-      boundaryGeoJson: null,
-      token: Date.now(),
-    });
+    setMapFocus(toMapFocusTarget(defaultMapFocusView()));
     closeDrawerAndScrollToResults();
-  }, [defaultIlId, clearNearbyMode, closeDrawerAndScrollToResults]);
+  }, [clearNearbyMode, closeDrawerAndScrollToResults]);
 
   const handleFavoriteToggle = useCallback(
     async (

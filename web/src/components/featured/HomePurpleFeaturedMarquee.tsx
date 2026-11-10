@@ -6,12 +6,6 @@ import { Building2, MapPin } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getInstitutionDetailHref, resolveInstitutionLogoPublicUrl } from "@/lib/institutionHelpers";
 import { HomeSectionLoadError } from "@/components/home/HomeSectionLoadError";
-import {
-  fetchIller,
-  findLocationIdByAd,
-  HOME_DEFAULT_CITY_AD,
-  parseLocationId,
-} from "@/lib/turkiyeLocationsClient";
 
 const LIST_SIZE = 20;
 const FETCH_LIMIT = 240;
@@ -84,15 +78,12 @@ export function HomePurpleFeaturedMarquee() {
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const [{ data: categoryRow, error: categoryError }, iller] = await Promise.all([
-          supabase
-            .from("institution_categories")
-            .select("id")
-            .eq("is_active", true)
-            .eq("slug", DRIVING_SCHOOL_CATEGORY_SLUG)
-            .maybeSingle(),
-          fetchIller(),
-        ]);
+        const { data: categoryRow, error: categoryError } = await supabase
+          .from("institution_categories")
+          .select("id")
+          .eq("is_active", true)
+          .eq("slug", DRIVING_SCHOOL_CATEGORY_SLUG)
+          .maybeSingle();
 
         if (cancelled) return;
 
@@ -113,19 +104,10 @@ export function HomePurpleFeaturedMarquee() {
           return;
         }
 
-        const ankaraId = parseLocationId(findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD));
-        if (ankaraId == null) {
-          console.warn("[purple-featured] Ankara il_id resolve edilemedi");
-          setCards([]);
-          setFailed(false);
-          return;
-        }
-
         const { data, error } = await supabase
           .from("institutions")
           .select("id, slug, source, institution_name, city, district, logo")
           .eq("category_id", categoryId)
-          .eq("il_id", ankaraId)
           .not("institution_name", "is", null)
           .eq("is_approved", true)
           .order("institution_name", { ascending: true })

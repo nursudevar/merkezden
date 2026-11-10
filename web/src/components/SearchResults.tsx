@@ -11,12 +11,10 @@ import { InstructorCompareToggleButton } from "@/components/compare/InstructorCo
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { parseLocationId } from "@/lib/turkiyeLocationsClient";
 import {
+  resolveInstitutionIdsByFeatureChoices,
   resolveInstitutionIdsBySchoolStatuses,
   type SchoolStatus,
 } from "@/lib/institutionSchoolStatusFilter";
-import {
-  resolveInstitutionIdsByPriceRange,
-} from "@/lib/institutionPriceRangeFilter";
 import {
   isStudentAgeFilterTextActive,
   resolveInstitutionIdsByStudentAgeFilter,
@@ -145,82 +143,6 @@ function choiceLabelMatchesServiceType(choiceName: string, target: "face" | "onl
   );
 }
 
-async function resolveInstitutionIdsByFeatureChoices(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  matchDefinition: (row: { name?: string | null; slug?: string | null }) => boolean,
-  matchChoice: (choiceName: string) => boolean
-): Promise<number[]> {
-  const { data: defsRaw, error: defErr } = await supabase
-    .from("institution_feature_definitions")
-    .select("id, name, slug, input_type")
-    .eq("is_active", true);
-
-  if (defErr) throw defErr;
-
-  const definitions = ((defsRaw ?? []) as Array<{ id: number; name?: string | null; slug?: string | null; input_type?: string | null }>).filter(
-    (d) => Number.isFinite(d.id) && matchDefinition(d)
-  );
-  const defIds = definitions.map((d) => d.id);
-  if (defIds.length === 0) return [];
-
-  const { data: choicesRaw, error: chErr } = await supabase
-    .from("institution_feature_choices")
-    .select("id, feature_definition_id, name")
-    .in("feature_definition_id", defIds)
-    .eq("is_active", true);
-
-  if (chErr) throw chErr;
-
-  const choices = (choicesRaw ?? []) as Array<{ id: number; feature_definition_id: number; name?: string | null }>;
-  const targetChoiceIds = new Set<number>();
-  for (const c of choices) {
-    const cid = Number(c.id);
-    if (!Number.isFinite(cid)) continue;
-    if (matchChoice(String(c.name ?? ""))) targetChoiceIds.add(cid);
-  }
-  if (targetChoiceIds.size === 0) return [];
-
-  const targetIds = Array.from(targetChoiceIds);
-  const idSet = new Set<number>();
-
-  const choiceDefIds = definitions
-    .filter((d) => d.input_type === "single_select" || d.input_type === "multi_select")
-    .map((d) => d.id);
-  if (choiceDefIds.length > 0) {
-    const { data: choiceEntries, error: e2 } = await supabase
-      .from("institution_feature_entries")
-      .select("id, institution_id")
-      .in("feature_definition_id", choiceDefIds);
-
-    if (e2) throw e2;
-    const entries = (choiceEntries ?? []) as Array<{ id: number; institution_id: number }>;
-    const entryIds = entries.map((e) => e.id).filter((id) => Number.isFinite(id));
-    const entryIdToInstitutionId = new Map<number, number>();
-    for (const e of entries) {
-      entryIdToInstitutionId.set(Number(e.id), Number(e.institution_id));
-    }
-
-    if (entryIds.length > 0) {
-      const { data: links, error: e3 } = await supabase
-        .from("institution_feature_entry_choices")
-        .select("institution_feature_entry_id, choice_id")
-        .in("institution_feature_entry_id", entryIds)
-        .in("choice_id", targetIds);
-
-      if (e3) throw e3;
-      for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number; choice_id: number }>) {
-        const eid = Number(row.institution_feature_entry_id);
-        const cid = Number(row.choice_id);
-        if (!targetChoiceIds.has(cid)) continue;
-        const iid = entryIdToInstitutionId.get(eid);
-        if (Number.isFinite(iid)) idSet.add(iid!);
-      }
-    }
-  }
-
-  return Array.from(idSet);
-}
-
 async function resolveInstitutionIdsByServiceTypes(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   types: ("face" | "online" | "individual" | "group")[]
@@ -231,6 +153,89 @@ async function resolveInstitutionIdsByServiceTypes(
     isHizmetTipiDefinition,
     (name) => types.some((t) => choiceLabelMatchesServiceType(name, t))
   );
+}
+
+/** PostgREST GET URL limiti — büyük `id.in.(...)` listeleri 400 Bad Request üretir. */
+const POSTGREST_IN_CHUNK = 150;
+const SEARCH_LISTING_LIMIT = 600;
+
+const INSTITUTION_LISTING_SELECT =
+  "id, institution_name, subheading, about, city, district, type, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, slug, source, institution_type_id, institution_type:institution_types(name, category:institution_categories(name))";
+
+function intersectIdAllowlists(lists: number[][]): number[] | null {
+  let current: Set<number> | null = null;
+  for (const list of lists) {
+    const next = new Set(
+      list.filter((id) => Number.isFinite(id) && id > 0),
+    );
+    if (current == null) {
+      current = next;
+      continue;
+    }
+    current = new Set(Array.from(current).filter((id) => next.has(id)));
+  }
+  return current ? Array.from(current) : null;
+}
+
+function describeUnknownError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  }
+  return String(err);
+}
+
+type InstitutionListingRow = Record<string, unknown>;
+
+function applyPriceRangeToInstitutionQuery<T extends {
+  not: (column: string, operator: string, value: null) => T;
+  lte: (column: string, value: number) => T;
+  gte: (column: string, value: number) => T;
+}>(
+  query: T,
+  priceMin: number | null,
+  priceMax: number | null,
+): T {
+  if (priceMin != null && priceMax != null) {
+    return query
+      .not("min_fiyat", "is", null)
+      .not("max_fiyat", "is", null)
+      .lte("min_fiyat", priceMax)
+      .gte("max_fiyat", priceMin);
+  }
+  if (priceMin != null) {
+    return query.not("max_fiyat", "is", null).gte("max_fiyat", priceMin);
+  }
+  if (priceMax != null) {
+    return query.not("min_fiyat", "is", null).lte("min_fiyat", priceMax);
+  }
+  return query;
+}
+
+function mergeInstitutionListingRows(
+  batches: InstitutionListingRow[][],
+  limit: number,
+): InstitutionListingRow[] {
+  const seen = new Set<number>();
+  const out: InstitutionListingRow[] = [];
+  for (const batch of batches) {
+    for (const row of batch) {
+      const id = Number(row.id);
+      if (!Number.isFinite(id) || seen.has(id)) continue;
+      seen.add(id);
+      out.push(row);
+    }
+  }
+  out.sort((a, b) =>
+    String(a.institution_name ?? "").localeCompare(String(b.institution_name ?? ""), "tr", {
+      sensitivity: "base",
+    }),
+  );
+  return out.slice(0, limit);
 }
 
 export default function SearchResults({
@@ -324,37 +329,14 @@ export default function SearchResults({
       return;
     }
 
-    if (ilId == null) {
-      setLoading(true);
-      setError(null);
-      return;
-    }
-
     const timeoutId = setTimeout(() => {
       setLoading(true);
       setError(null);
       const run = async () => {
         try {
           const supabase = createSupabaseBrowserClient();
-          let baseQuery = supabase
-            .from("institutions")
-            .select("id, institution_name, subheading, about, city, district, type, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, slug, source, institution_type_id, institution_type:institution_types(name, category:institution_categories(name))")
-            .not("institution_name", "is", null)
-            .eq("is_approved", true)
-            .order("institution_name", { ascending: true })
-            .limit(600);
 
-          baseQuery = baseQuery.eq("il_id", ilId);
-          if (ilceId != null) {
-            baseQuery = baseQuery.eq("ilce_id", ilceId);
-          }
-          if (mahalleId != null) {
-            baseQuery = baseQuery.eq("mahalle_id", mahalleId);
-          }
-
-          if (institutionTypeIdList.length > 0) {
-            baseQuery = baseQuery.in("institution_type_id", institutionTypeIdList);
-          }
+          const idAllowlists: number[][] = [];
 
           if (schoolStatuses.length > 0) {
             const allowedIds = await resolveInstitutionIdsBySchoolStatuses(supabase, schoolStatuses);
@@ -364,7 +346,7 @@ export default function SearchResults({
               setError(null);
               return;
             }
-            baseQuery = baseQuery.in("id", allowedIds);
+            idAllowlists.push(allowedIds);
           }
 
           let studentAgeInstructorIds: Set<number> | undefined;
@@ -379,10 +361,12 @@ export default function SearchResults({
             ]);
             studentAgeInstructorIds = new Set(instrAgeIds);
             if (instAgeIds.length === 0) {
-              baseQuery = baseQuery.in("id", [-1]);
-            } else {
-              baseQuery = baseQuery.in("id", instAgeIds);
+              setResults([]);
+              setVisibleCount(pageSizeRef.current);
+              setError(null);
+              return;
             }
+            idAllowlists.push(instAgeIds);
           }
 
           if (serviceTypes.length > 0) {
@@ -393,58 +377,171 @@ export default function SearchResults({
               setError(null);
               return;
             }
-            baseQuery = baseQuery.in("id", serviceIds);
+            idAllowlists.push(serviceIds);
           }
 
-          if (priceFilterIsActive) {
-            const priceIds = await resolveInstitutionIdsByPriceRange(supabase, {
-              min: priceMin,
-              max: priceMax,
-            });
-            if (priceIds.length === 0) {
-              setResults([]);
-              setVisibleCount(pageSizeRef.current);
-              setError(null);
-              return;
-            }
-            baseQuery = baseQuery.in("id", priceIds);
-          }
+          // Fiyat: büyük id listesi yerine doğrudan kolon filtresi (URL 400 önlemi).
 
+          let relatedInstitutionIds: number[] = [];
+          let relatedInstitutionTypeIds: number[] = [];
           if (trimmedQuery) {
             const relatedSearch = await resolveInstitutionIdsByProfileSearch(supabase, trimmedQuery);
-            const searchVariants = buildProfileSearchVariants(trimmedQuery)
-              .map(escapeProfileLikeValue)
-              .filter(Boolean);
-            const searchColumns = [
-              "institution_name",
-              "subheading",
-              "about",
-              "city",
-              "district",
-              "type",
-              "address",
-              "official_phone",
-              "official_email",
-              "website",
-              "facebook_url",
-              "instagram_url",
-              "x_url",
-              "linkedin_url",
-            ] as const;
-            const orParts = searchVariants.flatMap((term) => {
-              const q = `%${term}%`;
-              return searchColumns.map((col) => `${col}.ilike.${q}`);
-            });
-            if (relatedSearch.institutionIds.length > 0) {
-              orParts.push(`id.in.(${relatedSearch.institutionIds.join(",")})`);
-            }
-            if (relatedSearch.institutionTypeIds.length > 0) {
-              orParts.push(`institution_type_id.in.(${relatedSearch.institutionTypeIds.join(",")})`);
-            }
-            if (orParts.length > 0) {
-              baseQuery = baseQuery.or(orParts.join(","));
-            }
+            relatedInstitutionIds = relatedSearch.institutionIds;
+            relatedInstitutionTypeIds = relatedSearch.institutionTypeIds;
           }
+
+          const intersectedAllowlist = intersectIdAllowlists(idAllowlists);
+          if (idAllowlists.length > 0 && (intersectedAllowlist?.length ?? 0) === 0) {
+            setResults([]);
+            setVisibleCount(pageSizeRef.current);
+            setError(null);
+            return;
+          }
+
+          const buildInstitutionListingQuery = (options?: {
+            includeTextOr?: boolean;
+            embedRelatedIds?: number[];
+          }) => {
+            let query = supabase
+              .from("institutions")
+              .select(INSTITUTION_LISTING_SELECT)
+              .not("institution_name", "is", null)
+              .eq("is_approved", true);
+
+            if (ilId != null) query = query.eq("il_id", ilId);
+            if (ilceId != null) query = query.eq("ilce_id", ilceId);
+            if (mahalleId != null) query = query.eq("mahalle_id", mahalleId);
+            if (institutionTypeIdList.length > 0) {
+              query = query.in("institution_type_id", institutionTypeIdList);
+            }
+            if (priceFilterIsActive) {
+              query = applyPriceRangeToInstitutionQuery(query, priceMin, priceMax);
+            }
+
+            if (options?.includeTextOr && trimmedQuery) {
+              const searchVariants = buildProfileSearchVariants(trimmedQuery)
+                .map(escapeProfileLikeValue)
+                .filter(Boolean);
+              const searchColumns = [
+                "institution_name",
+                "subheading",
+                "about",
+                "city",
+                "district",
+                "type",
+                "address",
+                "official_phone",
+                "official_email",
+                "website",
+                "facebook_url",
+                "instagram_url",
+                "x_url",
+                "linkedin_url",
+              ] as const;
+              const orParts = searchVariants.flatMap((term) => {
+                const q = `%${term}%`;
+                return searchColumns.map((col) => `${col}.ilike.${q}`);
+              });
+              const embedIds = options.embedRelatedIds ?? [];
+              if (embedIds.length > 0) {
+                orParts.push(`id.in.(${embedIds.join(",")})`);
+              }
+              if (relatedInstitutionTypeIds.length > 0) {
+                orParts.push(
+                  `institution_type_id.in.(${relatedInstitutionTypeIds.join(",")})`,
+                );
+              }
+              if (orParts.length > 0) {
+                query = query.or(orParts.join(","));
+              }
+            }
+
+            return query;
+          };
+
+          const fetchInstitutionListing = async (): Promise<InstitutionListingRow[]> => {
+            const batches: InstitutionListingRow[][] = [];
+
+            const runChunkedByIds = async (
+              ids: number[],
+              includeTextOr: boolean,
+            ) => {
+              for (let i = 0; i < ids.length; i += POSTGREST_IN_CHUNK) {
+                if (mergeInstitutionListingRows(batches, SEARCH_LISTING_LIMIT).length >= SEARCH_LISTING_LIMIT) {
+                  break;
+                }
+                const chunk = ids.slice(i, i + POSTGREST_IN_CHUNK);
+                const { data, error } = await buildInstitutionListingQuery({
+                  includeTextOr,
+                })
+                  .in("id", chunk)
+                  .order("institution_name", { ascending: true })
+                  .limit(SEARCH_LISTING_LIMIT);
+                if (error) throw error;
+                batches.push((data ?? []) as InstitutionListingRow[]);
+              }
+            };
+
+            if (intersectedAllowlist != null) {
+              // Allowlist zaten daraltılmış; metin OR + küçük related id göm.
+              const embedRelated =
+                relatedInstitutionIds.length > 0 &&
+                relatedInstitutionIds.length <= POSTGREST_IN_CHUNK
+                  ? relatedInstitutionIds
+                  : [];
+              for (let i = 0; i < intersectedAllowlist.length; i += POSTGREST_IN_CHUNK) {
+                if (mergeInstitutionListingRows(batches, SEARCH_LISTING_LIMIT).length >= SEARCH_LISTING_LIMIT) {
+                  break;
+                }
+                const chunk = intersectedAllowlist.slice(i, i + POSTGREST_IN_CHUNK);
+                const { data, error } = await buildInstitutionListingQuery({
+                  includeTextOr: Boolean(trimmedQuery),
+                  embedRelatedIds: embedRelated,
+                })
+                  .in("id", chunk)
+                  .order("institution_name", { ascending: true })
+                  .limit(SEARCH_LISTING_LIMIT);
+                if (error) throw error;
+                batches.push((data ?? []) as InstitutionListingRow[]);
+              }
+
+              // Büyük related id seti allowlist ile kesiştirilip ayrı chunk'lanır.
+              if (
+                trimmedQuery &&
+                relatedInstitutionIds.length > POSTGREST_IN_CHUNK
+              ) {
+                const allowSet = new Set(intersectedAllowlist);
+                const relatedInAllow = relatedInstitutionIds.filter((id) => allowSet.has(id));
+                await runChunkedByIds(relatedInAllow, false);
+              }
+            } else if (trimmedQuery) {
+              const embedRelated =
+                relatedInstitutionIds.length > 0 &&
+                relatedInstitutionIds.length <= POSTGREST_IN_CHUNK
+                  ? relatedInstitutionIds
+                  : [];
+              const { data, error } = await buildInstitutionListingQuery({
+                includeTextOr: true,
+                embedRelatedIds: embedRelated,
+              })
+                .order("institution_name", { ascending: true })
+                .limit(SEARCH_LISTING_LIMIT);
+              if (error) throw error;
+              batches.push((data ?? []) as InstitutionListingRow[]);
+
+              if (relatedInstitutionIds.length > POSTGREST_IN_CHUNK) {
+                await runChunkedByIds(relatedInstitutionIds, false);
+              }
+            } else {
+              const { data, error } = await buildInstitutionListingQuery()
+                .order("institution_name", { ascending: true })
+                .limit(SEARCH_LISTING_LIMIT);
+              if (error) throw error;
+              batches.push((data ?? []) as InstitutionListingRow[]);
+            }
+
+            return mergeInstitutionListingRows(batches, SEARCH_LISTING_LIMIT);
+          };
 
           let instructorCategoryId: number | null = null;
           if (instructorCategoryFilter) {
@@ -472,16 +569,12 @@ export default function SearchResults({
                   allowedInstructorIds: studentAgeInstructorIds,
                 });
 
-          const [{ data, error }, instructorRows] = await Promise.all([
-            baseQuery,
+          const [data, instructorRows] = await Promise.all([
+            fetchInstitutionListing(),
             instructorFetchPromise,
           ]);
 
-          if (error) {
-            throw error;
-          }
-
-          const mappedRows = ((data ?? []) as Array<Record<string, unknown>>)
+          const mappedRows = (data as Array<Record<string, unknown>>)
             .map((row) => {
               const id = Number(row.id);
               const name = String(row.institution_name ?? "").trim();
@@ -581,7 +674,7 @@ export default function SearchResults({
             hint?: string;
           };
           console.error(
-            `SearchResults error | step=listing | code=${supabaseError?.code ?? ""} | message=${supabaseError?.message ?? ""} | details=${supabaseError?.details ?? ""} | hint=${supabaseError?.hint ?? ""} | raw=${err instanceof Error ? err.message : String(err)}`,
+            `SearchResults error | step=listing | code=${supabaseError?.code ?? ""} | message=${supabaseError?.message ?? ""} | details=${supabaseError?.details ?? ""} | hint=${supabaseError?.hint ?? ""} | raw=${describeUnknownError(err)}`,
           );
           setError("Arama sırasında bir hata oluştu");
           setResults([]);
@@ -606,7 +699,7 @@ export default function SearchResults({
     ? `"${trimmedQuery}" için sonuç bulunamadı.`
     : "Bu filtre ile eşleşen kurum veya eğitmen bulunamadı.";
 
-  if (loading || ilId == null) {
+  if (loading) {
     return (
       <section className="search-results-section">
         <div className="search-results-container">

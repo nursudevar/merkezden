@@ -1,12 +1,13 @@
 import { announcementPublicationCutoffIso } from "@/lib/announcementPublication";
+import { fetchAllPostgrestPages } from "@/lib/postgrestQueryPages";
 
 type SupabaseLike = {
   from: (table: string) => any;
 };
 
 const TRUTHY_TERMS = ["evet", "var", "true", "yes"];
-const QUERY_PAGE_SIZE = 1000;
-const MAX_QUERY_PAGES = 50;
+/** PostgREST GET URL limiti — büyük `id.in.(...)` listeleri 400 üretir. */
+const IN_CHUNK = 150;
 
 export function normalizeProfileSearchText(value: string): string {
   return String(value ?? "")
@@ -69,6 +70,37 @@ type InstitutionSearchIds = {
   institutionTypeIds: number[];
 };
 
+async function fetchEntryChoicesByChoiceIds(
+  supabase: SupabaseLike,
+  table: "institution_feature_entry_choices" | "instructor_feature_entry_choices",
+  entryIdColumn: "institution_feature_entry_id" | "instructor_feature_entry_id",
+  choiceIds: number[],
+): Promise<Array<{ entryId: number; choiceId: number }>> {
+  const uniqueChoiceIds = uniqueNumbers(choiceIds).filter((id) => id > 0);
+  if (uniqueChoiceIds.length === 0) return [];
+
+  const out: Array<{ entryId: number; choiceId: number }> = [];
+  for (let i = 0; i < uniqueChoiceIds.length; i += IN_CHUNK) {
+    const choiceChunk = uniqueChoiceIds.slice(i, i + IN_CHUNK);
+    const rows = await fetchAllPostgrestPages<Record<string, unknown>>((from, to) =>
+      supabase
+        .from(table)
+        .select(`${entryIdColumn}, choice_id`)
+        .in("choice_id", choiceChunk)
+        .order(entryIdColumn, { ascending: true })
+        .order("choice_id", { ascending: true })
+        .range(from, to),
+    );
+    for (const row of rows) {
+      const entryId = Number(row[entryIdColumn]);
+      const choiceId = Number(row.choice_id);
+      if (!Number.isFinite(entryId) || !Number.isFinite(choiceId)) continue;
+      out.push({ entryId, choiceId });
+    }
+  }
+  return out;
+}
+
 async function resolveDirectInstitutionIdsByProfileSearch(
   supabase: SupabaseLike,
   searchTerm: string,
@@ -77,39 +109,35 @@ async function resolveDirectInstitutionIdsByProfileSearch(
   const select =
     "id, institution_name, type, subheading, about, city, district, address, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url";
 
-  for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
-    const from = page * QUERY_PAGE_SIZE;
-    const to = from + QUERY_PAGE_SIZE - 1;
-    const { data, error } = await supabase
+  const rows = await fetchAllPostgrestPages<Record<string, unknown>>((from, to) =>
+    supabase
       .from("institutions")
       .select(select)
       .eq("is_approved", true)
-      .range(from, to);
-    if (error) return uniqueNumbers(ids);
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
-    const rows = (data ?? []) as Array<Record<string, unknown>>;
-    for (const row of rows) {
-      const id = Number(row.id);
-      if (!Number.isFinite(id)) continue;
-      const matches = [
-        row.institution_name,
-        row.type,
-        row.subheading,
-        row.about,
-        row.city,
-        row.district,
-        row.address,
-        row.official_phone,
-        row.official_email,
-        row.website,
-        row.facebook_url,
-        row.instagram_url,
-        row.x_url,
-        row.linkedin_url,
-      ].some((value) => profileTextMatches(value, searchTerm));
-      if (matches) ids.add(id);
-    }
-    if (rows.length < QUERY_PAGE_SIZE) break;
+  for (const row of rows) {
+    const id = Number(row.id);
+    if (!Number.isFinite(id)) continue;
+    const matches = [
+      row.institution_name,
+      row.type,
+      row.subheading,
+      row.about,
+      row.city,
+      row.district,
+      row.address,
+      row.official_phone,
+      row.official_email,
+      row.website,
+      row.facebook_url,
+      row.instagram_url,
+      row.x_url,
+      row.linkedin_url,
+    ].some((value) => profileTextMatches(value, searchTerm));
+    if (matches) ids.add(id);
   }
 
   return uniqueNumbers(ids);
@@ -122,76 +150,98 @@ export async function resolveInstitutionIdsByProfileSearch(
   const trimmed = String(searchTerm ?? "").trim();
   if (!trimmed) return { institutionIds: [], institutionTypeIds: [] };
 
-  const [typeRes, groupRes, defRes, choiceRes, entryRes, announcementRes] = await Promise.all([
-    supabase
-      .from("institution_types")
-      .select("id, name, category:institution_categories(name)"),
-    supabase
-      .from("institution_feature_groups")
-      .select("id, name")
-      .eq("is_active", true),
-    supabase
-      .from("institution_feature_definitions")
-      .select("id, group_id, name, slug, input_type, unit")
-      .eq("is_active", true),
-    supabase
-      .from("institution_feature_choices")
-      .select("id, feature_definition_id, name")
-      .eq("is_active", true),
-    supabase
-      .from("institution_feature_entries")
-      .select("id, institution_id, feature_definition_id, selected_choice_id, text_answer, number_answer, boolean_answer"),
-    supabase
-      .from("announcements")
-      .select("institution_id, title, content")
-      .eq("is_active", true)
-      .not("published_at", "is", null)
-      .gt("published_at", announcementPublicationCutoffIso()),
+  const [types, groups, defs, choices, entries, announcements] = await Promise.all([
+    fetchAllPostgrestPages<{
+      id: number;
+      name?: string | null;
+      category?: { name?: string | null } | Array<{ name?: string | null }> | null;
+    }>((from, to) =>
+      supabase
+        .from("institution_types")
+        .select("id, name, category:institution_categories(name)")
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{ id: number; name?: string | null }>((from, to) =>
+      supabase
+        .from("institution_feature_groups")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      group_id: number;
+      name?: string | null;
+      slug?: string | null;
+      input_type?: string | null;
+      unit?: string | null;
+    }>((from, to) =>
+      supabase
+        .from("institution_feature_definitions")
+        .select("id, group_id, name, slug, input_type, unit")
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      feature_definition_id: number;
+      name?: string | null;
+    }>((from, to) =>
+      supabase
+        .from("institution_feature_choices")
+        .select("id, feature_definition_id, name")
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      institution_id: number;
+      feature_definition_id: number;
+      selected_choice_id: number | null;
+      text_answer: string | null;
+      number_answer: number | null;
+      boolean_answer: boolean | null;
+    }>((from, to) =>
+      supabase
+        .from("institution_feature_entries")
+        .select(
+          "id, institution_id, feature_definition_id, selected_choice_id, text_answer, number_answer, boolean_answer",
+        )
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      institution_id: number | null;
+      title?: string | null;
+      content?: string | null;
+    }>((from, to) =>
+      supabase
+        .from("announcements")
+        .select("id, institution_id, title, content")
+        .eq("is_active", true)
+        .not("published_at", "is", null)
+        .gt("published_at", announcementPublicationCutoffIso())
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
-
-  if (typeRes.error || groupRes.error || defRes.error || choiceRes.error || entryRes.error || announcementRes.error) {
-    return { institutionIds: [], institutionTypeIds: [] };
-  }
 
   const institutionIds = new Set<number>();
   const directInstitutionIds = await resolveDirectInstitutionIdsByProfileSearch(supabase, trimmed);
   directInstitutionIds.forEach((id) => institutionIds.add(id));
 
-  const typeIds = ((typeRes.data ?? []) as Array<{
-    id: number;
-    name?: string | null;
-    category?: { name?: string | null } | Array<{ name?: string | null }> | null;
-  }>)
+  const typeIds = types
     .filter((row) => {
       const category = Array.isArray(row.category) ? row.category[0] : row.category;
       return profileTextMatches(row.name, trimmed) || profileTextMatches(category?.name, trimmed);
     })
     .map((row) => Number(row.id))
     .filter((id) => Number.isFinite(id));
-
-  const groups = (groupRes.data ?? []) as Array<{ id: number; name?: string | null }>;
-  const defs = (defRes.data ?? []) as Array<{
-    id: number;
-    group_id: number;
-    name?: string | null;
-    slug?: string | null;
-    input_type?: string | null;
-    unit?: string | null;
-  }>;
-  const choices = (choiceRes.data ?? []) as Array<{
-    id: number;
-    feature_definition_id: number;
-    name?: string | null;
-  }>;
-  const entries = (entryRes.data ?? []) as Array<{
-    id: number;
-    institution_id: number;
-    feature_definition_id: number;
-    selected_choice_id: number | null;
-    text_answer: string | null;
-    number_answer: number | null;
-    boolean_answer: boolean | null;
-  }>;
 
   const matchedGroupIds = new Set(
     groups.filter((group) => profileTextMatches(group.name, trimmed)).map((group) => Number(group.id)),
@@ -229,24 +279,20 @@ export async function resolveInstitutionIdsByProfileSearch(
   }
 
   if (matchedChoiceIds.size > 0 && entryIdToInstitutionId.size > 0) {
-    const { data: entryChoices } = await supabase
-      .from("institution_feature_entry_choices")
-      .select("institution_feature_entry_id, choice_id")
-      .in("choice_id", uniqueNumbers(matchedChoiceIds));
-
-    for (const row of (entryChoices ?? []) as Array<{ institution_feature_entry_id: number; choice_id: number }>) {
-      const choiceId = Number(row.choice_id);
-      if (!matchedChoiceIds.has(choiceId)) continue;
-      const institutionId = entryIdToInstitutionId.get(Number(row.institution_feature_entry_id));
+    const entryChoices = await fetchEntryChoicesByChoiceIds(
+      supabase,
+      "institution_feature_entry_choices",
+      "institution_feature_entry_id",
+      Array.from(matchedChoiceIds),
+    );
+    for (const row of entryChoices) {
+      if (!matchedChoiceIds.has(row.choiceId)) continue;
+      const institutionId = entryIdToInstitutionId.get(row.entryId);
       if (Number.isFinite(institutionId)) institutionIds.add(institutionId!);
     }
   }
 
-  for (const row of (announcementRes.data ?? []) as Array<{
-    institution_id: number | null;
-    title?: string | null;
-    content?: string | null;
-  }>) {
+  for (const row of announcements) {
     const institutionId = Number(row.institution_id);
     if (!Number.isFinite(institutionId)) continue;
     if (profileTextMatches(row.title, trimmed) || profileTextMatches(row.content, trimmed)) {
@@ -260,29 +306,52 @@ export async function resolveInstitutionIdsByProfileSearch(
   };
 }
 
-async function fetchProfileSearchDefinitionPages(supabase: SupabaseLike) {
-  const data: Array<{
-    id: number;
-    group_id: number;
-    name?: string | null;
-    slug?: string | null;
-    input_type?: string | null;
-    unit?: string | null;
-  }> = [];
-  let from = 0;
-  for (;;) {
-    const page = await supabase
-      .from("instructor_feature_definitions")
-      .select("id, group_id, name, slug, input_type, unit")
+async function resolveDirectInstructorIdsByProfileSearch(
+  supabase: SupabaseLike,
+  searchTerm: string,
+): Promise<number[]> {
+  const ids = new Set<number>();
+  const select =
+    "id, name, surname, full_name, branch, bio, about, school, department, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, lesson_type, service_type, experience_years";
+
+  const rows = await fetchAllPostgrestPages<Record<string, unknown>>((from, to) =>
+    supabase
+      .from("instructors")
+      .select(select)
       .eq("is_active", true)
+      .eq("is_approved", true)
       .order("id", { ascending: true })
-      .range(from, from + QUERY_PAGE_SIZE - 1);
-    if (page.error) return page;
-    const rows = page.data ?? [];
-    data.push(...rows);
-    if (rows.length < QUERY_PAGE_SIZE) return { data, error: null };
-    from += QUERY_PAGE_SIZE;
+      .range(from, to),
+  );
+
+  for (const row of rows) {
+    const id = Number(row.id);
+    if (!Number.isFinite(id)) continue;
+    const matches = [
+      row.name,
+      row.surname,
+      row.full_name,
+      row.branch,
+      row.bio,
+      row.about,
+      row.school,
+      row.department,
+      row.address,
+      row.email,
+      row.phone,
+      row.website,
+      row.facebook_url,
+      row.instagram_url,
+      row.x_url,
+      row.linkedin_url,
+      row.lesson_type,
+      row.service_type,
+      row.experience_years,
+    ].some((value) => profileTextMatches(value, searchTerm));
+    if (matches) ids.add(id);
   }
+
+  return uniqueNumbers(ids);
 }
 
 export async function resolveInstructorIdsByProfileSearch(
@@ -292,61 +361,80 @@ export async function resolveInstructorIdsByProfileSearch(
   const trimmed = String(searchTerm ?? "").trim();
   if (!trimmed) return [];
 
-  const [groupRes, defRes, choiceRes, entryRes, announcementRes] = await Promise.all([
-    supabase
-      .from("instructor_feature_groups")
-      .select("id, name")
-      .eq("is_active", true),
-    fetchProfileSearchDefinitionPages(supabase),
-    supabase
-      .from("instructor_feature_choices")
-      .select("id, feature_definition_id, name, slug")
-      .eq("is_active", true),
-    supabase
-      .from("instructor_feature_entries")
-      .select(
-        "id, instructor_id, feature_definition_id, text_answer, number_answer, boolean_answer, selected_choice_id",
-      ),
-    supabase
-      .from("instructor_announcements")
-      .select("instructor_id, title, content")
-      .eq("is_active", true)
-      .not("published_at", "is", null)
-      .gt("published_at", announcementPublicationCutoffIso()),
+  const [groups, defs, choices, entries, announcements] = await Promise.all([
+    fetchAllPostgrestPages<{ id: number; name?: string | null }>((from, to) =>
+      supabase
+        .from("instructor_feature_groups")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      group_id: number;
+      name?: string | null;
+      slug?: string | null;
+      input_type?: string | null;
+      unit?: string | null;
+    }>((from, to) =>
+      supabase
+        .from("instructor_feature_definitions")
+        .select("id, group_id, name, slug, input_type, unit")
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      feature_definition_id: number;
+      name?: string | null;
+      slug?: string | null;
+    }>((from, to) =>
+      supabase
+        .from("instructor_feature_choices")
+        .select("id, feature_definition_id, name, slug")
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      instructor_id: number;
+      feature_definition_id: number;
+      text_answer: string | null;
+      number_answer: number | null;
+      boolean_answer: boolean | null;
+      selected_choice_id: number | null;
+    }>((from, to) =>
+      supabase
+        .from("instructor_feature_entries")
+        .select(
+          "id, instructor_id, feature_definition_id, text_answer, number_answer, boolean_answer, selected_choice_id",
+        )
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPostgrestPages<{
+      id: number;
+      instructor_id: number | null;
+      title?: string | null;
+      content?: string | null;
+    }>((from, to) =>
+      supabase
+        .from("instructor_announcements")
+        .select("id, instructor_id, title, content")
+        .eq("is_active", true)
+        .not("published_at", "is", null)
+        .gt("published_at", announcementPublicationCutoffIso())
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
-
-  if (groupRes.error || defRes.error || choiceRes.error || entryRes.error || announcementRes.error) {
-    return [];
-  }
 
   const instructorIds = new Set<number>();
   const directInstructorIds = await resolveDirectInstructorIdsByProfileSearch(supabase, trimmed);
   directInstructorIds.forEach((id) => instructorIds.add(id));
-
-  const groups = (groupRes.data ?? []) as Array<{ id: number; name?: string | null }>;
-  const defs = (defRes.data ?? []) as Array<{
-    id: number;
-    group_id: number;
-    name?: string | null;
-    slug?: string | null;
-    input_type?: string | null;
-    unit?: string | null;
-  }>;
-  const choices = (choiceRes.data ?? []) as Array<{
-    id: number;
-    feature_definition_id: number;
-    name?: string | null;
-    slug?: string | null;
-  }>;
-  const entries = (entryRes.data ?? []) as Array<{
-    id: number;
-    instructor_id: number;
-    feature_definition_id: number;
-    text_answer: string | null;
-    number_answer: number | null;
-    boolean_answer: boolean | null;
-    selected_choice_id: number | null;
-  }>;
 
   const defsById = new Map(defs.map((def) => [Number(def.id), def]));
 
@@ -406,24 +494,20 @@ export async function resolveInstructorIdsByProfileSearch(
   }
 
   if (matchedChoiceIds.size > 0 && entryIdToInstructorId.size > 0) {
-    const { data: entryChoices } = await supabase
-      .from("instructor_feature_entry_choices")
-      .select("instructor_feature_entry_id, choice_id")
-      .in("choice_id", uniqueNumbers(matchedChoiceIds));
-
-    for (const row of (entryChoices ?? []) as Array<{ instructor_feature_entry_id: number; choice_id: number }>) {
-      const choiceId = Number(row.choice_id);
-      if (!matchedChoiceIds.has(choiceId)) continue;
-      const instructorId = entryIdToInstructorId.get(Number(row.instructor_feature_entry_id));
+    const entryChoices = await fetchEntryChoicesByChoiceIds(
+      supabase,
+      "instructor_feature_entry_choices",
+      "instructor_feature_entry_id",
+      Array.from(matchedChoiceIds),
+    );
+    for (const row of entryChoices) {
+      if (!matchedChoiceIds.has(row.choiceId)) continue;
+      const instructorId = entryIdToInstructorId.get(row.entryId);
       if (Number.isFinite(instructorId)) instructorIds.add(instructorId!);
     }
   }
 
-  for (const row of (announcementRes.data ?? []) as Array<{
-    instructor_id: number | null;
-    title?: string | null;
-    content?: string | null;
-  }>) {
+  for (const row of announcements) {
     const instructorId = Number(row.instructor_id);
     if (!Number.isFinite(instructorId)) continue;
     if (profileTextMatches(row.title, trimmed) || profileTextMatches(row.content, trimmed)) {
@@ -432,56 +516,4 @@ export async function resolveInstructorIdsByProfileSearch(
   }
 
   return uniqueNumbers(instructorIds);
-}
-
-async function resolveDirectInstructorIdsByProfileSearch(
-  supabase: SupabaseLike,
-  searchTerm: string,
-): Promise<number[]> {
-  const ids = new Set<number>();
-  const select =
-    "id, name, surname, full_name, branch, bio, about, school, department, address, email, phone, website, facebook_url, instagram_url, x_url, linkedin_url, lesson_type, service_type, experience_years";
-
-  for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
-    const from = page * QUERY_PAGE_SIZE;
-    const to = from + QUERY_PAGE_SIZE - 1;
-    const { data, error } = await supabase
-      .from("instructors")
-      .select(select)
-      .eq("is_active", true)
-      .eq("is_approved", true)
-      .range(from, to);
-    if (error) return uniqueNumbers(ids);
-
-    const rows = (data ?? []) as Array<Record<string, unknown>>;
-    for (const row of rows) {
-      const id = Number(row.id);
-      if (!Number.isFinite(id)) continue;
-      const matches = [
-        row.name,
-        row.surname,
-        row.full_name,
-        row.branch,
-        row.bio,
-        row.about,
-        row.school,
-        row.department,
-        row.address,
-        row.email,
-        row.phone,
-        row.website,
-        row.facebook_url,
-        row.instagram_url,
-        row.x_url,
-        row.linkedin_url,
-        row.lesson_type,
-        row.service_type,
-        row.experience_years,
-      ].some((value) => profileTextMatches(value, searchTerm));
-      if (matches) ids.add(id);
-    }
-    if (rows.length < QUERY_PAGE_SIZE) break;
-  }
-
-  return uniqueNumbers(ids);
 }

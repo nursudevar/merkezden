@@ -18,7 +18,11 @@ import {
   getMapMarkerKey,
   type InstitutionMapMarker,
 } from "@/lib/institutionMapMarkers";
-import type { DistrictBoundaryGeoJson } from "@/lib/districtMapView";
+import {
+  DEFAULT_MAP_CENTER,
+  MAP_ZOOM_DEFAULT,
+  type DistrictBoundaryGeoJson,
+} from "@/lib/districtMapView";
 
 /** Lucide MapPin path as inline SVG — Leaflet divIcon cannot host the React icon. */
 const INSTITUTION_MAPPIN_SVG = `
@@ -216,7 +220,8 @@ function buildMarkerClusterSignature(markers: InstitutionMapMarker[]): string {
   return `${markers.length}:${hash >>> 0}`;
 }
 
-const DEFAULT_CENTER: [number, number] = [39.9334, 32.8597];
+const DEFAULT_CENTER: [number, number] = [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng];
+const DEFAULT_ZOOM = MAP_ZOOM_DEFAULT;
 
 export type InstitutionMapViewportBounds = {
   north: number;
@@ -504,12 +509,15 @@ function MapFocusController({
             south < north &&
             west < east
           ) {
+            const maxZoom = Number.isFinite(Number(focusTarget.maxZoom))
+              ? Number(focusTarget.maxZoom)
+              : 14;
             map.fitBounds(
               [
                 [south, west],
                 [north, east],
               ],
-              { padding: [28, 28], maxZoom: 14, animate: true },
+              { padding: [28, 28], maxZoom, animate: true },
             );
             return;
           }
@@ -538,6 +546,7 @@ function MapFocusController({
     focusTarget?.lat,
     focusTarget?.lng,
     focusTarget?.zoom,
+    focusTarget?.maxZoom,
     focusTarget?.bounds,
   ]);
 
@@ -548,6 +557,8 @@ export type InstitutionMapFocusTarget = {
   lat?: number;
   lng?: number;
   zoom?: number;
+  /** fitBounds için üst zoom sınırı (il/ilçe/mahalle) */
+  maxZoom?: number;
   bounds?: [[number, number], [number, number]];
   boundaryGeoJson?: DistrictBoundaryGeoJson | null;
   /** Aynı konuma tekrar odaklanmayı tetiklemek için */
@@ -629,13 +640,8 @@ export default function InstitutionLocationsMap({
     onToggleFavorite,
   ]);
 
-  const center = useMemo<[number, number]>(() => {
-    if (markers.length > 0) {
-      return [markers[0].latitude, markers[0].longitude];
-    }
-    return DEFAULT_CENTER;
-  }, [markers]);
-
+  // İlk görünüm her zaman ülke geneli. Marker yüklenmesi / ilk marker konumu bunu ezmez.
+  // İl/ilçe/mahalle odağı yalnızca focusTarget (MapFocusController) ile uygulanır.
   const buildingIcon = useMemo(() => createBuildingMarkerIcon(), []);
   const instructorIcon = useMemo(() => createInstructorMarkerIcon(), []);
   const markerSignature = useMemo(() => buildMarkerClusterSignature(markers), [markers]);
@@ -658,8 +664,8 @@ export default function InstitutionLocationsMap({
       ) : (
         <MapContainer
           key={`institution-locations-leaflet-${mapInstanceId}-${variant}`}
-          center={center}
-          zoom={10}
+          center={DEFAULT_CENTER}
+          zoom={DEFAULT_ZOOM}
           scrollWheelZoom
           className={mapClass}
         >

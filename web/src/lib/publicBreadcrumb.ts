@@ -5,9 +5,6 @@ import {
   fetchIlcelerByIlId,
   fetchIller,
   fetchMahallelerByIlceId,
-  findLocationIdByAd,
-  findLocationSlugById,
-  HOME_DEFAULT_CITY_AD,
   parseLocationId,
   type TurkiyeLocationOption,
 } from "@/lib/turkiyeLocationsClient";
@@ -97,19 +94,17 @@ export function buildLocationListingHref(
     ilceSlug?: string;
     mahalleSlug?: string;
   },
+  /** @deprecated Ülke geneli: varsayılan il slug'ı artık yok sayılır. */
   defaultIlSlug = "",
 ): string {
+  void defaultIlSlug;
   const basePath = String(pathname ?? "").trim() || "/";
   const ilSlug = String(trail.ilSlug ?? "").trim().toLowerCase();
   const ilceSlug = String(trail.ilceSlug ?? "").trim().toLowerCase();
   const mahalleSlug = String(trail.mahalleSlug ?? "").trim().toLowerCase();
-  const normalizedDefault = String(defaultIlSlug ?? "").trim().toLowerCase();
-  const isDefaultCityOnly =
-    (!ilSlug || (normalizedDefault && ilSlug === normalizedDefault)) &&
-    !ilceSlug &&
-    !mahalleSlug;
 
-  if (isDefaultCityOnly) return basePath;
+  // Ülke geneli: özel "varsayılan il" yok; yalnızca konum seçiliyse query yaz.
+  if (!ilSlug && !ilceSlug && !mahalleSlug) return basePath;
 
   const params = new URLSearchParams();
   if (ilSlug) params.set(IL_SLUG_PARAM, ilSlug);
@@ -119,43 +114,31 @@ export function buildLocationListingHref(
   return query ? `${basePath}?${query}` : basePath;
 }
 
-function defaultCityTrail(defaultIlSlug = ""): LocationBreadcrumbTrail {
-  return {
-    il: { ad: HOME_DEFAULT_CITY_AD, slug: defaultIlSlug },
-    ilce: null,
-    mahalle: null,
-    defaultIlSlug,
-  };
-}
-
 export async function resolveLocationBreadcrumbTrail(
   location: { ilId?: unknown; ilceId?: unknown; mahalleId?: unknown },
   options?: { applyDefaultCity?: boolean },
 ): Promise<LocationBreadcrumbTrail> {
-  const applyDefaultCity = options?.applyDefaultCity === true;
+  // applyDefaultCity artık Ankara fallback uygulamaz (ülke geneli); imza korunur.
+  void options;
   const parsedIlId = parseLocationId(location.ilId);
   const parsedIlceId = parseLocationId(location.ilceId);
   const parsedMahalleId = parseLocationId(location.mahalleId);
 
-  const iller = await fetchIller();
-  const defaultIlId = findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD);
-  const defaultIlSlug = findLocationSlugById(iller, defaultIlId);
-  const resolvedIlId = parsedIlId ?? (applyDefaultCity ? parseLocationId(defaultIlId) : null);
-
-  if (resolvedIlId == null) {
-    return applyDefaultCity ? defaultCityTrail(defaultIlSlug) : { ...EMPTY_TRAIL, defaultIlSlug };
+  if (parsedIlId == null) {
+    return EMPTY_TRAIL;
   }
 
-  const il = optionToLevel(findOptionById(iller, resolvedIlId));
+  const iller = await fetchIller();
+  const il = optionToLevel(findOptionById(iller, parsedIlId));
   if (!il) {
-    return applyDefaultCity ? defaultCityTrail(defaultIlSlug) : { ...EMPTY_TRAIL, defaultIlSlug };
+    return EMPTY_TRAIL;
   }
 
   let ilce: LocationBreadcrumbLevel | null = null;
   let mahalle: LocationBreadcrumbLevel | null = null;
 
   if (parsedIlceId != null) {
-    const ilceler = await fetchIlcelerByIlId(resolvedIlId);
+    const ilceler = await fetchIlcelerByIlId(parsedIlId);
     ilce = optionToLevel(findOptionById(ilceler, parsedIlceId));
     if (ilce && parsedMahalleId != null) {
       const mahalleler = await fetchMahallelerByIlceId(parsedIlceId);
@@ -163,20 +146,19 @@ export async function resolveLocationBreadcrumbTrail(
     }
   }
 
-  return { il, ilce, mahalle, defaultIlSlug };
+  return { il, ilce, mahalle, defaultIlSlug: "" };
 }
 
 export function useLocationBreadcrumbTrail(
   location: { ilId?: unknown; ilceId?: unknown; mahalleId?: unknown },
   options?: { applyDefaultCity?: boolean },
 ): LocationBreadcrumbTrail {
-  const applyDefaultCity = options?.applyDefaultCity === true;
   const ilId = parseLocationId(location.ilId);
   const ilceId = parseLocationId(location.ilceId);
   const mahalleId = parseLocationId(location.mahalleId);
-  const [trail, setTrail] = useState<LocationBreadcrumbTrail>(() =>
-    applyDefaultCity && ilId == null ? defaultCityTrail() : EMPTY_TRAIL,
-  );
+  // applyDefaultCity artık no-op; API imzası korundu.
+  const applyDefaultCity = options?.applyDefaultCity === true;
+  const [trail, setTrail] = useState<LocationBreadcrumbTrail>(EMPTY_TRAIL);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,11 +170,7 @@ export function useLocationBreadcrumbTrail(
         );
         if (!cancelled) setTrail(next);
       } catch {
-        if (!cancelled) {
-          setTrail(
-            applyDefaultCity && ilId == null ? defaultCityTrail() : EMPTY_TRAIL,
-          );
-        }
+        if (!cancelled) setTrail(EMPTY_TRAIL);
       }
     })();
     return () => {

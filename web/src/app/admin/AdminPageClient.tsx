@@ -911,6 +911,7 @@ export default function AdminPageClient() {
       setInstitutionsListLoading(true);
       setInstitutionsListError(null);
 
+      try {
       const from = (institutionsPage - 1) * INSTITUTIONS_PAGE_SIZE;
       const to = from + INSTITUTIONS_PAGE_SIZE - 1;
 
@@ -1008,6 +1009,14 @@ export default function AdminPageClient() {
       }
 
       setInstitutionsListLoading(false);
+      } catch {
+        if (cancelled) return;
+        setInstitutionsList([]);
+        setInstitutionsTotalCount(0);
+        setMediaCountByInstitutionId({});
+        setInstitutionsListError("Kurum listesi alınamadı.");
+        setInstitutionsListLoading(false);
+      }
     };
 
     void loadInstitutionsPage();
@@ -1166,6 +1175,7 @@ export default function AdminPageClient() {
       setInstructorsListLoading(true);
       setInstructorsListError(null);
 
+      try {
       const from = (instructorsPage - 1) * INSTRUCTORS_PAGE_SIZE;
       const to = from + INSTRUCTORS_PAGE_SIZE - 1;
 
@@ -1254,6 +1264,13 @@ export default function AdminPageClient() {
       );
       setInstructorsTotalCount(count ?? 0);
       setInstructorsListLoading(false);
+      } catch {
+        if (cancelled) return;
+        setInstructorsList([]);
+        setInstructorsTotalCount(0);
+        setInstructorsListError("Bireysel eğitmen listesi alınamadı.");
+        setInstructorsListLoading(false);
+      }
     };
 
     void loadInstructorsPage();

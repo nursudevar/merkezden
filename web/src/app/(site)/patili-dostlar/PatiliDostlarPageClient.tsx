@@ -63,7 +63,7 @@ export default function PatiliDostlarPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -79,6 +79,9 @@ export default function PatiliDostlarPageClient() {
         categorySlug={categorySlug}
         subtitle="Evcil dostlarınız için hizmetleri keşfedin."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         emptyResultsMessage="Bu kategoriye ait kurum henüz bulunmuyor."

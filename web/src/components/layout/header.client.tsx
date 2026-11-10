@@ -6,11 +6,10 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
-  resolveIndividualNameFromUsersClient,
   resolveIsAdminFromUserRolesClient,
   resolveInstitutionNameFromUsersClient,
   resolveInstitutionSlugFromUsersClient,
-  resolveUserTypeFromUsersClient,
+  resolveUsersClientProfile,
   type AppUserType,
 } from "@/lib/auth/authBrowserClient";
 import { resolveInstructorNameFromInstructorsClient } from "@/lib/instructorProfileClient";
@@ -621,11 +620,24 @@ export function HeaderWithSearch({
     if (!user?.id) {
       setUserType(null);
       setInstitutionName(null);
+      setIndividualName(null);
       return;
     }
     let cancelled = false;
-    resolveUserTypeFromUsersClient(user.id).then((type) => {
-      if (!cancelled) setUserType(type);
+    const authUid = user.id;
+    resolveUsersClientProfile(authUid).then((profile) => {
+      if (cancelled) return;
+      if (profile.status === "resolved" && profile.userType) {
+        setUserType(profile.userType);
+        if (profile.userType === "individual") {
+          setIndividualName(profile.individualDisplayName || "Kullanıcı");
+        } else {
+          setIndividualName(null);
+        }
+      } else {
+        setUserType(null);
+        setIndividualName(null);
+      }
     });
     return () => {
       cancelled = true;
@@ -654,20 +666,6 @@ export function HeaderWithSearch({
     let cancelled = false;
     resolveInstitutionSlugFromUsersClient(user.id, user.email).then((slug) => {
       if (!cancelled) setInstitutionSlug(slug);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, userType]);
-
-  useEffect(() => {
-    if (!user?.id || userType !== "individual") {
-      setIndividualName(null);
-      return;
-    }
-    let cancelled = false;
-    resolveIndividualNameFromUsersClient(user.id).then((name) => {
-      if (!cancelled) setIndividualName(name || "Kullanıcı");
     });
     return () => {
       cancelled = true;
@@ -802,11 +800,24 @@ export function HeaderClientWrapper({
     if (!user?.id) {
       setUserType(null);
       setInstitutionName(null);
+      setIndividualName(null);
       return;
     }
     let cancelled = false;
-    resolveUserTypeFromUsersClient(user.id).then((type) => {
-      if (!cancelled) setUserType(type);
+    const authUid = user.id;
+    resolveUsersClientProfile(authUid).then((profile) => {
+      if (cancelled) return;
+      if (profile.status === "resolved" && profile.userType) {
+        setUserType(profile.userType);
+        if (profile.userType === "individual") {
+          setIndividualName(profile.individualDisplayName || "Kullanıcı");
+        } else {
+          setIndividualName(null);
+        }
+      } else {
+        setUserType(null);
+        setIndividualName(null);
+      }
     });
     return () => {
       cancelled = true;
@@ -835,20 +846,6 @@ export function HeaderClientWrapper({
     let cancelled = false;
     resolveInstitutionSlugFromUsersClient(user.id, user.email).then((slug) => {
       if (!cancelled) setInstitutionSlug(slug);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, userType]);
-
-  useEffect(() => {
-    if (!user?.id || userType !== "individual") {
-      setIndividualName(null);
-      return;
-    }
-    let cancelled = false;
-    resolveIndividualNameFromUsersClient(user.id).then((name) => {
-      if (!cancelled) setIndividualName(name || "Kullanıcı");
     });
     return () => {
       cancelled = true;

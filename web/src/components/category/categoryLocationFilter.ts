@@ -10,10 +10,8 @@ import {
   fetchIller,
   fetchIlcelerByIlId,
   fetchMahallelerByIlceId,
-  findLocationIdByAd,
   findLocationIdBySlug,
   findLocationSlugById,
-  HOME_DEFAULT_CITY_AD,
   parseLocationId,
 } from "@/lib/turkiyeLocationsClient";
 
@@ -29,6 +27,7 @@ export const EMPTY_CATEGORY_LOCATION_FILTER: CategoryLocationFilterValue = {
   mahalleId: "",
 };
 
+export const CATEGORY_ALL_ILLER_VALUE = "__all_cities__";
 export const CATEGORY_ALL_ILCELER_VALUE = "__all__";
 export const CATEGORY_ALL_MAHALLELER_VALUE = "__all_neighborhoods__";
 
@@ -123,13 +122,13 @@ export async function persistCategoryLocationPreference(
   location: CategoryLocationFilterValue,
 ): Promise<void> {
   const normalized = normalizeLocationValue(location);
-  const iller = await fetchIller();
-  const defaultIlId = findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD);
-  const selectedIlId = parseLocationId(normalized.ilId) ?? parseLocationId(defaultIlId);
+  const selectedIlId = parseLocationId(normalized.ilId);
   if (selectedIlId == null) {
     clearLocationPreference();
     return;
   }
+
+  const iller = await fetchIller();
   const ilSlug = findLocationSlugById(iller, selectedIlId);
   if (!ilSlug) {
     clearLocationPreference();
@@ -166,21 +165,12 @@ export async function resolvePreferredCategoryLocation(
     if (preference.ilceSlug) prefParams.set(ILCE_SLUG_PARAM, preference.ilceSlug);
     const fromPreference = await resolveCategoryLocationFromSearch(`?${prefParams.toString()}`);
     if (fromPreference.ilId) {
-      await persistCategoryLocationPreference(fromPreference);
       return fromPreference;
     }
     clearLocationPreference();
   }
 
-  const iller = await fetchIller();
-  const ankaraId = findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD);
-  const defaults = normalizeLocationValue({
-    ilId: ankaraId,
-    ilceId: "",
-    mahalleId: "",
-  });
-  await persistCategoryLocationPreference(defaults);
-  return defaults;
+  return EMPTY_CATEGORY_LOCATION_FILTER;
 }
 
 export async function writeCategoryLocationToSearch(
@@ -196,21 +186,20 @@ export async function writeCategoryLocationToSearch(
   params.delete(LEGACY_MAHALLE_ID_PARAM);
 
   const normalized = normalizeLocationValue(location);
-  const iller = await fetchIller();
-  const defaultIlId = findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD);
-  const selectedIlId = parseLocationId(normalized.ilId) ?? parseLocationId(defaultIlId);
+  const selectedIlId = parseLocationId(normalized.ilId);
   const selectedIlceId = parseLocationId(normalized.ilceId);
   const selectedMahalleId = parseLocationId(normalized.mahalleId);
 
   if (selectedIlId != null) {
+    const iller = await fetchIller();
     const ilSlug = findLocationSlugById(iller, selectedIlId);
     if (ilSlug) params.set(IL_SLUG_PARAM, ilSlug);
-  }
 
-  if (selectedIlId != null && selectedIlceId != null) {
-    const ilceler = await fetchIlcelerByIlId(selectedIlId);
-    const ilceSlug = findLocationSlugById(ilceler, selectedIlceId);
-    if (ilceSlug) params.set(ILCE_SLUG_PARAM, ilceSlug);
+    if (selectedIlceId != null) {
+      const ilceler = await fetchIlcelerByIlId(selectedIlId);
+      const ilceSlug = findLocationSlugById(ilceler, selectedIlceId);
+      if (ilceSlug) params.set(ILCE_SLUG_PARAM, ilceSlug);
+    }
   }
 
   if (selectedIlceId != null && selectedMahalleId != null) {
@@ -229,10 +218,7 @@ async function replaceLocationSearch(location: CategoryLocationFilterValue) {
 }
 
 export async function resolveCategoryListingIlId(ilId: string): Promise<number | null> {
-  const selected = parseLocationId(ilId);
-  if (selected != null) return selected;
-  const iller = await fetchIller();
-  return parseLocationId(findLocationIdByAd(iller, HOME_DEFAULT_CITY_AD));
+  return parseLocationId(ilId);
 }
 
 export function useCategoryLocationFilterState(): {

@@ -180,31 +180,102 @@ export type UserTypeResolution =
   | { status: "missing" }
   | { status: "error" };
 
+export type UsersClientProfile = {
+  status: "resolved" | "missing" | "error";
+  userType: AppUserType | null;
+  /** Bireysel ad fallback zinciri; tüketici `userType === "individual"` ile kullanır. */
+  individualDisplayName: string;
+};
+
+type UsersProfileRow = {
+  user_type?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+};
+
+/** Eşzamanlı aynı authUid profil isteklerini tek SELECT'te birleştirir (kalıcı cache yok). */
+let usersProfileInflight: Promise<UsersClientProfile> | null = null;
+let usersProfileInflightKey: string | null = null;
+
+function formatIndividualDisplayNameFromUsersRow(row: UsersProfileRow | null): string {
+  const firstName = String(row?.first_name ?? "").trim();
+  const lastName = String(row?.last_name ?? "").trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  if (fullName) return fullName;
+  if (firstName) return firstName;
+  if (lastName) return lastName;
+  const email = String(row?.email ?? "").trim();
+  if (email) return email;
+  return "Kullanıcı";
+}
+
+function parseAppUserTypeFromRow(value: unknown): AppUserType | null {
+  if (value === "individual" || value === "institution" || value === "instructor") {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * Header ve diğer istemciler için tek `users` SELECT:
+ * user_type + bireysel isim alanları.
+ */
+export async function resolveUsersClientProfile(authUid: string): Promise<UsersClientProfile> {
+  const uid = String(authUid ?? "").trim();
+  if (!uid) {
+    return { status: "missing", userType: null, individualDisplayName: "Kullanıcı" };
+  }
+
+  if (usersProfileInflight && usersProfileInflightKey === uid) {
+    return usersProfileInflight;
+  }
+
+  const promise = (async (): Promise<UsersClientProfile> => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("users")
+        .select("user_type, first_name, last_name, email")
+        .eq("auth_user_id", uid)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("[authBrowserClient] resolveUsersClientProfile", error);
+        return { status: "error", userType: null, individualDisplayName: "Kullanıcı" };
+      }
+
+      const row = (data as UsersProfileRow | null) ?? null;
+      const userType = parseAppUserTypeFromRow(row?.user_type);
+      const individualDisplayName = formatIndividualDisplayNameFromUsersRow(row);
+
+      if (!userType) {
+        return { status: "missing", userType: null, individualDisplayName };
+      }
+      return { status: "resolved", userType, individualDisplayName };
+    } catch (err) {
+      console.warn("[authBrowserClient] resolveUsersClientProfile", err);
+      return { status: "error", userType: null, individualDisplayName: "Kullanıcı" };
+    }
+  })().finally(() => {
+    if (usersProfileInflight === promise) {
+      usersProfileInflight = null;
+      usersProfileInflightKey = null;
+    }
+  });
+
+  usersProfileInflight = promise;
+  usersProfileInflightKey = uid;
+  return promise;
+}
+
 export async function resolveUserTypeResolutionFromUsersClient(
   authUid: string
 ): Promise<UserTypeResolution> {
-  try {
-    const supabase = createSupabaseBrowserClient();
-    const { data, error } = await supabase
-      .from("users")
-      .select("user_type")
-      .eq("auth_user_id", authUid)
-      .maybeSingle();
-
-    if (error) {
-      console.warn("[authBrowserClient] resolveUserType", error);
-      return { status: "error" };
-    }
-
-    const type = data?.user_type;
-    if (type === "individual" || type === "institution" || type === "instructor") {
-      return { status: "resolved", userType: type };
-    }
-    return { status: "missing" };
-  } catch (err) {
-    console.warn("[authBrowserClient] resolveUserType", err);
-    return { status: "error" };
-  }
+  const profile = await resolveUsersClientProfile(authUid);
+  if (profile.status === "error") return { status: "error" };
+  if (profile.status === "missing" || !profile.userType) return { status: "missing" };
+  return { status: "resolved", userType: profile.userType };
 }
 
 export async function resolveUserTypeFromUsersClient(
@@ -216,33 +287,8 @@ export async function resolveUserTypeFromUsersClient(
 }
 
 export async function resolveIndividualNameFromUsersClient(authUid: string): Promise<string> {
-  try {
-    const supabase = createSupabaseBrowserClient();
-    const { data, error } = await supabase
-      .from("users")
-      .select("first_name, last_name, email")
-      .eq("auth_user_id", authUid)
-      .maybeSingle();
-
-    if (error) {
-      console.warn("[authBrowserClient] resolveIndividualName", error);
-      return "Kullanıcı";
-    }
-
-    const row = data as { first_name?: string; last_name?: string; email?: string } | null;
-    const firstName = (row?.first_name ?? "").trim();
-    const lastName = (row?.last_name ?? "").trim();
-    const fullName = `${firstName} ${lastName}`.trim();
-
-    if (fullName) return fullName;
-    if (firstName) return firstName;
-    if (lastName) return lastName;
-    if (row?.email?.trim()) return row.email.trim();
-    return "Kullanıcı";
-  } catch (err) {
-    console.warn("[authBrowserClient] resolveIndividualName", err);
-    return "Kullanıcı";
-  }
+  const profile = await resolveUsersClientProfile(authUid);
+  return profile.individualDisplayName || "Kullanıcı";
 }
 
 export type AdminRoleResolution =

@@ -11,6 +11,7 @@ import { resolvePublicInstructorProfilePictureUrl } from "@/lib/publicInstructor
 import { getPublicInstructorDetailHref } from "@/lib/publicInstructorSearch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isValidLatLng } from "@/lib/geoDistance";
+import { PostgrestQueryPageLimitError } from "@/lib/postgrestQueryPages";
 
 const INSTRUCTOR_PAGE_SIZE = 1000;
 const MAX_INSTRUCTOR_PAGES = 10;
@@ -19,9 +20,7 @@ const MAX_NEIGHBORHOOD_GEOCODE = 20;
 const MAX_ADDRESS_GEOCODE = 8;
 const GEOCODE_CONCURRENCY = 2;
 
-const INSTRUCTOR_MAP_SELECT_WITH_ABROAD =
-  "id, slug, name, surname, full_name, address, branch, phone, profile_picture, category_id, is_approved, is_active, il_id, ilce_id, mahalle_id, is_abroad";
-
+/** public_instructors üzerinde var olan kolonlar (is_abroad view'de yok). */
 const INSTRUCTOR_MAP_SELECT =
   "id, slug, name, surname, full_name, address, branch, phone, profile_picture, category_id, is_approved, is_active, il_id, ilce_id, mahalle_id";
 
@@ -41,7 +40,6 @@ type InstructorMapRow = {
   il_id?: number | null;
   ilce_id?: number | null;
   mahalle_id?: number | null;
-  is_abroad?: boolean | null;
 };
 
 type LatLng = { lat: number; lng: number };
@@ -188,36 +186,31 @@ function buildAddressQuery(address: string, labels: InstructorLocationLabels): s
 async function fetchInstructorMapRows(): Promise<InstructorMapRow[]> {
   const supabase = createSupabaseBrowserClient();
   const rows: InstructorMapRow[] = [];
-  let select = INSTRUCTOR_MAP_SELECT_WITH_ABROAD;
 
   for (let page = 0; page < MAX_INSTRUCTOR_PAGES; page += 1) {
     const from = page * INSTRUCTOR_PAGE_SIZE;
     const to = from + INSTRUCTOR_PAGE_SIZE - 1;
     const { data, error } = await supabase
       .from(PUBLIC_INSTRUCTORS_TABLE)
-      .select(select)
+      .select(INSTRUCTOR_MAP_SELECT)
       .eq("is_active", true)
       .eq("is_approved", true)
       .order("id", { ascending: true })
       .range(from, to);
 
-    if (error) {
-      if (select === INSTRUCTOR_MAP_SELECT_WITH_ABROAD) {
-        select = INSTRUCTOR_MAP_SELECT;
-        page -= 1;
-        continue;
-      }
-      throw error;
-    }
+    if (error) throw error;
 
     const batch = ((data ?? []) as unknown as InstructorMapRow[]).filter(
       (row) => toPositiveId(row.id) != null,
     );
     rows.push(...batch);
-    if (batch.length < INSTRUCTOR_PAGE_SIZE) break;
+    if (batch.length < INSTRUCTOR_PAGE_SIZE) return rows;
   }
 
-  return rows.filter((row) => row.is_abroad !== true);
+  // Dolu son sayfa = sonuç seti henüz bitmedi; sessiz eksik set dönme.
+  throw new PostgrestQueryPageLimitError(
+    "Instructor map query exceeded max page limit before result set ended",
+  );
 }
 
 async function fetchInstructorCategoryMeta(

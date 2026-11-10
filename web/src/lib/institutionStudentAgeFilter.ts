@@ -1,4 +1,5 @@
 import type { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { fetchAllPostgrestPages } from "@/lib/postgrestQueryPages";
 import {
   STUDENT_AGE_INPUT_MAX,
   STUDENT_AGE_INPUT_MIN,
@@ -240,14 +241,17 @@ async function resolveEntityIdsByStudentAgeNumberRange(
   const { minId, maxId } = await resolveStudentAgeDefinitionIds(supabase, config.definitionsTable);
   if (minId == null || maxId == null) return [];
 
-  const { data: entriesRaw, error: entriesErr } = await supabase
-    .from(config.entriesTable)
-    .select(`id, ${config.entityIdColumn}, feature_definition_id, number_answer`)
-    .in("feature_definition_id", [minId, maxId]);
-  if (entriesErr) throw entriesErr;
+  const entriesRaw = await fetchAllPostgrestPages<Record<string, unknown>>((from, to) =>
+    supabase
+      .from(config.entriesTable)
+      .select(`id, ${config.entityIdColumn}, feature_definition_id, number_answer`)
+      .in("feature_definition_id", [minId, maxId])
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const byEntity = new Map<number, { min?: number; max?: number }>();
-  for (const row of (entriesRaw ?? []) as Array<Record<string, unknown>>) {
+  for (const row of entriesRaw) {
     const entityId = Number(row[config.entityIdColumn]);
     const defId = Number(row.feature_definition_id);
     const answer = parseStudentAgeNumberAnswer(row.number_answer);

@@ -62,7 +62,7 @@ export default function SurucuKursuPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -78,6 +78,9 @@ export default function SurucuKursuPageClient() {
         categorySlug={categorySlug}
         subtitle="Sürücü kurslarını ve ehliyet eğitim kurumlarını keşfedin."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

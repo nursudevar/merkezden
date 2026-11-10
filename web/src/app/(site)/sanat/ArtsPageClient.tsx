@@ -62,7 +62,7 @@ export default function ArtsPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -78,6 +78,9 @@ export default function ArtsPageClient() {
         categorySlug={categorySlug}
         subtitle="Sanat ve yaratıcılık odaklı eğitim kurumları. Müzik, resim, tiyatro ve daha fazlası için profesyonel eğitim."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

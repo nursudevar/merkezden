@@ -361,7 +361,8 @@ export default function HomePageClient() {
     let cancelled = false;
     void (async () => {
       try {
-        const preferred = await resolvePreferredCategoryLocation("");
+        const search = typeof window === "undefined" ? "" : window.location.search;
+        const preferred = await resolvePreferredCategoryLocation(search);
         if (cancelled) return;
         setPreferredIlId(preferred.ilId);
         setPreferredIlceId(preferred.ilceId);

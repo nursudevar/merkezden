@@ -13,7 +13,10 @@ import {
   fetchPublishedAdminAnnouncementMetas,
   isAdminAnnouncementUnread,
   markAdminAnnouncementsRead,
+  markAnnouncementRefreshCompleted,
+  requestPassiveAnnouncementRefresh,
   subscribeAdminAnnouncementReadChanges,
+  subscribePassiveAnnouncementRefresh,
   type AdminAnnouncementReadMap,
   type PublicAdminAnnouncement,
   type PublicAdminAnnouncementMeta,
@@ -74,6 +77,7 @@ export function HeaderAnnouncementBell({ placement }: HeaderAnnouncementBellProp
       fetchPublishedAdminAnnouncementMetas(),
       fetchAdminAnnouncementReads(),
     ]);
+    markAnnouncementRefreshCompleted();
     if (!mountedRef.current || seq !== refreshSeqRef.current) return;
     if (!metaResult.error) setMetas(metaResult.items);
     if (!readResult.error) setReads(readResult.reads);
@@ -93,6 +97,12 @@ export function HeaderAnnouncementBell({ placement }: HeaderAnnouncementBellProp
   }, [refreshReadState]);
 
   useEffect(() => {
+    return subscribePassiveAnnouncementRefresh(() => {
+      void refreshReadState();
+    });
+  }, [refreshReadState]);
+
+  useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const {
       data: { subscription },
@@ -106,10 +116,12 @@ export function HeaderAnnouncementBell({ placement }: HeaderAnnouncementBellProp
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") void refreshReadState();
+      if (document.visibilityState === "visible") {
+        requestPassiveAnnouncementRefresh();
+      }
     };
     const onFocus = () => {
-      void refreshReadState();
+      requestPassiveAnnouncementRefresh();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onFocus);
@@ -117,7 +129,7 @@ export function HeaderAnnouncementBell({ placement }: HeaderAnnouncementBellProp
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
     };
-  }, [refreshReadState]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;

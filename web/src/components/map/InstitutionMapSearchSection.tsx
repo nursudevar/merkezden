@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Separator } from "@/components/ui";
 import type { InstitutionMapMarker } from "@/lib/institutionMapMarkers";
+import type { InstitutionMapFocusTarget } from "@/components/map/InstitutionLocationsMap";
 import "@/styles/components/institution-locations-map.scss";
 
 function InstitutionMapLoadingPlaceholder() {
@@ -30,6 +31,8 @@ export type InstitutionMapSearchSectionProps = {
   mapKeyPrefix?: string;
   /** Ana sayfa sol panelde harita ile sonraki filtre arasında ayırıcı */
   showSeparatorAfter?: boolean;
+  /** İl/ilçe/mahalle filtresi değişince harita odağı */
+  focusTarget?: InstitutionMapFocusTarget | null;
 };
 
 export function InstitutionMapSearchSection({
@@ -37,6 +40,7 @@ export function InstitutionMapSearchSection({
   loading = false,
   mapKeyPrefix = "institution-map",
   showSeparatorAfter = false,
+  focusTarget = null,
 }: InstitutionMapSearchSectionProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -66,6 +70,7 @@ export function InstitutionMapSearchSection({
             key={`${mapKeyPrefix}-sidebar`}
             markers={markers}
             loading={loading}
+            focusTarget={focusTarget}
           />
         ) : (
           <InstitutionMapLoadingPlaceholder />

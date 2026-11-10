@@ -24,7 +24,7 @@ export default function SchoolPageClient() {
     setSchoolFilters(payload);
   }, []);
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -38,8 +38,11 @@ export default function SchoolPageClient() {
       <CategoryPageLayout
         categoryName={CATEGORY_NAME}
         categorySlug={CATEGORY_SLUG}
-        subtitle="Ankara bölgesinde öne çıkan en iyi eğitim kurumlarını inceleyin."
+        subtitle="Türkiye genelinde öne çıkan eğitim kurumlarını inceleyin."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

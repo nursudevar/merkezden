@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   inputHHMMToDbTimeOrNull,
@@ -28,6 +28,7 @@ import {
   escapeProfileLikeValue,
   resolveInstitutionIdsByProfileSearch,
 } from "@/lib/profileSearch";
+import { fetchAllPostgrestPages } from "@/lib/postgrestQueryPages";
 import {
   fetchActiveFeaturedInstitutionOrderMap,
   sortWithFeaturedPriority,
@@ -120,17 +121,119 @@ type InstitutionRow = {
 
 const FALLBACK = "-";
 const IN_CHUNK = 120;
-/** PostgREST varsayılan max_rows (1000) */
+/** PostgREST varsayılan max_rows (1000) — yalnızca ID çözümleme sayfalaması */
 const QUERY_PAGE_SIZE = 1000;
 const MAX_QUERY_PAGES = 50;
 /** CategoryResultsList sayfa boyutu ile eşleşmeli */
 export const CATEGORY_RESULTS_PAGE_SIZE = 30;
-const INITIAL_CATEGORY_VISIBLE = CATEGORY_RESULTS_PAGE_SIZE;
-/** Kart + harita meta; about/sosyal alanlar hariç */
-const LIGHT_INSTITUTION_SELECT =
-  "id, slug, institution_name, subheading, address, district, city, official_phone, official_email, logo, source, high_school_type, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
+/** Aktif sayfanın önünde sırayla prefetch edilecek sayfa sayısı */
+const CATEGORY_PREFETCH_AHEAD = 2;
+/** Aynı sorgu için önbellekte tutulacak maksimum sayfa (3 × 30 = 90 kayıt) */
+const CATEGORY_MAX_CACHED_PAGES = 3;
 
 type SupabaseBrowser = ReturnType<typeof createSupabaseBrowserClient>;
+
+/**
+ * Filtreye bağımsız listing metadata (featured / kategori / defs).
+ * Filtrelenmiş ID'ler, sayfa sonuçları veya totalCount burada tutulmaz.
+ */
+const LISTING_METADATA_TTL_MS = 60_000;
+type ListingMetadataCacheSlot<T> = { value: T; expiresAt: number };
+const listingMetadataCache = new Map<string, ListingMetadataCacheSlot<unknown>>();
+const listingMetadataInflight = new Map<string, Promise<unknown>>();
+
+async function getListingMetadataCached<T>(
+  key: string,
+  loader: () => Promise<T>,
+  shouldCache: (value: T) => boolean = () => true,
+): Promise<T> {
+  const now = Date.now();
+  const hit = listingMetadataCache.get(key) as ListingMetadataCacheSlot<T> | undefined;
+  if (hit && hit.expiresAt > now) return hit.value;
+
+  const existing = listingMetadataInflight.get(key) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  let promise!: Promise<T>;
+  promise = (async (): Promise<T> => {
+    const value = await loader();
+    // Yalnızca bu inflight hâlâ geçerliyken ve başarılıysa yaz — stale overwrite yok.
+    if (shouldCache(value) && listingMetadataInflight.get(key) === promise) {
+      listingMetadataCache.set(key, {
+        value,
+        expiresAt: Date.now() + LISTING_METADATA_TTL_MS,
+      });
+    }
+    return value;
+  })().finally(() => {
+    if (listingMetadataInflight.get(key) === promise) {
+      listingMetadataInflight.delete(key);
+    }
+  });
+
+  listingMetadataInflight.set(key, promise);
+  return promise;
+}
+
+type SchoolFeatureDefinitionMeta = {
+  id: number;
+  name: string;
+  slug: string | null;
+  input_type: string | null;
+};
+
+async function fetchCachedFeaturedInstitutionOrderMap(
+  supabase: SupabaseBrowser,
+): Promise<{ orderMap: FeaturedOrderMap; error: string | null }> {
+  const cached = await getListingMetadataCached(
+    "featured-institution-order:v1",
+    async () => {
+      const result = await fetchActiveFeaturedInstitutionOrderMap(supabase);
+      return {
+        orderMap: new Map(result.orderMap),
+        error: result.error,
+      };
+    },
+    (result) => result.error == null,
+  );
+  // Çağıranlar Map'i mutate etmesin diye kopya dön.
+  return { orderMap: new Map(cached.orderMap), error: cached.error };
+}
+
+async function fetchCachedSchoolFeatureDefinitionMeta(
+  supabase: SupabaseBrowser,
+): Promise<SchoolFeatureDefinitionMeta[]> {
+  return getListingMetadataCached("school-feature-definitions:v1", async () => {
+    const { data: defsAll, error: defAllErr } = await supabase
+      .from("institution_feature_definitions")
+      .select("id, name, slug, input_type")
+      .eq("is_active", true);
+    if (defAllErr) throw defAllErr;
+
+    const rows: SchoolFeatureDefinitionMeta[] = [];
+    for (const d of (defsAll ?? []) as Array<{
+      id: number;
+      name?: string | null;
+      slug?: string | null;
+      input_type?: string | null;
+    }>) {
+      if (!Number.isFinite(d.id)) continue;
+      rows.push({
+        id: d.id,
+        name: String(d.name ?? ""),
+        slug: d.slug ?? null,
+        input_type: d.input_type ?? null,
+      });
+    }
+    return rows;
+  });
+}
+
+/** Kart + harita meta; about/sosyal alanlar hariç — sayfa detayı için yeterli */
+const LIGHT_INSTITUTION_SELECT =
+  "id, slug, institution_name, subheading, address, district, city, official_phone, official_email, logo, source, high_school_type, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
+/** Sıralama için hafif satır */
+const SORT_STUB_SELECT = "id, institution_name";
 
 type InstitutionLocationFilter = {
   ilId: number | null;
@@ -171,23 +274,26 @@ async function resolveInstitutionCategoryForListing(
 ): Promise<{ id: number | null; name: string }> {
   const targetName = String(categoryName ?? "").trim();
   const slug = String(categorySlug ?? "").trim();
+  const cacheKey = `institution-category:v1:name=${targetName.toLocaleLowerCase("tr-TR")}|slug=${slug.toLocaleLowerCase("tr-TR")}`;
 
-  if (targetName) {
-    const categoryId = await resolveInstitutionCategoryIdByName(supabase, targetName);
-    if (categoryId != null) return { id: categoryId, name: targetName };
-  }
-
-  if (slug) {
-    const category = await fetchInstitutionCategoryBySlug(slug);
-    if (category) {
-      return {
-        id: category.id ?? null,
-        name: String(category.name ?? "").trim() || targetName || slug,
-      };
+  return getListingMetadataCached(cacheKey, async () => {
+    if (targetName) {
+      const categoryId = await resolveInstitutionCategoryIdByName(supabase, targetName);
+      if (categoryId != null) return { id: categoryId, name: targetName };
     }
-  }
 
-  return { id: null, name: targetName || slug };
+    if (slug) {
+      const category = await fetchInstitutionCategoryBySlug(slug);
+      if (category) {
+        return {
+          id: category.id ?? null,
+          name: String(category.name ?? "").trim() || targetName || slug,
+        };
+      }
+    }
+
+    return { id: null, name: targetName || slug };
+  });
 }
 
 function applyInstitutionSearchFilter<
@@ -226,54 +332,298 @@ function applyInstitutionSearchFilter<
   return query.or(orParts.join(","));
 }
 
-async function fetchAllCategoryInstitutionRows(
-  supabase: SupabaseBrowser,
-  fullSelect: string,
-  targetName: string,
-  categoryId: number | null,
-  location: InstitutionLocationFilter,
-  searchTerm: string,
-): Promise<InstitutionRow[]> {
-  const rows: InstitutionRow[] = [];
-  const relatedSearch = searchTerm
-    ? await resolveInstitutionIdsByProfileSearch(supabase, searchTerm)
-    : { institutionIds: [], institutionTypeIds: [] };
+type RelatedProfileSearch = {
+  institutionIds: number[];
+  institutionTypeIds: number[];
+};
 
-  for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
-    const from = page * QUERY_PAGE_SIZE;
-    const to = from + QUERY_PAGE_SIZE - 1;
+type InstitutionTypeFilter = {
+  institutionTypeIds?: number[] | null;
+  highSchoolTypes?: string[] | null;
+};
 
-    let query = supabase
-      .from("institutions")
-      .select(fullSelect)
-      .eq("is_approved", true);
+function applyInstitutionTypeFilters<
+  T extends {
+    eq: (column: string, value: number) => T;
+    in: (column: string, values: string[] | number[]) => T;
+    or: (filters: string) => T;
+  },
+>(query: T, typeFilter: InstitutionTypeFilter | undefined): T {
+  const typeIds = (typeFilter?.institutionTypeIds ?? []).filter(
+    (id) => Number.isFinite(id) && id > 0,
+  );
+  const hsTypes = (typeFilter?.highSchoolTypes ?? [])
+    .map((slug) => String(slug ?? "").trim())
+    .filter(Boolean);
+  if (typeIds.length === 0) return query;
 
-    query = applyInstitutionCategoryScope(query, categoryId, targetName);
-    query = applyInstitutionLocationFilter(query, location);
+  const hasLise = typeIds.includes(LISE_INSTITUTION_TYPE_ID);
+  const nonLiseIds = typeIds.filter((id) => id !== LISE_INSTITUTION_TYPE_ID);
 
-    if (searchTerm) {
-      query = applyInstitutionSearchFilter(
-        query,
-        searchTerm,
-        relatedSearch.institutionIds,
-        relatedSearch.institutionTypeIds,
+  if (hasLise && hsTypes.length > 0) {
+    if (nonLiseIds.length > 0) {
+      return query.or(
+        `institution_type_id.in.(${nonLiseIds.join(",")}),and(institution_type_id.eq.${LISE_INSTITUTION_TYPE_ID},high_school_type.in.(${hsTypes.join(",")}))`,
       );
     }
+    return query
+      .eq("institution_type_id", LISE_INSTITUTION_TYPE_ID)
+      .in("high_school_type", hsTypes);
+  }
+  return query.in("institution_type_id", typeIds);
+}
 
-    const { data, error } = await query.order("id", { ascending: true }).range(from, to);
+// PostgREST builder zinciri; dinamik select string'leri yüzünden any kullanılıyor.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ListingQueryBuilder = any;
+
+function applyListingScopes(
+  query: ListingQueryBuilder,
+  categoryId: number | null,
+  targetName: string,
+  location: InstitutionLocationFilter,
+  searchTerm: string,
+  relatedSearch: RelatedProfileSearch,
+  typeFilter?: InstitutionTypeFilter,
+): ListingQueryBuilder {
+  let next = query;
+  next = applyInstitutionCategoryScope(next, categoryId, targetName);
+  next = applyInstitutionLocationFilter(next, location);
+  if (searchTerm) {
+    next = applyInstitutionSearchFilter(
+      next,
+      searchTerm,
+      relatedSearch.institutionIds,
+      relatedSearch.institutionTypeIds,
+    );
+  }
+  next = applyInstitutionTypeFilters(next, typeFilter);
+  return next;
+}
+
+/**
+ * Filtreler uygulandıktan sonra toplam eşleşen kurum sayısı (kayıtları yüklemeden).
+ */
+async function countCategoryInstitutions(
+  supabase: SupabaseBrowser,
+  categoryId: number | null,
+  targetName: string,
+  location: InstitutionLocationFilter,
+  searchTerm: string,
+  relatedSearch: RelatedProfileSearch,
+  typeFilter?: InstitutionTypeFilter,
+): Promise<number> {
+  let query = supabase
+    .from("institutions")
+    .select(institutionIdQuerySelect(categoryId), { count: "exact", head: true })
+    .eq("is_approved", true);
+
+  query = applyListingScopes(
+    query,
+    categoryId,
+    targetName,
+    location,
+    searchTerm,
+    relatedSearch,
+    typeFilter,
+  );
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return Number.isFinite(count) ? Number(count) : 0;
+}
+
+/**
+ * DB sıralı sayfa: institution_name ASC. Featured kayıtlar listenin başına
+ * alınır (mevcut sortWithFeaturedPriority semantiği).
+ */
+async function fetchCategoryInstitutionPageFromDb(
+  supabase: SupabaseBrowser,
+  categoryId: number | null,
+  targetName: string,
+  location: InstitutionLocationFilter,
+  searchTerm: string,
+  relatedSearch: RelatedProfileSearch,
+  featuredOrderMap: FeaturedOrderMap,
+  page: number,
+  pageSize: number,
+  typeFilter?: InstitutionTypeFilter,
+  knownTotalCount?: number | null,
+): Promise<{ rows: InstitutionRow[]; totalCount: number }> {
+  const totalCount =
+    knownTotalCount != null && Number.isFinite(knownTotalCount) && knownTotalCount >= 0
+      ? Number(knownTotalCount)
+      : await countCategoryInstitutions(
+          supabase,
+          categoryId,
+          targetName,
+          location,
+          searchTerm,
+          relatedSearch,
+          typeFilter,
+        );
+  if (totalCount === 0) return { rows: [], totalCount: 0 };
+
+  const safePage = Math.max(1, page);
+  const pageStart = (safePage - 1) * pageSize;
+  if (pageStart >= totalCount) return { rows: [], totalCount };
+
+  const featuredIds = [...featuredOrderMap.entries()]
+    .sort((a, b) => a[1] - b[1])
+    .map(([id]) => id)
+    .filter((id) => Number.isFinite(id) && id > 0);
+
+  let featuredRows: InstitutionRow[] = [];
+  if (featuredIds.length > 0) {
+    let featuredQuery = supabase
+      .from("institutions")
+      .select(LIGHT_INSTITUTION_SELECT)
+      .eq("is_approved", true)
+      .in("id", featuredIds.slice(0, IN_CHUNK));
+
+    featuredQuery = applyListingScopes(
+      featuredQuery,
+      categoryId,
+      targetName,
+      location,
+      searchTerm,
+      relatedSearch,
+      typeFilter,
+    );
+
+    const { data, error } = await featuredQuery;
     if (error) throw error;
-
-    const batch = ((data as unknown as InstitutionRow[] | null) ?? []);
-    rows.push(...batch);
-    if (batch.length < QUERY_PAGE_SIZE) break;
+    const matched = ((data as unknown as InstitutionRow[] | null) ?? []).filter((row) =>
+      featuredOrderMap.has(Number(row.id)),
+    );
+    matched.sort(
+      (a, b) =>
+        (featuredOrderMap.get(Number(a.id)) ?? 0) - (featuredOrderMap.get(Number(b.id)) ?? 0),
+    );
+    featuredRows = matched;
   }
 
-  rows.sort((a, b) =>
+  const featuredCount = featuredRows.length;
+  const pageEnd = pageStart + pageSize;
+  const rows: InstitutionRow[] = [];
+
+  if (pageStart < featuredCount) {
+    rows.push(...featuredRows.slice(pageStart, Math.min(pageEnd, featuredCount)));
+  }
+
+  const nonFeaturedNeeded = pageSize - rows.length;
+  if (nonFeaturedNeeded > 0) {
+    const nonFeaturedOffset = Math.max(0, pageStart - featuredCount);
+    let nonFeaturedQuery = supabase
+      .from("institutions")
+      .select(LIGHT_INSTITUTION_SELECT)
+      .eq("is_approved", true);
+
+    nonFeaturedQuery = applyListingScopes(
+      nonFeaturedQuery,
+      categoryId,
+      targetName,
+      location,
+      searchTerm,
+      relatedSearch,
+      typeFilter,
+    );
+
+    if (featuredRows.length > 0) {
+      const exclude = featuredRows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
+      if (exclude.length > 0) {
+        nonFeaturedQuery = nonFeaturedQuery.not(
+          "id",
+          "in",
+          `(${exclude.join(",")})`,
+        );
+      }
+    }
+
+    const { data, error } = await nonFeaturedQuery
+      .order("institution_name", { ascending: true })
+      .range(nonFeaturedOffset, nonFeaturedOffset + nonFeaturedNeeded - 1);
+    if (error) throw error;
+    rows.push(...((data as unknown as InstitutionRow[] | null) ?? []));
+  }
+
+  return { rows, totalCount };
+}
+
+async function fetchSortStubsByIds(
+  supabase: SupabaseBrowser,
+  ids: number[],
+): Promise<Array<{ id: number; institution_name: string | null }>> {
+  if (ids.length === 0) return [];
+  const out: Array<{ id: number; institution_name: string | null }> = [];
+  for (let i = 0; i < ids.length; i += IN_CHUNK) {
+    const chunk = ids.slice(i, i + IN_CHUNK);
+    const { data, error } = await supabase
+      .from("institutions")
+      .select(SORT_STUB_SELECT)
+      .in("id", chunk)
+      .eq("is_approved", true);
+    if (error) throw error;
+    out.push(
+      ...((data as unknown as Array<{ id: number; institution_name: string | null }> | null) ?? []),
+    );
+  }
+  return out;
+}
+
+/**
+ * ID kümesini mevcut liste semantiğiyle sıralar: isim ASC (tr) + featured öncelik.
+ * Stub fetch hata verirse throw eder; kısmi sonuç dönülmez.
+ */
+async function orderInstitutionIdsByNameAndFeatured(
+  supabase: SupabaseBrowser,
+  ids: number[],
+  featuredOrderMap: FeaturedOrderMap,
+): Promise<{ orderedIds: number[]; totalCount: number }> {
+  const uniqueIds = [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))];
+  const totalCount = uniqueIds.length;
+  if (totalCount === 0) return { orderedIds: [], totalCount: 0 };
+
+  const stubs = await fetchSortStubsByIds(supabase, uniqueIds);
+  stubs.sort((a, b) =>
     String(a.institution_name ?? "").localeCompare(String(b.institution_name ?? ""), "tr", {
       sensitivity: "base",
     }),
   );
-  return rows;
+
+  const orderedIds = sortWithFeaturedPriority(
+    stubs.map((s) => s.id),
+    (id) => id,
+    featuredOrderMap,
+  );
+  return { orderedIds, totalCount };
+}
+
+/**
+ * Önceden sıralanmış ID listesinden yalnızca istenen sayfayı hydrate eder.
+ * Stub / sıralama tekrarlanmaz.
+ */
+async function fetchInstitutionPageForIdSet(
+  supabase: SupabaseBrowser,
+  orderedIds: number[],
+  page: number,
+  pageSize: number,
+): Promise<{ rows: InstitutionRow[]; totalCount: number }> {
+  const totalCount = orderedIds.length;
+  if (totalCount === 0) return { rows: [], totalCount: 0 };
+
+  const safePage = Math.max(1, page);
+  const start = (safePage - 1) * pageSize;
+  const pageIds = orderedIds.slice(start, start + pageSize);
+  if (pageIds.length === 0) return { rows: [], totalCount };
+
+  const rows = await fetchRowsByIdsChunked(supabase, pageIds, LIGHT_INSTITUTION_SELECT);
+  const byId = new Map(rows.map((row) => [Number(row.id), row]));
+  const orderedRows = pageIds
+    .map((id) => byId.get(id))
+    .filter((row): row is InstitutionRow => Boolean(row));
+
+  return { rows: orderedRows, totalCount };
 }
 
 async function fetchAllCategoryInstitutionIds(
@@ -289,13 +639,6 @@ async function fetchAllCategoryInstitutionIds(
   const relatedSearch = searchTerm
     ? await resolveInstitutionIdsByProfileSearch(supabase, searchTerm)
     : { institutionIds: [], institutionTypeIds: [] };
-
-  const typeIds = (institutionTypeIds ?? []).filter(
-    (id) => Number.isFinite(id) && id > 0,
-  );
-  const hsTypes = (highSchoolTypes ?? [])
-    .map((slug) => String(slug ?? "").trim())
-    .filter(Boolean);
 
   for (let page = 0; page < MAX_QUERY_PAGES; page += 1) {
     const from = page * QUERY_PAGE_SIZE;
@@ -318,25 +661,10 @@ async function fetchAllCategoryInstitutionIds(
       );
     }
 
-    if (typeIds.length > 0) {
-      const hasLise = typeIds.includes(LISE_INSTITUTION_TYPE_ID);
-      const nonLiseIds = typeIds.filter((id) => id !== LISE_INSTITUTION_TYPE_ID);
-
-      if (hasLise && hsTypes.length > 0) {
-        if (nonLiseIds.length > 0) {
-          // Grup içi OR + Lise alt türü: (diğer türler) OR (Lise AND high_school_type IN ...)
-          query = query.or(
-            `institution_type_id.in.(${nonLiseIds.join(",")}),and(institution_type_id.eq.${LISE_INSTITUTION_TYPE_ID},high_school_type.in.(${hsTypes.join(",")}))`,
-          );
-        } else {
-          query = query
-            .eq("institution_type_id", LISE_INSTITUTION_TYPE_ID)
-            .in("high_school_type", hsTypes);
-        }
-      } else {
-        query = query.in("institution_type_id", typeIds);
-      }
-    }
+    query = applyInstitutionTypeFilters(query, {
+      institutionTypeIds,
+      highSchoolTypes,
+    });
 
     const { data, error } = await query.order("id", { ascending: true }).range(from, to);
     if (error) throw error;
@@ -475,19 +803,19 @@ async function resolveInstitutionIdsByWorkingHoursFilter(
   const endDb = params.end ? inputHHMMToDbTimeOrNull(params.end) : null;
   if (!startDb && !endDb) return new Set();
 
-  let query = supabase.from("institutions").select("id");
-  if (startDb) {
-    query = query.not("working_hours_start", "is", null).lte("working_hours_start", startDb);
-  }
-  if (endDb) {
-    query = query.not("working_hours_end", "is", null).gte("working_hours_end", endDb);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
+  const rows = await fetchAllPostgrestPages<{ id: number }>((from, to) => {
+    let query = supabase.from("institutions").select("id");
+    if (startDb) {
+      query = query.not("working_hours_start", "is", null).lte("working_hours_start", startDb);
+    }
+    if (endDb) {
+      query = query.not("working_hours_end", "is", null).gte("working_hours_end", endDb);
+    }
+    return query.order("id", { ascending: true }).range(from, to);
+  });
 
   const out = new Set<number>();
-  for (const row of (data ?? []) as Array<{ id: number }>) {
+  for (const row of rows) {
     const id = Number(row.id);
     if (Number.isFinite(id) && id > 0) out.add(id);
   }
@@ -499,7 +827,71 @@ async function resolveInstitutionIdsForSingleSelectChoice(
   definitionId: number,
   choiceId: number,
 ): Promise<Set<number>> {
-  return resolveInstitutionIdsForMultiSelectChoice(supabase, definitionId, choiceId);
+  return resolveInstitutionIdsForMultiSelectChoices(supabase, definitionId, [choiceId]);
+}
+
+/**
+ * Junction-only choice eşleşmesi (selected_choice_id kullanılmaz).
+ * Önce choice_id ile dar junction sorgusu, sonra yalnızca eşleşen entry'ler
+ * definition filtresiyle kurum id'sine çözülür — tüm definition entry taraması yok.
+ * Aynı definition altındaki birden fazla choice OR birleşimi tek turda yapılır.
+ */
+async function resolveInstitutionIdsForMultiSelectChoices(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  definitionId: number,
+  choiceIds: number[],
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  if (!Number.isFinite(definitionId) || definitionId <= 0) return out;
+
+  const uniqueChoiceIds = [
+    ...new Set(
+      choiceIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  if (uniqueChoiceIds.length === 0) return out;
+  const choiceIdSet = new Set(uniqueChoiceIds);
+
+  const linkEntryIds = new Set<number>();
+  for (let i = 0; i < uniqueChoiceIds.length; i += IN_CHUNK) {
+    const choiceChunk = uniqueChoiceIds.slice(i, i + IN_CHUNK);
+    const links = await fetchAllPostgrestPages<{
+      institution_feature_entry_id: number;
+      choice_id: number;
+    }>((from, to) =>
+      supabase
+        .from("institution_feature_entry_choices")
+        .select("institution_feature_entry_id, choice_id")
+        .in("choice_id", choiceChunk)
+        .order("institution_feature_entry_id", { ascending: true })
+        .order("choice_id", { ascending: true })
+        .range(from, to),
+    );
+    for (const row of links) {
+      const choiceId = Number(row.choice_id);
+      const entryId = Number(row.institution_feature_entry_id);
+      if (!choiceIdSet.has(choiceId)) continue;
+      if (Number.isFinite(entryId) && entryId > 0) linkEntryIds.add(entryId);
+    }
+  }
+  if (linkEntryIds.size === 0) return out;
+
+  const entryIdList = Array.from(linkEntryIds);
+  for (let i = 0; i < entryIdList.length; i += IN_CHUNK) {
+    const { data: entries, error: entryErr } = await supabase
+      .from("institution_feature_entries")
+      .select("id, institution_id")
+      .eq("feature_definition_id", definitionId)
+      .in("id", entryIdList.slice(i, i + IN_CHUNK));
+    if (entryErr) throw entryErr;
+    for (const row of (entries ?? []) as Array<{ id: number; institution_id: number }>) {
+      const iid = Number(row.institution_id);
+      if (Number.isFinite(iid) && iid > 0) out.add(iid);
+    }
+  }
+  return out;
 }
 
 async function resolveInstitutionIdsForMultiSelectChoice(
@@ -507,30 +899,7 @@ async function resolveInstitutionIdsForMultiSelectChoice(
   definitionId: number,
   choiceId: number,
 ): Promise<Set<number>> {
-  const out = new Set<number>();
-  const { data: entries, error: e1 } = await supabase
-    .from("institution_feature_entries")
-    .select("id, institution_id")
-    .eq("feature_definition_id", definitionId);
-  if (e1) throw e1;
-  const rows = (entries ?? []) as Array<{ id: number; institution_id: number }>;
-  const entryIds = rows.map((r) => r.id).filter((id) => Number.isFinite(id));
-  const entryToInst = new Map<number, number>();
-  rows.forEach((r) => entryToInst.set(Number(r.id), Number(r.institution_id)));
-
-  if (entryIds.length === 0) return out;
-
-  const { data: links, error: e2 } = await supabase
-    .from("institution_feature_entry_choices")
-    .select("institution_feature_entry_id, choice_id")
-    .in("institution_feature_entry_id", entryIds)
-    .eq("choice_id", choiceId);
-  if (e2) throw e2;
-  for (const row of (links ?? []) as Array<{ institution_feature_entry_id: number }>) {
-    const iid = entryToInst.get(Number(row.institution_feature_entry_id));
-    if (Number.isFinite(iid)) out.add(iid!);
-  }
-  return out;
+  return resolveInstitutionIdsForMultiSelectChoices(supabase, definitionId, [choiceId]);
 }
 
 async function resolveInstitutionIdsForBooleanDefinition(
@@ -538,13 +907,16 @@ async function resolveInstitutionIdsForBooleanDefinition(
   definitionId: number,
 ): Promise<Set<number>> {
   const out = new Set<number>();
-  const { data, error } = await supabase
-    .from("institution_feature_entries")
-    .select("institution_id")
-    .eq("feature_definition_id", definitionId)
-    .eq("boolean_answer", true);
-  if (error) throw error;
-  for (const row of (data ?? []) as Array<{ institution_id: number }>) {
+  const rows = await fetchAllPostgrestPages<{ id: number; institution_id: number }>((from, to) =>
+    supabase
+      .from("institution_feature_entries")
+      .select("id, institution_id")
+      .eq("feature_definition_id", definitionId)
+      .eq("boolean_answer", true)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  for (const row of rows) {
     const iid = Number(row.institution_id);
     if (Number.isFinite(iid)) out.add(iid);
   }
@@ -595,31 +967,6 @@ function parseChoiceKey(key: string): { choiceId: number | null; definitionId: n
   };
 }
 
-async function resolveInstitutionIdsForChoiceKey(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  inputTypeByDefId: Map<number, string>,
-  key: string,
-): Promise<Set<number>> {
-  if (key.startsWith("def:")) {
-    const defId = Number(key.slice(4));
-    if (!Number.isFinite(defId)) return new Set();
-    return resolveInstitutionIdsForBooleanDefinition(supabase, defId);
-  }
-  if (key.startsWith("choice:")) {
-    const { choiceId, definitionId: embeddedDefId } = parseChoiceKey(key);
-    if (choiceId == null) return new Set();
-
-    let defId = embeddedDefId;
-    if (defId == null) {
-      defId = await resolveDefinitionIdForChoiceId(supabase, choiceId);
-    }
-    if (defId == null) return new Set();
-
-    return resolveInstitutionIdsForMultiSelectChoice(supabase, defId, choiceId);
-  }
-  return new Set();
-}
-
 async function resolveInstitutionIdsNumberRangeForDefinition(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   definitionId: number,
@@ -627,16 +974,20 @@ async function resolveInstitutionIdsNumberRangeForDefinition(
   maxBound: number | null,
 ): Promise<Set<number>> {
   const out = new Set<number>();
-  const { data, error } = await supabase
-    .from("institution_feature_entries")
-    .select("institution_id, number_answer, text_answer")
-    .eq("feature_definition_id", definitionId);
-  if (error) throw error;
-  for (const row of (data ?? []) as Array<{
+  const rows = await fetchAllPostgrestPages<{
+    id: number;
     institution_id: number;
     number_answer: number | null;
     text_answer: string | null;
-  }>) {
+  }>((from, to) =>
+    supabase
+      .from("institution_feature_entries")
+      .select("id, institution_id, number_answer, text_answer")
+      .eq("feature_definition_id", definitionId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  for (const row of rows) {
     const iid = Number(row.institution_id);
     if (!Number.isFinite(iid)) continue;
     let n: number | null = null;
@@ -704,10 +1055,16 @@ async function fetchCategoryInstructorResults(
   } = options;
 
   // instructors.category_id → instructor_categories (kurum kategori id'si değil)
-  const instructorCategoryId = await resolveInstructorCategoryIdBySlugOrName(supabase, {
-    slug: categorySlug,
-    name: categoryName,
-  });
+  const slugKey = String(categorySlug ?? "").trim().toLocaleLowerCase("tr-TR");
+  const nameKey = String(categoryName ?? "").trim().toLocaleLowerCase("tr-TR");
+  const instructorCategoryId = await getListingMetadataCached(
+    `instructor-category:v1:slug=${slugKey}|name=${nameKey}`,
+    () =>
+      resolveInstructorCategoryIdBySlugOrName(supabase, {
+        slug: categorySlug,
+        name: categoryName,
+      }),
+  );
 
   if (instructorCategoryId == null || !Number.isFinite(instructorCategoryId)) {
     return [];
@@ -804,40 +1161,563 @@ function sortInstitutionRowsByName(rows: InstitutionRow[]): InstitutionRow[] {
   );
 }
 
-function computePriorityInstitutionIdsForFirstPaint(
-  institutionStubs: CategoryResultItem[],
-  instructorResults: CategoryResultItem[],
-  featuredOrderMap: FeaturedOrderMap,
-  visibleCount: number = INITIAL_CATEGORY_VISIBLE,
-): number[] {
-  const ordered = finalizeCategoryResults(
+type CategoryListingPageResult = {
+  results: CategoryResultItem[];
+  totalCount: number;
+  categoryLabel: string;
+  error: string | null;
+};
+
+type CategoryListingContext =
+  | {
+      kind: "not_found";
+      listingName: string;
+    }
+  | {
+      kind: "db_range";
+      supabase: SupabaseBrowser;
+      categoryId: number | null;
+      listingName: string;
+      listingLocation: InstitutionLocationFilter;
+      searchTerm: string;
+      relatedSearch: RelatedProfileSearch;
+      featuredOrderMap: FeaturedOrderMap;
+    }
+  | {
+      kind: "merged_order";
+      supabase: SupabaseBrowser;
+      listingName: string;
+      mergedOrder: CategoryResultItem[];
+      totalCount: number;
+    }
+  | {
+      kind: "id_set";
+      supabase: SupabaseBrowser;
+      listingName: string;
+      /** Filtre bağlamında bir kez üretilmiş isim+featured sıralı kurum id'leri */
+      orderedIds: number[];
+      totalCount: number;
+    }
+  | {
+      kind: "instructors_only";
+      listingName: string;
+      instructorOnly: CategoryResultItem[];
+      totalCount: number;
+    };
+
+type CategoryListingCache = {
+  queryKey: string;
+  generation: number;
+  context: CategoryListingContext | null;
+  totalCount: number | null;
+  categoryLabel: string;
+  pages: Map<number, CategoryResultItem[]>;
+  inflight: Map<number, Promise<CategoryListingPageResult>>;
+};
+
+function createCategoryListingCache(queryKey: string, generation: number): CategoryListingCache {
+  return {
+    queryKey,
+    generation,
+    context: null,
+    totalCount: null,
+    categoryLabel: "",
+    pages: new Map(),
+    inflight: new Map(),
+  };
+}
+
+function evictionScore(pageNumber: number, activePage: number): number {
+  if (pageNumber === activePage) return Number.NEGATIVE_INFINITY;
+  if (pageNumber === activePage + 1 || pageNumber === activePage + 2) {
+    return Math.abs(pageNumber - activePage);
+  }
+  if (pageNumber === activePage - 1) return 50 + Math.abs(pageNumber - activePage);
+  return 100 + Math.abs(pageNumber - activePage);
+}
+
+function trimCategoryListingCache(cache: CategoryListingCache, activePage: number): void {
+  while (cache.pages.size > CATEGORY_MAX_CACHED_PAGES) {
+    let victim: number | null = null;
+    let best = Number.NEGATIVE_INFINITY;
+    for (const pageNumber of cache.pages.keys()) {
+      const score = evictionScore(pageNumber, activePage);
+      if (score > best) {
+        best = score;
+        victim = pageNumber;
+      }
+    }
+    if (victim == null || victim === activePage) break;
+    cache.pages.delete(victim);
+  }
+}
+
+async function hydrateMergedOrderPage(
+  supabase: SupabaseBrowser,
+  mergedOrder: CategoryResultItem[],
+  page: number,
+  pageSize: number,
+): Promise<CategoryResultItem[]> {
+  const start = (Math.max(1, page) - 1) * pageSize;
+  const pageOrder = mergedOrder.slice(start, start + pageSize);
+  const pageInstitutionIds = pageOrder
+    .filter((item) => item.resultType !== "instructor")
+    .map((item) => Number(item.institutionId ?? item.id))
+    .filter((id) => Number.isFinite(id));
+  const [pageRows, kurumTuru] = await Promise.all([
+    fetchRowsByIdsChunked(supabase, pageInstitutionIds, LIGHT_INSTITUTION_SELECT),
+    loadKurumTuruLabelByInstitutionId(supabase, pageInstitutionIds),
+  ]);
+  const detailById = new Map(
+    applyKurumTuruLabels(
+      pageRows.map((row) => mapRow(supabase, row)),
+      kurumTuru,
+    ).map((item) => [Number(item.institutionId ?? item.id), item]),
+  );
+  return pageOrder.map((item) => {
+    if (item.resultType === "instructor") return item;
+    return detailById.get(Number(item.institutionId ?? item.id)) ?? item;
+  });
+}
+
+async function buildCategoryListingContext(input: {
+  categoryName: string;
+  categorySlug: string;
+  debouncedSearch: string;
+  ilId: string;
+  ilceId: string;
+  mahalleId: string;
+  schoolFilters: SchoolCategoryFilterPayload | undefined;
+  isCurrent: () => boolean;
+}): Promise<CategoryListingContext> {
+  const supabase = createSupabaseBrowserClient();
+  const featuredOrderPromise = fetchCachedFeaturedInstitutionOrderMap(supabase);
+  const useSchoolPipeline = hasAnySchoolPayloadFilters(input.schoolFilters ?? undefined);
+  const searchTerm = input.debouncedSearch.trim();
+  const targetName = String(input.categoryName ?? "").trim();
+  const slug = input.categorySlug;
+
+  const resolvedCategory = await resolveInstitutionCategoryForListing(supabase, targetName, slug);
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const listingName = resolvedCategory.name;
+  const categoryId = resolvedCategory.id;
+
+  if (categoryId == null && slug && !targetName) {
+    return { kind: "not_found", listingName };
+  }
+
+  if (categoryId == null) {
+    console.warn("[category][institutions] kategori bulunamadı:", {
+      categoryName: listingName,
+      categorySlug: slug || null,
+    });
+  }
+
+  const listingLocation: InstitutionLocationFilter = {
+    ilId: await resolveCategoryListingIlId(input.ilId),
+    ilceId: parseLocationId(input.ilceId),
+    mahalleId: parseLocationId(input.ilceId) != null ? parseLocationId(input.mahalleId) : null,
+  };
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const relatedSearch = searchTerm
+    ? await resolveInstitutionIdsByProfileSearch(supabase, searchTerm)
+    : { institutionIds: [], institutionTypeIds: [] };
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const instructorPromise = fetchCategoryInstructorResults(supabase, {
+    institutionCategoryId: categoryId,
+    categoryName: listingName,
+    categorySlug: slug,
+    location: listingLocation,
+    searchTerm,
+    schoolFilters: input.schoolFilters,
+  });
+
+  if (!useSchoolPipeline) {
+    const [instructorResults, featuredOrderResult] = await Promise.all([
+      instructorPromise,
+      featuredOrderPromise,
+    ]);
+    if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    const featuredOrderMap = featuredOrderResult.orderMap;
+
+    if (instructorResults.length === 0) {
+      return {
+        kind: "db_range",
+        supabase,
+        categoryId,
+        listingName,
+        listingLocation,
+        searchTerm,
+        relatedSearch,
+        featuredOrderMap,
+      };
+    }
+
+    const institutionIds = await fetchAllCategoryInstitutionIds(
+      supabase,
+      categoryId,
+      listingName,
+      listingLocation,
+      searchTerm,
+    );
+    if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    const stubs = await fetchSortStubsByIds(supabase, institutionIds);
+    if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    stubs.sort((a, b) =>
+      String(a.institution_name ?? "").localeCompare(String(b.institution_name ?? ""), "tr", {
+        sensitivity: "base",
+      }),
+    );
+    const institutionStubs: CategoryResultItem[] = stubs.map((stub) => ({
+      id: String(stub.id),
+      resultType: "institution" as const,
+      name: String(stub.institution_name ?? "").trim() || FALLBACK,
+      description: "",
+      location: FALLBACK,
+      price: FALLBACK,
+      ageRange: FALLBACK,
+      badges: [],
+      institutionId: stub.id,
+    }));
+    const mergedOrder = finalizeCategoryResults(
+      institutionStubs,
+      instructorResults,
+      featuredOrderMap,
+    );
+    return {
+      kind: "merged_order",
+      supabase,
+      listingName,
+      mergedOrder,
+      totalCount: mergedOrder.length,
+    };
+  }
+
+  const payload = input.schoolFilters!;
+  const baseIds = await fetchAllCategoryInstitutionIds(
+    supabase,
+    categoryId,
+    listingName,
+    listingLocation,
+    searchTerm,
+    payload.institutionTypeIds,
+    payload.highSchoolTypes,
+  );
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  let current = new Set<number>(baseIds);
+
+  if (current.size === 0) {
+    const instructorOnly = await instructorPromise;
+    if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    return {
+      kind: "instructors_only",
+      listingName,
+      instructorOnly,
+      totalCount: instructorOnly.length,
+    };
+  }
+
+  const defsAll = await fetchCachedSchoolFeatureDefinitionMeta(supabase);
+  const inputTypeByDefId = new Map<number, string>();
+  const defMetaById = new Map<number, { name: string; slug: string | null }>();
+  for (const d of defsAll) {
+    inputTypeByDefId.set(d.id, String(d.input_type ?? ""));
+    defMetaById.set(d.id, { name: d.name, slug: d.slug });
+  }
+
+  for (const [defIdStr, choiceIdStr] of Object.entries(payload.commonSingle)) {
+    const defId = Number(defIdStr);
+    const choiceId = Number(String(choiceIdStr ?? "").trim());
+    if (!Number.isFinite(defId) || !Number.isFinite(choiceId)) continue;
+    const it = String(inputTypeByDefId.get(defId) ?? "").toLowerCase();
+    let set: Set<number>;
+    if (it === "multi_select") {
+      set = await resolveInstitutionIdsForMultiSelectChoice(supabase, defId, choiceId);
+    } else {
+      set = await resolveInstitutionIdsForSingleSelectChoice(supabase, defId, choiceId);
+    }
+    current = intersectSets(current, set);
+    if (current.size === 0) break;
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const defMetaList = Array.from(defMetaById.entries()).map(([id, meta]) => ({
+    id,
+    name: meta.name,
+    slug: meta.slug,
+    input_type: inputTypeByDefId.get(id) ?? null,
+  }));
+
+  const studentAgeFilter = resolveStudentAgeFilterFromPayload(payload, defMetaList);
+  if (studentAgeFilter) {
+    const matchedIds = await resolveInstitutionIdsByStudentAgeFilter(supabase, {
+      userFilter: studentAgeFilter,
+    });
+    current = intersectSets(current, new Set(matchedIds));
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const workingHoursStart = String(payload.workingHoursStart ?? "").trim();
+  const workingHoursEnd = String(payload.workingHoursEnd ?? "").trim();
+  if (workingHoursStart || workingHoursEnd) {
+    const matchedIds = await resolveInstitutionIdsByWorkingHoursFilter(supabase, {
+      start: workingHoursStart,
+      end: workingHoursEnd,
+    });
+    current = intersectSets(current, matchedIds);
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const priceMinRaw = String(payload.priceMin ?? "").trim();
+  const priceMaxRaw = String(payload.priceMax ?? "").trim();
+  if (priceMinRaw || priceMaxRaw) {
+    const matchedIds = await resolveInstitutionIdsByPriceRange(supabase, {
+      min: parsePriceInputToIntOrNull(priceMinRaw),
+      max: parsePriceInputToIntOrNull(priceMaxRaw),
+    });
+    current = intersectSets(current, new Set(matchedIds));
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  for (const [defIdStr, choiceIds] of Object.entries(payload.commonMulti)) {
+    const defId = Number(defIdStr);
+    if (!Number.isFinite(defId) || !Array.isArray(choiceIds) || choiceIds.length === 0) continue;
+    const meta = defMetaById.get(defId);
+    if (
+      meta &&
+      isLegacyStudentAgeMultiSelectFeature({
+        slug: meta.slug,
+        name: meta.name,
+        input_type: inputTypeByDefId.get(defId) ?? "multi_select",
+      })
+    ) {
+      continue;
+    }
+    if (isStudentAgeFilterDefinitionId(defId, defMetaList)) continue;
+    const parsedChoiceIds = choiceIds
+      .map((cidStr) => Number(String(cidStr).trim()))
+      .filter((cid) => Number.isFinite(cid));
+    if (parsedChoiceIds.length === 0) continue;
+    // Aynı definition altındaki choice'lar OR — tek batch sorgu
+    const union = await resolveInstitutionIdsForMultiSelectChoices(
+      supabase,
+      defId,
+      parsedChoiceIds,
+    );
+    current = intersectSets(current, union);
+    if (current.size === 0) break;
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
+    const defId = Number(defIdStr);
+    if (!Number.isFinite(defId)) continue;
+    if (isStudentAgeFilterDefinitionId(defId, defMetaList)) continue;
+    const minS = String(range?.min ?? "").trim();
+    const maxS = String(range?.max ?? "").trim();
+    if (!minS && !maxS) continue;
+
+    const minBound = minS ? parseOptionalNumber(minS) : null;
+    const maxBound = maxS ? parseOptionalNumber(maxS) : null;
+    const set = await resolveInstitutionIdsNumberRangeForDefinition(supabase, defId, minBound, maxBound);
+    current = intersectSets(current, set);
+    if (current.size === 0) break;
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  for (const [groupIdStr, keys] of Object.entries(payload.groupSelections)) {
+    const groupId = Number(groupIdStr);
+    if (!Number.isFinite(groupId) || !Array.isArray(keys) || keys.length === 0) continue;
+    const union = new Set<number>();
+    const choiceIdsByDef = new Map<number, number[]>();
+    const booleanDefIds: number[] = [];
+
+    for (const key of keys) {
+      const raw = String(key ?? "").trim();
+      if (!raw) continue;
+      if (raw.startsWith("def:")) {
+        const defId = Number(raw.slice(4));
+        if (Number.isFinite(defId)) booleanDefIds.push(defId);
+        continue;
+      }
+      if (!raw.startsWith("choice:")) continue;
+      const { choiceId, definitionId: embeddedDefId } = parseChoiceKey(raw);
+      if (choiceId == null) continue;
+      let defId = embeddedDefId;
+      if (defId == null) {
+        defId = await resolveDefinitionIdForChoiceId(supabase, choiceId);
+      }
+      if (defId == null) continue;
+      const list = choiceIdsByDef.get(defId) ?? [];
+      list.push(choiceId);
+      choiceIdsByDef.set(defId, list);
+    }
+
+    for (const defId of booleanDefIds) {
+      const s = await resolveInstitutionIdsForBooleanDefinition(supabase, defId);
+      s.forEach((id) => union.add(id));
+    }
+    for (const [defId, cids] of choiceIdsByDef) {
+      const s = await resolveInstitutionIdsForMultiSelectChoices(supabase, defId, cids);
+      s.forEach((id) => union.add(id));
+    }
+    current = intersectSets(current, union);
+    if (current.size === 0) break;
+  }
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const finalIds = Array.from(current);
+  const [featuredOrderResult, instructorResults] = await Promise.all([
+    featuredOrderPromise,
+    instructorPromise,
+  ]);
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+  const featuredOrderMap = featuredOrderResult.orderMap;
+
+  if (instructorResults.length === 0) {
+    const ordered = await orderInstitutionIdsByNameAndFeatured(
+      supabase,
+      finalIds,
+      featuredOrderMap,
+    );
+    if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    return {
+      kind: "id_set",
+      supabase,
+      listingName,
+      orderedIds: ordered.orderedIds,
+      totalCount: ordered.totalCount,
+    };
+  }
+
+  const stubs = await fetchSortStubsByIds(supabase, finalIds);
+  if (!input.isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+  stubs.sort((a, b) =>
+    String(a.institution_name ?? "").localeCompare(String(b.institution_name ?? ""), "tr", {
+      sensitivity: "base",
+    }),
+  );
+  const institutionStubs: CategoryResultItem[] = stubs.map((stub) => ({
+    id: String(stub.id),
+    resultType: "institution" as const,
+    name: String(stub.institution_name ?? "").trim() || FALLBACK,
+    description: "",
+    location: FALLBACK,
+    price: FALLBACK,
+    ageRange: FALLBACK,
+    badges: [],
+    institutionId: stub.id,
+  }));
+  const mergedOrder = finalizeCategoryResults(
     institutionStubs,
     instructorResults,
     featuredOrderMap,
   );
-  const priorityIds = new Set<number>();
-  for (const item of ordered.slice(0, visibleCount)) {
-    if (item.resultType === "instructor") continue;
-    const id = Number(item.institutionId ?? item.id);
-    if (Number.isFinite(id) && id > 0) priorityIds.add(id);
-  }
-  return Array.from(priorityIds);
+  return {
+    kind: "merged_order",
+    supabase,
+    listingName,
+    mergedOrder,
+    totalCount: mergedOrder.length,
+  };
 }
 
-function mergeInstitutionItemsWithFullRows(
-  supabase: SupabaseBrowser,
-  institutionStubs: CategoryResultItem[],
-  fullRows: InstitutionRow[],
-): CategoryResultItem[] {
-  const fullById = new Map<number, InstitutionRow>();
-  for (const row of fullRows) {
-    if (Number.isInteger(row.id) && row.id > 0) fullById.set(row.id, row);
+async function hydrateCategoryListingPage(
+  context: CategoryListingContext,
+  page: number,
+  knownTotalCount: number | null,
+  isCurrent: () => boolean,
+): Promise<CategoryListingPageResult> {
+  const pageSize = CATEGORY_RESULTS_PAGE_SIZE;
+
+  if (context.kind === "not_found") {
+    return {
+      results: [],
+      totalCount: 0,
+      categoryLabel: context.listingName,
+      error: "CATEGORY_NOT_FOUND",
+    };
   }
-  return institutionStubs.map((stub) => {
-    const id = Number(stub.institutionId ?? stub.id);
-    const full = Number.isFinite(id) ? fullById.get(id) : undefined;
-    return full ? mapRow(supabase, full) : stub;
-  });
+
+  if (context.kind === "db_range") {
+    const pageResult = await fetchCategoryInstitutionPageFromDb(
+      context.supabase,
+      context.categoryId,
+      context.listingName,
+      context.listingLocation,
+      context.searchTerm,
+      context.relatedSearch,
+      context.featuredOrderMap,
+      page,
+      pageSize,
+      undefined,
+      knownTotalCount,
+    );
+    if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    const pageIds = pageResult.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
+    const kurumTuru = await loadKurumTuruLabelByInstitutionId(context.supabase, pageIds);
+    if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    return {
+      results: applyKurumTuruLabels(
+        pageResult.rows.map((row) => mapRow(context.supabase, row)),
+        kurumTuru,
+      ),
+      totalCount: pageResult.totalCount,
+      categoryLabel: context.listingName,
+      error: null,
+    };
+  }
+
+  if (context.kind === "id_set") {
+    const pageResult = await fetchInstitutionPageForIdSet(
+      context.supabase,
+      context.orderedIds,
+      page,
+      pageSize,
+    );
+    if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    const pageIds = pageResult.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
+    const kurumTuru = await loadKurumTuruLabelByInstitutionId(context.supabase, pageIds);
+    if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+    return {
+      results: applyKurumTuruLabels(
+        pageResult.rows.map((row) => mapRow(context.supabase, row)),
+        kurumTuru,
+      ),
+      totalCount: context.totalCount,
+      categoryLabel: context.listingName,
+      error: null,
+    };
+  }
+
+  if (context.kind === "instructors_only") {
+    const start = (Math.max(1, page) - 1) * pageSize;
+    return {
+      results: context.instructorOnly.slice(start, start + pageSize),
+      totalCount: context.totalCount,
+      categoryLabel: context.listingName,
+      error: null,
+    };
+  }
+
+  const results = await hydrateMergedOrderPage(
+    context.supabase,
+    context.mergedOrder,
+    page,
+    pageSize,
+  );
+  if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+  return {
+    results,
+    totalCount: context.totalCount,
+    categoryLabel: context.listingName,
+    error: null,
+  };
 }
 
 export function useCategoryInstitutions(
@@ -855,9 +1735,16 @@ export function useCategoryInstitutions(
     categorySlug?: string;
     /** Yalnızca Okul kategori sayfası doldurur. */
     schoolFilters?: SchoolCategoryFilterPayload;
+    /** 1 tabanlı sayfa; verilmezse dahili state kullanılır. */
+    page?: number;
+    onPageChange?: (page: number) => void;
   },
 ): {
   results: CategoryResultItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
   isLoading: boolean;
   error: string | null;
   categoryLabel: string;
@@ -869,12 +1756,26 @@ export function useCategoryInstitutions(
   const locationReady = options?.locationReady !== false;
   const categorySlug = String(options?.categorySlug ?? "").trim();
   const schoolFilters = options?.schoolFilters;
+  const controlledPage = options?.page;
+  const onPageChange = options?.onPageChange;
 
   const [results, setResults] = useState<CategoryResultItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [internalPage, setInternalPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryLabel, setCategoryLabel] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const generationRef = useRef(0);
+  const cacheRef = useRef<CategoryListingCache>(createCategoryListingCache("", 0));
+  const activePageRef = useRef(1);
+
+  const setPage = (next: number) => {
+    const safe = Math.max(1, Math.floor(next) || 1);
+    if (controlledPage == null) setInternalPage(safe);
+    onPageChange?.(safe);
+  };
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -884,6 +1785,30 @@ export function useCategoryInstitutions(
   }, [rawSearch]);
 
   const schoolFiltersKey = useMemo(() => JSON.stringify(schoolFilters ?? null), [schoolFilters]);
+  // Sıralama sabit (isim + featured); key'e açıkça dahil — gelecekteki sort parametreleri için.
+  const sortKey = "name_asc_featured";
+  const filtersIdentityKey = `${categoryName}|${categorySlug}|${debouncedSearch}|${ilId}|${ilceId}|${mahalleId}|${schoolFiltersKey}|${sortKey}`;
+
+  // Filtre değişince sayfayı aynı render'da 1'e çek — ayrı effect ile çift fetch önlenir.
+  const [filtersPageKey, setFiltersPageKey] = useState(filtersIdentityKey);
+  if (filtersIdentityKey !== filtersPageKey) {
+    setFiltersPageKey(filtersIdentityKey);
+    if (controlledPage == null && internalPage !== 1) {
+      setInternalPage(1);
+    }
+  }
+  const page =
+    filtersIdentityKey !== filtersPageKey
+      ? 1
+      : controlledPage != null && controlledPage > 0
+        ? controlledPage
+        : internalPage;
+  activePageRef.current = page;
+
+  useEffect(() => {
+    generationRef.current += 1;
+    cacheRef.current = createCategoryListingCache(filtersIdentityKey, generationRef.current);
+  }, [filtersIdentityKey]);
 
   useEffect(() => {
     const targetName = String(categoryName ?? "").trim();
@@ -896,347 +1821,152 @@ export function useCategoryInstitutions(
 
     if (!targetName && !slug) {
       setResults([]);
+      setTotalCount(0);
       setIsLoading(false);
       setError(null);
       setCategoryLabel("");
       return;
     }
 
+    const generation = generationRef.current;
+    const isCurrent = () => generationRef.current === generation;
     let cancelled = false;
+    const cache = cacheRef.current;
+
+    const applyPageResult = (pageResult: CategoryListingPageResult, pageNumber: number) => {
+      if (!isCurrent() || cancelled) return;
+      cache.pages.set(pageNumber, pageResult.results);
+      cache.totalCount = pageResult.totalCount;
+      cache.categoryLabel = pageResult.categoryLabel;
+      trimCategoryListingCache(cache, activePageRef.current);
+      if (pageNumber === activePageRef.current) {
+        setResults(pageResult.results);
+        setTotalCount(pageResult.totalCount);
+        setCategoryLabel(pageResult.categoryLabel);
+        setError(pageResult.error);
+        setIsLoading(false);
+      }
+    };
+
+    const loadPage = (pageNumber: number): Promise<CategoryListingPageResult> => {
+      const cached = cache.pages.get(pageNumber);
+      if (cached) {
+        return Promise.resolve({
+          results: cached,
+          totalCount: cache.totalCount ?? cached.length,
+          categoryLabel: cache.categoryLabel,
+          error: null,
+        });
+      }
+
+      const inflight = cache.inflight.get(pageNumber);
+      if (inflight) return inflight;
+
+      const promise = (async (): Promise<CategoryListingPageResult> => {
+        if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+
+        if (!cache.context) {
+          cache.context = await buildCategoryListingContext({
+            categoryName,
+            categorySlug: slug,
+            debouncedSearch,
+            ilId,
+            ilceId,
+            mahalleId,
+            schoolFilters,
+            isCurrent,
+          });
+          if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+          if (cache.context.kind === "not_found") {
+            cache.totalCount = 0;
+            cache.categoryLabel = cache.context.listingName;
+          } else if (cache.context.kind === "db_range") {
+            cache.categoryLabel = cache.context.listingName;
+          } else {
+            cache.totalCount = cache.context.totalCount;
+            cache.categoryLabel = cache.context.listingName;
+          }
+        }
+
+        const pageResult = await hydrateCategoryListingPage(
+          cache.context,
+          pageNumber,
+          cache.totalCount,
+          isCurrent,
+        );
+        if (!isCurrent()) throw new Error("CATEGORY_LISTING_CANCELLED");
+        cache.pages.set(pageNumber, pageResult.results);
+        cache.totalCount = pageResult.totalCount;
+        cache.categoryLabel = pageResult.categoryLabel;
+        trimCategoryListingCache(cache, activePageRef.current);
+        return pageResult;
+      })();
+
+      cache.inflight.set(pageNumber, promise);
+      return promise.finally(() => {
+        if (cache.inflight.get(pageNumber) === promise) {
+          cache.inflight.delete(pageNumber);
+        }
+      });
+    };
+
+    const prefetchAhead = async (activePageNumber: number) => {
+      const total = cache.totalCount;
+      if (total == null) return;
+      const totalPages = Math.max(1, Math.ceil(total / CATEGORY_RESULTS_PAGE_SIZE));
+      for (let delta = 1; delta <= CATEGORY_PREFETCH_AHEAD; delta += 1) {
+        if (!isCurrent() || cancelled) return;
+        const nextPage = activePageNumber + delta;
+        if (nextPage > totalPages) break;
+        if (cache.pages.has(nextPage)) continue;
+        try {
+          await loadPage(nextPage);
+          if (!isCurrent() || cancelled) return;
+          trimCategoryListingCache(cache, activePageRef.current);
+        } catch (e) {
+          if (String((e as Error)?.message ?? "") === "CATEGORY_LISTING_CANCELLED") return;
+          console.error(
+            "[category][institutions][prefetch-error]",
+            describeSupabaseError(e),
+          );
+          return;
+        }
+      }
+    };
+
+    // Önbellek hit: UI'yı hemen güncelle, prefetch arka planda
+    const cachedActive = cache.pages.get(page);
+    if (cachedActive && cache.queryKey === filtersIdentityKey) {
+      setResults(cachedActive);
+      setTotalCount(cache.totalCount ?? cachedActive.length);
+      setCategoryLabel(cache.categoryLabel);
+      setError(null);
+      setIsLoading(false);
+      void prefetchAhead(page);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setIsLoading(true);
     setError(null);
 
     (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const featuredOrderPromise = fetchActiveFeaturedInstitutionOrderMap(supabase);
-
-      const fullSelect =
-        "id, slug, institution_name, subheading, about, address, district, city, official_phone, official_email, website, facebook_url, instagram_url, x_url, linkedin_url, logo, source, high_school_type, category_id, institution_type:institution_types(id, name, category:institution_categories(id, name, slug))";
-
-        const useSchoolPipeline = hasAnySchoolPayloadFilters(schoolFilters ?? undefined);
-
       try {
-        const searchTerm = debouncedSearch.trim();
-        const resolvedCategory = await resolveInstitutionCategoryForListing(
-          supabase,
-          targetName,
-          slug,
-        );
-        if (cancelled) return;
-
-        const listingName = resolvedCategory.name;
-        const categoryId = resolvedCategory.id;
-        setCategoryLabel(listingName);
-
-        if (categoryId == null && slug && !targetName) {
-          setResults([]);
-          setError("CATEGORY_NOT_FOUND");
-          setIsLoading(false);
-          return;
-        }
-
-        if (categoryId == null) {
-          console.warn("[category][institutions] kategori bulunamadı:", {
-            categoryName: listingName,
-            categorySlug: slug || null,
-          });
-        }
-
-        const listingLocation: InstitutionLocationFilter = {
-          ilId: await resolveCategoryListingIlId(ilId),
-          ilceId: parseLocationId(ilceId),
-          mahalleId: parseLocationId(ilceId) != null ? parseLocationId(mahalleId) : null,
-        };
-        if (cancelled) return;
-
-        if (!useSchoolPipeline) {
-          const institutionIds = await fetchAllCategoryInstitutionIds(
-            supabase,
-            categoryId,
-            listingName,
-            listingLocation,
-            searchTerm,
-          );
-          if (cancelled) return;
-
-          const [lightRows, instructorResults, featuredOrderResult] = await Promise.all([
-            fetchRowsByIdsChunked(supabase, institutionIds, LIGHT_INSTITUTION_SELECT),
-            fetchCategoryInstructorResults(supabase, {
-              institutionCategoryId: categoryId,
-              categoryName: listingName,
-              categorySlug: slug,
-              location: listingLocation,
-              searchTerm,
-              schoolFilters,
-            }),
-            featuredOrderPromise,
-          ]);
-          if (cancelled) return;
-
-          const sortedLightRows = sortInstitutionRowsByName(lightRows);
-          const institutionStubs = sortedLightRows.map((row) => mapRow(supabase, row));
-          const featuredOrderMap = featuredOrderResult.orderMap;
-
-          if (institutionIds.length === 0) {
-            setResults(finalizeCategoryResults([], instructorResults, featuredOrderMap));
-            setIsLoading(false);
-            return;
-          }
-
-          const priorityIds = computePriorityInstitutionIdsForFirstPaint(
-            institutionStubs,
-            instructorResults,
-            featuredOrderMap,
-          );
-          const priorityIdSet = new Set(priorityIds);
-          const [priorityFullRows, priorityKurumTuru] = await Promise.all([
-            priorityIds.length > 0
-              ? fetchRowsByIdsChunked(supabase, priorityIds, fullSelect)
-              : Promise.resolve([] as InstitutionRow[]),
-            loadKurumTuruLabelByInstitutionId(supabase, priorityIds),
-          ]);
-          if (cancelled) return;
-
-          const firstPaintInstitutions = mergeInstitutionItemsWithFullRows(
-            supabase,
-            institutionStubs,
-            priorityFullRows,
-          );
-
-          setResults(
-            finalizeCategoryResults(
-              applyKurumTuruLabels(firstPaintInstitutions, priorityKurumTuru),
-              instructorResults,
-              featuredOrderMap,
-            ),
-          );
-          setIsLoading(false);
-
-          const remainingIds = institutionIds.filter((id) => !priorityIdSet.has(id));
-          if (remainingIds.length === 0) return;
-
-          void (async () => {
-            try {
-              const [remainingFullRows, remainingKurumTuru] = await Promise.all([
-                fetchRowsByIdsChunked(supabase, remainingIds, fullSelect),
-                loadKurumTuruLabelByInstitutionId(supabase, remainingIds),
-              ]);
-              if (cancelled) return;
-
-              const hydratedInstitutions = mergeInstitutionItemsWithFullRows(
-                supabase,
-                institutionStubs,
-                [...priorityFullRows, ...remainingFullRows],
-              );
-              const kurumTuru = new Map([...priorityKurumTuru, ...remainingKurumTuru]);
-
-              setResults(
-                finalizeCategoryResults(
-                  applyKurumTuruLabels(hydratedInstitutions, kurumTuru),
-                  instructorResults,
-                  featuredOrderMap,
-                ),
-              );
-            } catch (backgroundErr) {
-              console.error(
-                "[category][institutions][background-hydrate-error]",
-                describeSupabaseError(backgroundErr),
-              );
-            }
-          })();
-
-          return;
-        }
-
-        const payload = schoolFilters!;
-        const baseIds = await fetchAllCategoryInstitutionIds(
-          supabase,
-          categoryId,
-          listingName,
-          listingLocation,
-          searchTerm,
-          payload.institutionTypeIds,
-          payload.highSchoolTypes,
-        );
-        if (cancelled) return;
-
-        let current = new Set<number>(baseIds);
-
-        if (current.size === 0) {
-          const instructorOnly = await fetchCategoryInstructorResults(supabase, {
-            institutionCategoryId: categoryId,
-            categoryName: listingName,
-            categorySlug: slug,
-            location: listingLocation,
-            searchTerm,
-            schoolFilters: payload,
-          });
-          if (cancelled) return;
-          setResults(instructorOnly);
-          setIsLoading(false);
-          return;
-        }
-
-        const { data: defsAll, error: defAllErr } = await supabase
-          .from("institution_feature_definitions")
-          .select("id, name, slug, input_type")
-          .eq("is_active", true);
-        if (defAllErr) throw defAllErr;
-        const inputTypeByDefId = new Map<number, string>();
-        const defMetaById = new Map<number, { name: string; slug: string | null }>();
-        for (const d of (defsAll ?? []) as Array<{
-          id: number;
-          name?: string | null;
-          slug?: string | null;
-          input_type?: string | null;
-        }>) {
-          if (!Number.isFinite(d.id)) continue;
-          inputTypeByDefId.set(d.id, String(d.input_type ?? ""));
-          defMetaById.set(d.id, { name: String(d.name ?? ""), slug: d.slug ?? null });
-        }
-
-        for (const [defIdStr, choiceIdStr] of Object.entries(payload.commonSingle)) {
-          const defId = Number(defIdStr);
-          const choiceId = Number(String(choiceIdStr ?? "").trim());
-          if (!Number.isFinite(defId) || !Number.isFinite(choiceId)) continue;
-          const it = String(inputTypeByDefId.get(defId) ?? "").toLowerCase();
-          let set: Set<number>;
-          if (it === "multi_select") {
-            set = await resolveInstitutionIdsForMultiSelectChoice(supabase, defId, choiceId);
-          } else {
-            set = await resolveInstitutionIdsForSingleSelectChoice(supabase, defId, choiceId);
-          }
-          current = intersectSets(current, set);
-          if (current.size === 0) break;
-        }
-        if (cancelled) return;
-
-        const defMetaList = Array.from(defMetaById.entries()).map(([id, meta]) => ({
-          id,
-          name: meta.name,
-          slug: meta.slug,
-          input_type: inputTypeByDefId.get(id) ?? null,
-        }));
-
-        const studentAgeFilter = resolveStudentAgeFilterFromPayload(payload, defMetaList);
-        if (studentAgeFilter) {
-          const matchedIds = await resolveInstitutionIdsByStudentAgeFilter(supabase, {
-            userFilter: studentAgeFilter,
-          });
-          current = intersectSets(current, new Set(matchedIds));
-        }
-        if (cancelled) return;
-
-        const workingHoursStart = String(payload.workingHoursStart ?? "").trim();
-        const workingHoursEnd = String(payload.workingHoursEnd ?? "").trim();
-        if (workingHoursStart || workingHoursEnd) {
-          const matchedIds = await resolveInstitutionIdsByWorkingHoursFilter(supabase, {
-            start: workingHoursStart,
-            end: workingHoursEnd,
-          });
-          current = intersectSets(current, matchedIds);
-        }
-        if (cancelled) return;
-
-        const priceMinRaw = String(payload.priceMin ?? "").trim();
-        const priceMaxRaw = String(payload.priceMax ?? "").trim();
-        if (priceMinRaw || priceMaxRaw) {
-          const matchedIds = await resolveInstitutionIdsByPriceRange(supabase, {
-            min: parsePriceInputToIntOrNull(priceMinRaw),
-            max: parsePriceInputToIntOrNull(priceMaxRaw),
-          });
-          current = intersectSets(current, new Set(matchedIds));
-        }
-        if (cancelled) return;
-
-        for (const [defIdStr, choiceIds] of Object.entries(payload.commonMulti)) {
-          const defId = Number(defIdStr);
-          if (!Number.isFinite(defId) || !Array.isArray(choiceIds) || choiceIds.length === 0) continue;
-          const meta = defMetaById.get(defId);
-          if (
-            meta &&
-            isLegacyStudentAgeMultiSelectFeature({
-              slug: meta.slug,
-              name: meta.name,
-              input_type: inputTypeByDefId.get(defId) ?? "multi_select",
-            })
-          ) {
-            continue;
-          }
-          if (isStudentAgeFilterDefinitionId(defId, defMetaList)) continue;
-          const union = new Set<number>();
-          for (const cidStr of choiceIds) {
-            const cid = Number(String(cidStr).trim());
-            if (!Number.isFinite(cid)) continue;
-            const s = await resolveInstitutionIdsForMultiSelectChoice(supabase, defId, cid);
-            s.forEach((id) => union.add(id));
-          }
-          current = intersectSets(current, union);
-          if (current.size === 0) break;
-        }
-        if (cancelled) return;
-
-        for (const [defIdStr, range] of Object.entries(payload.commonRange)) {
-          const defId = Number(defIdStr);
-          if (!Number.isFinite(defId)) continue;
-          if (isStudentAgeFilterDefinitionId(defId, defMetaList)) continue;
-          const minS = String(range?.min ?? "").trim();
-          const maxS = String(range?.max ?? "").trim();
-          if (!minS && !maxS) continue;
-
-          const minBound = minS ? parseOptionalNumber(minS) : null;
-          const maxBound = maxS ? parseOptionalNumber(maxS) : null;
-          const set = await resolveInstitutionIdsNumberRangeForDefinition(supabase, defId, minBound, maxBound);
-          current = intersectSets(current, set);
-          if (current.size === 0) break;
-        }
-        if (cancelled) return;
-
-        for (const [groupIdStr, keys] of Object.entries(payload.groupSelections)) {
-          const groupId = Number(groupIdStr);
-          if (!Number.isFinite(groupId) || !Array.isArray(keys) || keys.length === 0) continue;
-          const union = new Set<number>();
-          for (const key of keys) {
-            const s = await resolveInstitutionIdsForChoiceKey(supabase, inputTypeByDefId, String(key));
-            s.forEach((id) => union.add(id));
-          }
-          current = intersectSets(current, union);
-          if (current.size === 0) break;
-        }
-        if (cancelled) return;
-
-        const finalIds = Array.from(current);
-        const [rows, kurumTuru] = await Promise.all([
-          fetchRowsByIdsChunked(supabase, finalIds, fullSelect),
-          loadKurumTuruLabelByInstitutionId(supabase, finalIds),
-        ]);
-        if (cancelled) return;
-
-        const mapped = applyKurumTuruLabels(
-          rows.map((row): CategoryResultItem => mapRow(supabase, row)),
-          kurumTuru,
-        );
-        const instructorResults = await fetchCategoryInstructorResults(supabase, {
-          institutionCategoryId: categoryId,
-          categoryName: listingName,
-          categorySlug: slug,
-          location: listingLocation,
-          searchTerm,
-          schoolFilters: payload,
-        });
-        const featuredOrderResult = await featuredOrderPromise;
-        if (cancelled) return;
-        setResults(
-          finalizeCategoryResults(mapped, instructorResults, featuredOrderResult.orderMap),
-        );
-        setIsLoading(false);
+        const pageResult = await loadPage(page);
+        if (!isCurrent() || cancelled) return;
+        applyPageResult(pageResult, page);
+        // Prefetch aktif sayfayı bloklamaz
+        void prefetchAhead(page);
       } catch (e) {
+        if (String((e as Error)?.message ?? "") === "CATEGORY_LISTING_CANCELLED") return;
         console.error(
           "[category][institutions][school-filter-error]",
           describeSupabaseError(e),
         );
-        if (!cancelled) {
+        if (!cancelled && isCurrent()) {
           setResults([]);
+          setTotalCount(0);
           setError("Kurumlar yüklenirken bir hata oluştu.");
           setIsLoading(false);
         }
@@ -1248,9 +1978,29 @@ export function useCategoryInstitutions(
     };
     // schoolFilters için kararlı JSON anahtarı kullanılıyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryName, categorySlug, debouncedSearch, ilId, ilceId, mahalleId, locationReady, schoolFiltersKey]);
+  }, [
+    categoryName,
+    categorySlug,
+    debouncedSearch,
+    ilId,
+    ilceId,
+    mahalleId,
+    locationReady,
+    schoolFiltersKey,
+    filtersIdentityKey,
+    page,
+  ]);
 
-  return { results, isLoading, error, categoryLabel };
+  return {
+    results,
+    totalCount,
+    page,
+    pageSize: CATEGORY_RESULTS_PAGE_SIZE,
+    setPage,
+    isLoading,
+    error,
+    categoryLabel,
+  };
 }
 
 function applyKurumTuruLabels(
@@ -1266,15 +2016,23 @@ function applyKurumTuruLabels(
   });
 }
 
-async function loadKurumTuruLabelByInstitutionId(
-  supabase: SupabaseBrowser,
-  institutionIds: number[],
-): Promise<Map<number, string>> {
-  const labels = new Map<number, string>();
-  const ids = [...new Set(institutionIds.filter((id) => Number.isInteger(id) && id > 0))];
-  if (ids.length === 0) return labels;
+/**
+ * Kurum Türü tanım ID'leri kategori/filtreye bağlı değildir (global is_active + Okul Durumu).
+ * Prefetch sırasında aynı definitions sorgusunu sayfa başına tekrarlamamak için
+ * kısa ömürlü cache + in-flight dedupe.
+ */
+const KURUM_TURU_DEFS_TTL_MS = 60_000;
+let kurumTuruDefIdsCache: { defIds: number[]; expiresAt: number } | null = null;
+let kurumTuruDefIdsInflight: Promise<number[]> | null = null;
 
-  try {
+async function loadKurumTuruDefinitionIds(supabase: SupabaseBrowser): Promise<number[]> {
+  const now = Date.now();
+  if (kurumTuruDefIdsCache && kurumTuruDefIdsCache.expiresAt > now) {
+    return kurumTuruDefIdsCache.defIds;
+  }
+  if (kurumTuruDefIdsInflight) return kurumTuruDefIdsInflight;
+
+  const promise = (async (): Promise<number[]> => {
     const { data: defsRaw, error: defErr } = await supabase
       .from("institution_feature_definitions")
       .select("id, name, slug")
@@ -1286,6 +2044,32 @@ async function loadKurumTuruLabelByInstitutionId(
     )
       .filter((row) => Number.isFinite(row.id) && isOkulDurumuDefinition(row))
       .map((row) => row.id);
+
+    kurumTuruDefIdsCache = {
+      defIds,
+      expiresAt: Date.now() + KURUM_TURU_DEFS_TTL_MS,
+    };
+    return defIds;
+  })().finally(() => {
+    if (kurumTuruDefIdsInflight === promise) {
+      kurumTuruDefIdsInflight = null;
+    }
+  });
+
+  kurumTuruDefIdsInflight = promise;
+  return promise;
+}
+
+async function loadKurumTuruLabelByInstitutionId(
+  supabase: SupabaseBrowser,
+  institutionIds: number[],
+): Promise<Map<number, string>> {
+  const labels = new Map<number, string>();
+  const ids = [...new Set(institutionIds.filter((id) => Number.isInteger(id) && id > 0))];
+  if (ids.length === 0) return labels;
+
+  try {
+    const defIds = await loadKurumTuruDefinitionIds(supabase);
     if (defIds.length === 0) return labels;
 
     const entries: Array<{ id: number; institution_id: number }> = [];

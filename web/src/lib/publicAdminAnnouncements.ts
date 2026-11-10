@@ -27,6 +27,87 @@ const GUEST_READS_STORAGE_KEY = "merkezden.admin_announcement_reads.v1";
 type ReadChangeListener = () => void;
 const readChangeListeners = new Set<ReadChangeListener>();
 
+/** Eşzamanlı metas isteklerini tek ağ çağrısında birleştir (kalıcı cache yok). */
+let publishedMetasInflight: Promise<{
+  items: PublicAdminAnnouncementMeta[];
+  error: string | null;
+}> | null = null;
+
+type AnnouncementReadsFetchResult = {
+  reads: AdminAnnouncementReadMap;
+  authenticated: boolean;
+  error: string | null;
+};
+
+/**
+ * Okuma durumu in-flight dedupe: yalnızca aynı auth kullanıcı (veya guest) için.
+ * Mark-as-read sonrası invalidate edilir; eski promise yeni çağrılara paylaşılmaz.
+ */
+let announcementReadsInflight: Promise<AnnouncementReadsFetchResult> | null = null;
+let announcementReadsInflightKey: string | null = null;
+
+/**
+ * Pasif (focus/visibility) yenileme: tüm HeaderAnnouncementBell örnekleri arasında
+ * paylaşılan minimum aralık. Auth / mutation / kullanıcı aksiyonu bu kapıdan geçmez.
+ */
+const PASSIVE_ANNOUNCEMENT_REFRESH_MIN_INTERVAL_MS = 60_000;
+let lastAnnouncementRefreshAt = 0;
+let passiveAnnouncementRefreshScheduled = false;
+const passiveAnnouncementRefreshListeners = new Set<() => void>();
+
+function invalidateAdminAnnouncementReadInflight(): void {
+  announcementReadsInflight = null;
+  announcementReadsInflightKey = null;
+}
+
+/** Her gerçek metas/reads yenilemesinden sonra çağrılır (pasif aralığı hizalar). */
+export function markAnnouncementRefreshCompleted(): void {
+  lastAnnouncementRefreshAt = Date.now();
+}
+
+/**
+ * Pasif yenileme tetikleyicisine abone ol.
+ * `requestPassiveAnnouncementRefresh` kabul edildiğinde tüm ziller bir kez bilgilendirilir;
+ * ağ çağrıları mevcut in-flight dedupe ile birleşir.
+ */
+export function subscribePassiveAnnouncementRefresh(
+  listener: () => void,
+): () => void {
+  passiveAnnouncementRefreshListeners.add(listener);
+  return () => {
+    passiveAnnouncementRefreshListeners.delete(listener);
+  };
+}
+
+/**
+ * Focus/visibility kaynaklı yenilemeyi dedupe + 60sn minimum aralık ile sınırlar.
+ * Kabul edilirse tüm abone ziller refresh çalıştırır; aksi halde no-op.
+ */
+export function requestPassiveAnnouncementRefresh(): void {
+  const now = Date.now();
+  if (
+    lastAnnouncementRefreshAt > 0 &&
+    now - lastAnnouncementRefreshAt < PASSIVE_ANNOUNCEMENT_REFRESH_MIN_INTERVAL_MS
+  ) {
+    return;
+  }
+  if (passiveAnnouncementRefreshScheduled) return;
+
+  // Kapıyı hemen kilitle: focus+visibility ve çift zil aynı turda iki kez tetiklemesin.
+  lastAnnouncementRefreshAt = now;
+  passiveAnnouncementRefreshScheduled = true;
+  queueMicrotask(() => {
+    passiveAnnouncementRefreshScheduled = false;
+    passiveAnnouncementRefreshListeners.forEach((listener) => {
+      try {
+        listener();
+      } catch {
+        /* ignore listener errors */
+      }
+    });
+  });
+}
+
 export function subscribeAdminAnnouncementReadChanges(listener: ReadChangeListener): () => void {
   readChangeListeners.add(listener);
   return () => {
@@ -35,6 +116,8 @@ export function subscribeAdminAnnouncementReadChanges(listener: ReadChangeListen
 }
 
 export function notifyAdminAnnouncementReadChanges(): void {
+  // Yeni refresh'ler mark öncesi in-flight yanıtı paylaşmasın.
+  invalidateAdminAnnouncementReadInflight();
   readChangeListeners.forEach((listener) => {
     try {
       listener();
@@ -159,69 +242,93 @@ export async function fetchPublishedAdminAnnouncementMetas(): Promise<{
   items: PublicAdminAnnouncementMeta[];
   error: string | null;
 }> {
-  const supabase = createSupabaseBrowserClient();
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("admin_announcements")
-    .select("id, published_at")
-    .eq("is_active", true)
-    .not("published_at", "is", null)
-    .lte("published_at", nowIso)
-    .gt("published_at", announcementPublicationCutoffIso())
-    .order("published_at", { ascending: false });
+  if (publishedMetasInflight) return publishedMetasInflight;
 
-  if (error) {
-    console.warn("[header-announcements] admin announcement metas:", error);
-    return { items: [], error: "Duyurular yüklenemedi." };
-  }
+  const promise = (async () => {
+    const supabase = createSupabaseBrowserClient();
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("admin_announcements")
+      .select("id, published_at")
+      .eq("is_active", true)
+      .not("published_at", "is", null)
+      .lte("published_at", nowIso)
+      .gt("published_at", announcementPublicationCutoffIso())
+      .order("published_at", { ascending: false });
 
-  const items = ((data ?? []) as Array<{ id: string | number; published_at: string | null }>)
-    .map((row) => {
-      const id = String(row.id ?? "").trim();
-      const publishedAt = String(row.published_at ?? "").trim();
-      if (!id || !publishedAt) return null;
-      return { id, publishedAt };
-    })
-    .filter((item): item is PublicAdminAnnouncementMeta => item !== null);
+    if (error) {
+      console.warn("[header-announcements] admin announcement metas:", error);
+      return { items: [], error: "Duyurular yüklenemedi." };
+    }
 
-  return { items, error: null };
+    const items = ((data ?? []) as Array<{ id: string | number; published_at: string | null }>)
+      .map((row) => {
+        const id = String(row.id ?? "").trim();
+        const publishedAt = String(row.published_at ?? "").trim();
+        if (!id || !publishedAt) return null;
+        return { id, publishedAt };
+      })
+      .filter((item): item is PublicAdminAnnouncementMeta => item !== null);
+
+    return { items, error: null };
+  })().finally(() => {
+    if (publishedMetasInflight === promise) {
+      publishedMetasInflight = null;
+    }
+  });
+
+  publishedMetasInflight = promise;
+  return promise;
 }
 
-export async function fetchAdminAnnouncementReads(): Promise<{
-  reads: AdminAnnouncementReadMap;
-  authenticated: boolean;
-  error: string | null;
-}> {
+export async function fetchAdminAnnouncementReads(): Promise<AnnouncementReadsFetchResult> {
   const supabase = createSupabaseBrowserClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session?.user) {
-    return { reads: readGuestReadsFromStorage(), authenticated: false, error: null };
+  const inflightKey = session?.user?.id ? `user:${session.user.id}` : "guest";
+
+  if (announcementReadsInflight && announcementReadsInflightKey === inflightKey) {
+    return announcementReadsInflight;
   }
 
-  const { data, error } = await supabase
-    .from("admin_announcement_reads")
-    .select("announcement_id, last_read_published_at");
+  const promise = (async (): Promise<AnnouncementReadsFetchResult> => {
+    if (!session?.user) {
+      return { reads: readGuestReadsFromStorage(), authenticated: false, error: null };
+    }
 
-  if (error) {
-    console.warn("[header-announcements] admin announcement reads:", error);
-    return { reads: {}, authenticated: true, error: "Okuma durumu yüklenemedi." };
-  }
+    const { data, error } = await supabase
+      .from("admin_announcement_reads")
+      .select("announcement_id, last_read_published_at");
 
-  const reads: AdminAnnouncementReadMap = {};
-  for (const row of (data ?? []) as Array<{
-    announcement_id: string | null;
-    last_read_published_at: string | null;
-  }>) {
-    const id = String(row.announcement_id ?? "").trim();
-    const publishedAt = String(row.last_read_published_at ?? "").trim();
-    if (!id || !publishedAt) continue;
-    reads[id] = publishedAt;
-  }
+    if (error) {
+      console.warn("[header-announcements] admin announcement reads:", error);
+      return { reads: {}, authenticated: true, error: "Okuma durumu yüklenemedi." };
+    }
 
-  return { reads, authenticated: true, error: null };
+    const reads: AdminAnnouncementReadMap = {};
+    for (const row of (data ?? []) as Array<{
+      announcement_id: string | null;
+      last_read_published_at: string | null;
+    }>) {
+      const id = String(row.announcement_id ?? "").trim();
+      const publishedAt = String(row.last_read_published_at ?? "").trim();
+      if (!id || !publishedAt) continue;
+      reads[id] = publishedAt;
+    }
+
+    return { reads, authenticated: true, error: null };
+  })().finally(() => {
+    if (announcementReadsInflight === promise) {
+      announcementReadsInflight = null;
+      announcementReadsInflightKey = null;
+    }
+  });
+
+  announcementReadsInflight = promise;
+  announcementReadsInflightKey = inflightKey;
+  return promise;
 }
 
 /**

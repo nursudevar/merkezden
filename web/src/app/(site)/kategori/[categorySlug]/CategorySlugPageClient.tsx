@@ -36,7 +36,7 @@ export default function CategorySlugPageClient() {
     [],
   );
 
-  const { results, isLoading, error, categoryLabel } = useCategoryInstitutions("", {
+  const { results, totalCount, page, setPage, isLoading, error, categoryLabel } = useCategoryInstitutions("", {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -60,8 +60,11 @@ export default function CategorySlugPageClient() {
     <CategoryPageLayout
       categoryName={categoryLabel || categorySlug}
       categorySlug={categorySlug}
-      subtitle="Ankara bölgesinde öne çıkan eğitim kurumlarını inceleyin."
+      subtitle="Türkiye genelinde öne çıkan eğitim kurumlarını inceleyin."
       results={results}
+      totalCount={totalCount}
+      currentPage={page}
+      onPageChange={setPage}
       isLoading={isLoading}
       errorMessage={error === "CATEGORY_NOT_FOUND" ? null : error}
       schoolModeProps={{

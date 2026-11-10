@@ -27,7 +27,7 @@ const siteUrl = resolveSiteUrl();
 export const metadata: Metadata = {
   ...(siteUrl ? { metadataBase: siteUrl } : {}),
   title: "MERKEZDEN - Hayatın Merkezi",
-  description: "Ankara'da eğitim kurumları, kurslar ve hizmetleri bulun. AI destekli arama ile ihtiyacınız olan hizmeti kolayca keşfedin.",
+  description: "Türkiye genelinde eğitim kurumları, kurslar ve hizmetleri bulun. AI destekli arama ile ihtiyacınız olan hizmeti kolayca keşfedin.",
   icons: {
     icon: [{ url: "/images/icon.svg?v=2", type: "image/svg+xml", sizes: "any" }],
     shortcut: ["/images/icon.svg?v=2"],

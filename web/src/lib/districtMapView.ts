@@ -11,9 +11,30 @@ export type DistrictBoundaryGeoJson = {
 export type DistrictMapView = {
   bounds: LatLngBoundsTuple;
   boundaryGeoJson: DistrictBoundaryGeoJson | null;
+  maxZoom?: number;
+};
+
+/** Konumsuz varsayılan: Türkiye coğrafi merkezi, ülke geneli görünüm. */
+export const DEFAULT_MAP_CENTER = { lat: 39.0, lng: 35.15 };
+export const MAP_ZOOM_DEFAULT = 6;
+export const MAP_ZOOM_CITY = 10;
+export const MAP_ZOOM_DISTRICT = 12;
+export const MAP_ZOOM_NEIGHBORHOOD = 15;
+export const MAP_FIT_MAX_ZOOM_CITY = 11;
+export const MAP_FIT_MAX_ZOOM_DISTRICT = 14;
+export const MAP_FIT_MAX_ZOOM_NEIGHBORHOOD = 16;
+
+export type LocationMapFocusView = {
+  lat?: number;
+  lng?: number;
+  zoom?: number;
+  bounds?: LatLngBoundsTuple;
+  maxZoom?: number;
+  boundaryGeoJson: DistrictBoundaryGeoJson | null;
 };
 
 const boundaryCache = new Map<string, DistrictMapView>();
+const cityViewCache = new Map<string, LocationMapFocusView>();
 
 function normalizeKey(value: string): string {
   return value
@@ -123,11 +144,89 @@ export async function resolveDistrictMapView(
     view = {
       bounds: markerBounds,
       boundaryGeoJson: null,
+      maxZoom: MAP_FIT_MAX_ZOOM_DISTRICT,
     };
+  } else if (view.maxZoom == null) {
+    view = { ...view, maxZoom: MAP_FIT_MAX_ZOOM_DISTRICT };
   }
 
   boundaryCache.set(key, view);
   return view;
+}
+
+async function fetchCityCenterFromPlaceApi(
+  city: string,
+): Promise<LocationMapFocusView | null> {
+  const params = new URLSearchParams({ q: `${city}, Türkiye` });
+  const response = await fetch(`/api/geocode/place?${params.toString()}`);
+  if (!response.ok) return null;
+  const payload = (await response.json()) as { lat?: number; lng?: number };
+  const lat = Number(payload.lat);
+  const lng = Number(payload.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return {
+    lat,
+    lng,
+    zoom: MAP_ZOOM_CITY,
+    boundaryGeoJson: null,
+  };
+}
+
+/**
+ * İl odaklı görünüm: önce şehir marker bounds, yoksa mevcut place geocode API.
+ * Yeni tablo / ekstra bağımlılık yok.
+ */
+export async function resolveCityMapView(
+  city: string,
+  markersInCity: InstitutionMapMarker[],
+): Promise<LocationMapFocusView | null> {
+  const trimmedCity = city.trim();
+  if (!trimmedCity) return null;
+
+  const markerBounds = boundsFromMarkers(markersInCity);
+  if (markerBounds) {
+    return {
+      bounds: markerBounds,
+      maxZoom: MAP_FIT_MAX_ZOOM_CITY,
+      boundaryGeoJson: null,
+    };
+  }
+
+  const key = normalizeKey(trimmedCity);
+  const cached = cityViewCache.get(key);
+  if (cached) return cached;
+
+  let view: LocationMapFocusView | null = null;
+  try {
+    view = await fetchCityCenterFromPlaceApi(trimmedCity);
+  } catch {
+    view = null;
+  }
+  if (!view) return null;
+  cityViewCache.set(key, view);
+  return view;
+}
+
+/** Mahalle: marker bounds; yoksa null (çağıran ilçe/il fallback uygular). */
+export function resolveNeighborhoodMapView(
+  markersInNeighborhood: InstitutionMapMarker[],
+): LocationMapFocusView | null {
+  const bounds = boundsFromMarkers(markersInNeighborhood);
+  if (!bounds) return null;
+  return {
+    bounds,
+    maxZoom: MAP_FIT_MAX_ZOOM_NEIGHBORHOOD,
+    boundaryGeoJson: null,
+  };
+}
+
+export function defaultMapFocusView(): LocationMapFocusView {
+  return {
+    lat: DEFAULT_MAP_CENTER.lat,
+    lng: DEFAULT_MAP_CENTER.lng,
+    zoom: MAP_ZOOM_DEFAULT,
+    boundaryGeoJson: null,
+  };
 }
 
 export function parseNominatimDistrictResult(row: {

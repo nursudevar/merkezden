@@ -66,7 +66,7 @@ export default function CoursesPageClient() {
     [],
   );
 
-  const { results, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
+  const { results, totalCount, page, setPage, isLoading, error } = useCategoryInstitutions(CATEGORY_NAME, {
     search: searchText,
     ilId: location.ilId,
     ilceId: location.ilceId,
@@ -82,6 +82,9 @@ export default function CoursesPageClient() {
         categorySlug={categorySlug}
         subtitle="Sınavlara hazırlık ve kişisel gelişim kursları. Başarıya giden yolda size en uygun eğitim programını bulun."
         results={results}
+        totalCount={totalCount}
+        currentPage={page}
+        onPageChange={setPage}
         isLoading={isLoading}
         errorMessage={error}
         schoolModeProps={{

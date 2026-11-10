@@ -119,7 +119,7 @@ export default function CategoryHero({
           <CategoryBreadcrumb
             categoryLabel={categoryLabel}
             location={location}
-            applyDefaultCity
+            applyDefaultCity={false}
             extraItems={extraBreadcrumbItems}
           />
         </div>

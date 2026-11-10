@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { MapPin } from "lucide-react";
 import {
+  CATEGORY_ALL_ILLER_VALUE,
   CATEGORY_ALL_ILCELER_VALUE,
   CATEGORY_ALL_MAHALLELER_VALUE,
   EMPTY_CATEGORY_LOCATION_FILTER,
@@ -178,8 +179,12 @@ export function AppSidebarLocation({
 
   const summaryPrimary = loading
     ? "Konum"
-    : `${labels.ilAd || "Şehir"}${labels.ilceAd ? ` / ${labels.ilceAd}` : " / Tüm İlçeler"}`;
-  const summarySecondary = labels.mahalleAd || "Tüm Mahalleler";
+    : labels.ilAd
+      ? `${labels.ilAd}${labels.ilceAd ? ` / ${labels.ilceAd}` : " / Tüm İlçeler"}`
+      : "Tüm Türkiye";
+  const summarySecondary = labels.ilAd
+    ? labels.mahalleAd || "Tüm Mahalleler"
+    : "İl seçilmedi";
 
   return (
     <div className={`app-sidebar-location${editorOpen ? " is-editing" : ""}`}>
@@ -227,12 +232,13 @@ export function AppSidebarLocation({
               className="select-trigger-sm app-sidebar-location-select"
             >
               <Select
-                value={location.ilId || undefined}
+                value={location.ilId ? location.ilId : CATEGORY_ALL_ILLER_VALUE}
                 open={ilSelectOpen}
                 onOpenChange={(open) => syncSelectOpen("il", open)}
                 onValueChange={(value) => {
+                  const nextIlId = value === CATEGORY_ALL_ILLER_VALUE ? "" : value;
                   void applyLocation({
-                    ilId: value,
+                    ilId: nextIlId,
                     ilceId: "",
                     mahalleId: "",
                   });
@@ -243,7 +249,7 @@ export function AppSidebarLocation({
                   className="app-sidebar-location-select"
                   aria-labelledby={`${editorId}-il`}
                 >
-                  <SelectValue placeholder="İl seçin" />
+                  <SelectValue placeholder="Tüm Türkiye" />
                 </SelectTrigger>
                 <SelectContent
                   position="popper"
@@ -255,6 +261,7 @@ export function AppSidebarLocation({
                     event.preventDefault();
                   }}
                 >
+                  <SelectItem value={CATEGORY_ALL_ILLER_VALUE}>Tüm Türkiye</SelectItem>
                   {iller.map((row) => (
                     <SelectItem key={row.id} value={String(row.id)}>
                       {row.ad}

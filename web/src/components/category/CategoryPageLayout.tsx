@@ -55,6 +55,10 @@ interface CategoryPageLayoutProps {
   subtitle?: string;
   filterConfig?: CategoryFilterConfig;
   results?: CategoryResultItem[];
+  /** Sunucu sayfalama: toplam eşleşen kayıt (results yalnızca aktif sayfa). */
+  totalCount?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
   emptyResultsMessage?: string;
@@ -100,6 +104,9 @@ export default function CategoryPageLayout({
   subtitle,
   filterConfig,
   results,
+  totalCount,
+  currentPage,
+  onPageChange,
   isLoading,
   errorMessage,
   emptyResultsMessage,
@@ -288,6 +295,9 @@ export default function CategoryPageLayout({
               subtitle={subtitle}
               title={resultsTitle}
               results={results}
+              totalCount={totalCount}
+              currentPage={currentPage}
+              onPageChange={onPageChange}
               isLoading={isLoading}
               errorMessage={errorMessage}
               emptyResultsMessage={emptyResultsMessage}

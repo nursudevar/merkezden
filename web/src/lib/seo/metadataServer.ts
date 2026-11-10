@@ -126,7 +126,7 @@ function resolveInstitutionCategoryLabel(row: InstitutionMetadataRow): string {
 
 export function buildInstitutionMetaDescription(row: InstitutionMetadataRow | null): string {
   if (!row) {
-    return "Ankara'daki eğitim kurumlarını Merkezden üzerinde keşfedin ve karşılaştırın.";
+    return "Türkiye genelindeki eğitim kurumlarını Merkezden üzerinde keşfedin ve karşılaştırın.";
   }
 
   const about = stripHtmlForMeta(String(row.about ?? ""));
@@ -244,7 +244,7 @@ export async function fetchPublicInstructorForMetadataServer(
 
 export function buildInstructorMetaDescription(row: PublicInstructorRow | null): string {
   if (!row) {
-    return "Ankara'daki özel ders eğitmenlerini Merkezden üzerinde keşfedin ve karşılaştırın.";
+    return "Türkiye genelindeki özel ders eğitmenlerini Merkezden üzerinde keşfedin ve karşılaştırın.";
   }
 
   const about = stripHtmlForMeta(String(row.about ?? ""));
